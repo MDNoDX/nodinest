@@ -4,6 +4,7 @@ import { E2E_DB } from "../../playwright.config";
 
 export async function signUp(page: Page, u: { name: string; email: string; password: string }) {
   await page.goto("/login");
+  await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
   await page.getByLabel("Ism").fill(u.name);
   await page.getByLabel("Email").fill(u.email);
   await page.getByLabel("Parol").fill(u.password);
@@ -13,6 +14,7 @@ export async function signUp(page: Page, u: { name: string; email: string; passw
 
 export async function signIn(page: Page, u: { email: string; password: string }) {
   await page.goto("/login");
+  await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
   await page.getByLabel("Email").fill(u.email);
   await page.getByLabel("Parol").fill(u.password);
   await page.getByRole("button", { name: "Kirish", exact: true }).click();

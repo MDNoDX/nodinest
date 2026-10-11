@@ -1,4 +1,23 @@
-# Deployment guide (Supabase + Google + Gemini + Vercel, $0)
+# Deployment guide ($0)
+
+## Current production (2026-10-12)
+
+- URL: **https://nodinest.vercel.app** — Vercel project `nodinest` (team `mdnodx`), connected to
+  GitHub `MDNoDX/nodinest` (every push to `main` deploys).
+- Database: **Neon** resource `nodinest-db` (Vercel Marketplace, free) — `DATABASE_URL`
+  (pooled) and `DATABASE_URL_UNPOOLED` are injected by the integration. Migrations applied;
+  `nodinest_app` RLS role verified through the pooler.
+- Env set on Vercel (production): `DB_RLS_ROLE`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
+  `GOOGLE_CLIENT_ID/SECRET`, `SUPERADMIN_EMAILS`, `GEMINI_*`, `AI_DAILY_LIMIT_PER_USER`, `UPLOAD_MAX_MB`.
+- Not configured: file storage (no `SUPABASE_*`) → uploads disabled, URL fields work.
+- Google console must list the redirect URI
+  `https://nodinest.vercel.app/api/auth/callback/google`.
+- Migrations against production: `vercel env pull /tmp/.env.prod --environment=production`
+  then `DOTENV_PATH=/tmp/.env.prod npm run db:migrate` (delete the file afterwards).
+
+The original Supabase-based guide follows; Neon works the same way (it is plain Postgres).
+
+# Supabase + Google + Gemini + Vercel
 
 Everything below uses free tiers. Limits change; check each dashboard. At the time of
 writing: **Supabase Free** — 500 MB database, 1 GB file storage, 5 GB egress, 2 active

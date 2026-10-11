@@ -126,7 +126,13 @@
     "signUp": "Create local account",
     "signingIn": "Signing in…",
     "failed": "Sign-in failed. Check your details and try again.",
-    "privacyNote": "Your notes, sessions and reflections are private by default."
+    "privacyNote": "Your notes, sessions and reflections are private by default.",
+    "features": {
+      "library": "Books, videos, lectures and articles in one place",
+      "notes": "Notes and exact quotations — private to you",
+      "journal": "Your study time, goals and streaks",
+      "assistant": "Gemini assistant: import from links, insights"
+    }
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",

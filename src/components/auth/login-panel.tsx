@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { setLocaleAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -42,6 +42,11 @@ export function LoginPanel({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const google = () =>
     start(async () => {
@@ -69,7 +74,7 @@ export function LoginPanel({
     });
 
   return (
-    <div className="card p-6 shadow-sm">
+    <div className="card p-6 shadow-sm" data-hydrated={hydrated ? "true" : undefined}>
       <div className="flex flex-col gap-3">
         <Button
           size="lg"

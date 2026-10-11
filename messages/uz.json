@@ -126,7 +126,13 @@
     "signUp": "Lokal hisob yaratish",
     "signingIn": "Kirilmoqda…",
     "failed": "Kirish amalga oshmadi. Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",
-    "privacyNote": "Qaydlaringiz, sessiyalaringiz va fikrlaringiz sukut bo‘yicha shaxsiy."
+    "privacyNote": "Qaydlaringiz, sessiyalaringiz va fikrlaringiz sukut bo‘yicha shaxsiy.",
+    "features": {
+      "library": "Kitob, video, ma’ruza va maqolalar bir joyda",
+      "notes": "Qaydlar va aynan iqtiboslar — faqat sizga ko‘rinadi",
+      "journal": "O‘qish vaqtingiz, maqsadlar va ketma-ketliklar",
+      "assistant": "Gemini yordamchisi: havoladan import va tahlil"
+    }
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
