@@ -12,7 +12,14 @@ export async function signUp(page: Page, u: { name: string; email: string; passw
   await expect(page).toHaveURL("/");
 }
 
-export async function signIn(page: Page, u: { email: string; password: string }) {
+export async function signIn(page: Page, u: { email: string; password: string; name?: string }) {
+  // Make tests independent of order: create the account if it doesn't exist yet.
+  await page.request.post("/api/auth/sign-up/email", {
+    data: { email: u.email, password: u.password, name: u.name ?? u.email.split("@")[0] },
+    headers: { origin: "http://localhost:3200" },
+    failOnStatusCode: false,
+  });
+  await page.context().clearCookies();
   await page.goto("/login");
   await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
   await page.getByLabel("Email").fill(u.email);
