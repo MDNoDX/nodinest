@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."files" ADD CONSTRAINT "files_resource_id_resources_id_fk" FOREIGN KEY ("resource_id") REFERENCES "nodinest"."resources"("id") ON DELETE set null ON UPDATE no action;

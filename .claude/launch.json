@@ -1,0 +1,22 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nodinest-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "-p", "3100"],
+      "port": 3100,
+      "autoPort": false
+    },
+    {
+      "name": "nodinest-dev-ai",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "GEMINI_API_KEY=\"$(cat \"$HOME/Library/Application Support/Nodogram/gemini.key\")\" exec npx next dev -p 3100"
+      ],
+      "port": 3100,
+      "autoPort": false
+    }
+  ]
+}

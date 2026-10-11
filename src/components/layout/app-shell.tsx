@@ -1,0 +1,241 @@
+"use client";
+import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Logo } from "@/components/brand/logo";
+import { cn } from "@/lib/cn";
+import { CommandPalette } from "./command-palette";
+import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
+import { UserMenu } from "./user-menu";
+
+const SIDEBAR_KEY = "nodinest-sidebar";
+function readSidebar() {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === "collapsed";
+  } catch {
+    return false;
+  }
+}
+function writeSidebar(collapsed: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_KEY, collapsed ? "collapsed" : "expanded");
+  } catch {
+    /* storage unavailable */
+  }
+  window.dispatchEvent(new Event("nodinest-sidebar"));
+}
+function subscribeSidebar(cb: () => void) {
+  window.addEventListener("nodinest-sidebar", cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    window.removeEventListener("nodinest-sidebar", cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+type ShellUser = { name: string; email: string; image: string | null; role: "user" | "superadmin" };
+
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavList({
+  items,
+  collapsed,
+  pathname,
+  onNavigate,
+  badge,
+}: {
+  items: NavItem[];
+  collapsed: boolean;
+  pathname: string;
+  onNavigate?: () => void;
+  badge?: Record<string, number>;
+}) {
+  const t = useTranslations("nav");
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {items.map((item) => {
+        const active = isActive(pathname, item.href);
+        const Icon = item.icon;
+        const count = badge?.[item.key];
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              title={collapsed ? t(item.key) : undefined}
+              className={cn(
+                "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors",
+                active
+                  ? "bg-primary-soft text-primary"
+                  : "text-muted hover:bg-surface-2 hover:text-foreground",
+                collapsed && "justify-center px-0",
+              )}
+            >
+              <Icon className="size-[18px] shrink-0" aria-hidden />
+              <span className={cn("truncate", collapsed && "sr-only")}>{t(item.key)}</span>
+              {!!count && !collapsed && (
+                <span className="bg-accent-soft text-accent ml-auto rounded-full px-1.5 text-[11px] font-semibold tabular-nums">
+                  {count}
+                </span>
+              )}
+              {!!count && collapsed && (
+                <span className="bg-accent absolute top-1.5 right-1.5 size-1.5 rounded-full" />
+              )}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function AppShell({
+  user,
+  pendingSuggestions,
+  timerSlot,
+  children,
+}: {
+  user: ShellUser;
+  pendingSuggestions: number;
+  timerSlot: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
+  const pathname = usePathname();
+  const collapsed = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
+  // The drawer remembers the path it was opened on, so navigating closes it.
+  const [openedOn, setOpenedOn] = useState<string | null>(null);
+  const mobileOpen = openedOn === pathname;
+  const setMobileOpen = (open: boolean) => setOpenedOn(open ? pathname : null);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenedOn(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
+  const toggle = () => writeSidebar(!collapsed);
+
+  const secondary = NAV_SECONDARY.filter((i) => !i.admin || user.role === "superadmin");
+  const badge = { suggestions: pendingSuggestions };
+
+  const sidebar = (mobile: boolean) => (
+    <div className="flex h-full flex-col">
+      <div
+        className={cn(
+          "flex h-14 items-center gap-2 px-3",
+          collapsed && !mobile && "justify-center px-0",
+        )}
+      >
+        <Link href="/" className="rounded-md" aria-label="NodiNest">
+          <Logo compact={collapsed && !mobile} />
+        </Link>
+        {mobile && (
+          <button
+            className="text-muted hover:bg-surface-2 ml-auto rounded-md p-2"
+            onClick={() => setMobileOpen(false)}
+            aria-label={t("closeMenu")}
+          >
+            <X className="size-5" />
+          </button>
+        )}
+      </div>
+      <nav aria-label={t("main")} className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-2">
+        <NavList items={NAV_PRIMARY} collapsed={collapsed && !mobile} pathname={pathname} />
+        <div className="border-border mx-2 border-t" />
+        <NavList
+          items={secondary}
+          collapsed={collapsed && !mobile}
+          pathname={pathname}
+          badge={badge}
+        />
+      </nav>
+      {!mobile && (
+        <div className={cn("border-border border-t p-2", collapsed && "flex justify-center")}>
+          <button
+            onClick={toggle}
+            className="text-muted hover:bg-surface-2 hover:text-foreground flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm"
+            aria-label={collapsed ? t("expand") : t("collapse")}
+            aria-expanded={!collapsed}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="mx-auto size-[18px]" />
+            ) : (
+              <PanelLeftClose className="size-[18px]" />
+            )}
+            {!collapsed && <span>{t("collapse")}</span>}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-dvh">
+      <a
+        href="#main"
+        className="bg-surface sr-only z-50 rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        {tc("skipToContent")}
+      </a>
+      <aside
+        className={cn(
+          "border-border bg-surface sticky top-0 hidden h-dvh shrink-0 border-r transition-[width] duration-200 lg:block",
+          collapsed ? "w-[64px]" : "w-[248px]",
+        )}
+      >
+        {sidebar(false)}
+      </aside>
+
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("main")}
+        >
+          <div
+            className="animate-fade-in absolute inset-0 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="border-border bg-surface animate-slide-up absolute inset-y-0 left-0 w-[280px] max-w-[85vw] border-r shadow-2xl">
+            {sidebar(true)}
+          </div>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">
+          <button
+            className="text-muted hover:bg-surface-2 rounded-md p-2 lg:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label={t("openMenu")}
+            aria-expanded={mobileOpen}
+          >
+            <Menu className="size-5" />
+          </button>
+          <Link href="/" className="lg:hidden" aria-label="NodiNest">
+            <Logo compact />
+          </Link>
+          <CommandPalette />
+          <div className="ml-auto flex items-center gap-1.5">
+            {timerSlot}
+            <UserMenu user={user} />
+          </div>
+        </header>
+        <main
+          id="main"
+          className="page-enter mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8"
+        >
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

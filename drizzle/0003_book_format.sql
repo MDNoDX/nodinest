@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."book_details" ADD COLUMN "file_format" text;
