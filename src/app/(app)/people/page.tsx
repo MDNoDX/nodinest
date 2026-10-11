@@ -31,6 +31,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: SP })
   return (
     <>
       <PageHeader
+        section="people"
         title={t("people.title")}
         subtitle={t("people.subtitle")}
         actions={
@@ -99,9 +100,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: SP })
                 >
                   <Avatar name={pr.full_name} image={img} className="size-12 text-sm" />
                   <div className="min-w-0">
-                    <div className="truncate font-serif text-[15px] font-semibold">
-                      {pr.full_name}
-                    </div>
+                    <div className="truncate text-[15px] font-semibold">{pr.full_name}</div>
                     <div className="text-muted truncate text-xs">
                       {[pr.short_description, years].filter(Boolean).join(" · ") ||
                         pr.roles.map((r) => t(`personRoles.${r}`)).join(", ")}

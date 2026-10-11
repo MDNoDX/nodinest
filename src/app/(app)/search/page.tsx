@@ -77,7 +77,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <PageHeader title={t("search.title")} subtitle={t("search.hint")} />
+      <PageHeader section="search" title={t("search.title")} subtitle={t("search.hint")} />
       <AutoSubmitForm className="mb-4 flex flex-col gap-3">
         <div className="relative">
           <Search

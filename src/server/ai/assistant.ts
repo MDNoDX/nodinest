@@ -24,7 +24,7 @@ import {
 
 const MAX_ROUNDS = 5;
 const MAX_MESSAGE_CHARS = 4000;
-const HISTORY_MESSAGES = 12;
+const HISTORY_MESSAGES = 8;
 
 export type AssistantProposal = {
   actionId: string;
@@ -57,11 +57,13 @@ Rules:
 - Keep answers concise and well-structured. Use short markdown lists and **bold** only (no tables, headings or code).`;
 }
 
-export async function aiAvailability(): Promise<{ available: boolean; reason?: string }> {
+export async function aiAvailability(
+  ignorePause = false,
+): Promise<{ available: boolean; reason?: string }> {
   if (!isAiConfigured()) return { available: false, reason: "not_configured" };
   const s = await getAiSettings(db);
   if (!s.enabled) return { available: false, reason: "disabled" };
-  if (s.pausedUntil && new Date(s.pausedUntil) > new Date())
+  if (!ignorePause && s.pausedUntil && new Date(s.pausedUntil) > new Date())
     return { available: false, reason: "quota" };
   return { available: true };
 }
@@ -90,14 +92,24 @@ export async function runAssistant(
   const settings = await getAiSettings(db);
   if (!isAiConfigured()) throw new AppError("AI_UNAVAILABLE", "not_configured");
   if (!settings.enabled) throw new AppError("AI_UNAVAILABLE", "disabled");
-  if (settings.pausedUntil && new Date(settings.pausedUntil) > new Date())
+  if (
+    ctx.role !== "superadmin" &&
+    settings.pausedUntil &&
+    new Date(settings.pausedUntil) > new Date()
+  )
     throw new AppError("AI_QUOTA");
 
   // Burst + daily per-user limits (the daily one is admin-configurable).
-  await enforceRateLimit(db, `aiburst:${ctx.userId}`, 8, 60);
-  const daily = await hitRateLimit(db, `ai:${ctx.userId}`, settings.dailyLimitPerUser, 86_400);
-  if (!daily.allowed)
-    throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
+  // The superadmin is not limited by the app (only by the provider's quota).
+  if (ctx.role !== "superadmin") {
+    await enforceRateLimit(db, `aiburst:${ctx.userId}`, 8, 60);
+    const daily = await hitRateLimit(db, `ai:${ctx.userId}`, settings.dailyLimitPerUser, 86_400);
+    if (!daily.allowed)
+      throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
+  } else {
+    // Still counted for the admin overview, never blocking.
+    await hitRateLimit(db, `ai:${ctx.userId}`, Number.MAX_SAFE_INTEGER, 86_400);
+  }
 
   // Conversation (owned by the user, RLS-protected).
   let conversationId = input.conversationId ?? null;
@@ -156,7 +168,7 @@ export async function runAssistant(
       systemInstruction: systemInstruction(input.locale, input.timeZone, ctx.role === "superadmin"),
       tools,
       temperature: 0.3,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 1536,
     });
     const calls: FunctionCall[] = res.functionCalls ?? [];
     const modelContent = res.candidates?.[0]?.content;
@@ -166,39 +178,40 @@ export async function runAssistant(
     }
     // Echo the model turn back unchanged (keeps thought signatures intact).
     contents.push(modelContent);
-    const responses: Part[] = [];
-    for (const call of calls.slice(0, 6)) {
-      const name = call.name ?? "";
-      let response: Record<string, unknown>;
-      try {
-        if (!isToolName(name) || !allowed.includes(name))
-          throw new AppError("FORBIDDEN", "tool_not_allowed");
-        if (WRITE_TOOLS.includes(name)) {
-          const p = await createProposal(name, call.args ?? {}, ctx, conversationId);
-          proposals.push({ actionId: p.actionId, tool: name, args: p.args, preview: p.preview });
+    // Independent tool calls run in parallel (faster multi-step answers).
+    const responses: Part[] = await Promise.all(
+      calls.slice(0, 6).map(async (call): Promise<Part> => {
+        const name = call.name ?? "";
+        let response: Record<string, unknown>;
+        try {
+          if (!isToolName(name) || !allowed.includes(name))
+            throw new AppError("FORBIDDEN", "tool_not_allowed");
+          if (WRITE_TOOLS.includes(name)) {
+            const p = await createProposal(name, call.args ?? {}, ctx, conversationId!);
+            proposals.push({ actionId: p.actionId, tool: name, args: p.args, preview: p.preview });
+            response = {
+              status: "proposed_awaiting_user_confirmation",
+              possibleDuplicates: p.preview.duplicates ?? [],
+              note: "Not saved yet. Tell the user to review and confirm.",
+            };
+          } else {
+            response = {
+              result: await runReadTool(name, call.args ?? {}, ctx, { timeZone: input.timeZone }),
+            };
+          }
+          trace.push({ tool: name, ok: true });
+        } catch (err) {
+          const e = toActionError(err);
+          const detail = err instanceof Error && e.code === "VALIDATION" ? err.message : undefined;
           response = {
-            status: "proposed_awaiting_user_confirmation",
-            actionId: p.actionId,
-            possibleDuplicates: p.preview.duplicates ?? [],
-            note: "Not saved yet. Tell the user to review and confirm.",
+            error: e.code,
+            detail: detail ?? (err as { issues?: unknown })?.issues ?? undefined,
           };
-        } else {
-          response = {
-            result: await runReadTool(name, call.args ?? {}, ctx, { timeZone: input.timeZone }),
-          };
+          trace.push({ tool: name, ok: false, error: e.code });
         }
-        trace.push({ tool: name, ok: true });
-      } catch (err) {
-        const e = toActionError(err);
-        const detail = err instanceof Error && e.code === "VALIDATION" ? err.message : undefined;
-        response = {
-          error: e.code,
-          detail: detail ?? (err as { issues?: unknown })?.issues ?? undefined,
-        };
-        trace.push({ tool: name, ok: false, error: e.code });
-      }
-      responses.push({ functionResponse: { id: call.id, name, response } });
-    }
+        return { functionResponse: { id: call.id, name, response } };
+      }),
+    );
     contents.push({ role: "user", parts: responses });
     if (round === MAX_ROUNDS - 1) reply = "";
   }

@@ -54,7 +54,7 @@ export function BarChart({
                 <span
                   className={cn(
                     "w-full max-w-7 rounded-t-[4px] transition-opacity",
-                    highlightLast && i === n - 1 ? "bg-accent" : "bg-primary",
+                    highlightLast && i === n - 1 ? "bg-c-violet" : "bg-primary",
                     hover !== null && !active && "opacity-50",
                   )}
                   style={{ height: `${h}%` }}

@@ -20,7 +20,7 @@ export function isAiConfigured() {
 }
 
 export function aiModel() {
-  return process.env.GEMINI_MODEL || "gemini-flash-latest";
+  return process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 }
 
 /**
@@ -29,7 +29,7 @@ export function aiModel() {
  * rate-limited or overloaded the next one is tried. Never a paid provider.
  */
 export function aiModels(): string[] {
-  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-flash-lite-latest")
+  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-flash-latest,gemini-3.8-flash")
     .split(",")
     .map((m) => m.trim())
     .filter((m) => /^[\w.-]+$/.test(m));
@@ -42,6 +42,9 @@ function gemini() {
   client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
   return client;
 }
+
+/** Per-instance memory of models that are out of quota → no wasted round-trips. */
+const cooldown = new Map<string, number>();
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -57,12 +60,17 @@ export async function generate(
 ): Promise<GenerateContentResponse> {
   let quotaDelay = 0;
   let sawQuota = false;
-  for (const model of aiModels()) {
+  const now = Date.now();
+  const models = aiModels();
+  // Skip models that recently hit their quota (unless all of them did).
+  const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
+  for (const model of ready.length ? ready : models) {
     try {
-      return await generateWith(model, contents, config, opts.timeoutMs ?? 30_000);
+      return await generateWith(model, contents, config, opts.timeoutMs ?? 25_000);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         sawQuota = true;
+        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
         quotaDelay = Math.max(quotaDelay, retryDelayFrom(err) ?? 0);
         continue;
       }

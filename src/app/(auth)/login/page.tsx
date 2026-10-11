@@ -24,9 +24,7 @@ export default async function LoginPage() {
       <div className="relative w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <LogoSymbol className="size-16" />
-          <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight">
-            {t("auth.signInTitle")}
-          </h1>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight">{t("auth.signInTitle")}</h1>
           <p className="text-muted mt-2 text-sm">{t("brand.tagline")}</p>
         </div>
         <LoginPanel googleEnabled={authProviders.google} devEnabled={authProviders.devLogin} />

@@ -10,6 +10,7 @@ import {
   Shapes,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { typeHue } from "@/lib/hues";
 
 const TYPE_ICON = {
   book: BookOpen,
@@ -57,10 +58,11 @@ export function Cover({
   return (
     <div
       className={cn(
-        "border-border bg-surface-2 relative shrink-0 overflow-hidden rounded-md border",
+        "border-border bg-surface-2 relative shrink-0 overflow-hidden rounded-lg border",
         dims,
         className,
       )}
+      style={typeHue(type)}
     >
       {src ? (
         <img
@@ -71,10 +73,22 @@ export function Cover({
           className="absolute inset-0 size-full object-cover"
         />
       ) : (
-        <div className="from-primary-soft to-surface-2 text-primary absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br p-2 text-center">
-          <Icon className={cn(size === "sm" ? "size-4" : "size-7", "opacity-80")} aria-hidden />
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 text-center"
+          style={{
+            color: "var(--hue)",
+            background:
+              "linear-gradient(155deg, color-mix(in oklab, var(--hue) 30%, var(--surface)) 0%, color-mix(in oklab, var(--hue) 7%, var(--surface)) 75%)",
+          }}
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-1.5 opacity-60"
+            style={{ background: "var(--hue)" }}
+          />
+          <Icon className={cn(size === "sm" ? "size-4" : "size-8")} aria-hidden />
           {size !== "sm" && (
-            <span className="text-foreground/80 line-clamp-3 font-serif text-xs leading-tight font-medium">
+            <span className="text-foreground/80 line-clamp-3 text-xs leading-tight font-medium">
               {title}
             </span>
           )}

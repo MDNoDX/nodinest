@@ -84,7 +84,9 @@ export async function relateResourcesAction(
 
 export async function importUrlAction(url: string) {
   return run(async ({ ctx }) => {
-    const m = await importUrlMetadata(z.string().max(2048).parse(url), ctx.userId);
+    const m = await importUrlMetadata(z.string().max(2048).parse(url), ctx.userId, {
+      unlimited: ctx.role === "superadmin",
+    });
     // Never return the full page text to the client form.
     const { text: _text, ...rest } = m;
     void _text;

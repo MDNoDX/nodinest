@@ -13,6 +13,7 @@ export default async function NewPersonPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        section="people"
         title={t("person.newTitle")}
         subtitle={
           user.role === "superadmin"

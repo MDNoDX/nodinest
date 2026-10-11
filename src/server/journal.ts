@@ -451,7 +451,7 @@ export async function listMyRecords(database: Database, ctx: AppContext, status?
         coverUrl: resources.coverUrl,
         coverFileId: resources.coverFileId,
         totalSeconds: sql<number>`(select coalesce(sum(s.active_seconds), 0)::int from nodinest.study_sessions s
-          where s.user_id = ${ctx.userId} and s.resource_id = ${learningRecords.resourceId}
+          where s.user_id = ${ctx.userId} and s.resource_id = "learning_records"."resource_id"
             and s.status = 'completed' and s.deleted_at is null)`,
       })
       .from(learningRecords)

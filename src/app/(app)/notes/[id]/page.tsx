@@ -55,9 +55,7 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
           {fmtDateTime(note.createdAt, locale, tz)}
         </span>
       </div>
-      {note.title && (
-        <h1 className="mb-4 font-serif text-3xl font-semibold tracking-tight">{note.title}</h1>
-      )}
+      {note.title && <h1 className="mb-4 text-3xl font-semibold tracking-tight">{note.title}</h1>}
       {note.kind === "quote" && (
         <figure className="mb-6">
           <blockquote className="border-accent border-l-4 py-1 pl-5 font-serif text-2xl leading-relaxed italic">

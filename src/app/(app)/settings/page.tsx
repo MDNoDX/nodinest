@@ -25,7 +25,11 @@ export default async function SettingsPage() {
   const used = storage ? await storageUsage(ctx) : 0;
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
+      <PageHeader
+        section="settings"
+        title={t("settings.title")}
+        subtitle={t("settings.subtitle")}
+      />
       <div className="flex flex-col gap-6">
         <Card>
           <CardHeader title={t("settings.profile")} />

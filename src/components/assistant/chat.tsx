@@ -221,7 +221,7 @@ export function Chat({
   initialActions: ChatAction[];
   available: boolean;
   unavailableReason?: string;
-  dailyLimit: number;
+  dailyLimit: number | null;
 }) {
   const t = useTranslations("assistant");
   const te = useTranslations("errors");
@@ -402,7 +402,7 @@ export function Chat({
           </Button>
         </div>
         <p className="text-muted mt-1.5 text-center text-[11px]">
-          {t("limitNote", { limit: dailyLimit })}
+          {dailyLimit === null ? t("unlimitedNote") : t("limitNote", { limit: dailyLimit })}
         </p>
       </form>
     </div>

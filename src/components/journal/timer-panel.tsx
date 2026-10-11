@@ -74,11 +74,7 @@ export function TimerPanel({ session }: { session: OpenSessionDTO | null }) {
         <div className="text-muted text-xs font-medium tracking-wide uppercase">
           {session.status === "active" ? t("active") : t("paused")}
         </div>
-        <div
-          className="mt-1 font-serif text-5xl font-semibold tabular-nums"
-          role="timer"
-          aria-live="off"
-        >
+        <div className="mt-1 text-5xl font-semibold tabular-nums" role="timer" aria-live="off">
           {formatClock(seconds)}
         </div>
         <div className="text-muted mt-1 truncate text-sm">

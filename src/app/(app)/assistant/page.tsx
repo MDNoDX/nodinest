@@ -16,12 +16,12 @@ export async function generateMetadata() {
 }
 
 export default async function AssistantPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db } = await pageContext();
+  const { ctx, db, user } = await pageContext();
   const t = await getTranslations("assistant");
   const c = sp((await searchParams).c);
   const [convs, avail, settings, conv] = await Promise.all([
     listConversations(ctx),
-    aiAvailability(),
+    aiAvailability(user.role === "superadmin"),
     getAiSettings(db),
     c && /^[0-9a-f-]{36}$/i.test(c) ? getConversation(ctx, c) : Promise.resolve(null),
   ]);
@@ -56,6 +56,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
   return (
     <>
       <PageHeader
+        section="assistant"
         title={t("title")}
         subtitle={t("subtitle")}
         actions={
@@ -98,7 +99,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           initialActions={actions}
           available={avail.available}
           unavailableReason={avail.reason}
-          dailyLimit={settings.dailyLimitPerUser}
+          dailyLimit={user.role === "superadmin" ? null : settings.dailyLimitPerUser}
         />
       </div>
     </>

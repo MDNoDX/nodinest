@@ -17,7 +17,7 @@ export default async function EditNotePage({ params }: { params: Promise<{ id: s
   const s = (x: string | number | null) => (x == null ? "" : String(x));
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title={t("editTitle")} />
+      <PageHeader section="notes" title={t("editTitle")} />
       <NoteForm
         noteId={id}
         initial={{

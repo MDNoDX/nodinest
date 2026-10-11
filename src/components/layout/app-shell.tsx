@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";
+import { hueStyle, SECTION_HUE } from "@/lib/hues";
 import { CommandPalette } from "./command-palette";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
@@ -68,15 +69,30 @@ function NavList({
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               title={collapsed ? t(item.key) : undefined}
+              style={hueStyle(SECTION_HUE[item.key] ?? "blue")}
               className={cn(
-                "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-colors",
+                "group relative flex h-10 items-center gap-3 rounded-xl px-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-primary-soft text-primary"
+                  ? "hue-soft text-foreground shadow-sm"
                   : "text-muted hover:bg-surface-2 hover:text-foreground",
                 collapsed && "justify-center px-0",
               )}
             >
-              <Icon className="size-[18px] shrink-0" aria-hidden />
+              {active && !collapsed && (
+                <span
+                  aria-hidden
+                  className="hue-bar absolute top-2 bottom-2 -left-2 w-1 rounded-r-full"
+                />
+              )}
+              <span
+                aria-hidden
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center rounded-lg transition-colors",
+                  active ? "chip" : "text-[var(--hue)] opacity-80 group-hover:opacity-100",
+                )}
+              >
+                <Icon className="size-[17px]" />
+              </span>
               <span className={cn("truncate", collapsed && "sr-only")}>{t(item.key)}</span>
               {!!count && !collapsed && (
                 <span className="bg-accent-soft text-accent ml-auto rounded-full px-1.5 text-[11px] font-semibold tabular-nums">

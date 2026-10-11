@@ -1,11 +1,13 @@
-import { NotebookPen, Plus, Quote } from "lucide-react";
+import { FileText, Layers, NotebookPen, Plus, Quote, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { NoteRowActions } from "@/components/notes/note-row-actions";
 import { Button } from "@/components/ui/button";
-import { Badge, EmptyState, PageHeader, Pagination } from "@/components/ui/misc";
+import { Badge, EmptyState, HueBadge, PageHeader, Pagination } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { fmtDate } from "@/lib/format";
+import { hueFor, hueStyle, TYPE_HUE } from "@/lib/hues";
+import { normalizeTag } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { listMyTags, listNotes } from "@/server/notes";
 
@@ -31,21 +33,22 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
     listMyTags(db, ctx),
   ]);
   const tabs = [
-    ["all", t("notes.all")],
-    ["notes", t("notes.onlyNotes")],
-    ["quotes", t("notes.onlyQuotes")],
-    ["trash", t("notes.trash")],
+    ["all", t("notes.all"), Layers, "blue"],
+    ["notes", t("notes.onlyNotes"), FileText, "teal"],
+    ["quotes", t("notes.onlyQuotes"), Quote, "violet"],
+    ["trash", t("notes.trash"), Trash2, "slate"],
   ] as const;
   const href = (o: Record<string, string | null>) => {
     const u = new URLSearchParams();
-    const merged = { tab, tag, ...o };
-    for (const [k, val] of Object.entries(merged))
+    for (const [k, val] of Object.entries({ tab, tag, ...o }))
       if (val && !(k === "tab" && val === "all")) u.set(k, val);
     return `/notes${u.size ? `?${u}` : ""}`;
   };
+
   return (
     <>
       <PageHeader
+        section="notes"
         title={t("notes.title")}
         subtitle={t("notes.subtitle")}
         actions={
@@ -63,90 +66,143 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
           </>
         }
       />
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <nav className="bg-surface-2 inline-flex rounded-lg p-1" aria-label={t("common.filters")}>
-          {tabs.map(([k, label]) => (
-            <Link
-              key={k}
-              href={href({ tab: k, page: null })}
-              aria-current={tab === k ? "page" : undefined}
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm font-medium",
-                tab === k ? "bg-surface shadow-sm" : "text-muted hover:text-foreground",
-              )}
-            >
-              {label}
-            </Link>
-          ))}
+
+      <div className="mb-6 flex flex-col gap-3">
+        <nav className="flex flex-wrap gap-2" aria-label={t("common.filters")}>
+          {tabs.map(([k, label, Icon, hue]) => {
+            const on = tab === k;
+            return (
+              <Link
+                key={k}
+                href={href({ tab: k, page: null })}
+                aria-current={on ? "page" : undefined}
+                style={hueStyle(hue)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  on
+                    ? "chip hue-border"
+                    : "border-border bg-surface text-muted hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" style={{ color: "var(--hue)" }} /> {label}
+              </Link>
+            );
+          })}
         </nav>
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {tags.map((tg) => (
-              <Link
-                key={tg.id}
-                href={href({ tag: tag === tg.normalized ? null : tg.normalized, page: null })}
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-xs",
-                  tag === tg.normalized
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-surface-2 text-muted hover:text-foreground",
-                )}
-              >
-                #{tg.name} <span className="opacity-70">{tg.count}</span>
-              </Link>
-            ))}
+            {tags.map((tg) => {
+              const on = tag === tg.normalized;
+              return (
+                <Link
+                  key={tg.id}
+                  href={href({ tag: on ? null : tg.normalized, page: null })}
+                  style={hueStyle(hueFor(tg.normalized))}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-opacity",
+                    on ? "hue-bar text-white" : "chip opacity-90 hover:opacity-100",
+                  )}
+                >
+                  #{tg.name} <span className="opacity-70">{tg.count}</span>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
+
       {data.items.length === 0 ? (
         <EmptyState
+          hue="violet"
           icon={<NotebookPen />}
           title={t("notes.emptyTitle")}
           body={t("notes.emptyBody")}
           action={
-            <Button asChild>
-              <Link href="/notes/new">
-                <Plus /> {t("notes.new")}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link href="/notes/new">
+                  <Plus /> {t("notes.new")}
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/notes/new?kind=quote">
+                  <Quote /> {t("notes.newQuote")}
+                </Link>
+              </Button>
+            </div>
           }
         />
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {data.items.map((n) => (
-            <li key={n.id} className="card flex flex-col p-4">
-              <Link href={`/notes/${n.id}`} className="flex-1 hover:opacity-90">
-                {n.kind === "quote" ? (
-                  <blockquote className="border-accent line-clamp-5 border-l-2 pl-3 font-serif text-[15px] leading-relaxed italic">
-                    “{n.quoteText}”
-                  </blockquote>
-                ) : (
-                  <>
-                    {n.title && <h2 className="font-serif text-[15px] font-semibold">{n.title}</h2>}
-                    <p className="text-foreground/85 mt-1 line-clamp-4 text-sm">{n.body}</p>
-                  </>
-                )}
-                {n.kind === "quote" && n.body && (
-                  <p className="text-muted mt-2 line-clamp-2 text-sm">{n.body}</p>
-                )}
-              </Link>
-              <div className="text-muted mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-                {n.personName && <span>{t("notes.attributed", { name: n.personName })}</span>}
-                {n.resourceTitle && (
-                  <Link href={`/library/${n.resourceId}`} className="truncate hover:underline">
-                    {n.resourceTitle}
+        <ul className="columns-1 gap-4 md:columns-2 xl:columns-3">
+          {data.items.map((n) => {
+            const hue =
+              n.kind === "quote"
+                ? n.resourceType
+                  ? TYPE_HUE[n.resourceType]
+                  : "violet"
+                : n.tagNames[0]
+                  ? hueFor(normalizeTag(n.tagNames[0]))
+                  : "blue";
+            return (
+              <li key={n.id} className="mb-4 break-inside-avoid" style={hueStyle(hue)}>
+                <article className="card group relative overflow-hidden transition-shadow hover:shadow-md">
+                  <span aria-hidden className="hue-bar absolute inset-y-0 left-0 w-1" />
+                  <Link href={`/notes/${n.id}`} className="block px-5 pt-4 pb-3">
+                    {n.kind === "quote" ? (
+                      <>
+                        <Quote
+                          aria-hidden
+                          className="mb-1 size-6"
+                          style={{ color: "var(--hue)" }}
+                        />
+                        <blockquote className="font-serif text-[16px] leading-relaxed italic">
+                          {n.quoteText}
+                        </blockquote>
+                        {n.body && (
+                          <p className="text-muted border-border mt-3 line-clamp-3 border-t border-dashed pt-2 text-sm">
+                            {n.body}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {n.title && (
+                          <h2 className="text-[15px] font-semibold tracking-tight">{n.title}</h2>
+                        )}
+                        <p className="text-foreground/80 mt-1 line-clamp-6 text-sm leading-relaxed whitespace-pre-line">
+                          {n.body}
+                        </p>
+                      </>
+                    )}
                   </Link>
-                )}
-                {n.pageFrom != null && <span>· {t("notes.page", { page: n.pageFrom })}</span>}
-                {n.visibility === "public" && <Badge tone="info">{t("common.public")}</Badge>}
-                {n.tagNames.map((tg) => (
-                  <span key={tg}>#{tg}</span>
-                ))}
-                <span className="ml-auto">{fmtDate(n.createdAt, locale, tz)}</span>
-                {tab === "trash" && <NoteRowActions id={n.id} />}
-              </div>
-            </li>
-          ))}
+                  <footer className="hue-soft border-border flex flex-wrap items-center gap-1.5 border-t px-5 py-2.5 text-xs">
+                    {n.personName && (
+                      <span className="font-medium">
+                        {t("notes.attributed", { name: n.personName })}
+                      </span>
+                    )}
+                    {n.resourceTitle && (
+                      <Link
+                        href={`/library/${n.resourceId}`}
+                        className="text-muted max-w-[14rem] truncate hover:underline"
+                      >
+                        {n.resourceTitle}
+                        {n.pageFrom != null && ` · ${t("notes.page", { page: n.pageFrom })}`}
+                      </Link>
+                    )}
+                    {n.visibility === "public" && <Badge tone="info">{t("common.public")}</Badge>}
+                    {n.tagNames.map((tg) => (
+                      <HueBadge key={tg} hue={hueFor(normalizeTag(tg))} className="px-1.5 py-0">
+                        #{tg}
+                      </HueBadge>
+                    ))}
+                    <span className="text-muted ml-auto">{fmtDate(n.createdAt, locale, tz)}</span>
+                    {tab === "trash" && <NoteRowActions id={n.id} />}
+                  </footer>
+                </article>
+              </li>
+            );
+          })}
         </ul>
       )}
       <Pagination

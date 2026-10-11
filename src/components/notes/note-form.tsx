@@ -1,5 +1,5 @@
 "use client";
-import { X } from "lucide-react";
+import { FileText, Quote, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -12,6 +12,8 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import type { FieldErrors } from "@/lib/errors";
 import { useAction } from "@/lib/use-action";
+import { cn } from "@/lib/cn";
+import { hueStyle } from "@/lib/hues";
 
 export type NoteFormValue = {
   kind: "note" | "quote";
@@ -100,32 +102,53 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
         );
       }}
     >
-      <section className="card flex flex-col gap-4 p-5">
-        <div
-          role="radiogroup"
-          aria-label={t("notes.kind")}
-          className="bg-surface-2 inline-flex w-fit rounded-lg p-1"
-        >
-          {(["note", "quote"] as const).map((k) => (
+      <div role="radiogroup" aria-label={t("notes.kind")} className="grid grid-cols-2 gap-3">
+        {(
+          [
+            ["note", FileText, "teal", t("notes.kindNote"), t("notes.kindNoteHint")],
+            ["quote", Quote, "violet", t("notes.kindQuote"), t("notes.kindQuoteHint")],
+          ] as const
+        ).map(([k, Icon, hue, label, hint]) => {
+          const on = v.kind === k;
+          return (
             <button
               key={k}
               type="button"
               role="radio"
-              aria-checked={v.kind === k}
+              aria-checked={on}
               onClick={() => set("kind", k)}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium ${v.kind === k ? "bg-surface shadow-sm" : "text-muted"}`}
+              style={hueStyle(hue)}
+              className={cn(
+                "flex items-start gap-3 rounded-2xl border p-4 text-left transition-all",
+                on
+                  ? "hue-soft hue-border shadow-sm ring-2 ring-[var(--hue)]/35"
+                  : "border-border bg-surface hover:-translate-y-0.5 hover:shadow-sm",
+              )}
             >
-              {k === "note" ? t("notes.kindNote") : t("notes.kindQuote")}
+              <span className="chip grid size-10 shrink-0 place-items-center rounded-xl">
+                <Icon className="size-5" />
+              </span>
+              <span>
+                <span className="block text-[15px] font-semibold">{label}</span>
+                <span className="text-muted block text-xs">{hint}</span>
+              </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
+      </div>
+
+      <section
+        className="card relative flex flex-col gap-4 overflow-hidden p-5 sm:p-6"
+        style={hueStyle(isQuote ? "violet" : "teal")}
+      >
+        <span aria-hidden className="hue-bar absolute inset-x-0 top-0 h-1" />
         {isQuote && (
           <Field label={t("notes.quoteText")} hint={t("notes.quoteHint")} error={errors.quoteText}>
             {(p) => (
               <Textarea
                 {...p}
                 rows={4}
-                className="font-serif text-base italic"
+                className="hue-soft border-l-4 border-l-[var(--hue)] font-serif text-lg leading-relaxed italic"
                 value={v.quoteText}
                 onChange={(e) => set("quoteText", e.target.value)}
               />
@@ -152,7 +175,7 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
         </Field>
       </section>
 
-      <section className="card grid gap-4 p-5 sm:grid-cols-2">
+      <section className="card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
         <Field label={t("notes.resource")} optional className="sm:col-span-2">
           {(p) =>
             v.resource ? (

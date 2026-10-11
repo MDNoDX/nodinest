@@ -105,7 +105,11 @@ function parseIsoDuration(v: unknown): number | null {
   return s > 0 ? Math.round(s) : null;
 }
 
-export async function importUrlMetadata(rawUrl: string, userId: string): Promise<ImportedMetadata> {
+export async function importUrlMetadata(
+  rawUrl: string,
+  userId: string,
+  opts: { unlimited?: boolean } = {},
+): Promise<ImportedMetadata> {
   const check = checkPublicUrl(rawUrl.trim());
   if (!check.ok) throw new AppError("URL_BLOCKED", check.reason);
   const url = check.url;
@@ -114,7 +118,7 @@ export async function importUrlMetadata(rawUrl: string, userId: string): Promise
   const cached = await readCache<ImportedMetadata>(key);
   if (cached) return cached;
 
-  await enforceRateLimit(db, `urlimport:${userId}`, 20, 3600);
+  if (!opts.unlimited) await enforceRateLimit(db, `urlimport:${userId}`, 20, 3600);
   await enforceRateLimit(db, `urlhost:${url.hostname}`, 30, 60);
 
   const base: ImportedMetadata = {

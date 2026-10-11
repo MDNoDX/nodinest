@@ -21,6 +21,7 @@ export default async function NewResourcePage({ searchParams }: { searchParams: 
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        section="library"
         title={t("newTitle")}
         subtitle={user.role === "superadmin" ? t("newSubtitleAdmin") : t("newSubtitleUser")}
       />

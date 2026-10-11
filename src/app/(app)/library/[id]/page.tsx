@@ -9,7 +9,7 @@ import { CollectionPicker } from "@/components/library/collection-picker";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { RecordForm } from "@/components/library/record-form";
 import { Button } from "@/components/ui/button";
-import { Badge, Card, CardHeader } from "@/components/ui/misc";
+import { Badge, Card, CardHeader, TypeBadge } from "@/components/ui/misc";
 import { formatPartialDate } from "@/lib/dates";
 import { fmtDate, fmtMinutes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
@@ -128,12 +128,10 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="primary">{t(`types.${r.type}`)}</Badge>
+            <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
             {d.record && <Badge tone="accent">{t(`status.${d.record.status}`)}</Badge>}
           </div>
-          <h1 className="mt-2 font-serif text-3xl leading-tight font-semibold tracking-tight">
-            {r.title}
-          </h1>
+          <h1 className="mt-2 text-3xl leading-tight font-semibold tracking-tight">{r.title}</h1>
           {d.contributors.length > 0 && (
             <p className="text-muted mt-2 text-sm">
               {d.contributors.map((c, i) => (
@@ -373,13 +371,13 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
             <div className="grid grid-cols-2 gap-3 px-5 pb-4">
               <div>
                 <div className="text-muted text-xs">{t("resource.totalTime")}</div>
-                <div className="font-serif text-xl font-semibold">
+                <div className="text-xl font-semibold">
                   {fmtMinutes(d.myTotals.seconds, locale)}
                 </div>
               </div>
               <div>
                 <div className="text-muted text-xs">{t("stats.sessions")}</div>
-                <div className="font-serif text-xl font-semibold">
+                <div className="text-xl font-semibold">
                   {t("resource.sessionsCount", { count: d.myTotals.sessions })}
                 </div>
               </div>

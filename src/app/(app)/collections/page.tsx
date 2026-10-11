@@ -25,6 +25,7 @@ export default async function CollectionsPage() {
   return (
     <>
       <PageHeader
+        section="collections"
         title={t("collections.title")}
         subtitle={t("collections.subtitle")}
         actions={<CollectionDialog />}
@@ -40,7 +41,7 @@ export default async function CollectionsPage() {
                 className="card hover:border-border-strong block p-4"
               >
                 <div className="text-sm font-medium">{t(`status.${s.key}`)}</div>
-                <div className="mt-1 font-serif text-2xl font-semibold tabular-nums">{s.count}</div>
+                <div className="mt-1 text-2xl font-semibold tabular-nums">{s.count}</div>
               </Link>
             </li>
           ))}
@@ -59,7 +60,7 @@ export default async function CollectionsPage() {
                   <FolderHeart className="size-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate font-serif text-[15px] font-semibold">
+                  <span className="block truncate text-[15px] font-semibold">
                     {c.name ?? t(`collections.system.${c.systemKey}`)}
                   </span>
                   {c.description && (

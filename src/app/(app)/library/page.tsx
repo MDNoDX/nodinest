@@ -5,7 +5,7 @@ import { Cover, coverSrc } from "@/components/library/cover";
 import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { Badge, EmptyState, PageHeader, Pagination } from "@/components/ui/misc";
+import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
 import { formatPartialDate } from "@/lib/dates";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
@@ -85,6 +85,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
   return (
     <>
       <PageHeader
+        section="library"
         title={t("library.title")}
         subtitle={t("library.subtitle")}
         actions={
@@ -205,16 +206,14 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
                   className="aspect-[2/3] h-auto w-full transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-muted text-[11px] font-medium tracking-wide uppercase">
-                    {t(`types.${r.type}`)}
-                  </span>
+                  <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
                   {r.myStatus && (
                     <Badge tone={STATUS_TONE[r.myStatus as keyof typeof STATUS_TONE]}>
                       {t(`status.${r.myStatus}`)}
                     </Badge>
                   )}
                 </div>
-                <h2 className="mt-1 line-clamp-2 font-serif text-[15px] leading-snug font-semibold group-hover:underline">
+                <h2 className="mt-1 line-clamp-2 text-[15px] leading-snug font-semibold group-hover:underline">
                   {r.title}
                 </h2>
                 {r.contributors && (

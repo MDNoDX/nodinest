@@ -24,6 +24,7 @@ export default async function PlansPage({ searchParams }: { searchParams: SP }) 
   return (
     <>
       <PageHeader
+        section="plans"
         title={t("plans.title")}
         subtitle={t("plans.subtitle")}
         actions={<GoalDialog />}

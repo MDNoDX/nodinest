@@ -961,7 +961,7 @@ export async function listCategories(database: Database, ctx: AppContext, includ
         deletedAt: categories.deletedAt,
         count: sql<number>`(select count(*)::int from nodinest.resource_categories rc
           join nodinest.resources r on r.id = rc.resource_id and r.deleted_at is null
-          where rc.category_id = ${categories.id})`,
+          where rc.category_id = "categories"."id")`,
       })
       .from(categories)
       .where(includeArchived ? undefined : isNull(categories.deletedAt))

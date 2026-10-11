@@ -43,7 +43,7 @@ export default async function JournalPage({ searchParams }: { searchParams: SP }
   }
   return (
     <>
-      <PageHeader title={t("journal.title")} subtitle={t("journal.subtitle")} />
+      <PageHeader section="journal" title={t("journal.title")} subtitle={t("journal.subtitle")} />
       <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
         <div className="flex flex-col gap-6">
           <Card>

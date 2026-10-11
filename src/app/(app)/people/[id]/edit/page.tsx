@@ -20,6 +20,7 @@ export default async function EditPersonPage({ params }: { params: Promise<{ id:
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        section="people"
         title={user.role === "superadmin" ? t("person.editTitle") : t("resource.suggestEdit")}
         subtitle={
           user.role === "superadmin"

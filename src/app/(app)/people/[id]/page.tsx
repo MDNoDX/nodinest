@@ -56,7 +56,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <Avatar name={p.fullName} image={img} className="size-28 text-2xl" />
         <div className="min-w-0 flex-1">
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">{p.fullName}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{p.fullName}</h1>
           {p.shortDescription && <p className="text-muted mt-1">{p.shortDescription}</p>}
           <div className="mt-3 flex flex-wrap gap-1.5">
             {p.roles.map((r) => (

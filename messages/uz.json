@@ -343,7 +343,8 @@
     "published": "Nashr etilgan",
     "pages": "{count} sahifa",
     "durationValue": "Davomiyligi",
-    "archivedBanner": "Bu manba arxivlangan."
+    "archivedBanner": "Bu manba arxivlangan.",
+    "whatType": "Nima qo‘shyapsiz?"
   },
   "record": {
     "status": "Holati",
@@ -443,7 +444,9 @@
     "page": "{page}-bet",
     "pages": "{from}–{to}-betlar",
     "readOnly": "Boshqa foydalanuvchi ulashgan (faqat o‘qish).",
-    "attributed": "— {name}"
+    "attributed": "— {name}",
+    "kindNoteHint": "Fikr, xulosa yoki konspekt",
+    "kindQuoteHint": "Kitob yoki ma’ruzadan aynan ko‘chirma"
   },
   "collections": {
     "title": "To‘plamlar",
@@ -602,7 +605,8 @@
     },
     "usedTools": "Ishlatildi: {tools}",
     "you": "Siz",
-    "ai": "NodiNest AI"
+    "ai": "NodiNest AI",
+    "unlimitedNote": "Bosh administrator: ilova cheklovi yo‘q (faqat Google bepul kvotasi amal qiladi)."
   },
   "stats": {
     "title": "Tahlillar",

@@ -78,6 +78,7 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        section="library"
         title={user.role === "superadmin" ? t("editTitle") : t("suggestEdit")}
         subtitle={user.role === "superadmin" ? t("newSubtitleAdmin") : t("newSubtitleUser")}
       />

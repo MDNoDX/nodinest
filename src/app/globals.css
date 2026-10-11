@@ -7,70 +7,83 @@
    Forest green identity, warm off-white surfaces, muted sand/gold accent,
    charcoal-green dark theme. Contrast checked for WCAG AA on body text. */
 :root {
-  --background: #f7f4ec;
-  --surface: #fffdf8;
-  --surface-2: #f0ece1;
-  --surface-3: #e8e2d4;
-  --foreground: #18211c;
-  --muted-foreground: #56635b;
-  --border: #e2dccd;
-  --border-strong: #cfc7b4;
-  --primary: #1f4d3a;
-  --primary-hover: #173d2e;
-  --primary-foreground: #f7f4ec;
-  --primary-soft: #e3ece5;
-  --accent: #8a6a2c;
-  --accent-soft: #f2e8d2;
-  --ring: #2f6b52;
-  --success: #2c6e49;
-  --success-soft: #e1efe5;
-  --warning: #8a5a00;
-  --warning-soft: #f8ecd2;
-  --danger: #a3302a;
-  --danger-soft: #f7e1de;
-  --info: #2b5c8a;
-  --info-soft: #e1ebf4;
-  --chart-1: #1f4d3a;
-  --chart-2: #b8934a;
-  --chart-3: #5f8f78;
-  --chart-4: #7a6a9a;
-  --chart-5: #b5654a;
-  --chart-6: #3f7a99;
-  --shadow-color: 30 25 10;
-  --radius: 0.75rem;
+  --background: #f5f7fc;
+  --surface: #ffffff;
+  --surface-2: #eef2fa;
+  --surface-3: #e2e8f5;
+  --foreground: #0f172a;
+  --muted-foreground: #556079;
+  --border: #e1e6f0;
+  --border-strong: #c9d2e3;
+  --primary: #2459e0;
+  --primary-hover: #1c47b8;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e6eeff;
+  --accent: #b45309;
+  --accent-soft: #fef3c7;
+  --ring: #3b6ff0;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --warning: #a16207;
+  --warning-soft: #fef9c3;
+  --danger: #c2261d;
+  --danger-soft: #fee4e2;
+  --info: #0369a1;
+  --info-soft: #e0f2fe;
+  /* Per resource-type / section hues (identity, never status). */
+  --c-blue: #2459e0;
+  --c-indigo: #5146e5;
+  --c-violet: #7c3aed;
+  --c-rose: #e11d48;
+  --c-orange: #ea580c;
+  --c-amber: #d97706;
+  --c-teal: #0d9488;
+  --c-emerald: #059669;
+  --c-sky: #0284c7;
+  --c-slate: #64748b;
+  --hero-from: #2459e0;
+  --hero-to: #7c3aed;
+  --shadow-color: 15 23 42;
+  --radius: 0.875rem;
   color-scheme: light;
 }
 
 .dark {
-  --background: #0f1512;
-  --surface: #151d19;
-  --surface-2: #1b2520;
-  --surface-3: #233029;
-  --foreground: #e8e5dc;
-  --muted-foreground: #a2aca5;
-  --border: #26322b;
-  --border-strong: #34433a;
-  --primary: #7cbf9b;
-  --primary-hover: #93cfae;
-  --primary-foreground: #0d1a13;
-  --primary-soft: #1d3329;
-  --accent: #d6bb7e;
-  --accent-soft: #33291a;
-  --ring: #7cbf9b;
-  --success: #7cc79a;
-  --success-soft: #19301f;
-  --warning: #e3b45f;
-  --warning-soft: #33280f;
-  --danger: #ee8a80;
-  --danger-soft: #3a1c1a;
-  --info: #8db8e0;
-  --info-soft: #172938;
-  --chart-1: #7cbf9b;
-  --chart-2: #d6bb7e;
-  --chart-3: #4f8a70;
-  --chart-4: #a596c8;
-  --chart-5: #d98f73;
-  --chart-6: #79b3d1;
+  --background: #0a0f1f;
+  --surface: #10172d;
+  --surface-2: #161f3b;
+  --surface-3: #1e2a4d;
+  --foreground: #e7ebf6;
+  --muted-foreground: #9aa5c2;
+  --border: #1f2a4a;
+  --border-strong: #2d3a63;
+  --primary: #6f9dff;
+  --primary-hover: #8fb3ff;
+  --primary-foreground: #0a0f1f;
+  --primary-soft: #18264f;
+  --accent: #fbbf24;
+  --accent-soft: #3a2b0d;
+  --ring: #6f9dff;
+  --success: #4ade80;
+  --success-soft: #11301f;
+  --warning: #facc15;
+  --warning-soft: #33290b;
+  --danger: #f87171;
+  --danger-soft: #3b1515;
+  --info: #38bdf8;
+  --info-soft: #0c2a3d;
+  --c-blue: #6f9dff;
+  --c-indigo: #8b85ff;
+  --c-violet: #b18cff;
+  --c-rose: #fb7192;
+  --c-orange: #fb923c;
+  --c-amber: #fbbf24;
+  --c-teal: #2dd4bf;
+  --c-emerald: #34d399;
+  --c-sky: #38bdf8;
+  --c-slate: #94a3b8;
+  --hero-from: #1d3a8f;
+  --hero-to: #4c1d95;
   --shadow-color: 0 0 0;
   color-scheme: dark;
 }
@@ -99,6 +112,16 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-c-blue: var(--c-blue);
+  --color-c-indigo: var(--c-indigo);
+  --color-c-violet: var(--c-violet);
+  --color-c-rose: var(--c-rose);
+  --color-c-orange: var(--c-orange);
+  --color-c-amber: var(--c-amber);
+  --color-c-teal: var(--c-teal);
+  --color-c-emerald: var(--c-emerald);
+  --color-c-sky: var(--c-sky);
+  --color-c-slate: var(--c-slate);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-serif-display), ui-serif, Georgia, serif;
   --radius-card: var(--radius);
@@ -185,7 +208,36 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: 0 1px 2px rgb(var(--shadow-color) / 0.04);
+    box-shadow:
+      0 1px 2px rgb(var(--shadow-color) / 0.04),
+      0 4px 16px -8px rgb(var(--shadow-color) / 0.08);
+  }
+  /* Colour chip driven by --hue (set inline or via .hue-* classes). */
+  .chip {
+    color: var(--hue);
+    background: color-mix(in oklab, var(--hue) 13%, transparent);
+  }
+  .hue-border {
+    border-color: color-mix(in oklab, var(--hue) 35%, var(--border));
+  }
+  .hue-bar {
+    background: var(--hue);
+  }
+  .hue-soft {
+    background: color-mix(in oklab, var(--hue) 8%, var(--surface));
+  }
+  .hero {
+    background:
+      radial-gradient(
+        60rem 18rem at 0% 0%,
+        color-mix(in oklab, var(--hero-from) 22%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        50rem 16rem at 100% 0%,
+        color-mix(in oklab, var(--hero-to) 18%, transparent),
+        transparent 70%
+      );
   }
   .skeleton {
     background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));

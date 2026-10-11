@@ -1,5 +1,22 @@
 "use client";
-import { Download, Link2, Plus, Trash2, X } from "lucide-react";
+import {
+  BookOpen,
+  Download,
+  FileText,
+  Film,
+  GraduationCap,
+  Headphones,
+  Link2,
+  Mic,
+  Plus,
+  Presentation,
+  Shapes,
+  Tags,
+  Trash2,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,7 +29,9 @@ import { Combobox } from "@/components/ui/combobox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Select, Textarea } from "@/components/ui/input";
-import { Badge } from "@/components/ui/misc";
+import { Badge, IconChip } from "@/components/ui/misc";
+import { cn } from "@/lib/cn";
+import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import { TagInput } from "@/components/ui/tag-input";
 import { FileUpload } from "@/components/ui/file-upload";
 import type { FieldErrors } from "@/lib/errors";
@@ -69,10 +88,50 @@ function toPayload(v: ResourceFormValue) {
   };
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+const TYPE_ICONS: Record<ResourceType, LucideIcon> = {
+  book: BookOpen,
+  course: GraduationCap,
+  video: Film,
+  lecture: Presentation,
+  interview: Mic,
+  article: FileText,
+  podcast: Headphones,
+  other: Shapes,
+};
+
+function SectionTitle({
+  title,
+  icon,
+  hue,
+  className,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  hue: Hue;
+  className?: string;
+}) {
   return (
-    <section className="card p-5">
-      <h2 className="mb-4 text-sm font-semibold tracking-tight">{title}</h2>
+    <div className={cn("mb-4 flex items-center gap-2.5", className)}>
+      <IconChip icon={icon} hue={hue} />
+      <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  icon,
+  hue,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  hue: Hue;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="card p-5 sm:p-6">
+      <SectionTitle title={title} icon={icon} hue={hue} />
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
   );
@@ -210,11 +269,58 @@ export function ResourceForm({
       }}
       noValidate
     >
-      <section className="card flex flex-col gap-3 p-5">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <Link2 className="text-muted size-4" /> {t("resource.importFromUrl")}
+      <fieldset className="card p-5 sm:p-6">
+        <legend className="sr-only">{t("resource.type")}</legend>
+        <div className="mb-4 text-[15px] font-semibold tracking-tight">
+          {t("resource.whatType")}
         </div>
-        <p className="text-muted text-xs">{t("resource.importHint")}</p>
+        <div
+          role="radiogroup"
+          aria-label={t("resource.type")}
+          className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
+        >
+          {RESOURCE_TYPES.map((ty) => {
+            const Icon = TYPE_ICONS[ty];
+            const on = v.type === ty;
+            return (
+              <button
+                key={ty}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => set("type", ty)}
+                style={hueStyle(TYPE_HUE[ty])}
+                className={cn(
+                  "group flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all",
+                  on
+                    ? "hue-soft hue-border shadow-sm ring-2 ring-[var(--hue)]/40"
+                    : "border-border bg-surface hover:-translate-y-0.5 hover:shadow-sm",
+                )}
+              >
+                <span className="chip grid size-9 shrink-0 place-items-center rounded-lg">
+                  <Icon className="size-[18px]" />
+                </span>
+                <span className="leading-tight">{t(`types.${ty}`)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <section
+        className="card relative flex flex-col gap-3 overflow-hidden p-5 sm:p-6"
+        style={hueStyle("sky")}
+      >
+        <span aria-hidden className="hue-bar absolute inset-y-0 left-0 w-1" />
+        <div className="flex items-center gap-2.5">
+          <IconChip icon={<Link2 />} hue="sky" />
+          <div>
+            <div className="text-[15px] font-semibold tracking-tight">
+              {t("resource.importFromUrl")}
+            </div>
+            <p className="text-muted text-xs">{t("resource.importHint")}</p>
+          </div>
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             type="url"
@@ -235,22 +341,7 @@ export function ResourceForm({
         </div>
       </section>
 
-      <Section title={t("resource.basics")}>
-        <Field label={t("resource.type")}>
-          {(p) => (
-            <Select
-              {...p}
-              value={v.type}
-              onChange={(e) => set("type", e.target.value as ResourceType)}
-            >
-              {RESOURCE_TYPES.map((ty) => (
-                <option key={ty} value={ty}>
-                  {t(`types.${ty}`)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+      <Section title={t("resource.basics")} icon={<FileText />} hue="blue">
         <Field label={t("resource.language")} optional>
           {(p) => (
             <Input
@@ -329,8 +420,13 @@ export function ResourceForm({
         </div>
       </Section>
 
-      <section className="card p-5">
-        <h2 className="mb-1 text-sm font-semibold tracking-tight">{t("resource.contributors")}</h2>
+      <section className="card p-5 sm:p-6">
+        <SectionTitle
+          title={t("resource.contributors")}
+          icon={<Users />}
+          hue="orange"
+          className="mb-1"
+        />
         {err("contributors") && (
           <p className="text-danger mb-2 text-xs">{t("validation.contributor_person_or_name")}</p>
         )}
@@ -408,7 +504,14 @@ export function ResourceForm({
       </section>
 
       {isBook && (
-        <Section title={t("resource.details")}>
+        <Section
+          title={t("resource.details")}
+          icon={(() => {
+            const I = TYPE_ICONS[v.type];
+            return <I />;
+          })()}
+          hue={TYPE_HUE[v.type]}
+        >
           <Field label={t("resource.publisher")} optional>
             {(p) => (
               <Input
@@ -492,7 +595,14 @@ export function ResourceForm({
       )}
 
       {isMedia && (
-        <Section title={t("resource.details")}>
+        <Section
+          title={t("resource.details")}
+          icon={(() => {
+            const I = TYPE_ICONS[v.type];
+            return <I />;
+          })()}
+          hue={TYPE_HUE[v.type]}
+        >
           <Field label={t("resource.platform")} optional>
             {(p) => (
               <Input
@@ -548,10 +658,8 @@ export function ResourceForm({
         </Section>
       )}
 
-      <section className="card p-5">
-        <h2 className="mb-4 text-sm font-semibold tracking-tight">
-          {t("resource.classification")}
-        </h2>
+      <section className="card p-5 sm:p-6">
+        <SectionTitle title={t("resource.classification")} icon={<Tags />} hue="amber" />
         {categories.length > 0 && (
           <fieldset className="mb-4">
             <legend className="mb-2 text-sm font-medium">{t("resource.categories")}</legend>
@@ -561,7 +669,13 @@ export function ResourceForm({
                 return (
                   <label
                     key={c.id}
-                    className={`cursor-pointer rounded-full border px-3 py-1 text-sm transition-colors ${on ? "border-primary bg-primary-soft text-primary" : "border-border-strong hover:bg-surface-2"}`}
+                    style={hueStyle(hueFor(c.id))}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
+                      on
+                        ? "chip hue-border"
+                        : "border-border-strong text-muted hover:text-foreground hover:bg-surface-2",
+                    )}
                   >
                     <input
                       type="checkbox"
@@ -594,10 +708,8 @@ export function ResourceForm({
         </Field>
       </section>
 
-      <section className="card p-5">
-        <h2 className="mb-4 text-sm font-semibold tracking-tight">
-          {t("resource.sourcesSection")}
-        </h2>
+      <section className="card p-5 sm:p-6">
+        <SectionTitle title={t("resource.sourcesSection")} icon={<Link2 />} hue="sky" />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("resource.sourceUrl")} optional error={err("sourceUrl")}>
             {(p) => (
@@ -776,7 +888,7 @@ export function ResourceForm({
       </section>
 
       {!isAdmin && (
-        <section className="card p-5">
+        <section className="card p-5 sm:p-6">
           <Field label={t("suggestions.explanation")} optional>
             {(p) => (
               <Textarea

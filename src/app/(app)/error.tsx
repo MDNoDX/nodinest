@@ -12,7 +12,7 @@ export default function AppError({
   return (
     <div className="grid min-h-[50dvh] place-items-center text-center">
       <div>
-        <h1 className="font-serif text-2xl font-semibold">{t("errors.pageTitle")}</h1>
+        <h1 className="text-2xl font-semibold">{t("errors.pageTitle")}</h1>
         <p className="text-muted mt-2 text-sm">{t("errors.pageBody")}</p>
         <Button className="mt-6" onClick={reset}>
           {t("common.tryAgain")}

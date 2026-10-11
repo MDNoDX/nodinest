@@ -43,6 +43,7 @@ export default async function SuggestionPage({ params }: { params: Promise<{ id:
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
+        section="suggestions"
         eyebrow={
           <Link href="/suggestions" className="hover:underline">
             {t("suggestions.title")}

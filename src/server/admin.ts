@@ -24,8 +24,8 @@ export async function listUsers(database: Database, ctx: AppContext) {
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,
-      notes: sql<number>`(select count(*)::int from nodinest.notes n where n.user_id = ${user.id} and n.deleted_at is null)`,
-      sessions: sql<number>`(select count(*)::int from nodinest.study_sessions s where s.user_id = ${user.id} and s.deleted_at is null)`,
+      notes: sql<number>`(select count(*)::int from nodinest.notes n where n.user_id = "user"."id" and n.deleted_at is null)`,
+      sessions: sql<number>`(select count(*)::int from nodinest.study_sessions s where s.user_id = "user"."id" and s.deleted_at is null)`,
     })
     .from(user)
     .orderBy(desc(user.createdAt))

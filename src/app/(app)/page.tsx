@@ -1,5 +1,21 @@
 import { desc, isNull } from "drizzle-orm";
-import { ArrowRight, BookOpen, Flame, Plus, Quote, Timer } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Flame,
+  History,
+  Library,
+  Plus,
+  Quote,
+  Tags,
+  Target,
+  Timer,
+} from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { BarChart } from "@/components/charts/bar-chart";
@@ -70,6 +86,7 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
+        section="dashboard"
         title={t(`dashboard.${greetingKey}`, { name: firstName })}
         subtitle={t("dashboard.subtitle")}
         actions={
@@ -109,6 +126,8 @@ export default async function DashboardPage() {
 
       <section aria-label={t("stats.title")} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
+          icon={<Clock />}
+          hue="blue"
           label={t("dashboard.thisWeek")}
           value={fmtMinutes(stats.totals.week, locale)}
           hint={
@@ -119,13 +138,16 @@ export default async function DashboardPage() {
               : undefined
           }
         />
-        <StatTile label={t("dashboard.thisMonth")} value={fmtMinutes(stats.totals.month, locale)} />
         <StatTile
-          label={
-            <span className="inline-flex items-center gap-1">
-              <Flame className="text-accent size-3.5" aria-hidden /> {t("dashboard.streak")}
-            </span>
-          }
+          icon={<CalendarDays />}
+          hue="violet"
+          label={t("dashboard.thisMonth")}
+          value={fmtMinutes(stats.totals.month, locale)}
+        />
+        <StatTile
+          icon={<Flame />}
+          hue="orange"
+          label={t("dashboard.streak")}
           value={t("dashboard.streakDays", { count: stats.streaks.current })}
           hint={
             stats.streaks.longest
@@ -134,6 +156,8 @@ export default async function DashboardPage() {
           }
         />
         <StatTile
+          icon={<CheckCircle2 />}
+          hue="emerald"
           label={t("dashboard.completed")}
           value={stats.records.completed}
           hint={`${t("status.in_progress")}: ${stats.records.in_progress}`}
@@ -145,6 +169,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader
               title={t("dashboard.currently")}
+              icon={<BookOpen />}
+              hue="indigo"
               action={
                 <Link
                   href="/library?status=in_progress"
@@ -204,6 +230,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader
               title={t("dashboard.weekChart")}
+              icon={<BarChart3 />}
+              hue="blue"
               action={
                 <Link
                   href="/stats"
@@ -221,6 +249,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader
               title={t("dashboard.recentNotes")}
+              icon={<Quote />}
+              hue="violet"
               action={
                 <Link href="/notes" className="text-primary text-xs font-medium hover:underline">
                   {t("common.seeAll")}
@@ -266,6 +296,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader
               title={t("dashboard.goals")}
+              icon={<Target />}
+              hue="emerald"
               action={
                 <Link href="/plans" className="text-primary text-xs font-medium hover:underline">
                   {activeGoals.length ? t("common.seeAll") : t("dashboard.addGoal")}
@@ -296,6 +328,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader
               title={t("dashboard.planned")}
+              icon={<CalendarCheck />}
+              hue="teal"
               action={
                 <Link href="/plans" className="text-primary text-xs font-medium hover:underline">
                   {t("common.seeAll")}
@@ -327,7 +361,7 @@ export default async function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader title={t("dashboard.favoriteTopics")} />
+            <CardHeader title={t("dashboard.favoriteTopics")} icon={<Tags />} hue="amber" />
             <div className="px-5 pb-5">
               <HBarList
                 items={stats.byCategory.slice(0, 5).map((c) => ({
@@ -343,7 +377,7 @@ export default async function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader title={t("dashboard.recent")} />
+            <CardHeader title={t("dashboard.recent")} icon={<History />} hue="sky" />
             <ul className="flex flex-col gap-2 px-5 pb-5">
               {recent.length === 0 && (
                 <li className="text-muted text-sm">{t("empty.nothingHere")}</li>
@@ -363,7 +397,7 @@ export default async function DashboardPage() {
           </Card>
 
           <Card>
-            <CardHeader title={t("dashboard.recentlyAdded")} />
+            <CardHeader title={t("dashboard.recentlyAdded")} icon={<Library />} hue="rose" />
             <ul className="grid grid-cols-3 gap-3 px-5 pb-5">
               {recentCatalog.map((r) => (
                 <li key={r.id}>

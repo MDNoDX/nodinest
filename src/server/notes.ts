@@ -199,12 +199,13 @@ export async function listNotes(
         updatedAt: notes.updatedAt,
         resourceId: notes.resourceId,
         resourceTitle: resources.title,
+        resourceType: resources.type,
         personId: notes.personId,
         personName: people.fullName,
         tagNames: sql<
           string[]
         >`coalesce((select array_agg(t.name order by t.name) from nodinest.note_tags nt
-          join nodinest.tags t on t.id = nt.tag_id where nt.note_id = ${notes.id}), '{}')`,
+          join nodinest.tags t on t.id = nt.tag_id where nt.note_id = "notes"."id"), '{}')`,
         total: sql<number>`count(*) over()`,
       })
       .from(notes)
@@ -218,7 +219,7 @@ export async function listNotes(
           f.resourceId ? eq(notes.resourceId, f.resourceId) : undefined,
           f.tag
             ? sql`exists (select 1 from nodinest.note_tags nt join nodinest.tags t on t.id = nt.tag_id
-                where nt.note_id = ${notes.id} and t.normalized = ${normalizeTag(f.tag)} and t.owner_id = ${ctx.userId})`
+                where nt.note_id = "notes"."id" and t.normalized = ${normalizeTag(f.tag)} and t.owner_id = ${ctx.userId})`
             : undefined,
         ),
       )
@@ -237,7 +238,7 @@ export async function listMyTags(database: Database, ctx: AppContext) {
         name: tags.name,
         normalized: tags.normalized,
         count: sql<number>`(select count(*)::int from nodinest.note_tags nt join nodinest.notes n on n.id = nt.note_id
-          where nt.tag_id = ${tags.id} and n.deleted_at is null)`,
+          where nt.tag_id = "tags"."id" and n.deleted_at is null)`,
       })
       .from(tags)
       .where(eq(tags.ownerId, ctx.userId))
@@ -255,7 +256,7 @@ export async function listCollections(database: Database, ctx: AppContext) {
         systemKey: collections.systemKey,
         name: collections.name,
         description: collections.description,
-        count: sql<number>`(select count(*)::int from nodinest.collection_items ci where ci.collection_id = ${collections.id})`,
+        count: sql<number>`(select count(*)::int from nodinest.collection_items ci where ci.collection_id = "collections"."id")`,
       })
       .from(collections)
       .where(eq(collections.userId, ctx.userId))

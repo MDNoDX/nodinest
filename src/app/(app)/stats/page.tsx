@@ -90,7 +90,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      <PageHeader title={t("stats.title")} subtitle={t("stats.subtitle")} />
+      <PageHeader section="stats" title={t("stats.title")} subtitle={t("stats.subtitle")} />
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <nav className="bg-surface-2 inline-flex rounded-lg p-1" aria-label={t("stats.range")}>
           {RANGES.map((r) => (

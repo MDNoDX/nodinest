@@ -24,6 +24,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
   return (
     <>
       <PageHeader
+        section="collections"
         eyebrow={
           <Link href="/collections" className="hover:underline">
             {t("collections.title")}

@@ -343,7 +343,8 @@
     "published": "Published",
     "pages": "{count} pages",
     "durationValue": "Duration",
-    "archivedBanner": "This resource is archived."
+    "archivedBanner": "This resource is archived.",
+    "whatType": "What are you adding?"
   },
   "record": {
     "status": "Status",
@@ -443,7 +444,9 @@
     "page": "p. {page}",
     "pages": "pp. {from}–{to}",
     "readOnly": "Shared by another user (read-only).",
-    "attributed": "— {name}"
+    "attributed": "— {name}",
+    "kindNoteHint": "An idea, summary or reflection",
+    "kindQuoteHint": "An exact passage from a source"
   },
   "collections": {
     "title": "Collections",
@@ -602,7 +605,8 @@
     },
     "usedTools": "Used: {tools}",
     "you": "You",
-    "ai": "NodiNest AI"
+    "ai": "NodiNest AI",
+    "unlimitedNote": "Superadmin: no app limit (only Google’s free quota applies)."
   },
   "stats": {
     "title": "Insights",

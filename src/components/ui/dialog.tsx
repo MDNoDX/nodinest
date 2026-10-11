@@ -31,7 +31,7 @@ export function DialogContent({
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <D.Title className="font-serif text-lg font-semibold">{title}</D.Title>
+            <D.Title className="text-lg font-semibold">{title}</D.Title>
             {description ? (
               <D.Description className="text-muted mt-1 text-sm">{description}</D.Description>
             ) : (
