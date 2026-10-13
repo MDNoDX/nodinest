@@ -105,7 +105,8 @@ midnight Pacific time.
 - [ ] `/login` shows only "Continue with Google" (no developer form).
 - [ ] Sign in with `mdnodx@gmail.com` → Settings shows _Superadministrator_; Admin menu visible.
 - [ ] Add a person and a book; author autocomplete finds the person while typing.
-- [ ] Start/pause/finish a session; Journal shows it; dashboard week total updates.
+- [ ] Mark a book completed with date+time and a 10-star rating; dashboard and Ko‘rsatkichlar update.
+- [ ] Upload a PDF on a book page; full text gets indexed and in-book search opens the right page.
 - [ ] Add a private note; open its URL in a private window with another Google account → 404.
 - [ ] Search finds the book and the note (owner only).
 - [ ] Switch language EN/UZ and theme light/dark; reload keeps both.

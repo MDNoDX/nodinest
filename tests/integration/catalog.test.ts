@@ -8,6 +8,7 @@ import {
   submitResource,
   withdrawSuggestion,
   submitArchive,
+  submitSuggestion,
 } from "@/server/suggestions";
 import { withUser } from "@/db/client";
 import { makeUser, testDb } from "../helpers/db";
@@ -130,12 +131,43 @@ describe("people & resources", () => {
   });
 
   describe("suggestions workflow", () => {
-    it("regular user's create becomes a pending suggestion, not a catalog row", async () => {
+    it("anyone can add a new entry; they own it and may edit it directly", async () => {
+      const out = await submitPerson(db, user, { fullName: "Hamid Olimjon", birthDate: "1909" });
+      expect(out.mode).toBe("applied");
+      const id = (out as { id: string }).id;
+      const [row] = await db.execute<{ created_by: string }>(
+        sql`select created_by from nodinest.people where id = ${id}`,
+      );
+      expect(row.created_by).toBe(user.userId);
+      const edit = await submitPerson(
+        db,
+        user,
+        { fullName: "Hamid Olimjon", biography: "Shoir" },
+        { id, allowDuplicate: true },
+      );
+      expect(edit.mode).toBe("applied");
+      expect((await getPersonDetail(db, user, id))?.canEdit).toBe(true);
+      // Another regular user's edit of the same entry is only a suggestion.
+      const other = await makeUser(db);
+      const foreign = await submitPerson(
+        db,
+        other,
+        { fullName: "Hamid Olimjon", biography: "Changed" },
+        { id, allowDuplicate: true },
+      );
+      expect(foreign.mode).toBe("suggested");
+      expect((await getPersonDetail(db, user, id))?.person.biography).toBe("Shoir");
+    });
+
+    it("an explicit create suggestion stays pending until reviewed", async () => {
       const before = await db.execute<{ n: number }>(
         sql`select count(*)::int as n from nodinest.people`,
       );
-      const out = await submitPerson(db, user, { fullName: "Abdulla Qodiriy", birthDate: "1894" });
-      expect(out.mode).toBe("suggested");
+      await submitSuggestion(db, user, {
+        operation: "create",
+        targetType: "person",
+        payload: { fullName: "Abdulla Qodiriy", birthDate: "1894" },
+      });
       const after = await db.execute<{ n: number }>(
         sql`select count(*)::int as n from nodinest.people`,
       );
@@ -206,12 +238,11 @@ describe("people & resources", () => {
     });
 
     it("approval re-checks duplicates", async () => {
-      const out = await submitPerson(
-        db,
-        user,
-        { fullName: "Mark Twain" },
-        { allowDuplicate: true },
-      );
+      const out = await submitSuggestion(db, user, {
+        operation: "create",
+        targetType: "person",
+        payload: { fullName: "Mark Twain" },
+      });
       const id = (out as { suggestionId: string }).suggestionId;
       await expect(reviewSuggestion(db, admin, id, "approve")).rejects.toMatchObject({
         code: "DUPLICATE",

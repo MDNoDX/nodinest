@@ -1,4 +1,7 @@
-/** Personal goals and plans. */
+/**
+ * Goals ("read 24 books this year", "3000 pages this month") and plans
+ * ("read X from 1 May to 20 May"). Progress comes from completed records.
+ */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
 import { goals, plans, resources } from "@/db/schema";
@@ -72,7 +75,7 @@ export function periodRange(
 export type GoalProgress = {
   id: string;
   title: string;
-  metric: "minutes" | "sessions" | "completed_resources";
+  metric: "completed_resources" | "pages";
   period: "day" | "week" | "month" | "year";
   target: number;
   resourceType: string | null;
@@ -99,31 +102,24 @@ export async function listGoalsWithProgress(
     for (const g of rows) {
       const [from, to] = periodRange(g.period, today);
       const typeFilter = g.resourceType ? sql`and r.type = ${g.resourceType}` : sql``;
-      let value = 0;
-      if (g.metric === "completed_resources") {
-        const [r] = await tx.execute<{ v: number }>(sql`
-          select count(*)::int as v from nodinest.learning_records lr join nodinest.resources r on r.id = lr.resource_id
-          where lr.user_id = ${ctx.userId} and lr.status = 'completed'
-            and lr.completed_on between ${from}::date and ${to}::date ${typeFilter}`);
-        value = r.v;
-      } else {
-        const [r] = await tx.execute<{ seconds: number; sessions: number }>(sql`
-          select coalesce(sum(s.active_seconds), 0)::int as seconds, count(*)::int as sessions
-          from nodinest.study_sessions s left join nodinest.resources r on r.id = s.resource_id
-          where s.user_id = ${ctx.userId} and s.status = 'completed' and s.deleted_at is null
-            and (s.started_at at time zone ${timeZone})::date between ${from}::date and ${to}::date ${typeFilter}`);
-        value = g.metric === "minutes" ? Math.floor(r.seconds / 60) : r.sessions;
-      }
+      const [r] = await tx.execute<{ n: number; pages: number }>(sql`
+        select count(*)::int as n, coalesce(sum(b.page_count), 0)::int as pages
+        from nodinest.learning_records lr
+        join nodinest.resources r on r.id = lr.resource_id
+        left join nodinest.book_details b on b.resource_id = r.id
+        where lr.user_id = ${ctx.userId} and lr.status = 'completed'
+          and (lr.completed_at at time zone ${timeZone})::date between ${from}::date and ${to}::date ${typeFilter}`);
       out.push({
         id: g.id,
         title: g.title,
-        metric: g.metric,
+        // Legacy time-based metrics (v1) fall back to the completed count.
+        metric: g.metric === "pages" ? "pages" : "completed_resources",
         period: g.period,
         target: g.target,
         resourceType: g.resourceType,
         status: g.status,
         note: g.note,
-        value,
+        value: g.metric === "pages" ? r.pages : r.n,
         from,
         to,
       });
@@ -188,19 +184,22 @@ export async function listPlans(
       .select({
         id: plans.id,
         title: plans.title,
-        plannedOn: plans.plannedOn,
-        plannedMinutes: plans.plannedMinutes,
+        startOn: plans.startOn,
+        endOn: plans.endOn,
         done: plans.done,
         note: plans.note,
         resourceId: plans.resourceId,
         resourceTitle: resources.title,
+        resourceType: resources.type,
+        coverUrl: resources.coverUrl,
+        coverFileId: resources.coverFileId,
       })
       .from(plans)
       .leftJoin(resources, eq(resources.id, plans.resourceId))
       .where(
         and(eq(plans.userId, ctx.userId), opts.includeDone ? undefined : eq(plans.done, false)),
       )
-      .orderBy(sql`${plans.plannedOn} asc nulls last`, desc(plans.createdAt))
-      .limit(100),
+      .orderBy(sql`${plans.startOn} asc nulls last`, desc(plans.createdAt))
+      .limit(200),
   );
 }

@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { learningRecordInput, noteInput, personInput, resourceInput } from "@/lib/validation";
+import {
+  learningRecordInput,
+  noteInput,
+  personInput,
+  planInput,
+  resourceInput,
+} from "@/lib/validation";
 
 vi.mock("@/db", () => ({ db: {}, withUser: vi.fn() }));
-const { toolArgSchemas, WRITE_TOOLS, TOOL_PERMISSION, toolDeclarations } =
-  await import("@/server/ai/tools");
+const { TOOLS, parseToolArgs } = await import("@/server/ai/tools");
 const { AI_TOOL_NAMES } = await import("@/server/settings");
 
 describe("input validation", () => {
@@ -48,46 +53,93 @@ describe("input validation", () => {
       learningRecordInput.safeParse({
         resourceId: id,
         status: "completed",
-        startedOn: "2026-02-01",
-        completedOn: "2026-01-01",
+        startedAt: "2026-02-01T10:00:00Z",
+        completedAt: "2026-01-01T10:00:00Z",
       }).success,
     ).toBe(false);
+    // 10-point scale for every type; "abandoned" was merged into "paused".
     expect(
-      learningRecordInput.safeParse({ resourceId: id, status: "in_progress", rating: 6 }).success,
+      learningRecordInput.safeParse({ resourceId: id, status: "in_progress", rating: 10 }).success,
+    ).toBe(true);
+    expect(
+      learningRecordInput.safeParse({ resourceId: id, status: "in_progress", rating: 11 }).success,
     ).toBe(false);
+    expect(learningRecordInput.safeParse({ resourceId: id, status: "abandoned" }).success).toBe(
+      false,
+    );
+    const r = learningRecordInput.parse({
+      resourceId: id,
+      status: "completed",
+      startedAt: "2026-01-01T09:15:00Z",
+      completedAt: "2026-01-20T21:40:00Z",
+    });
+    expect(r.completedAt).toBeTruthy();
+  });
+  it("empty optional numbers stay null (never coerced to 0)", () => {
+    const id = "00000000-0000-4000-8000-000000000000";
+    const r = learningRecordInput.parse({
+      resourceId: id,
+      status: "in_progress",
+      progressCurrent: "",
+      progressTotal: null,
+    });
+    expect(r.progressCurrent).toBeNull();
+    expect(r.progressTotal).toBeNull();
+    expect(
+      learningRecordInput.parse({ resourceId: id, status: "planned", progressCurrent: "0" })
+        .progressCurrent,
+    ).toBe(0);
+  });
+  it("plans: start on / finish on, never backwards", () => {
+    expect(
+      planInput.safeParse({ title: "Xamsa", startOn: "2026-05-01", endOn: "2026-05-20" }).success,
+    ).toBe(true);
+    const bad = planInput.safeParse({ title: "Xamsa", startOn: "2026-05-20", endOn: "2026-05-01" });
+    expect(bad.success).toBe(false);
+    expect(bad.error?.issues[0].message).toBe("end_before_start");
   });
 });
 
 describe("AI tool contracts", () => {
-  it("every declared tool has a server-side schema and a permission", () => {
-    for (const name of Object.keys(toolDeclarations)) {
-      expect(toolArgSchemas).toHaveProperty(name);
-      expect(AI_TOOL_NAMES).toContain(TOOL_PERMISSION[name as keyof typeof TOOL_PERMISSION]);
+  const names = Object.keys(TOOLS) as (keyof typeof TOOLS)[];
+  it("every tool has a permission group, a mode and a matching JSON schema", () => {
+    for (const name of names) {
+      const def = TOOLS[name] as unknown as {
+        perm: string;
+        mode: string;
+        parameters: { properties: Record<string, unknown>; required?: string[] };
+        args: { shape?: Record<string, unknown> };
+      };
+      expect(AI_TOOL_NAMES, name).toContain(def.perm);
+      expect(["read", "act", "confirm"], name).toContain(def.mode);
+      const declared = Object.keys(def.parameters.properties).sort();
+      if (def.args.shape) expect(declared, name).toEqual(Object.keys(def.args.shape).sort());
+      for (const r of def.parameters.required ?? []) expect(declared, name).toContain(r);
     }
   });
-  it("write tools are exactly the proposal tools", () => {
-    expect(WRITE_TOOLS.sort()).toEqual([
-      "create_note",
-      "create_plan",
-      "propose_catalog_edit",
-      "propose_person",
-      "propose_resource",
-      "update_learning_record",
+  it("destructive tools always need the user's confirmation", () => {
+    const confirm = names.filter((n) => TOOLS[n].mode === "confirm").sort();
+    expect(confirm).toEqual([
+      "archive_resource",
+      "delete_collection",
+      "delete_note",
+      "remove_from_library",
     ]);
+    for (const n of confirm) expect(["delete", "write_catalog"]).toContain(TOOLS[n].perm);
+    // Read tools never write.
+    for (const n of names.filter((x) => TOOLS[x].mode === "read"))
+      expect(["read_library", "read_web"], n).toContain(TOOLS[n].perm);
   });
   it("rejects malformed or dangerous arguments", () => {
-    expect(toolArgSchemas.read_url.safeParse({ url: "file:///etc/passwd" }).success).toBe(false);
-    expect(toolArgSchemas.propose_person.safeParse({ fullName: "X" }).success).toBe(false); // sources required
-    expect(
-      toolArgSchemas.propose_person.safeParse({
-        fullName: "X",
-        birthDate: "around 1900",
-        sourceUrls: ["https://a.b"],
-      }).success,
-    ).toBe(false);
-    expect(
-      toolArgSchemas.update_learning_record.safeParse({ resourceId: "1; drop table" }).success,
-    ).toBe(false);
-    expect(toolArgSchemas.create_note.safeParse({ kind: "quote" }).success).toBe(false);
+    expect(() => parseToolArgs("read_url", { url: "file:///etc/passwd" })).toThrow();
+    expect(() => parseToolArgs("update_my_record", { resourceId: "1; drop table" })).toThrow();
+    expect(() => parseToolArgs("update_my_record", { title: "X", rating: 11 })).toThrow();
+    expect(() =>
+      parseToolArgs("set_rank", { title: "X", collectionName: "Top", rank: 0 }),
+    ).toThrow();
+    expect(() => parseToolArgs("read_book_pages", { title: "X", fromPage: -1 })).toThrow();
+    expect(parseToolArgs("update_my_record", { title: "Xamsa", rating: 9 })).toMatchObject({
+      rating: 9,
+    });
   });
 });

@@ -1,8 +1,12 @@
 "use client";
-import { X } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { deleteCollectionAction, toggleCollectionItemAction } from "@/app/actions/personal";
+import {
+  deleteCollectionAction,
+  reorderCollectionAction,
+  toggleCollectionItemAction,
+} from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm";
 import { useAction } from "@/lib/use-action";
@@ -49,5 +53,47 @@ export function DeleteCollectionButton({ id }: { id: string }) {
     >
       {t("common.delete")}
     </ConfirmButton>
+  );
+}
+
+/** Move a ranked item one place up or down; sends the full new order. */
+export function RankMoveButtons({
+  collectionId,
+  order,
+  index,
+}: {
+  collectionId: string;
+  order: string[];
+  index: number;
+}) {
+  const t = useTranslations();
+  const { pending, exec } = useAction();
+  const move = (dir: -1 | 1) => {
+    const next = [...order];
+    const j = index + dir;
+    [next[index], next[j]] = [next[j], next[index]];
+    exec(() => reorderCollectionAction(collectionId, next));
+  };
+  return (
+    <span className="flex flex-col">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        disabled={pending || index === 0}
+        aria-label={t("collections.moveUp")}
+        onClick={() => move(-1)}
+      >
+        <ChevronUp />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        disabled={pending || index === order.length - 1}
+        aria-label={t("collections.moveDown")}
+        onClick={() => move(1)}
+      >
+        <ChevronDown />
+      </Button>
+    </span>
   );
 }

@@ -1,15 +1,20 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import {
   BookOpen,
-  Download,
+  CalendarDays,
+  ChevronDown,
   FileText,
   Film,
+  Globe,
   GraduationCap,
   Headphones,
+  Image as ImageIcon,
   Link2,
   Mic,
   Plus,
   Presentation,
+  Search,
   Shapes,
   Tags,
   Trash2,
@@ -22,19 +27,19 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { importUrlAction, saveResourceAction } from "@/app/actions/catalog";
+import { importUrlAction, lookupBooksAction, saveResourceAction } from "@/app/actions/catalog";
 import { mapPerson } from "@/components/people/mappers";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import { FileUpload } from "@/components/ui/file-upload";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge, IconChip } from "@/components/ui/misc";
-import { cn } from "@/lib/cn";
-import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import { TagInput } from "@/components/ui/tag-input";
-import { FileUpload } from "@/components/ui/file-upload";
+import { cn } from "@/lib/cn";
 import type { FieldErrors } from "@/lib/errors";
+import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import {
   BOOK_LIKE,
   CONTRIBUTOR_ROLES,
@@ -42,10 +47,34 @@ import {
   RESOURCE_TYPES,
   type ResourceType,
 } from "@/lib/validation";
+import type { Contributor, ResourceFormValue } from "./resource-form-value";
 
-import type { ResourceFormValue } from "./resource-form-value";
+const TYPE_ICONS: Record<ResourceType, LucideIcon> = {
+  book: BookOpen,
+  course: GraduationCap,
+  video: Film,
+  lecture: Presentation,
+  interview: Mic,
+  article: FileText,
+  podcast: Headphones,
+  other: Shapes,
+};
 
-type Contributor = ResourceFormValue["contributors"][number];
+type Candidate = {
+  title: string;
+  subtitle: string | null;
+  authors: string[];
+  editionDate: string | null;
+  originalYear: string | null;
+  publisher: string | null;
+  pageCount: number | null;
+  language: string | null;
+  isbn13: string | null;
+  isbn10: string | null;
+  description: string | null;
+  coverUrl: string | null;
+  infoUrl: string | null;
+};
 
 function toPayload(v: ResourceFormValue) {
   const isBook = BOOK_LIKE.includes(v.type);
@@ -58,10 +87,9 @@ function toPayload(v: ResourceFormValue) {
     coverUrl: v.coverUrl,
     coverFileId: v.coverFileId,
     language: v.language,
+    originalDate: v.originalDate,
     publicationDate: v.publicationDate,
     sourceUrl: v.sourceUrl,
-    sourceNote: v.sourceNote,
-    verification: v.verification,
     contributors: v.contributors.map((c) => ({
       personId: c.personId,
       newPersonName: c.newPersonName,
@@ -73,7 +101,7 @@ function toPayload(v: ResourceFormValue) {
     links: v.links
       .filter((l) => l.url.trim())
       .map((l) => ({ kind: l.kind, url: l.url, label: l.label })),
-    book: isBook ? { ...v.book, pageCount: v.book.pageCount } : null,
+    book: isBook ? v.book : null,
     media: isMedia
       ? {
           platform: v.media.platform,
@@ -87,17 +115,6 @@ function toPayload(v: ResourceFormValue) {
       : null,
   };
 }
-
-const TYPE_ICONS: Record<ResourceType, LucideIcon> = {
-  book: BookOpen,
-  course: GraduationCap,
-  video: Film,
-  lecture: Presentation,
-  interview: Mic,
-  article: FileText,
-  podcast: Headphones,
-  other: Shapes,
-};
 
 function SectionTitle({
   title,
@@ -118,54 +135,42 @@ function SectionTitle({
   );
 }
 
-function Section({
-  title,
-  icon,
-  hue,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  hue: Hue;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="card p-5 sm:p-6">
-      <SectionTitle title={title} icon={icon} hue={hue} />
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </section>
-  );
-}
-
 export function ResourceForm({
   initial,
   resourceId,
   categories,
   isAdmin,
+  canEditDirectly,
   storageEnabled,
   locale,
+  userId,
 }: {
   initial: ResourceFormValue;
   resourceId?: string;
   categories: { id: string; nameUz: string; nameEn: string; parentId: string | null }[];
   isAdmin: boolean;
+  /** True when saving applies immediately (new entry, own entry or admin mode). */
+  canEditDirectly: boolean;
   storageEnabled: boolean;
   locale: "uz" | "en";
+  userId: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const [v, setV] = useState<ResourceFormValue>(initial);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [dups, setDups] = useState<{ id: string; label: string; reason: string }[] | null>(null);
-  const [importUrl, setImportUrl] = useState("");
+  const [query, setQuery] = useState("");
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [explanation, setExplanation] = useState("");
   const [pending, start] = useTransition();
-  const [importing, startImport] = useTransition();
+  const [finding, startFind] = useTransition();
   const set = <K extends keyof ResourceFormValue>(k: K, val: ResourceFormValue[K]) =>
     setV((s) => ({ ...s, [k]: val }));
   const err = (k: string) => errors[k];
   const isBook = BOOK_LIKE.includes(v.type);
   const isMedia = MEDIA_LIKE.includes(v.type);
+  const coverPreview = v.coverFileId ? `/api/files/${v.coverFileId}` : v.coverUrl || null;
 
   const submit = (allowDuplicate = false) =>
     start(async () => {
@@ -195,70 +200,106 @@ export function ResourceForm({
       toast.error(t(`errors.${r.code}`));
     });
 
-  const runImport = () =>
-    startImport(async () => {
-      const r = await importUrlAction(importUrl);
+  /** One box: a URL imports page metadata; anything else searches books online. */
+  const find = () =>
+    startFind(async () => {
+      const q = query.trim();
+      if (!q) return;
+      if (/^https?:\/\//i.test(q)) {
+        const r = await importUrlAction(q);
+        if (!r.ok) {
+          toast.error(t(`errors.${r.code}`));
+          return;
+        }
+        const m = r.data;
+        setV((s) => {
+          const type: ResourceType =
+            m.suggestedType === "video"
+              ? s.type === "lecture" || s.type === "interview"
+                ? s.type
+                : "video"
+              : m.suggestedType === "book"
+                ? "book"
+                : m.suggestedType === "article"
+                  ? "article"
+                  : s.type;
+          const contributors = [...s.contributors];
+          if (m.author && !contributors.some((c) => c.label === m.author))
+            contributors.push({
+              personId: null,
+              newPersonName: m.author,
+              role: type === "book" || type === "article" ? "author" : "speaker",
+              label: m.author,
+            });
+          const identifiers = [...s.identifiers];
+          if (m.youtubeId && !identifiers.some((i) => i.scheme === "youtube"))
+            identifiers.push({ scheme: "youtube", value: m.youtubeId });
+          return {
+            ...s,
+            type,
+            title: s.title || m.title || "",
+            description: s.description || m.description || "",
+            coverUrl: s.coverUrl || m.image || "",
+            sourceUrl: m.url,
+            publicationDate: s.publicationDate || m.publishedDate || "",
+            contributors,
+            identifiers,
+            media: {
+              ...s.media,
+              platform: s.media.platform || (m.kind === "youtube" ? "YouTube" : m.siteName || ""),
+              channel: s.media.channel || m.channel || "",
+              durationMinutes:
+                s.media.durationMinutes ||
+                (m.durationSeconds ? String(Math.round(m.durationSeconds / 60)) : ""),
+            },
+          };
+        });
+        toast.success(t("resource.imported"));
+        return;
+      }
+      const r = await lookupBooksAction(q);
       if (!r.ok) {
         toast.error(t(`errors.${r.code}`));
         return;
       }
-      const m = r.data;
-      setV((s) => {
-        const type: ResourceType =
-          m.suggestedType === "video"
-            ? s.type === "lecture" || s.type === "interview"
-              ? s.type
-              : "video"
-            : m.suggestedType === "book"
-              ? "book"
-              : m.suggestedType === "article"
-                ? "article"
-                : s.type;
-        const contributors = [...s.contributors];
-        const name = m.author ?? null;
-        if (name && !contributors.some((c) => c.label === name))
-          contributors.push({
-            personId: null,
-            newPersonName: name,
-            role: type === "book" || type === "article" ? "author" : "speaker",
-            label: name,
-          });
-        const identifiers = [...s.identifiers];
-        if (m.youtubeId && !identifiers.some((i) => i.scheme === "youtube"))
-          identifiers.push({ scheme: "youtube", value: m.youtubeId });
-        if (m.isbn && !identifiers.some((i) => i.scheme.startsWith("isbn")))
-          identifiers.push({
-            scheme: m.isbn.replace(/[^\dX]/gi, "").length === 10 ? "isbn10" : "isbn13",
-            value: m.isbn,
-          });
-        return {
-          ...s,
-          type,
-          title: s.title || m.title || "",
-          description: s.description || m.description || "",
-          coverUrl: s.coverUrl || m.image || "",
-          sourceUrl: m.url,
-          publicationDate: s.publicationDate || m.publishedDate || "",
-          contributors,
-          identifiers,
-          media: {
-            ...s.media,
-            platform: s.media.platform || (m.kind === "youtube" ? "YouTube" : m.siteName || ""),
-            channel: s.media.channel || m.channel || "",
-            durationMinutes:
-              s.media.durationMinutes ||
-              (m.durationSeconds ? String(Math.round(m.durationSeconds / 60)) : ""),
-          },
-          sourceNote:
-            s.sourceNote ||
-            `${m.siteName ?? new URL(m.url).hostname} — ${new Date(m.fetchedAt).toISOString().slice(0, 10)}`,
-        };
-      });
-      toast.success(t("resource.imported"));
+      setCandidates(r.data);
     });
 
-  const catName = (c: { nameUz: string; nameEn: string }) =>
-    locale === "uz" ? c.nameUz : c.nameEn;
+  const pick = (c: Candidate) => {
+    setV((s) => {
+      const contributors = [...s.contributors];
+      for (const a of c.authors.slice(0, 5))
+        if (!contributors.some((x) => x.label.toLowerCase() === a.toLowerCase()))
+          contributors.push({ personId: null, newPersonName: a, role: "author", label: a });
+      const identifiers = [...s.identifiers];
+      const isbn = c.isbn13 ?? c.isbn10;
+      if (isbn && !identifiers.some((i) => i.scheme.startsWith("isbn")))
+        identifiers.push({ scheme: c.isbn13 ? "isbn13" : "isbn10", value: isbn });
+      return {
+        ...s,
+        type: s.type === "book" || s.type === "course" ? s.type : "book",
+        title: c.title,
+        description: s.description || c.description || "",
+        coverUrl: c.coverUrl ?? s.coverUrl,
+        coverFileId: c.coverUrl ? null : s.coverFileId,
+        language: s.language || c.language || "",
+        originalDate: s.originalDate || c.originalYear || "",
+        publicationDate: s.publicationDate || c.editionDate || "",
+        sourceUrl: s.sourceUrl || c.infoUrl || "",
+        contributors,
+        identifiers,
+        book: {
+          ...s.book,
+          publisher: s.book.publisher || c.publisher || "",
+          pageCount: s.book.pageCount || (c.pageCount ? String(c.pageCount) : ""),
+        },
+      };
+    });
+    setCandidates(null);
+    toast.success(t("resource.imported"));
+  };
+
+  const DetailsIcon = TYPE_ICONS[v.type];
 
   return (
     <form
@@ -269,6 +310,7 @@ export function ResourceForm({
       }}
       noValidate
     >
+      {/* 1. Type */}
       <fieldset className="card p-5 sm:p-6">
         <legend className="sr-only">{t("resource.type")}</legend>
         <div className="mb-4 text-[15px] font-semibold tracking-tight">
@@ -291,7 +333,7 @@ export function ResourceForm({
                 onClick={() => set("type", ty)}
                 style={hueStyle(TYPE_HUE[ty])}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all",
+                  "flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all",
                   on
                     ? "hue-soft hue-border shadow-sm ring-2 ring-[var(--hue)]/40"
                     : "border-border bg-surface hover:-translate-y-0.5 hover:shadow-sm",
@@ -307,119 +349,180 @@ export function ResourceForm({
         </div>
       </fieldset>
 
+      {/* 2. Find online */}
       <section
         className="card relative flex flex-col gap-3 overflow-hidden p-5 sm:p-6"
         style={hueStyle("sky")}
       >
         <span aria-hidden className="hue-bar absolute inset-y-0 left-0 w-1" />
         <div className="flex items-center gap-2.5">
-          <IconChip icon={<Link2 />} hue="sky" />
+          <IconChip icon={<Globe />} hue="sky" />
           <div>
             <div className="text-[15px] font-semibold tracking-tight">
-              {t("resource.importFromUrl")}
+              {t("resource.findOnline")}
             </div>
-            <p className="text-muted text-xs">{t("resource.importHint")}</p>
+            <p className="text-muted text-xs">{t("resource.findOnlineHint")}</p>
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
-            type="url"
-            value={importUrl}
-            onChange={(e) => setImportUrl(e.target.value)}
-            placeholder="https://"
-            aria-label={t("common.url")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                find();
+              }
+            }}
+            placeholder="Sapiens · 9780062316097 · https://…"
+            aria-label={t("resource.findOnline")}
           />
           <Button
             type="button"
             variant="secondary"
-            onClick={runImport}
-            loading={importing}
-            disabled={!importUrl.trim()}
+            onClick={find}
+            loading={finding}
+            disabled={!query.trim()}
           >
-            <Download /> {importing ? t("resource.importing") : t("resource.importButton")}
+            <Search /> {finding ? t("resource.searchingOnline") : t("resource.findOnline")}
           </Button>
+        </div>
+        {candidates && (
+          <div className="mt-1">
+            {candidates.length === 0 ? (
+              <p className="text-muted text-sm">{t("resource.noOnlineResults")}</p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {candidates.map((c, i) => (
+                  <li key={`${c.title}-${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => pick(c)}
+                      className="border-border bg-surface hover:border-primary flex w-full gap-3 rounded-xl border p-2.5 text-left transition-colors"
+                    >
+                      {c.coverUrl ? (
+                        <img
+                          src={c.coverUrl}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          className="h-20 w-14 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span className="bg-surface-2 grid h-20 w-14 shrink-0 place-items-center rounded-md">
+                          <BookOpen className="text-muted size-5" />
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="line-clamp-2 text-sm font-semibold">{c.title}</span>
+                        <span className="text-muted block truncate text-xs">
+                          {c.authors.join(", ")}
+                        </span>
+                        <span className="text-muted block text-xs">
+                          {[
+                            c.originalYear,
+                            c.editionDate && c.editionDate !== c.originalYear
+                              ? `(${c.editionDate})`
+                              : null,
+                            c.pageCount ? `${c.pageCount} b.` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                        <span className="text-primary mt-1 inline-block text-xs font-semibold">
+                          {t("resource.pickResult")} →
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* 3. Basics + cover */}
+      <section className="card p-5 sm:p-6">
+        <SectionTitle title={t("resource.basics")} icon={<FileText />} hue="blue" />
+        <div className="grid gap-5 sm:grid-cols-[1fr_11rem]">
+          <div className="grid content-start gap-4">
+            <Field label={t("resource.titleField")} error={err("title")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  required
+                  value={v.title}
+                  onChange={(e) => set("title", e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t("resource.originalTitle")} optional>
+              {(p) => (
+                <Input
+                  {...p}
+                  value={v.originalTitle}
+                  onChange={(e) => set("originalTitle", e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t("resource.description")} optional error={err("description")}>
+              {(p) => (
+                <Textarea
+                  {...p}
+                  rows={5}
+                  value={v.description}
+                  onChange={(e) => set("description", e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">{t("resource.cover")}</span>
+            {coverPreview ? (
+              <div className="relative">
+                <img
+                  src={coverPreview}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="border-border aspect-[2/3] w-full rounded-xl border object-cover shadow-sm"
+                />
+                <button
+                  type="button"
+                  aria-label={t("upload.remove")}
+                  onClick={() => setV((s) => ({ ...s, coverUrl: "", coverFileId: null }))}
+                  className="bg-surface/90 text-foreground absolute top-2 right-2 rounded-full p-1.5 shadow"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ) : (
+              <FileUpload
+                purpose="cover"
+                variant="tile"
+                enabled={storageEnabled}
+                userId={userId}
+                onUploaded={(id) => setV((s) => ({ ...s, coverFileId: id, coverUrl: "" }))}
+                label={t("upload.coverUpload")}
+              />
+            )}
+            <Input
+              type="url"
+              value={v.coverUrl}
+              onChange={(e) => {
+                const url = e.target.value;
+                setV((s) => ({ ...s, coverUrl: url, coverFileId: url ? null : s.coverFileId }));
+              }}
+              placeholder="https://…"
+              aria-label={t("resource.coverUrl")}
+              aria-invalid={!!err("coverUrl") || undefined}
+              className="h-9 text-xs"
+            />
+            <p className="text-muted text-[11px]">{t("resource.coverHint")}</p>
+          </div>
         </div>
       </section>
 
-      <Section title={t("resource.basics")} icon={<FileText />} hue="blue">
-        <Field label={t("resource.language")} optional>
-          {(p) => (
-            <Input
-              {...p}
-              value={v.language}
-              onChange={(e) => set("language", e.target.value)}
-              placeholder="uz, en, ru…"
-            />
-          )}
-        </Field>
-        <Field label={t("resource.titleField")} error={err("title")} className="sm:col-span-2">
-          {(p) => (
-            <Input {...p} required value={v.title} onChange={(e) => set("title", e.target.value)} />
-          )}
-        </Field>
-        <Field label={t("resource.originalTitle")} optional className="sm:col-span-2">
-          {(p) => (
-            <Input
-              {...p}
-              value={v.originalTitle}
-              onChange={(e) => set("originalTitle", e.target.value)}
-            />
-          )}
-        </Field>
-        <Field
-          label={t("resource.description")}
-          optional
-          error={err("description")}
-          className="sm:col-span-2"
-        >
-          {(p) => (
-            <Textarea
-              {...p}
-              rows={5}
-              value={v.description}
-              onChange={(e) => set("description", e.target.value)}
-            />
-          )}
-        </Field>
-        <Field
-          label={t("resource.publicationDate")}
-          optional
-          hint={t("resource.partialDateHint")}
-          error={err("publicationDate")}
-        >
-          {(p) => (
-            <Input
-              {...p}
-              value={v.publicationDate}
-              onChange={(e) => set("publicationDate", e.target.value)}
-              placeholder="2011"
-              inputMode="numeric"
-            />
-          )}
-        </Field>
-        <Field label={t("resource.coverUrl")} optional error={err("coverUrl")}>
-          {(p) => (
-            <Input
-              {...p}
-              type="url"
-              value={v.coverUrl}
-              onChange={(e) => set("coverUrl", e.target.value)}
-              placeholder="https://"
-            />
-          )}
-        </Field>
-        <div className="sm:col-span-2">
-          <FileUpload
-            purpose="cover"
-            enabled={storageEnabled}
-            currentFileId={v.coverFileId}
-            onUploaded={(id) => set("coverFileId", id)}
-            onRemoved={() => set("coverFileId", null)}
-            label={t("resource.cover")}
-          />
-        </div>
-      </Section>
-
+      {/* 4. People */}
       <section className="card p-5 sm:p-6">
         <SectionTitle
           title={t("resource.contributors")}
@@ -503,161 +606,140 @@ export function ResourceForm({
         />
       </section>
 
-      {isBook && (
-        <Section
-          title={t("resource.details")}
-          icon={(() => {
-            const I = TYPE_ICONS[v.type];
-            return <I />;
-          })()}
-          hue={TYPE_HUE[v.type]}
-        >
-          <Field label={t("resource.publisher")} optional>
+      {/* 5. Dates & details */}
+      <section className="card p-5 sm:p-6">
+        <SectionTitle title={t("resource.details")} icon={<DetailsIcon />} hue={TYPE_HUE[v.type]} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="text-muted size-3.5" /> {t("resource.originalDate")}
+              </span>
+            }
+            optional
+            hint={t("resource.originalDateHint")}
+            error={err("originalDate")}
+          >
             {(p) => (
               <Input
                 {...p}
-                value={v.book.publisher}
-                onChange={(e) => set("book", { ...v.book, publisher: e.target.value })}
+                value={v.originalDate}
+                onChange={(e) => set("originalDate", e.target.value)}
+                placeholder="1499"
+                inputMode="numeric"
               />
             )}
           </Field>
-          <Field label={t("resource.edition")} optional>
+          <Field
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="text-muted size-3.5" /> {t("resource.editionDate")}
+              </span>
+            }
+            optional
+            hint={t("resource.editionDateHint")}
+            error={err("publicationDate")}
+          >
             {(p) => (
               <Input
                 {...p}
-                value={v.book.edition}
-                onChange={(e) => set("book", { ...v.book, edition: e.target.value })}
+                value={v.publicationDate}
+                onChange={(e) => set("publicationDate", e.target.value)}
+                placeholder="2021"
+                inputMode="numeric"
               />
             )}
           </Field>
-          <Field label={t("resource.pageCount")} optional error={err("book.pageCount")}>
+          {isBook && (
+            <>
+              <Field label={t("resource.publisher")} optional>
+                {(p) => (
+                  <Input
+                    {...p}
+                    value={v.book.publisher}
+                    onChange={(e) => set("book", { ...v.book, publisher: e.target.value })}
+                  />
+                )}
+              </Field>
+              <Field label={t("resource.pageCount")} optional error={err("book.pageCount")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="number"
+                    min={1}
+                    value={v.book.pageCount}
+                    onChange={(e) => set("book", { ...v.book, pageCount: e.target.value })}
+                  />
+                )}
+              </Field>
+            </>
+          )}
+          {isMedia && (
+            <>
+              <Field label={t("resource.channel")} optional>
+                {(p) => (
+                  <Input
+                    {...p}
+                    value={v.media.channel}
+                    onChange={(e) => set("media", { ...v.media, channel: e.target.value })}
+                  />
+                )}
+              </Field>
+              <Field label={t("resource.duration")} optional error={err("media.durationSeconds")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="number"
+                    min={1}
+                    value={v.media.durationMinutes}
+                    onChange={(e) => set("media", { ...v.media, durationMinutes: e.target.value })}
+                  />
+                )}
+              </Field>
+              <Field label={t("resource.platform")} optional>
+                {(p) => (
+                  <Input
+                    {...p}
+                    value={v.media.platform}
+                    onChange={(e) => set("media", { ...v.media, platform: e.target.value })}
+                    placeholder="YouTube"
+                  />
+                )}
+              </Field>
+            </>
+          )}
+          <Field label={t("resource.language")} optional>
             {(p) => (
               <Input
                 {...p}
-                type="number"
-                min={1}
-                value={v.book.pageCount}
-                onChange={(e) => set("book", { ...v.book, pageCount: e.target.value })}
+                value={v.language}
+                onChange={(e) => set("language", e.target.value)}
+                placeholder="uz, en, ru…"
               />
             )}
           </Field>
-          <Field label={t("resource.originalLanguage")} optional>
-            {(p) => (
-              <Input
-                {...p}
-                value={v.book.originalLanguage}
-                onChange={(e) => set("book", { ...v.book, originalLanguage: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t("resource.readingUrl")} optional error={err("book.readingUrl")}>
-            {(p) => (
-              <Input
-                {...p}
-                type="url"
-                value={v.book.readingUrl}
-                onChange={(e) => set("book", { ...v.book, readingUrl: e.target.value })}
-                placeholder="https://"
-              />
-            )}
-          </Field>
-          <Field label={t("resource.purchaseUrl")} optional error={err("book.purchaseUrl")}>
-            {(p) => (
-              <Input
-                {...p}
-                type="url"
-                value={v.book.purchaseUrl}
-                onChange={(e) => set("book", { ...v.book, purchaseUrl: e.target.value })}
-                placeholder="https://"
-              />
-            )}
-          </Field>
-          <Field label={t("resource.fileFormat")} optional>
-            {(p) => (
-              <Input
-                {...p}
-                value={v.book.fileFormat}
-                onChange={(e) => set("book", { ...v.book, fileFormat: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t("resource.toc")} optional className="sm:col-span-2">
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={5}
-                value={v.book.tableOfContents}
-                onChange={(e) => set("book", { ...v.book, tableOfContents: e.target.value })}
-              />
-            )}
-          </Field>
-        </Section>
-      )}
+          {isBook && (
+            <Field
+              label={t("resource.readingUrl")}
+              optional
+              error={err("book.readingUrl")}
+              className="sm:col-span-2"
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  type="url"
+                  value={v.book.readingUrl}
+                  onChange={(e) => set("book", { ...v.book, readingUrl: e.target.value })}
+                  placeholder="https://"
+                />
+              )}
+            </Field>
+          )}
+        </div>
+      </section>
 
-      {isMedia && (
-        <Section
-          title={t("resource.details")}
-          icon={(() => {
-            const I = TYPE_ICONS[v.type];
-            return <I />;
-          })()}
-          hue={TYPE_HUE[v.type]}
-        >
-          <Field label={t("resource.platform")} optional>
-            {(p) => (
-              <Input
-                {...p}
-                value={v.media.platform}
-                onChange={(e) => set("media", { ...v.media, platform: e.target.value })}
-                placeholder="YouTube"
-              />
-            )}
-          </Field>
-          <Field label={t("resource.channel")} optional>
-            {(p) => (
-              <Input
-                {...p}
-                value={v.media.channel}
-                onChange={(e) => set("media", { ...v.media, channel: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t("resource.duration")} optional error={err("media.durationSeconds")}>
-            {(p) => (
-              <Input
-                {...p}
-                type="number"
-                min={1}
-                step="1"
-                value={v.media.durationMinutes}
-                onChange={(e) => set("media", { ...v.media, durationMinutes: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label={t("resource.transcriptUrl")} optional error={err("media.transcriptUrl")}>
-            {(p) => (
-              <Input
-                {...p}
-                type="url"
-                value={v.media.transcriptUrl}
-                onChange={(e) => set("media", { ...v.media, transcriptUrl: e.target.value })}
-                placeholder="https://"
-              />
-            )}
-          </Field>
-          <Field label={t("resource.transcript")} optional className="sm:col-span-2">
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={6}
-                value={v.media.transcript}
-                onChange={(e) => set("media", { ...v.media, transcript: e.target.value })}
-              />
-            )}
-          </Field>
-        </Section>
-      )}
-
+      {/* 6. Classification */}
       <section className="card p-5 sm:p-6">
         <SectionTitle title={t("resource.classification")} icon={<Tags />} hue="amber" />
         {categories.length > 0 && (
@@ -674,7 +756,7 @@ export function ResourceForm({
                       "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
                       on
                         ? "chip hue-border"
-                        : "border-border-strong text-muted hover:text-foreground hover:bg-surface-2",
+                        : "border-border-strong text-muted hover:bg-surface-2 hover:text-foreground",
                     )}
                   >
                     <input
@@ -688,7 +770,7 @@ export function ResourceForm({
                         )
                       }
                     />
-                    {catName(c)}
+                    {locale === "uz" ? c.nameUz : c.nameEn}
                   </label>
                 );
               })}
@@ -708,9 +790,17 @@ export function ResourceForm({
         </Field>
       </section>
 
-      <section className="card p-5 sm:p-6">
-        <SectionTitle title={t("resource.sourcesSection")} icon={<Link2 />} hue="sky" />
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* 7. More (collapsed) */}
+      <details
+        className="card group p-5 sm:p-6"
+        open={!!(v.identifiers.length || v.links.length || v.sourceUrl)}
+      >
+        <summary className="flex cursor-pointer list-none items-center gap-2.5">
+          <IconChip icon={<Link2 />} hue="slate" />
+          <span className="text-[15px] font-semibold tracking-tight">{t("resource.more")}</span>
+          <ChevronDown className="text-muted ml-auto size-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-5 grid gap-4">
           <Field label={t("resource.sourceUrl")} optional error={err("sourceUrl")}>
             {(p) => (
               <Input
@@ -722,173 +812,166 @@ export function ResourceForm({
               />
             )}
           </Field>
-          <Field label={t("resource.verification")}>
-            {(p) => (
-              <Select
-                {...p}
-                value={v.verification}
-                onChange={(e) =>
-                  set("verification", e.target.value as ResourceFormValue["verification"])
-                }
+          {isMedia && (
+            <>
+              <Field
+                label={t("resource.transcriptUrl")}
+                optional
+                error={err("media.transcriptUrl")}
               >
-                {(["unverified", "verified", "disputed"] as const).map((x) => (
-                  <option key={x} value={x}>
-                    {t(`verification.${x}`)}
-                  </option>
-                ))}
-              </Select>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="url"
+                    value={v.media.transcriptUrl}
+                    onChange={(e) => set("media", { ...v.media, transcriptUrl: e.target.value })}
+                    placeholder="https://"
+                  />
+                )}
+              </Field>
+              <Field label={t("resource.transcript")} optional>
+                {(p) => (
+                  <Textarea
+                    {...p}
+                    rows={5}
+                    value={v.media.transcript}
+                    onChange={(e) => set("media", { ...v.media, transcript: e.target.value })}
+                  />
+                )}
+              </Field>
+            </>
+          )}
+          <div>
+            <div className="mb-2 text-sm font-medium">{t("resource.identifiers")}</div>
+            {err("identifiers") && (
+              <p className="text-danger mb-2 text-xs">{t("validation.invalid_isbn")}</p>
             )}
-          </Field>
-          <Field label={t("resource.sourceNote")} optional className="sm:col-span-2">
-            {(p) => (
-              <Input
-                {...p}
-                value={v.sourceNote}
-                onChange={(e) => set("sourceNote", e.target.value)}
-              />
-            )}
-          </Field>
+            <ul className="flex flex-col gap-2">
+              {v.identifiers.map((id, i) => (
+                <li key={i} className="flex gap-2">
+                  <Select
+                    aria-label={t("common.type")}
+                    className="w-36"
+                    value={id.scheme}
+                    onChange={(e) =>
+                      set(
+                        "identifiers",
+                        v.identifiers.map((x, j) =>
+                          j === i ? { ...x, scheme: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  >
+                    {["isbn13", "isbn10", "doi", "youtube", "wikidata", "openlibrary", "other"].map(
+                      (s) => (
+                        <option key={s} value={s}>
+                          {s.toUpperCase()}
+                        </option>
+                      ),
+                    )}
+                  </Select>
+                  <Input
+                    aria-label={t("resource.identifiers")}
+                    value={id.value}
+                    onChange={(e) =>
+                      set(
+                        "identifiers",
+                        v.identifiers.map((x, j) =>
+                          j === i ? { ...x, value: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("common.remove")}
+                    onClick={() =>
+                      set(
+                        "identifiers",
+                        v.identifiers.filter((_, j) => j !== i),
+                      )
+                    }
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1"
+              onClick={() =>
+                set("identifiers", [...v.identifiers, { scheme: "isbn13", value: "" }])
+              }
+            >
+              <Plus /> {t("resource.addIdentifier")}
+            </Button>
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-medium">{t("resource.linksSection")}</div>
+            <ul className="flex flex-col gap-2">
+              {v.links.map((l, i) => (
+                <li key={i} className="grid gap-2 sm:grid-cols-[1fr_10rem_auto]">
+                  <Input
+                    aria-label={t("common.url")}
+                    type="url"
+                    placeholder="https://"
+                    value={l.url}
+                    aria-invalid={!!err(`links.${i}.url`) || undefined}
+                    onChange={(e) =>
+                      set(
+                        "links",
+                        v.links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)),
+                      )
+                    }
+                  />
+                  <Input
+                    aria-label={t("common.label")}
+                    placeholder={t("common.label")}
+                    value={l.label}
+                    onChange={(e) =>
+                      set(
+                        "links",
+                        v.links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("common.remove")}
+                    onClick={() =>
+                      set(
+                        "links",
+                        v.links.filter((_, j) => j !== i),
+                      )
+                    }
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1"
+              onClick={() => set("links", [...v.links, { kind: "reference", url: "", label: "" }])}
+            >
+              <Plus /> {t("resource.addLink")}
+            </Button>
+          </div>
         </div>
+      </details>
 
-        <h3 className="mt-6 mb-2 text-sm font-medium">{t("resource.identifiers")}</h3>
-        {err("identifiers") && (
-          <p className="text-danger mb-2 text-xs">{t("validation.invalid_isbn")}</p>
-        )}
-        <ul className="flex flex-col gap-2">
-          {v.identifiers.map((id, i) => (
-            <li key={i} className="flex gap-2">
-              <Select
-                aria-label={t("common.type")}
-                className="w-36"
-                value={id.scheme}
-                onChange={(e) =>
-                  set(
-                    "identifiers",
-                    v.identifiers.map((x, j) => (j === i ? { ...x, scheme: e.target.value } : x)),
-                  )
-                }
-              >
-                {["isbn13", "isbn10", "doi", "youtube", "wikidata", "openlibrary", "other"].map(
-                  (s) => (
-                    <option key={s} value={s}>
-                      {s.toUpperCase()}
-                    </option>
-                  ),
-                )}
-              </Select>
-              <Input
-                aria-label={t("resource.identifiers")}
-                value={id.value}
-                onChange={(e) =>
-                  set(
-                    "identifiers",
-                    v.identifiers.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={t("common.remove")}
-                onClick={() =>
-                  set(
-                    "identifiers",
-                    v.identifiers.filter((_, j) => j !== i),
-                  )
-                }
-              >
-                <Trash2 />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="mt-2"
-          onClick={() => set("identifiers", [...v.identifiers, { scheme: "isbn13", value: "" }])}
-        >
-          <Plus /> {t("resource.addIdentifier")}
-        </Button>
-
-        <h3 className="mt-6 mb-2 text-sm font-medium">{t("resource.linksSection")}</h3>
-        <ul className="flex flex-col gap-2">
-          {v.links.map((l, i) => (
-            <li key={i} className="grid gap-2 sm:grid-cols-[9rem_1fr_10rem_auto]">
-              <Select
-                aria-label={t("common.type")}
-                value={l.kind}
-                onChange={(e) =>
-                  set(
-                    "links",
-                    v.links.map((x, j) => (j === i ? { ...x, kind: e.target.value } : x)),
-                  )
-                }
-              >
-                {["source", "reference", "official", "read", "purchase", "social", "other"].map(
-                  (k) => (
-                    <option key={k} value={k}>
-                      {t(`linkKinds.${k}`)}
-                    </option>
-                  ),
-                )}
-              </Select>
-              <Input
-                aria-label={t("common.url")}
-                type="url"
-                placeholder="https://"
-                value={l.url}
-                aria-invalid={!!err(`links.${i}.url`) || undefined}
-                onChange={(e) =>
-                  set(
-                    "links",
-                    v.links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)),
-                  )
-                }
-              />
-              <Input
-                aria-label={t("common.label")}
-                placeholder={t("common.label")}
-                value={l.label}
-                onChange={(e) =>
-                  set(
-                    "links",
-                    v.links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={t("common.remove")}
-                onClick={() =>
-                  set(
-                    "links",
-                    v.links.filter((_, j) => j !== i),
-                  )
-                }
-              >
-                <Trash2 />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="mt-2"
-          onClick={() => set("links", [...v.links, { kind: "reference", url: "", label: "" }])}
-        >
-          <Plus /> {t("resource.addLink")}
-        </Button>
-      </section>
-
-      {!isAdmin && (
-        <section className="card p-5 sm:p-6">
+      {!canEditDirectly && (
+        <section className="card p-5">
           <Field label={t("suggestions.explanation")} optional>
             {(p) => (
               <Textarea
@@ -903,8 +986,13 @@ export function ResourceForm({
       )}
 
       <div className="border-border bg-background/90 sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
-        <p className="text-muted text-xs">
-          {isAdmin ? t("resource.newSubtitleAdmin") : t("resource.newSubtitleUser")}
+        <p className="text-muted flex items-center gap-1.5 text-xs">
+          <ImageIcon className="size-3.5" />
+          {canEditDirectly
+            ? resourceId && !isAdmin
+              ? t("resource.canEditHint")
+              : t("resource.newSubtitleAdmin")
+            : t("resource.newSubtitleUser")}
         </p>
         <div className="flex gap-2">
           <Button type="button" variant="ghost" onClick={() => router.back()}>

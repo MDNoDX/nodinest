@@ -1,7 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { listCategories } from "@/server/catalog";
-import { listMyRecords, saveManualSession } from "@/server/journal";
-import { listCollections, listMyTags, saveNote, toggleCollectionItem } from "@/server/notes";
+import {
+  getCollection,
+  listCollections,
+  listMyTags,
+  reorderCollection,
+  saveCollection,
+  saveNote,
+  toggleCollectionItem,
+} from "@/server/notes";
+import { listMyRecords, setLearningStatus, upsertLearningRecord } from "@/server/records";
+import { getCollectionStats } from "@/server/stats";
 import { listUsers } from "@/server/admin";
 import { submitResource } from "@/server/suggestions";
 import { categories } from "@/db/schema";
@@ -26,10 +35,15 @@ beforeAll(async () => {
       type: "book",
       title: "Aggregates One",
       categoryIds: [catId],
+      book: { pageCount: 320 },
     })) as { id: string }
   ).id;
   r2 = (
-    (await submitResource(db, admin, { type: "book", title: "Aggregates Two Different" })) as {
+    (await submitResource(db, admin, {
+      type: "book",
+      title: "Aggregates Two Different",
+      book: { pageCount: 180 },
+    })) as {
       id: string;
     }
   ).id;
@@ -60,30 +74,54 @@ describe("correlated counts", () => {
     expect(cats.find((c) => c.id === catId)?.count).toBe(1);
   });
 
-  it("per-resource time totals", async () => {
-    const day = 86400_000;
-    await saveManualSession(db, u, {
+  it("records, pages read and yearly stats", async () => {
+    await upsertLearningRecord(db, u, {
       resourceId: r1,
-      startedAt: new Date(Date.now() - 3 * day),
-      endedAt: new Date(Date.now() - 3 * day + 600_000),
+      status: "completed",
+      startedAt: "2025-12-20T08:30:00Z",
+      completedAt: "2026-01-05T19:45:00Z",
+      rating: 9,
     });
-    await saveManualSession(db, u, {
-      resourceId: r2,
-      startedAt: new Date(Date.now() - 2 * day),
-      endedAt: new Date(Date.now() - 2 * day + 1200_000),
-    });
-    const { setLearningStatus } = await import("@/server/journal");
-    await setLearningStatus(db, u, r1, "in_progress");
     await setLearningStatus(db, u, r2, "in_progress");
+    await upsertLearningRecord(db, u, {
+      resourceId: r2,
+      status: "in_progress",
+      progressCurrent: 40,
+      progressTotal: 180,
+      progressUnit: "pages",
+    });
     const recs = await listMyRecords(db, u);
-    expect(recs.find((r) => r.resourceId === r1)?.totalSeconds).toBe(600);
-    expect(recs.find((r) => r.resourceId === r2)?.totalSeconds).toBe(1200);
+    expect(recs.find((r) => r.resourceId === r1)).toMatchObject({ status: "completed", rating: 9 });
+
+    const all = await getCollectionStats(db, u, { timeZone: "Asia/Tashkent" });
+    expect(all.totals).toMatchObject({ completed: 1, in_progress: 1, books_read: 1 });
+    expect(all.totals.pages_read).toBe(320 + 40);
+    const y2026 = await getCollectionStats(db, u, { timeZone: "Asia/Tashkent", year: 2026 });
+    expect(y2026.totals.books_read).toBe(1);
+    const y2025 = await getCollectionStats(db, u, { timeZone: "Asia/Tashkent", year: 2025 });
+    expect(y2025.totals.books_read).toBe(0);
+  });
+
+  it("ranked collections keep the user's order", async () => {
+    const cid = await saveCollection(db, u, { name: "Top 10", ranked: true });
+    await toggleCollectionItem(db, u, cid, { resourceId: r1 }, true);
+    await toggleCollectionItem(db, u, cid, { resourceId: r2 }, true);
+    let d = (await getCollection(db, u, cid))!;
+    expect(d.items.map((i) => i.resourceId)).toEqual([r1, r2]);
+    await reorderCollection(db, u, cid, [d.items[1].id, d.items[0].id]);
+    d = (await getCollection(db, u, cid))!;
+    expect(d.collection.ranked).toBe(true);
+    expect(d.items.map((i) => i.resourceId)).toEqual([r2, r1]);
+    expect(d.items[1].myRating).toBe(9);
+    // Someone else cannot reorder it.
+    const other = await makeUser(db);
+    await expect(reorderCollection(db, other, cid, [d.items[0].id])).rejects.toThrow();
   });
 
   it("admin user activity counts", async () => {
     const users = await listUsers(db, admin);
     const row = users.find((x) => x.id === u.userId)!;
     expect(row.notes).toBe(2);
-    expect(row.sessions).toBe(2);
+    expect(row.records).toBe(2);
   });
 });

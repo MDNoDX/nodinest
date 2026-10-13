@@ -9,10 +9,11 @@ using unfamiliar APIs (e.g. `proxy.ts` replaced `middleware.ts`, async `params`)
 src/
   app/                 routes. (auth)/login, (app)/* = signed-in shell, api/* = route handlers
   app/actions/         server actions — thin: validate ids, call src/server/*, revalidate
-  server/              domain services (catalog, suggestions, journal, notes, goals, stats,
-                       search, admin, storage, url-import, ai/*). All DB access lives here.
+  server/              domain services (catalog, suggestions, records, conspect, booktext,
+                       notes, goals, stats, search, lookup, admin, storage, url-import, ai/*).
+                       All DB access lives here.
   db/                  schema.ts (Drizzle), client.ts (createDb, withUser), index.ts (app db)
-  lib/                 pure helpers (validation, normalize, durations, dates, streaks, net/*)
+  lib/                 pure helpers (validation, normalize, durations, dates, hues, net/*)
   components/          ui/ primitives, layout/, feature folders
   i18n/ + messages/    next-intl (cookie-based locale, uz default). Keys must exist in BOTH files.
 drizzle/               SQL migrations. 0001_search_rls.sql is hand-written (FTS, trigram, RLS).
@@ -25,14 +26,20 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `app.role`, switches to role `nodinest_app` → RLS active) **and** filters by owner in SQL.
   The plain `db` (table owner) is only for auth, rate limits, caches, settings, audit and
   already-authorised admin operations.
-- Roles come from the DB (`getCurrentUser`), never from the client. Server actions use
+- Roles come from the DB (`getCurrentUser`), never from the client. The superadmin acts as a
+  normal user until the "Admin" switch (httpOnly cookie `nn_admin_mode`) is on: `user.role`
+  is the *effective* role, `user.isSuperadmin` / `ctx.superadminAccount` the account. AI
+  limits always use the account flag (unlimited for the superadmin). Server actions use
   `run()` (src/app/actions/_run.ts) which authenticates and maps errors to `ActionResult`.
-- Catalog writes: superadmin → `apply*` in `server/catalog.ts`; everyone else → suggestions.
-  Approval re-validates + re-checks duplicates in one transaction and writes audit logs.
+- Catalog writes: anyone may create entries (they own them via `created_by`). Edits apply
+  directly when `canEditCatalog` (admin mode or creator), otherwise they become suggestions.
+  RLS mirrors this (drizzle/0007). Approval re-validates + re-checks duplicates and audits.
 - All writes validate with zod schemas in `src/lib/validation.ts` (shared by forms, AI, approval).
-- AI tools are declared in `server/ai/tools.ts`; write tools only create `ai_actions`
-  proposals; `server/ai/actions.ts` executes after explicit confirmation. Never add a tool
-  that runs SQL/shell or bypasses `submitPerson/submitResource`.
+- AI tools live in the `TOOLS` registry in `server/ai/tools.ts` with a mode: `read`, `act`
+  (runs at once with the user's own permissions, logged in `ai_actions`) or `confirm`
+  (destructive; stored as a proposal, run by `server/ai/actions.ts` after the user confirms).
+  Each tool belongs to a permission group the admin can disable. Never add a tool that runs
+  SQL/shell or bypasses `submitPerson/submitResource`.
 - Never invent data (dates, ISBNs, quotes). Unknown → NULL. Partial dates are `YYYY[-MM[-DD]]`.
 - Text search normalisation exists twice and must match: `nodinest.nn_norm()` (SQL) and
   `normalizeText()` (TS).
@@ -58,3 +65,9 @@ Postgres.app at 127.0.0.1:5432 (user `mdnodx`): DBs `nodinest`, `nodinest_test`,
 `.env.local` holds local secrets (gitignored). The launch config `nodinest-dev-ai` injects
 `GEMINI_API_KEY` from `~/Library/Application Support/Nodogram/gemini.key` without writing it
 to the repo. Gemini free quotas are per model: `GEMINI_FALLBACK_MODELS` lists free fallbacks.
+
+**Warning:** `vercel link`, `vercel env pull` and `vercel blob create-store` overwrite
+`.env.local` with production values. Pull into a scratch file instead
+(`vercel env pull /tmp/x.env --environment=production`) and restore `.env.local` if touched.
+Files: Vercel Blob (private store `nodinest-files`), client upload via `/api/blob/upload`,
+served via `/api/files/[id]`. PDF text: `unpdf` → `book_pages` (FTS) in `server/booktext.ts`.

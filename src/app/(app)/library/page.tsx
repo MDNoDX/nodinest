@@ -1,4 +1,4 @@
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, Plus, Search, Star } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Cover, coverSrc } from "@/components/library/cover";
@@ -22,7 +22,6 @@ const STATUS_TONE = {
   in_progress: "primary",
   completed: "success",
   paused: "warning",
-  abandoned: "neutral",
 } as const;
 
 export default async function LibraryPage({ searchParams }: { searchParams: SP }) {
@@ -219,11 +218,16 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
                 {r.contributors && (
                   <p className="text-muted mt-0.5 line-clamp-1 text-xs">{r.contributors}</p>
                 )}
-                {r.publicationDate && (
+                {r.myRating ? (
+                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold tabular-nums">
+                    <Star className="size-3 fill-[var(--c-amber)] text-[var(--c-amber)]" />{" "}
+                    {r.myRating}/10
+                  </p>
+                ) : r.publicationDate ? (
                   <p className="text-muted text-xs">
                     {formatPartialDate(r.publicationDate, locale)}
                   </p>
-                )}
+                ) : null}
               </Link>
             </li>
           ))}

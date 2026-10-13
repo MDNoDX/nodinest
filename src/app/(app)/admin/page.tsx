@@ -15,7 +15,7 @@ export default async function AdminOverview() {
     "people",
     "resources",
     "notes",
-    "sessions",
+    "records",
     "pending_suggestions",
     "ai_requests_today",
     "storage_bytes",

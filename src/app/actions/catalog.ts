@@ -4,8 +4,8 @@ import { z } from "zod";
 import { addRelation } from "@/server/catalog";
 import { submitArchive, submitPerson, submitResource } from "@/server/suggestions";
 import { withUser } from "@/db";
+import { lookupBooks } from "@/server/lookup";
 import { importUrlMetadata } from "@/server/url-import";
-import { AppError } from "@/lib/errors";
 import { run } from "./_run";
 
 const idSchema = z.string().uuid();
@@ -68,7 +68,6 @@ export async function relateResourcesAction(
   kind: "edition_of" | "translation_of" | "part_of" | "related",
 ) {
   return run(async ({ ctx, db }) => {
-    if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
     await withUser(db, ctx, (tx) =>
       addRelation(
         tx,
@@ -85,11 +84,16 @@ export async function relateResourcesAction(
 export async function importUrlAction(url: string) {
   return run(async ({ ctx }) => {
     const m = await importUrlMetadata(z.string().max(2048).parse(url), ctx.userId, {
-      unlimited: ctx.role === "superadmin",
+      unlimited: !!ctx.superadminAccount,
     });
     // Never return the full page text to the client form.
     const { text: _text, ...rest } = m;
     void _text;
     return rest;
   });
+}
+
+/** Book metadata + covers from Google Books / Open Library (add form). */
+export async function lookupBooksAction(query: string) {
+  return run(async () => lookupBooks(z.string().trim().min(1).max(300).parse(query), { limit: 6 }));
 }

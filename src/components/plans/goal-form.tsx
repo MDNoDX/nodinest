@@ -16,9 +16,9 @@ export function GoalDialog() {
   const { pending, exec } = useAction();
   const [v, setV] = useState({
     title: "",
-    metric: "minutes",
-    period: "week",
-    target: "150",
+    metric: "completed_resources",
+    period: "year",
+    target: "24",
     resourceType: "",
     note: "",
   });
@@ -55,7 +55,7 @@ export function GoalDialog() {
             <Field label={t("plans.metric")}>
               {(p) => (
                 <Select {...p} value={v.metric} onChange={(e) => set("metric", e.target.value)}>
-                  {(["minutes", "sessions", "completed_resources"] as const).map((m) => (
+                  {(["completed_resources", "pages"] as const).map((m) => (
                     <option key={m} value={m}>
                       {t(`plans.metrics.${m}`)}
                     </option>
@@ -66,7 +66,7 @@ export function GoalDialog() {
             <Field label={t("plans.period")}>
               {(p) => (
                 <Select {...p} value={v.period} onChange={(e) => set("period", e.target.value)}>
-                  {(["day", "week", "month", "year"] as const).map((m) => (
+                  {(["week", "month", "year"] as const).map((m) => (
                     <option key={m} value={m}>
                       {t(`plans.periods.${m}`)}
                     </option>

@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withUser } from "@/db/client";
-import { notes, studySessions, learningRecords } from "@/db/schema";
+import { bookPages, bookTextSources, conspectSections, learningRecords, notes } from "@/db/schema";
+import { createSection, listSections, updateSection } from "@/server/conspect";
 import { submitResource } from "@/server/suggestions";
 import { deleteNote, getNote, listNotes, saveNote } from "@/server/notes";
 import { universalSearch } from "@/server/search";
@@ -90,16 +91,53 @@ describe("cross-user privacy", () => {
   it("RLS rejects inserting rows owned by someone else", async () => {
     await expect(
       withUser(db, bob, (tx) =>
-        tx.insert(studySessions).values({
+        tx.insert(conspectSections).values({
           userId: alice.userId,
-          status: "completed",
-          source: "manual",
-          startedAt: new Date(Date.now() - 3600_000),
-          endedAt: new Date(),
-          activeSeconds: 60,
+          resourceId,
+          title: "Forged",
         }),
       ),
     ).rejects.toThrow();
+  });
+
+  it("konspekts and indexed book text stay private", async () => {
+    const sid = await createSection(db, alice, resourceId, {
+      title: "1-bob",
+      content: "zanjabil konspekt",
+    });
+    expect(await listSections(db, bob, resourceId)).toEqual([]);
+    await expect(updateSection(db, bob, sid, { title: "x", content: "y" })).rejects.toThrow();
+    const [src] = await withUser(db, alice, (tx) =>
+      tx
+        .insert(bookTextSources)
+        .values({
+          userId: alice.userId,
+          resourceId,
+          kind: "url",
+          url: "https://e.test/a.pdf",
+          status: "ready",
+          pages: 1,
+        })
+        .returning({ id: bookTextSources.id }),
+    );
+    await withUser(db, alice, (tx) =>
+      tx.insert(bookPages).values({
+        sourceId: src.id,
+        userId: alice.userId,
+        resourceId,
+        page: 1,
+        content: "zanjabil sahifa",
+      }),
+    );
+    const bobSees = await universalSearch(db, bob, { q: "zanjabil" });
+    expect(bobSees.groups.conspect?.total ?? 0).toBe(0);
+    expect(bobSees.groups.booktext?.total ?? 0).toBe(0);
+    const aliceSees = await universalSearch(db, alice, { q: "zanjabil", resourceId });
+    expect(aliceSees.groups.conspect?.total).toBe(1);
+    expect(aliceSees.groups.booktext?.total).toBe(1);
+    expect(aliceSees.groups.booktext?.hits[0].href).toBe("https://e.test/a.pdf#page=1");
+    const raw = await withUser(db, bob, (tx) => tx.select().from(bookPages));
+    expect(raw.every((r) => r.userId === bob.userId)).toBe(true);
   });
 
   it("regular users cannot write to the shared catalog directly (RLS)", async () => {

@@ -15,15 +15,12 @@ export default async function NewPersonPage() {
       <PageHeader
         section="people"
         title={t("person.newTitle")}
-        subtitle={
-          user.role === "superadmin"
-            ? t("resource.newSubtitleAdmin")
-            : t("resource.newSubtitleUser")
-        }
+        subtitle={t("resource.newSubtitleAdmin")}
       />
       <PersonForm
         initial={emptyPerson}
-        isAdmin={user.role === "superadmin"}
+        canEditDirectly
+        userId={user.id}
         storageEnabled={isStorageConfigured()}
       />
     </div>

@@ -113,14 +113,13 @@ export const progressUnit = nodinest.enum("progress_unit", [
   "percent",
   "lessons",
 ]);
-export const sessionStatus = nodinest.enum("session_status", ["active", "paused", "completed"]);
-export const sessionSource = nodinest.enum("session_source", ["timer", "manual"]);
 export const noteKind = nodinest.enum("note_kind", ["note", "quote"]);
 export const visibility = nodinest.enum("visibility", ["private", "public"]);
 export const goalMetric = nodinest.enum("goal_metric", [
   "minutes",
   "sessions",
   "completed_resources",
+  "pages",
 ]);
 export const goalPeriod = nodinest.enum("goal_period", ["day", "week", "month", "year"]);
 export const goalStatus = nodinest.enum("goal_status", ["active", "achieved", "archived"]);
@@ -133,6 +132,8 @@ export const suggestionStatus = nodinest.enum("suggestion_status", [
   "withdrawn",
 ]);
 export const filePurpose = nodinest.enum("file_purpose", ["cover", "portrait", "attachment"]);
+export const textSourceKind = nodinest.enum("text_source_kind", ["file", "url"]);
+export const textSourceStatus = nodinest.enum("text_source_status", ["pending", "ready", "failed"]);
 export const aiActionStatus = nodinest.enum("ai_action_status", [
   "proposed",
   "completed",
@@ -324,10 +325,12 @@ export const resources = nodinest.table(
     coverUrl: text("cover_url"),
     coverFileId: uuid("cover_file_id").references(() => files.id, { onDelete: "set null" }),
     language: text("language"),
+    // Edition the user read (year or date).
     publicationDate: text("publication_date"),
+    // Original publication / writing date of the work.
+    originalDate: text("original_date"),
     sourceUrl: text("source_url"),
     verification: verificationStatus("verification").notNull().default("unverified"),
-    sourceNote: text("source_note"),
     createdBy: uuid("created_by").references(() => user.id, { onDelete: "set null" }),
     updatedBy: uuid("updated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),
@@ -336,6 +339,7 @@ export const resources = nodinest.table(
   },
   (t) => [
     check("resources_pubdate_chk", partialDateCheck("publication_date")),
+    check("resources_origdate_chk", partialDateCheck("original_date")),
     index("resources_type_idx").on(t.type),
     index("resources_updated_idx").on(t.updatedAt),
   ],
@@ -347,14 +351,9 @@ export const bookDetails = nodinest.table("book_details", {
     .primaryKey()
     .references(() => resources.id, { onDelete: "cascade" }),
   publisher: text("publisher"),
-  edition: text("edition"),
   pageCount: integer("page_count"),
   originalLanguage: text("original_language"),
-  tableOfContents: text("table_of_contents"),
   readingUrl: text("reading_url"),
-  purchaseUrl: text("purchase_url"),
-  // Format metadata, e.g. "PDF", "EPUB", "Print" — works without storage.
-  fileFormat: text("file_format"),
 });
 
 /** Video / lecture / interview / podcast / article metadata (1:1). */
@@ -520,12 +519,10 @@ export const learningRecords = nodinest.table(
       .notNull()
       .references(() => resources.id, { onDelete: "cascade" }),
     status: learningStatus("status").notNull().default("planned"),
-    startedOn: date("started_on"),
-    completedOn: date("completed_on"),
+    startedAt: ts("started_at"),
+    completedAt: ts("completed_at"),
     rating: smallint("rating"),
     review: text("review"),
-    learningGoals: text("learning_goals"),
-    personalNotes: text("personal_notes"),
     progressCurrent: integer("progress_current"),
     progressTotal: integer("progress_total"),
     progressUnit: progressUnit("progress_unit").notNull().default("pages"),
@@ -536,51 +533,10 @@ export const learningRecords = nodinest.table(
   (t) => [
     uniqueIndex("learning_records_user_resource_uq").on(t.userId, t.resourceId),
     index("learning_records_user_status_idx").on(t.userId, t.status),
-    check("learning_records_rating_chk", sql`${t.rating} IS NULL OR ${t.rating} BETWEEN 1 AND 5`),
+    check("learning_records_rating_chk", sql`${t.rating} IS NULL OR ${t.rating} BETWEEN 1 AND 10`),
     check(
       "learning_records_progress_chk",
       sql`(${t.progressCurrent} IS NULL OR ${t.progressCurrent} >= 0) AND (${t.progressTotal} IS NULL OR ${t.progressTotal} > 0)`,
-    ),
-  ],
-);
-
-/**
- * Study sessions. Active time = active_seconds (+ now - last_resumed_at while
- * running). Paused time is never counted. See src/lib/durations.ts.
- */
-export const studySessions = nodinest.table(
-  "study_sessions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
-    status: sessionStatus("status").notNull(),
-    source: sessionSource("source").notNull(),
-    startedAt: ts("started_at").notNull(),
-    endedAt: ts("ended_at"),
-    lastResumedAt: ts("last_resumed_at"),
-    activeSeconds: integer("active_seconds").notNull().default(0),
-    progressFrom: integer("progress_from"),
-    progressTo: integer("progress_to"),
-    note: text("note"),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-    deletedAt: ts("deleted_at"),
-  },
-  (t) => [
-    index("study_sessions_user_started_idx").on(t.userId, t.startedAt),
-    index("study_sessions_resource_idx").on(t.resourceId),
-    // At most one running/paused timer per user.
-    uniqueIndex("study_sessions_one_open_uq")
-      .on(t.userId)
-      .where(sql`${t.status} <> 'completed' AND ${t.deletedAt} IS NULL`),
-    check("study_sessions_active_nonneg_chk", sql`${t.activeSeconds} >= 0`),
-    check("study_sessions_end_chk", sql`${t.endedAt} IS NULL OR ${t.endedAt} >= ${t.startedAt}`),
-    check(
-      "study_sessions_completed_chk",
-      sql`${t.status} <> 'completed' OR (${t.endedAt} IS NOT NULL AND ${t.lastResumedAt} IS NULL)`,
     ),
   ],
 );
@@ -601,7 +557,6 @@ export const notes = nodinest.table(
     resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
     // Person the quotation is attributed to; only set explicitly by the user.
     personId: uuid("person_id").references(() => people.id, { onDelete: "set null" }),
-    sessionId: uuid("session_id").references(() => studySessions.id, { onDelete: "set null" }),
     pageFrom: integer("page_from"),
     pageTo: integer("page_to"),
     location: text("location"),
@@ -650,6 +605,8 @@ export const collections = nodinest.table(
     systemKey: text("system_key"),
     name: text("name"),
     description: text("description"),
+    // Ranked collections ("Top 10") show items in `position` order as #1, #2…
+    ranked: boolean("ranked").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -673,6 +630,7 @@ export const collectionItems = nodinest.table(
       .references(() => user.id, { onDelete: "cascade" }),
     resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "cascade" }),
     noteId: uuid("note_id").references(() => notes.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
     addedAt: createdAt(),
   },
   (t) => [
@@ -714,14 +672,82 @@ export const plans = nodinest.table(
       .references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
-    plannedOn: date("planned_on"),
-    plannedMinutes: integer("planned_minutes"),
+    startOn: date("start_on"),
+    endOn: date("end_on"),
     done: boolean("done").notNull().default(false),
     note: text("note"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("plans_user_date_idx").on(t.userId, t.plannedOn)],
+  (t) => [index("plans_user_date_idx").on(t.userId, t.startOn)],
+);
+
+/** Konspekt: a user's chapter-by-chapter summary of a resource. */
+export const conspectSections = nodinest.table(
+  "conspect_sections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    content: text("content").notNull().default(""),
+    pageFrom: integer("page_from"),
+    pageTo: integer("page_to"),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("conspect_user_resource_idx").on(t.userId, t.resourceId, t.position)],
+);
+
+/** Where the full text of a resource comes from (the user's PDF or a reading link). */
+export const bookTextSources = nodinest.table(
+  "book_text_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    kind: textSourceKind("kind").notNull(),
+    fileId: uuid("file_id").references(() => files.id, { onDelete: "cascade" }),
+    url: text("url"),
+    status: textSourceStatus("status").notNull().default("pending"),
+    pages: integer("pages"),
+    error: text("error"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("book_text_sources_user_resource_idx").on(t.userId, t.resourceId)],
+);
+
+/** Extracted text, one row per page (searchable; private to the owner). */
+export const bookPages = nodinest.table(
+  "book_pages",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => bookTextSources.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    page: integer("page").notNull(),
+    content: text("content").notNull(),
+  },
+  (t) => [
+    index("book_pages_source_page_idx").on(t.sourceId, t.page),
+    index("book_pages_user_resource_idx").on(t.userId, t.resourceId),
+  ],
 );
 
 // ─── 4. Collaboration, audit, AI, ops ───────────────────────────────────────
@@ -860,7 +886,6 @@ export type User = typeof user.$inferSelect;
 export type Person = typeof people.$inferSelect;
 export type Resource = typeof resources.$inferSelect;
 export type LearningRecord = typeof learningRecords.$inferSelect;
-export type StudySession = typeof studySessions.$inferSelect;
 export type Note = typeof notes.$inferSelect;
 export type Collection = typeof collections.$inferSelect;
 export type Goal = typeof goals.$inferSelect;

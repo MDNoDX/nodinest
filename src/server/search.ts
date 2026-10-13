@@ -1,6 +1,6 @@
 /**
  * Universal search across people, resources, transcripts, notes, quotations,
- * sessions, categories and tags.
+ * konspekt sections, the text of indexed books (PDF/links), categories and tags.
  *
  * Matching: PostgreSQL full-text (prefix tsquery over apostrophe-normalised
  * 'simple' vectors, AND semantics across words) plus indexed substring match
@@ -24,7 +24,8 @@ export const SEARCH_GROUPS = [
   "notes",
   "quotes",
   "transcripts",
-  "sessions",
+  "conspect",
+  "booktext",
   "categories",
   "tags",
 ] as const;
@@ -37,6 +38,8 @@ export type SearchFilters = {
   personId?: string | null;
   categoryId?: string | null;
   status?: string | null;
+  /** Limits in-book text and konspekt hits to one resource. */
+  resourceId?: string | null;
   visibility?: "mine" | "public" | null;
   from?: string | null; // YYYY-MM-DD
   to?: string | null;
@@ -297,7 +300,58 @@ async function searchTranscripts(
   };
 }
 
-async function searchSessions(
+async function searchBookPages(
+  tx: Tx,
+  ctx: AppContext,
+  q: Q,
+  f: SearchFilters,
+  limit: number,
+  offset: number,
+): Promise<GroupResult> {
+  const rows = await tx.execute<{
+    id: number;
+    resource_id: string;
+    title: string;
+    type: string;
+    page: number;
+    content: string;
+    file_id: string | null;
+    url: string | null;
+    rank: number;
+    total: number;
+  }>(sql`
+    select bp.id, bp.resource_id, r.title, r.type::text, bp.page, bp.content, s.file_id, s.url,
+      ts_rank(bp.search, to_tsquery('simple', ${q.tsq})) as rank, count(*) over() as total
+    from nodinest.book_pages bp
+      join nodinest.resources r on r.id = bp.resource_id
+      join nodinest.book_text_sources s on s.id = bp.source_id
+    where bp.user_id = ${ctx.userId} and bp.search @@ to_tsquery('simple', ${q.tsq})
+      ${f.resourceType ? sql`and r.type = ${f.resourceType}` : sql``}
+      ${f.resourceId ? sql`and bp.resource_id = ${f.resourceId}` : sql``}
+    order by rank desc, bp.page asc
+    limit ${limit} offset ${offset}`);
+  return {
+    total: Number(rows[0]?.total ?? 0),
+    hits: rows.map((r) => ({
+      group: "booktext",
+      id: String(r.id),
+      // Opens the PDF itself at the matching page.
+      href: r.file_id
+        ? `/api/files/${r.file_id}#page=${r.page}`
+        : r.url
+          ? `${r.url}#page=${r.page}`
+          : `/library/${r.resource_id}`,
+      title: r.title,
+      subtitle: `p. ${r.page}`,
+      kind: r.type,
+      snippet: makeSnippet(r.content, q.tokens, 120),
+      date: null,
+      rank: Number(r.rank),
+    })),
+  };
+}
+
+async function searchConspect(
   tx: Tx,
   ctx: AppContext,
   q: Q,
@@ -307,30 +361,30 @@ async function searchSessions(
 ): Promise<GroupResult> {
   const rows = await tx.execute<{
     id: string;
-    note: string;
-    started_at: Date;
-    title: string | null;
-    resource_id: string | null;
+    resource_id: string;
+    resource_title: string;
+    title: string;
+    content: string;
     rank: number;
     total: number;
   }>(sql`
-    select s.id, s.note, s.started_at, r.title, s.resource_id, ts_rank(s.search, to_tsquery('simple', ${q.tsq})) as rank, count(*) over() as total
-    from nodinest.study_sessions s left join nodinest.resources r on r.id = s.resource_id
-    where s.user_id = ${ctx.userId} and s.deleted_at is null and s.search @@ to_tsquery('simple', ${q.tsq})
-      ${dateRange(sql`s.started_at`, f.from, f.to)}
-    order by ${f.sort === "relevance" || !f.sort ? sql`rank desc` : sql`s.started_at desc`}
-    limit ${limit} offset ${offset}`);
+    select c.id, c.resource_id, r.title as resource_title, c.title, c.content,
+      ts_rank(c.search, to_tsquery('simple', ${q.tsq})) as rank, count(*) over() as total
+    from nodinest.conspect_sections c join nodinest.resources r on r.id = c.resource_id
+    where c.user_id = ${ctx.userId} and c.search @@ to_tsquery('simple', ${q.tsq})
+      ${f.resourceId ? sql`and c.resource_id = ${f.resourceId}` : sql``}
+    order by rank desc limit ${limit} offset ${offset}`);
   return {
     total: Number(rows[0]?.total ?? 0),
     hits: rows.map((r) => ({
-      group: "sessions",
+      group: "conspect",
       id: r.id,
-      href: `/journal?session=${r.id}`,
-      title: r.title ?? "",
-      subtitle: null,
+      href: `/library/${r.resource_id}/konspekt?s=${r.id}`,
+      title: r.title,
+      subtitle: r.resource_title,
       kind: null,
-      snippet: makeSnippet(r.note, q.tokens, 80),
-      date: new Date(r.started_at).toISOString(),
+      snippet: makeSnippet(r.content, q.tokens, 100),
+      date: null,
       rank: Number(r.rank),
     })),
   };
@@ -425,7 +479,8 @@ export async function universalSearch(database: Database, ctx: AppContext, f: Se
     if (want("quotes"))
       groups.quotes = await searchNotesGroup(tx, ctx, q, f, "quote", limit, offset);
     if (want("transcripts")) groups.transcripts = await searchTranscripts(tx, q, f, limit, offset);
-    if (want("sessions")) groups.sessions = await searchSessions(tx, ctx, q, f, limit, offset);
+    if (want("conspect")) groups.conspect = await searchConspect(tx, ctx, q, f, limit, offset);
+    if (want("booktext")) groups.booktext = await searchBookPages(tx, ctx, q, f, limit, offset);
     if (want("categories")) groups.categories = await searchCategories(tx, q, limit, offset);
     if (want("tags")) groups.tags = await searchTags(tx, ctx, q, limit, offset);
     return { query: f.q, groups, tokens, page, pageSize: PAGE_SIZE };

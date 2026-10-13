@@ -1,41 +1,35 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { withUser } from "@/db";
 import { user } from "@/db/schema";
+import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { ADMIN_MODE_COOKIE } from "@/lib/auth/session";
 import { isValidTimeZone } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
-import { cookies } from "next/headers";
+import { LEARNING_STATUSES } from "@/lib/validation";
+import { indexFromFile, indexFromUrl } from "@/server/booktext";
+import { createSection, deleteSection, reorderSections, updateSection } from "@/server/conspect";
 import {
-  deletePlan,
   deleteGoal,
+  deletePlan,
   saveGoal,
   savePlan,
   setGoalStatus,
   togglePlan,
 } from "@/server/goals";
 import {
-  deleteSession,
-  discardOpenSession,
-  finishSession,
-  pauseSession,
-  removeLearningRecord,
-  resumeSession,
-  saveManualSession,
-  setLearningStatus,
-  startSession,
-  upsertLearningRecord,
-} from "@/server/journal";
-import {
   deleteCollection,
   deleteNote,
+  reorderCollection,
   restoreNote,
   saveCollection,
   saveNote,
   toggleCollectionItem,
 } from "@/server/notes";
+import { removeLearningRecord, setLearningStatus, upsertLearningRecord } from "@/server/records";
 import { run } from "./_run";
 
 const id = z.string().uuid();
@@ -51,12 +45,7 @@ export async function saveRecordAction(input: unknown) {
 }
 export async function setStatusAction(resourceId: string, status: string) {
   return run(async ({ ctx, db }) => {
-    await setLearningStatus(
-      db,
-      ctx,
-      id.parse(resourceId),
-      z.enum(["planned", "in_progress", "completed", "paused", "abandoned"]).parse(status),
-    );
+    await setLearningStatus(db, ctx, id.parse(resourceId), z.enum(LEARNING_STATUSES).parse(status));
     revalidatePath("/", "layout");
   });
 }
@@ -67,62 +56,48 @@ export async function removeRecordAction(resourceId: string) {
   });
 }
 
-// ─── Sessions ───
-export async function startSessionAction(resourceId: string | null) {
-  return run(async ({ ctx, db }) => {
-    const sid = await startSession(db, ctx, optId.parse(resourceId) ?? null);
-    revalidatePath("/", "layout");
-    return sid;
-  });
-}
-export async function pauseSessionAction(sessionId: string) {
-  return run(async ({ ctx, db }) => {
-    await pauseSession(db, ctx, id.parse(sessionId));
-    revalidatePath("/", "layout");
-  });
-}
-export async function resumeSessionAction(sessionId: string) {
-  return run(async ({ ctx, db }) => {
-    await resumeSession(db, ctx, id.parse(sessionId));
-    revalidatePath("/", "layout");
-  });
-}
-export async function finishSessionAction(
-  sessionId: string,
-  extra: { note?: string | null; progressTo?: number | null },
+// ─── Konspekt ───
+export async function createSectionAction(
+  resourceId: string,
+  input: unknown,
+  afterId?: string | null,
 ) {
   return run(async ({ ctx, db }) => {
-    const e = z
-      .object({
-        note: z.string().trim().max(10_000).nullish(),
-        progressTo: z.number().int().min(0).max(1_000_000).nullish(),
-      })
-      .parse(extra);
-    const out = await finishSession(db, ctx, id.parse(sessionId), {
-      note: e.note || null,
-      progressTo: e.progressTo ?? null,
+    const sid = await createSection(db, ctx, id.parse(resourceId), input, {
+      afterId: optId.parse(afterId) ?? null,
     });
-    revalidatePath("/", "layout");
-    return out;
-  });
-}
-export async function discardSessionAction(sessionId: string) {
-  return run(async ({ ctx, db }) => {
-    await discardOpenSession(db, ctx, id.parse(sessionId));
-    revalidatePath("/", "layout");
-  });
-}
-export async function saveManualSessionAction(input: unknown, sessionId?: string | null) {
-  return run(async ({ ctx, db }) => {
-    const sid = await saveManualSession(db, ctx, input, optId.parse(sessionId) ?? undefined);
-    revalidatePath("/", "layout");
+    revalidatePath(`/library/${resourceId}`, "layout");
     return sid;
   });
 }
-export async function deleteSessionAction(sessionId: string) {
+export async function updateSectionAction(sectionId: string, input: unknown) {
+  return run(async ({ ctx, db }) => updateSection(db, ctx, id.parse(sectionId), input));
+}
+export async function deleteSectionAction(sectionId: string) {
   return run(async ({ ctx, db }) => {
-    await deleteSession(db, ctx, id.parse(sessionId));
-    revalidatePath("/", "layout");
+    await deleteSection(db, ctx, id.parse(sectionId));
+    revalidatePath("/library", "layout");
+  });
+}
+export async function reorderSectionsAction(resourceId: string, ids: string[]) {
+  return run(async ({ ctx, db }) =>
+    reorderSections(db, ctx, id.parse(resourceId), z.array(id).max(1000).parse(ids)),
+  );
+}
+
+// ─── Book text (PDF / reading link) ───
+export async function indexFileAction(resourceId: string, fileId: string) {
+  return run(async ({ ctx }) => {
+    const r = await indexFromFile(ctx, id.parse(resourceId), id.parse(fileId));
+    revalidatePath(`/library/${resourceId}`);
+    return r;
+  });
+}
+export async function indexUrlAction(resourceId: string, url: string) {
+  return run(async ({ ctx }) => {
+    const r = await indexFromUrl(ctx, id.parse(resourceId), z.string().url().max(2048).parse(url));
+    revalidatePath(`/library/${resourceId}`);
+    return r;
   });
 }
 
@@ -152,7 +127,7 @@ export async function restoreNoteAction(noteId: string) {
 export async function saveCollectionAction(input: unknown, collectionId?: string | null) {
   return run(async ({ ctx, db }) => {
     const cid = await saveCollection(db, ctx, input, optId.parse(collectionId) ?? undefined);
-    revalidatePath("/collections");
+    revalidatePath("/collections", "layout");
     return cid;
   });
 }
@@ -172,7 +147,13 @@ export async function toggleCollectionItemAction(
       .object({ resourceId: z.string().uuid().optional(), noteId: z.string().uuid().optional() })
       .parse(target);
     await toggleCollectionItem(db, ctx, id.parse(collectionId), t, !!add);
-    revalidatePath("/collections");
+    revalidatePath("/collections", "layout");
+  });
+}
+export async function reorderCollectionAction(collectionId: string, itemIds: string[]) {
+  return run(async ({ ctx, db }) => {
+    await reorderCollection(db, ctx, id.parse(collectionId), z.array(id).max(1000).parse(itemIds));
+    revalidatePath(`/collections/${collectionId}`);
   });
 }
 
@@ -232,6 +213,25 @@ export async function setLocaleAction(locale: string) {
   return run(async ({ ctx, db }) => {
     await withUser(db, ctx, (tx) => tx.update(user).set({ locale }).where(eq(user.id, ctx.userId)));
     revalidatePath("/", "layout");
+  });
+}
+
+/** Superadmin only: switch between normal use and admin mode. */
+export async function setAdminModeAction(on: boolean) {
+  return run(async ({ user: u }) => {
+    if (!u.isSuperadmin) throw new AppError("FORBIDDEN");
+    const store = await cookies();
+    if (on)
+      store.set(ADMIN_MODE_COOKIE, "1", {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 12,
+      });
+    else store.delete(ADMIN_MODE_COOKIE);
+    revalidatePath("/", "layout");
+    return { adminMode: !!on };
   });
 }
 

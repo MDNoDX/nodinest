@@ -1,10 +1,11 @@
+import { hueStyle } from "@/lib/hues";
 import { FolderHeart } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CollectionDialog } from "@/components/collections/collection-dialog";
 import { PageHeader } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
-import { getStats } from "@/server/stats";
+import { getCollectionStats } from "@/server/stats";
 import { listCollections } from "@/server/notes";
 
 export const dynamic = "force-dynamic";
@@ -13,15 +14,16 @@ export async function generateMetadata() {
 }
 
 export default async function CollectionsPage() {
-  const { ctx, db, tz, today } = await pageContext();
+  const { ctx, db, tz } = await pageContext();
   const t = await getTranslations();
   const [cols, stats] = await Promise.all([
     listCollections(db, ctx),
-    getStats(db, ctx, { timeZone: tz, today, range: { from: today, to: today } }),
+    getCollectionStats(db, ctx, { timeZone: tz }),
   ]);
-  const shelves = (["planned", "in_progress", "completed", "paused", "abandoned"] as const).map(
-    (s) => ({ key: s, count: stats.records[s] }),
-  );
+  const shelves = (["planned", "in_progress", "completed", "paused"] as const).map((s) => ({
+    key: s,
+    count: stats.totals[s],
+  }));
   return (
     <>
       <PageHeader
@@ -33,7 +35,7 @@ export default async function CollectionsPage() {
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-semibold">{t("collections.shelves")}</h2>
         <p className="text-muted mb-3 text-xs">{t("collections.shelvesHint")}</p>
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {shelves.map((s) => (
             <li key={s.key}>
               <Link
@@ -66,8 +68,16 @@ export default async function CollectionsPage() {
                   {c.description && (
                     <span className="text-muted line-clamp-2 block text-xs">{c.description}</span>
                   )}
-                  <span className="text-muted block text-xs">
+                  <span className="text-muted flex items-center gap-1.5 text-xs">
                     {t("collections.items", { count: c.count })}
+                    {c.ranked && (
+                      <span
+                        className="chip rounded px-1.5 py-px text-[10px] font-semibold"
+                        style={hueStyle("amber")}
+                      >
+                        {t("collections.ranked")}
+                      </span>
+                    )}
                   </span>
                 </span>
               </Link>

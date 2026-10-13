@@ -10,7 +10,6 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  Timer,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -23,7 +22,6 @@ export const NAV_PRIMARY: NavItem[] = [
   { href: "/people", key: "people", icon: Users },
   { href: "/collections", key: "collections", icon: FolderHeart },
   { href: "/notes", key: "notes", icon: NotebookPen },
-  { href: "/journal", key: "journal", icon: Timer },
   { href: "/plans", key: "plans", icon: CalendarCheck },
 ];
 

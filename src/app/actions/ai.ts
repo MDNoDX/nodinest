@@ -11,7 +11,7 @@ export async function askAssistantAction(input: {
 }) {
   return run(async ({ ctx, user }) => {
     const p = z
-      .object({ conversationId: z.string().uuid().nullish(), message: z.string().min(1).max(4000) })
+      .object({ conversationId: z.string().uuid().nullish(), message: z.string().min(1).max(6000) })
       .parse(input);
     return runAssistant(ctx, {
       conversationId: p.conversationId ?? null,
@@ -22,9 +22,12 @@ export async function askAssistantAction(input: {
   });
 }
 
-export async function confirmAiActionAction(actionId: string, allowDuplicate?: boolean) {
-  return run(async ({ ctx }) =>
-    confirmAiAction(ctx, z.string().uuid().parse(actionId), { allowDuplicate: !!allowDuplicate }),
+export async function confirmAiActionAction(actionId: string) {
+  return run(async ({ ctx, user }) =>
+    confirmAiAction(ctx, z.string().uuid().parse(actionId), {
+      timeZone: user.timezone,
+      locale: await getLocale(),
+    }),
   );
 }
 

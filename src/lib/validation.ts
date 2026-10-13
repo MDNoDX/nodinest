@@ -41,7 +41,8 @@ const partialDate = z
 
 const optInt = (min: number, max: number) =>
   z
-    .union([z.coerce.number().int().min(min).max(max), z.literal(""), z.null()])
+    // Empty values first: z.coerce would turn "" / null into 0.
+    .union([z.literal(""), z.null(), z.coerce.number().int().min(min).max(max)])
     .optional()
     .transform((v) => (v === "" || v == null ? null : Number(v)));
 
@@ -134,9 +135,11 @@ export const resourceInput = z.object({
   coverUrl: optUrl,
   coverFileId: uuid.optional().nullable(),
   language: optText(40),
+  /** Edition the user read. */
   publicationDate: partialDate,
+  /** Original publication / writing date. */
+  originalDate: partialDate,
   sourceUrl: optUrl,
-  sourceNote: optText(1000),
   verification: z.enum(["unverified", "verified", "disputed"]).default("unverified"),
   contributors: z.array(contributorInput).max(30).default([]),
   categoryIds: z.array(uuid).max(20).default([]),
@@ -154,13 +157,9 @@ export const resourceInput = z.object({
   book: z
     .object({
       publisher: optText(200),
-      edition: optText(100),
       pageCount: optInt(1, 100_000),
       originalLanguage: optText(40),
-      tableOfContents: optText(20_000),
       readingUrl: optUrl,
-      purchaseUrl: optUrl,
-      fileFormat: optText(40),
     })
     .optional()
     .nullable(),
@@ -177,35 +176,45 @@ export const resourceInput = z.object({
 });
 export type ResourceInput = z.infer<typeof resourceInput>;
 
-export const LEARNING_STATUSES = [
-  "planned",
-  "in_progress",
-  "completed",
-  "paused",
-  "abandoned",
-] as const;
+/** "abandoned" was merged into "paused" in v2 (kept only in the DB enum). */
+export const LEARNING_STATUSES = ["planned", "in_progress", "completed", "paused"] as const;
+export type LearningStatus = (typeof LEARNING_STATUSES)[number];
+
 const isoDay = z
   .union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal(""), z.null()])
   .optional()
   .transform((v) => (v ? v : null));
 
+/** ISO timestamp or datetime-local string; "" → null. */
+const optDateTime = z
+  .union([z.string().trim().max(40), z.null(), z.date()])
+  .optional()
+  .transform((v, ctx) => {
+    if (v == null || v === "") return null;
+    const d = v instanceof Date ? v : new Date(v);
+    if (Number.isNaN(d.getTime())) {
+      ctx.addIssue({ code: "custom", message: "INVALID_DATE" });
+      return z.NEVER;
+    }
+    return d;
+  });
+
 export const learningRecordInput = z
   .object({
     resourceId: uuid,
     status: z.enum(LEARNING_STATUSES),
-    startedOn: isoDay,
-    completedOn: isoDay,
-    rating: optInt(1, 5),
+    startedAt: optDateTime,
+    completedAt: optDateTime,
+    /** 10-point scale for every kind of resource. */
+    rating: optInt(1, 10),
     review: optText(20_000),
-    learningGoals: optText(5000),
-    personalNotes: optText(20_000),
     progressCurrent: optInt(0, 1_000_000),
     progressTotal: optInt(1, 1_000_000),
     progressUnit: z.enum(["pages", "chapters", "minutes", "percent", "lessons"]).default("pages"),
   })
-  .refine((r) => !r.startedOn || !r.completedOn || r.startedOn <= r.completedOn, {
+  .refine((r) => !r.startedAt || !r.completedAt || r.startedAt <= r.completedAt, {
     message: "completed_before_started",
-    path: ["completedOn"],
+    path: ["completedAt"],
   })
   .refine(
     (r) =>
@@ -222,7 +231,6 @@ export const noteInput = z
     quoteText: optText(10_000),
     resourceId: uuid.optional().nullable(),
     personId: uuid.optional().nullable(),
-    sessionId: uuid.optional().nullable(),
     pageFrom: optInt(0, 100_000),
     pageTo: optInt(0, 100_000),
     location: optText(300),
@@ -242,30 +250,10 @@ export const noteInput = z
   });
 export type NoteInput = z.infer<typeof noteInput>;
 
-export const manualSessionInput = z.object({
-  resourceId: uuid.optional().nullable(),
-  startedAt: z.coerce.date(),
-  endedAt: z.coerce.date(),
-  durationMinutes: z
-    .union([
-      z.coerce
-        .number()
-        .positive()
-        .max(24 * 60),
-      z.literal(""),
-      z.null(),
-    ])
-    .optional()
-    .transform((v) => (v === "" || v == null ? null : Number(v))),
-  progressFrom: optInt(0, 1_000_000),
-  progressTo: optInt(0, 1_000_000),
-  note: optText(10_000),
-});
-
 export const goalInput = z.object({
   title: trimmed(200).min(1, "required"),
-  metric: z.enum(["minutes", "sessions", "completed_resources"]),
-  period: z.enum(["day", "week", "month", "year"]),
+  metric: z.enum(["completed_resources", "pages"]),
+  period: z.enum(["week", "month", "year"]),
   target: z.coerce.number().int().min(1).max(100_000),
   resourceType: z
     .union([z.enum(RESOURCE_TYPES), z.literal(""), z.null()])
@@ -274,18 +262,36 @@ export const goalInput = z.object({
   note: optText(2000),
 });
 
-export const planInput = z.object({
-  title: trimmed(200).min(1, "required"),
-  resourceId: uuid.optional().nullable(),
-  plannedOn: isoDay,
-  plannedMinutes: optInt(1, 24 * 60),
-  note: optText(2000),
-});
+export const planInput = z
+  .object({
+    title: trimmed(200).min(1, "required"),
+    resourceId: uuid.optional().nullable(),
+    startOn: isoDay,
+    endOn: isoDay,
+    note: optText(2000),
+  })
+  .refine((p) => !p.startOn || !p.endOn || p.startOn <= p.endOn, {
+    message: "end_before_start",
+    path: ["endOn"],
+  });
 
 export const collectionInput = z.object({
   name: trimmed(120).min(1, "required"),
   description: optText(1000),
+  ranked: z.boolean().default(false),
 });
+
+export const conspectSectionInput = z
+  .object({
+    title: trimmed(300).min(1, "required"),
+    content: z.string().max(200_000).default(""),
+    pageFrom: optInt(0, 100_000),
+    pageTo: optInt(0, 100_000),
+  })
+  .refine((c) => c.pageFrom == null || c.pageTo == null || c.pageTo >= c.pageFrom, {
+    message: "page_range",
+    path: ["pageTo"],
+  });
 
 export const categoryInput = z.object({
   slug: z

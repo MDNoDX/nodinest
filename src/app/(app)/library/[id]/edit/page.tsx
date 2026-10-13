@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/misc";
 import { withUser } from "@/db";
 import { people } from "@/db/schema";
 import { pageContext } from "@/lib/page";
-import { getResourceSnapshot, listCategories } from "@/server/catalog";
+import { canEditCatalog, getResourceSnapshot, listCategories } from "@/server/catalog";
 import { isStorageConfigured } from "@/server/storage";
 
 export const dynamic = "force-dynamic";
@@ -41,10 +41,9 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
     coverUrl: s(snap.coverUrl),
     coverFileId: snap.coverFileId ?? null,
     language: s(snap.language),
+    originalDate: s(snap.originalDate),
     publicationDate: s(snap.publicationDate),
     sourceUrl: s(snap.sourceUrl),
-    sourceNote: s(snap.sourceNote),
-    verification: snap.verification,
     contributors: snap.contributors.map((c) => ({
       personId: c.personId!,
       newPersonName: null,
@@ -57,13 +56,9 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
     links: snap.links.map((l) => ({ kind: l.kind, url: l.url, label: s(l.label) })),
     book: {
       publisher: s(snap.book?.publisher),
-      edition: s(snap.book?.edition),
       pageCount: snap.book?.pageCount ? String(snap.book.pageCount) : "",
       originalLanguage: s(snap.book?.originalLanguage),
-      tableOfContents: s(snap.book?.tableOfContents),
       readingUrl: s(snap.book?.readingUrl),
-      purchaseUrl: s(snap.book?.purchaseUrl),
-      fileFormat: s(snap.book?.fileFormat),
     },
     media: {
       platform: s(snap.media?.platform),
@@ -75,15 +70,18 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
       transcriptUrl: s(snap.media?.transcriptUrl),
     },
   };
+  const canEdit = await withUser(db, ctx, (tx) => canEditCatalog(tx, ctx, "resource", id));
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
         section="library"
-        title={user.role === "superadmin" ? t("editTitle") : t("suggestEdit")}
-        subtitle={user.role === "superadmin" ? t("newSubtitleAdmin") : t("newSubtitleUser")}
+        title={canEdit ? t("editTitle") : t("suggestEdit")}
+        subtitle={canEdit ? t("newSubtitleAdmin") : t("newSubtitleUser")}
       />
       <ResourceForm
         initial={initial}
+        userId={user.id}
+        canEditDirectly={canEdit}
         resourceId={id}
         categories={cats}
         isAdmin={user.role === "superadmin"}

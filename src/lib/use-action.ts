@@ -37,7 +37,6 @@ export function useAction() {
       } else {
         const handled = opts.onError?.(r);
         if (!handled) toast.error(te(r.code));
-        if (r.code === "SESSION_STATE") router.refresh();
       }
     });
   }

@@ -6,18 +6,13 @@ import { z } from "zod";
 import type { Database } from "@/db/client";
 import { appSettings } from "@/db/schema";
 
+/** Permission groups the admin can enable for the AI assistant. */
 export const AI_TOOL_NAMES = [
-  "search_catalog",
-  "search_people",
-  "search_my_notes",
-  "get_learning_stats",
-  "find_duplicate_people",
-  "read_url",
-  "create_note",
-  "update_learning_record",
-  "propose_person",
-  "propose_resource",
-  "propose_catalog_edit",
+  "read_library",
+  "read_web",
+  "write_personal",
+  "write_catalog",
+  "delete",
 ] as const;
 export type AiToolName = (typeof AI_TOOL_NAMES)[number];
 

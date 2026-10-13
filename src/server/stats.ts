@@ -1,139 +1,148 @@
 /**
- * Learning statistics computed from real session/record data only.
- * Days are bucketed in the user's time zone; a session is attributed to the
- * day it started.
+ * Collection metrics ("Ko‘rsatkichlar") computed from the user's library:
+ * how many books / courses / videos, pages read, minutes watched, ratings,
+ * yearly totals, favourite authors and topics. Real data only.
+ *
+ * "Read pages" = page_count of completed books + current progress (pages) of
+ * books in progress. "Watched minutes" = duration of completed media.
+ * Years/months come from `completed_at` in the user's time zone.
  */
 import { sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
-import { addDays, startOfWeekKey } from "@/lib/dates";
-import { computeStreaks } from "@/lib/streaks";
 
-export type StatsRange = { from: string; to: string };
+export type CollectionStats = Awaited<ReturnType<typeof getCollectionStats>>;
 
-export async function getStats(
+export async function getCollectionStats(
   database: Database,
   ctx: AppContext,
-  opts: { timeZone: string; today: string; range: StatsRange; resourceType?: string | null },
+  opts: { timeZone: string; year?: number | null },
 ) {
-  const { timeZone: tz, today, range } = opts;
-  const typeFilter = opts.resourceType ? sql`and r.type = ${opts.resourceType}` : sql``;
-  const dayExpr = sql`(s.started_at at time zone ${tz})::date`;
-  const base = sql`from nodinest.study_sessions s left join nodinest.resources r on r.id = s.resource_id
-    where s.user_id = ${ctx.userId} and s.status = 'completed' and s.deleted_at is null ${typeFilter}`;
-
+  const tz = opts.timeZone;
+  const yearFilter = opts.year
+    ? sql`and extract(year from lr.completed_at at time zone ${tz}) = ${opts.year}`
+    : sql``;
   return withUser(database, ctx, async (tx) => {
-    const daily = await tx.execute<{ day: string; seconds: number; sessions: number }>(sql`
-      select to_char(${dayExpr}, 'YYYY-MM-DD') as day, sum(s.active_seconds)::int as seconds, count(*)::int as sessions
-      ${base} and ${dayExpr} between ${range.from}::date and ${range.to}::date
+    const base = sql`from nodinest.learning_records lr
+      join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+      left join nodinest.book_details b on b.resource_id = r.id
+      left join nodinest.media_details m on m.resource_id = r.id
+      where lr.user_id = ${ctx.userId}`;
+
+    const [totals] = await tx.execute<{
+      library: number;
+      completed: number;
+      in_progress: number;
+      planned: number;
+      paused: number;
+      books_read: number;
+      courses_done: number;
+      media_done: number;
+      pages_read: number;
+      media_seconds: number;
+      lessons_done: number;
+      avg_rating: number | null;
+      rated: number;
+    }>(sql`
+      select
+        count(*)::int as library,
+        count(*) filter (where lr.status = 'completed' ${yearFilter})::int as completed,
+        count(*) filter (where lr.status = 'in_progress')::int as in_progress,
+        count(*) filter (where lr.status = 'planned')::int as planned,
+        count(*) filter (where lr.status in ('paused', 'abandoned'))::int as paused,
+        count(*) filter (where lr.status = 'completed' and r.type = 'book' ${yearFilter})::int as books_read,
+        count(*) filter (where lr.status = 'completed' and r.type = 'course' ${yearFilter})::int as courses_done,
+        count(*) filter (where lr.status = 'completed' and r.type in ('video','lecture','interview','podcast') ${yearFilter})::int as media_done,
+        (coalesce(sum(b.page_count) filter (where lr.status = 'completed' and r.type in ('book','course') ${yearFilter}), 0)
+          + ${opts.year ? sql`0` : sql`coalesce(sum(lr.progress_current) filter (where lr.status = 'in_progress' and lr.progress_unit = 'pages'), 0)`})::int as pages_read,
+        coalesce(sum(m.duration_seconds) filter (where lr.status = 'completed' ${yearFilter}), 0)::int as media_seconds,
+        coalesce(sum(lr.progress_total) filter (where lr.status = 'completed' and lr.progress_unit = 'lessons' ${yearFilter}), 0)::int as lessons_done,
+        round(avg(lr.rating) filter (where lr.rating is not null ${yearFilter}), 1)::float as avg_rating,
+        count(*) filter (where lr.rating is not null ${yearFilter})::int as rated
+      ${base}`);
+
+    const byType = await tx.execute<{ type: string; completed: number; total: number }>(sql`
+      select r.type::text as type,
+        count(*) filter (where lr.status = 'completed' ${yearFilter})::int as completed,
+        count(*)::int as total
+      ${base} group by 1 order by 3 desc`);
+
+    const byYear = await tx.execute<{ year: number; completed: number; pages: number }>(sql`
+      select extract(year from lr.completed_at at time zone ${tz})::int as year,
+        count(*)::int as completed,
+        coalesce(sum(b.page_count), 0)::int as pages
+      ${base} and lr.status = 'completed' and lr.completed_at is not null
       group by 1 order by 1`);
 
-    const byType = await tx.execute<{ type: string | null; seconds: number }>(sql`
-      select r.type::text as type, sum(s.active_seconds)::int as seconds
-      ${base} and ${dayExpr} between ${range.from}::date and ${range.to}::date
-      group by 1 order by 2 desc`);
+    const byMonth = opts.year
+      ? await tx.execute<{ month: number; completed: number }>(sql`
+          select extract(month from lr.completed_at at time zone ${tz})::int as month, count(*)::int as completed
+          ${base} and lr.status = 'completed' ${yearFilter}
+          group by 1 order by 1`)
+      : [];
 
-    const byCategory = await tx.execute<{
+    const ratings = await tx.execute<{ rating: number; n: number }>(sql`
+      select lr.rating::int as rating, count(*)::int as n ${base} and lr.rating is not null ${yearFilter}
+      group by 1 order by 1`);
+
+    const authors = await tx.execute<{ id: string; name: string; n: number }>(sql`
+      select p.id, p.full_name as name, count(distinct lr.resource_id)::int as n
+      from nodinest.learning_records lr
+      join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+      join nodinest.resource_contributors c on c.resource_id = r.id
+      join nodinest.people p on p.id = c.person_id
+      where lr.user_id = ${ctx.userId} and lr.status = 'completed' ${yearFilter}
+      group by p.id, p.full_name
+      order by n desc, name limit 8`);
+
+    const topics = await tx.execute<{
       id: string;
       name_uz: string;
       name_en: string;
-      seconds: number;
+      n: number;
     }>(sql`
-      select c.id, c.name_uz, c.name_en, sum(s.active_seconds)::int as seconds
-      from nodinest.study_sessions s
-      join nodinest.resources r on r.id = s.resource_id
+      select cat.id, cat.name_uz, cat.name_en, count(distinct lr.resource_id)::int as n
+      from nodinest.learning_records lr
+      join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
       join nodinest.resource_categories rc on rc.resource_id = r.id
-      join nodinest.categories c on c.id = rc.category_id
-      where s.user_id = ${ctx.userId} and s.status = 'completed' and s.deleted_at is null ${typeFilter}
-        and ${dayExpr} between ${range.from}::date and ${range.to}::date
-      group by c.id, c.name_uz, c.name_en
-      order by seconds desc limit 8`);
+      join nodinest.categories cat on cat.id = rc.category_id
+      where lr.user_id = ${ctx.userId} and lr.status = 'completed' ${yearFilter}
+      group by cat.id, cat.name_uz, cat.name_en
+      order by n desc limit 8`);
 
-    const topResources = await tx.execute<{
-      id: string;
-      title: string;
-      type: string;
-      seconds: number;
-    }>(sql`
-      select r.id, r.title, r.type::text as type, sum(s.active_seconds)::int as seconds
-      ${base} and s.resource_id is not null and ${dayExpr} between ${range.from}::date and ${range.to}::date
-      group by r.id, r.title, r.type order by seconds desc limit 6`);
+    const [longest] = await tx.execute<{ id: string; title: string; pages: number }>(sql`
+      select r.id, r.title, b.page_count as pages ${base} and lr.status = 'completed' and b.page_count is not null ${yearFilter}
+      order by b.page_count desc limit 1`);
 
-    const weekStart = startOfWeekKey(today);
-    const monthStart = `${today.slice(0, 7)}-01`;
-    const yearStart = `${today.slice(0, 4)}-01-01`;
-    const [totals] = await tx.execute<{
-      week: number;
-      month: number;
-      year: number;
-      all_time: number;
-      prev_week: number;
-    }>(sql`
-      select
-        coalesce(sum(s.active_seconds) filter (where ${dayExpr} >= ${weekStart}::date), 0)::int as week,
-        coalesce(sum(s.active_seconds) filter (where ${dayExpr} >= ${monthStart}::date), 0)::int as month,
-        coalesce(sum(s.active_seconds) filter (where ${dayExpr} >= ${yearStart}::date), 0)::int as year,
-        coalesce(sum(s.active_seconds) filter (where ${dayExpr} >= ${addDays(weekStart, -7)}::date and ${dayExpr} < ${weekStart}::date), 0)::int as prev_week,
-        coalesce(sum(s.active_seconds), 0)::int as all_time
-      ${base}`);
+    const [best] = await tx.execute<{ id: string; title: string; rating: number }>(sql`
+      select r.id, r.title, lr.rating ${base} and lr.rating is not null ${yearFilter}
+      order by lr.rating desc, lr.completed_at desc nulls last limit 1`);
 
-    const activeDays = await tx.execute<{ day: string }>(sql`
-      select distinct to_char(${dayExpr}, 'YYYY-MM-DD') as day ${base} and s.active_seconds > 0`);
-    const streaks = computeStreaks(
-      activeDays.map((d) => d.day),
-      today,
-    );
-
-    const [records] = await tx.execute<{
-      planned: number;
-      in_progress: number;
-      completed: number;
-      paused: number;
-      abandoned: number;
-      completed_in_range: number;
-    }>(sql`
-      select
-        count(*) filter (where lr.status = 'planned')::int as planned,
-        count(*) filter (where lr.status = 'in_progress')::int as in_progress,
-        count(*) filter (where lr.status = 'completed')::int as completed,
-        count(*) filter (where lr.status = 'paused')::int as paused,
-        count(*) filter (where lr.status = 'abandoned')::int as abandoned,
-        count(*) filter (where lr.status = 'completed' and lr.completed_on between ${range.from}::date and ${range.to}::date)::int as completed_in_range
-      from nodinest.learning_records lr join nodinest.resources r on r.id = lr.resource_id
-      where lr.user_id = ${ctx.userId} ${typeFilter}`);
-
-    const weekly = await tx.execute<{ week: string; seconds: number }>(sql`
-      select to_char(date_trunc('week', ${dayExpr}), 'YYYY-MM-DD') as week, sum(s.active_seconds)::int as seconds
-      ${base} and ${dayExpr} >= ${addDays(weekStart, -7 * 11)}::date
-      group by 1 order by 1`);
-
-    const monthly = await tx.execute<{ month: string; seconds: number; sessions: number }>(sql`
-      select to_char(${dayExpr}, 'YYYY-MM') as month, sum(s.active_seconds)::int as seconds, count(*)::int as sessions
-      ${base} and ${dayExpr} >= (${yearStart}::date - interval '1 year')
-      group by 1 order by 1`);
-
-    const hourOfDay = await tx.execute<{ hour: number; seconds: number }>(sql`
-      select extract(hour from s.started_at at time zone ${tz})::int as hour, sum(s.active_seconds)::int as seconds
-      ${base} and ${dayExpr} between ${range.from}::date and ${range.to}::date
-      group by 1 order by 1`);
-
+    const years = byYear.map((y) => y.year);
     return {
-      daily,
-      byType,
-      byCategory,
-      topResources,
-      totals: totals ?? { week: 0, month: 0, year: 0, all_time: 0, prev_week: 0 },
-      streaks,
-      records: records ?? {
-        planned: 0,
-        in_progress: 0,
+      totals: totals ?? {
+        library: 0,
         completed: 0,
+        in_progress: 0,
+        planned: 0,
         paused: 0,
-        abandoned: 0,
-        completed_in_range: 0,
+        books_read: 0,
+        courses_done: 0,
+        media_done: 0,
+        pages_read: 0,
+        media_seconds: 0,
+        lessons_done: 0,
+        avg_rating: null,
+        rated: 0,
       },
-      weekly,
-      monthly,
-      hourOfDay,
+      byType,
+      byYear,
+      byMonth,
+      ratings,
+      authors,
+      topics,
+      longest: longest ?? null,
+      best: best ?? null,
+      years,
     };
   });
 }

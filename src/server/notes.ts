@@ -11,7 +11,6 @@ import {
   notes,
   people,
   resources,
-  studySessions,
   tags,
 } from "@/db/schema";
 import { AppError } from "@/lib/errors";
@@ -36,7 +35,7 @@ async function ensurePersonalTags(tx: Tx, ctx: AppContext, names: string[]) {
 async function assertRefs(
   tx: Tx,
   ctx: AppContext,
-  d: { resourceId?: string | null; personId?: string | null; sessionId?: string | null },
+  d: { resourceId?: string | null; personId?: string | null },
 ) {
   if (d.resourceId) {
     const [r] = await tx
@@ -55,16 +54,6 @@ async function assertRefs(
         fieldErrors: { personId: ["not_found"] },
       });
   }
-  if (d.sessionId) {
-    const [s] = await tx
-      .select({ id: studySessions.id })
-      .from(studySessions)
-      .where(and(eq(studySessions.id, d.sessionId), eq(studySessions.userId, ctx.userId)));
-    if (!s)
-      throw new AppError("VALIDATION", "unknown_session", {
-        fieldErrors: { sessionId: ["not_found"] },
-      });
-  }
 }
 
 export async function saveNote(database: Database, ctx: AppContext, raw: unknown, id?: string) {
@@ -81,7 +70,6 @@ export async function saveNote(database: Database, ctx: AppContext, raw: unknown
       quoteText: d.kind === "quote" ? d.quoteText : null,
       resourceId: d.resourceId ?? null,
       personId: d.personId ?? null,
-      sessionId: d.sessionId ?? null,
       pageFrom: d.pageFrom,
       pageTo: d.pageTo,
       location: d.location,
@@ -256,6 +244,7 @@ export async function listCollections(database: Database, ctx: AppContext) {
         systemKey: collections.systemKey,
         name: collections.name,
         description: collections.description,
+        ranked: collections.ranked,
         count: sql<number>`(select count(*)::int from nodinest.collection_items ci where ci.collection_id = "collections"."id")`,
       })
       .from(collections)
@@ -328,12 +317,21 @@ export async function getCollection(database: Database, ctx: AppContext, id: str
         noteTitle: notes.title,
         quoteText: notes.quoteText,
         noteBody: notes.body,
+        position: collectionItems.position,
+        authors: sql<string | null>`(select string_agg(p.full_name, ', ' order by c.position)
+          from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
+          where c.resource_id = "collection_items"."resource_id")`,
+        myRating: sql<number | null>`(select lr.rating from nodinest.learning_records lr
+          where lr.user_id = ${ctx.userId} and lr.resource_id = "collection_items"."resource_id")`,
       })
       .from(collectionItems)
       .leftJoin(resources, eq(resources.id, collectionItems.resourceId))
       .leftJoin(notes, and(eq(notes.id, collectionItems.noteId), isNull(notes.deletedAt)))
       .where(eq(collectionItems.collectionId, id))
-      .orderBy(desc(collectionItems.addedAt));
+      .orderBy(
+        c.ranked ? asc(collectionItems.position) : desc(collectionItems.addedAt),
+        asc(collectionItems.addedAt),
+      );
     return { collection: c, items };
   });
 }
@@ -356,6 +354,11 @@ export async function toggleCollectionItem(
       ? eq(collectionItems.resourceId, target.resourceId)
       : eq(collectionItems.noteId, target.noteId!);
     if (add) {
+      // New items go to the end of a ranked list.
+      const [{ max }] = await tx
+        .select({ max: sql<number>`coalesce(max(${collectionItems.position}), 0)` })
+        .from(collectionItems)
+        .where(eq(collectionItems.collectionId, collectionId));
       await tx
         .insert(collectionItems)
         .values({
@@ -363,6 +366,7 @@ export async function toggleCollectionItem(
           userId: ctx.userId,
           resourceId: target.resourceId ?? null,
           noteId: target.noteId ?? null,
+          position: Number(max) + 1,
         })
         .onConflictDoNothing();
     } else {
@@ -370,6 +374,31 @@ export async function toggleCollectionItem(
         .delete(collectionItems)
         .where(and(eq(collectionItems.collectionId, collectionId), match));
     }
+  });
+}
+
+/** Saves a ranked order (#1 first). All ids must belong to the collection. */
+export async function reorderCollection(
+  database: Database,
+  ctx: AppContext,
+  collectionId: string,
+  itemIds: string[],
+) {
+  return withUser(database, ctx, async (tx) => {
+    const items = await tx
+      .select({ id: collectionItems.id })
+      .from(collectionItems)
+      .where(
+        and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.userId, ctx.userId)),
+      );
+    const set = new Set(items.map((i) => i.id));
+    if (itemIds.length !== set.size || itemIds.some((i) => !set.has(i)))
+      throw new AppError("VALIDATION", "order_mismatch");
+    for (let i = 0; i < itemIds.length; i++)
+      await tx
+        .update(collectionItems)
+        .set({ position: i + 1 })
+        .where(eq(collectionItems.id, itemIds[i]));
   });
 }
 

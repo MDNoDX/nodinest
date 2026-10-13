@@ -23,9 +23,11 @@ export default async function NewResourcePage({ searchParams }: { searchParams: 
       <PageHeader
         section="library"
         title={t("newTitle")}
-        subtitle={user.role === "superadmin" ? t("newSubtitleAdmin") : t("newSubtitleUser")}
+        subtitle={t("newSubtitleAdmin")}
       />
       <ResourceForm
+        userId={user.id}
+        canEditDirectly
         initial={emptyResource(
           (RESOURCE_TYPES as readonly string[]).includes(type ?? "")
             ? (type as ResourceType)

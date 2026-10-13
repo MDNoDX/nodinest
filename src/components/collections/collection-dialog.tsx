@@ -12,12 +12,13 @@ import { useAction } from "@/lib/use-action";
 export function CollectionDialog({
   collection,
 }: {
-  collection?: { id: string; name: string; description: string | null };
+  collection?: { id: string; name: string; description: string | null; ranked?: boolean };
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(collection?.name ?? "");
   const [description, setDescription] = useState(collection?.description ?? "");
+  const [ranked, setRanked] = useState(collection?.ranked ?? false);
   const { pending, exec } = useAction();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -40,7 +41,7 @@ export function CollectionDialog({
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            exec(() => saveCollectionAction({ name, description }, collection?.id), {
+            exec(() => saveCollectionAction({ name, description, ranked }, collection?.id), {
               success: t("common.saved"),
               onSuccess: () => setOpen(false),
             });
@@ -67,6 +68,18 @@ export function CollectionDialog({
               />
             )}
           </Field>
+          <label className="flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={ranked}
+              onChange={(e) => setRanked(e.target.checked)}
+              className="mt-0.5 size-4 accent-[var(--primary)]"
+            />
+            <span>
+              <span className="font-medium">{t("collections.ranked")}</span>
+              <span className="text-muted block text-xs">{t("collections.rankedHint")}</span>
+            </span>
+          </label>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t("common.cancel")}

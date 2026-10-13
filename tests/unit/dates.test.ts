@@ -7,7 +7,6 @@ import {
   isoWeekday,
   startOfWeekKey,
 } from "@/lib/dates";
-import { computeStreaks } from "@/lib/streaks";
 import { periodRange } from "@/server/goals";
 
 describe("dates", () => {
@@ -38,24 +37,5 @@ describe("dates", () => {
     expect(periodRange("month", "2026-02-10")).toEqual(["2026-02-01", "2026-02-28"]);
     expect(periodRange("month", "2026-12-10")).toEqual(["2026-12-01", "2026-12-31"]);
     expect(periodRange("year", "2026-05-05")).toEqual(["2026-01-01", "2026-12-31"]);
-  });
-});
-
-describe("streaks", () => {
-  it("current streak may end today or yesterday", () => {
-    expect(computeStreaks(["2026-10-09", "2026-10-10", "2026-10-11"], "2026-10-11")).toEqual({
-      current: 3,
-      longest: 3,
-    });
-    expect(computeStreaks(["2026-10-09", "2026-10-10"], "2026-10-11")).toEqual({
-      current: 2,
-      longest: 2,
-    });
-    expect(computeStreaks(["2026-10-08"], "2026-10-11").current).toBe(0);
-  });
-  it("longest streak across gaps and month boundaries", () => {
-    const days = ["2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-10"];
-    expect(computeStreaks(days, "2026-02-10")).toEqual({ current: 1, longest: 4 });
-    expect(computeStreaks([], "2026-02-10")).toEqual({ current: 0, longest: 0 });
   });
 });

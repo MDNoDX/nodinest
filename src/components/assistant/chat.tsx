@@ -13,7 +13,7 @@ export type ChatMessage = {
   id: string;
   role: "user" | "model";
   content: string;
-  proposals?: string[];
+  actions?: string[];
   tools?: string[];
 };
 export type ChatAction = {
@@ -21,8 +21,7 @@ export type ChatAction = {
   tool: string;
   args: Record<string, unknown>;
   status: "proposed" | "completed" | "failed" | "rejected";
-  preview?: { duplicates?: { id: string; label: string; reason: string }[] };
-  outcome?: { href?: string; mode?: string };
+  outcome?: { href?: string; suggested?: boolean };
   error?: string | null;
 };
 
@@ -60,26 +59,30 @@ function RichText({ text }: { text: string }) {
 }
 
 const SHOW_KEYS = [
-  "fullName",
   "title",
+  "fullName",
+  "resourceTitle",
+  "noteTitle",
+  "planTitle",
+  "goalTitle",
+  "collection",
+  "name",
   "type",
-  "quoteText",
-  "body",
   "status",
   "rating",
-  "progressCurrent",
-  "birthDate",
-  "deathDate",
-  "publicationDate",
-  "shortDescription",
-  "plannedOn",
+  "rank",
+  "startOn",
+  "endOn",
+  "startedAt",
+  "completedAt",
+  "heading",
+  "quoteText",
+  "body",
+  "coverUrl",
   "explanation",
-  "sourceUrls",
-  "sourceUrl",
-  "targetType",
 ];
 
-function ProposalCard({
+function ActionCard({
   action,
   onChange,
 }: {
@@ -89,22 +92,15 @@ function ProposalCard({
   const t = useTranslations("assistant");
   const te = useTranslations("errors");
   const [pending, start] = useTransition();
-  const [dups, setDups] = useState(action.preview?.duplicates ?? []);
   const router = useRouter();
-  const entries = Object.entries(action.args).filter(
+  const label = t.has(`tools.${action.tool}`) ? t(`tools.${action.tool}`) : action.tool;
+  const entries = Object.entries(action.args ?? {}).filter(
     ([k, v]) => SHOW_KEYS.includes(k) && v != null && v !== "",
   );
-  const changes =
-    action.tool === "propose_catalog_edit"
-      ? Object.entries((action.args.changes as Record<string, unknown>) ?? {})
-      : [];
-  const confirm = (allowDuplicate = false) =>
+  const confirm = () =>
     start(async () => {
-      const r = await confirmAiActionAction(action.id, allowDuplicate);
-      if (!r.ok) {
-        onChange({ ...action, status: "failed", error: r.code });
-        return;
-      }
+      const r = await confirmAiActionAction(action.id);
+      if (!r.ok) return onChange({ ...action, status: "failed", error: r.code });
       if (r.data.status === "completed") {
         onChange({
           ...action,
@@ -112,98 +108,89 @@ function ProposalCard({
           outcome: r.data.result as ChatAction["outcome"],
         });
         router.refresh();
-      } else if (r.data.code === "DUPLICATE") {
-        setDups((r.data.details as { candidates?: typeof dups } | undefined)?.candidates ?? []);
       } else onChange({ ...action, status: "failed", error: r.data.code });
     });
-  const tone =
-    action.status === "completed"
-      ? "success"
-      : action.status === "failed"
-        ? "danger"
-        : action.status === "rejected"
-          ? "neutral"
-          : "warning";
-  return (
-    <div className="border-border bg-surface rounded-xl border p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <Sparkles className="text-accent size-4" />
-        <span className="text-sm font-semibold">
-          {t.has(`tools.${action.tool}`) ? t(`tools.${action.tool}`) : action.tool}
-        </span>
-        <Badge tone={tone}>{action.status === "proposed" ? t("awaiting") : t(action.status)}</Badge>
-      </div>
-      <dl className="grid gap-1 text-sm">
-        {entries.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[8rem_1fr] gap-2">
-            <dt className="text-muted truncate text-xs">{k}</dt>
-            <dd className="line-clamp-4 break-words">
-              {Array.isArray(v) ? v.join(", ") : String(v)}
-            </dd>
-          </div>
-        ))}
-        {changes.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-[8rem_1fr] gap-2">
-            <dt className="text-muted truncate text-xs">→ {k}</dt>
-            <dd className="line-clamp-4 break-words">
-              {typeof v === "string" ? v : JSON.stringify(v)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {dups.length > 0 && action.status === "proposed" && (
-        <div className="bg-warning-soft text-warning mt-3 rounded-lg p-3 text-sm">
-          <div className="font-medium">{t("duplicatesWarning")}</div>
-          <ul className="mt-1 list-disc pl-5">
-            {dups.map((d) => (
-              <li key={d.id}>
-                <Link
-                  className="underline"
-                  href={action.tool === "propose_person" ? `/people/${d.id}` : `/library/${d.id}`}
-                  target="_blank"
-                >
-                  {d.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {action.status === "failed" && action.error && (
-        <p className="text-danger mt-2 text-sm">
-          {te.has(action.error) ? te(action.error) : te("INTERNAL")}
-        </p>
-      )}
-      {action.status === "proposed" && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" loading={pending} onClick={() => confirm(dups.length > 0)}>
-            <Check /> {t("confirm")}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={pending}
-            onClick={() =>
-              start(async () => {
-                const r = await rejectAiActionAction(action.id);
-                if (r.ok) onChange({ ...action, status: "rejected" });
-              })
-            }
+
+  // Actions the assistant already performed: one compact line with a link.
+  if (action.status !== "proposed") {
+    const summary = entries.find(([k]) => k !== "type" && k !== "status")?.[1];
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+          action.status === "completed"
+            ? "border-success/30 bg-success-soft/40"
+            : "border-border bg-surface-2",
+        )}
+      >
+        {action.status === "completed" ? (
+          <Check className="text-success size-4 shrink-0" />
+        ) : (
+          <X className="text-danger size-4 shrink-0" />
+        )}
+        <span className="font-medium">{label}</span>
+        {summary != null && (
+          <span className="text-muted min-w-0 truncate">· {String(summary)}</span>
+        )}
+        {action.status === "failed" && action.error && (
+          <span className="text-danger text-xs">
+            {te.has(action.error) ? te(action.error) : te("INTERNAL")}
+          </span>
+        )}
+        {action.status === "rejected" && <Badge>{t("rejected")}</Badge>}
+        {action.outcome?.suggested && (
+          <span className="text-muted text-xs">{t("suggestedReview")}</span>
+        )}
+        {action.status === "completed" && action.outcome?.href && (
+          <Link
+            href={action.outcome.href}
+            className="text-primary ml-auto shrink-0 text-xs font-medium hover:underline"
           >
-            <X /> {t("reject")}
-          </Button>
-        </div>
-      )}
-      {action.status === "completed" && action.outcome?.href && (
-        <div className="mt-3 flex items-center gap-3 text-sm">
-          {action.outcome.mode === "suggested" && (
-            <span className="text-muted">{t("suggestedReview")}</span>
-          )}
-          <Link href={action.outcome.href} className="text-primary font-medium hover:underline">
             {t("openResult")} →
           </Link>
-        </div>
+        )}
+      </div>
+    );
+  }
+
+  // Destructive actions wait for an explicit confirmation.
+  return (
+    <div className="border-warning/40 bg-surface rounded-xl border p-4">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <Sparkles className="text-warning size-4" />
+        <span className="text-sm font-semibold">{label}</span>
+        <Badge tone="warning">{t("awaiting")}</Badge>
+      </div>
+      {entries.length > 0 && (
+        <dl className="grid gap-1 text-sm">
+          {entries.map(([k, v]) => (
+            <div key={k} className="grid grid-cols-[8rem_1fr] gap-2">
+              <dt className="text-muted truncate text-xs">{k}</dt>
+              <dd className="line-clamp-4 break-words">
+                {Array.isArray(v) ? v.join(", ") : String(v)}
+              </dd>
+            </div>
+          ))}
+        </dl>
       )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" loading={pending} onClick={confirm}>
+          <Check /> {t("confirm")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              const r = await rejectAiActionAction(action.id);
+              if (r.ok) onChange({ ...action, status: "rejected" });
+            })
+          }
+        >
+          <X /> {t("reject")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -261,14 +248,15 @@ export function Chat({
       setActions((a) => ({
         ...a,
         ...Object.fromEntries(
-          d.proposals.map((p) => [
-            p.actionId,
+          d.actions.map((a) => [
+            a.actionId,
             {
-              id: p.actionId,
-              tool: p.tool,
-              args: p.args as Record<string, unknown>,
-              status: "proposed" as const,
-              preview: p.preview as ChatAction["preview"],
+              id: a.actionId,
+              tool: a.tool,
+              args: (a.args ?? {}) as Record<string, unknown>,
+              status: a.status,
+              outcome: a.result as ChatAction["outcome"],
+              error: a.error ?? null,
             },
           ]),
         ),
@@ -279,7 +267,7 @@ export function Chat({
           id: `m-${Date.now()}`,
           role: "model",
           content: d.reply,
-          proposals: d.proposals.map((p) => p.actionId),
+          actions: d.actions.map((a) => a.actionId),
           tools: d.trace.map((x) => x.tool),
         },
       ]);
@@ -343,10 +331,10 @@ export function Chat({
                 {t("usedTools", { tools: [...new Set(m.tools)].join(", ") })}
               </div>
             )}
-            {m.proposals?.map((id) =>
+            {m.actions?.map((id) =>
               actions[id] ? (
                 <div key={id} className="w-full max-w-[min(42rem,100%)]">
-                  <ProposalCard
+                  <ActionCard
                     action={actions[id]}
                     onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
                   />
@@ -385,7 +373,7 @@ export function Chat({
               }
             }}
             rows={1}
-            maxLength={4000}
+            maxLength={6000}
             disabled={!available}
             placeholder={t("placeholder")}
             aria-label={t("placeholder")}

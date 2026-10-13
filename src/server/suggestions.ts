@@ -20,6 +20,7 @@ import {
   applyCreateResource,
   applyUpdatePerson,
   applyUpdateResource,
+  canEditCatalog,
   findDuplicatePeople,
   findDuplicateResources,
   getPersonSnapshot,
@@ -37,6 +38,8 @@ type SubmitOpts = {
   sourceUrls?: string[];
   allowDuplicate?: boolean;
   origin?: "manual" | "ai";
+  /** Always create a reviewable suggestion (used by AI catalog corrections). */
+  forceSuggestion?: boolean;
 };
 
 export async function submitPerson(
@@ -59,7 +62,11 @@ export async function submitPerson(
       if (dups.length > 0)
         throw new AppError("DUPLICATE", "possible_duplicate", { candidates: dups });
     }
-    if (ctx.role === "superadmin") {
+    // Anyone may add new entries; edits apply directly for the creator and the
+    // admin, everyone else proposes a suggestion.
+    const direct =
+      !opts.forceSuggestion && (!opts.id || (await canEditCatalog(tx, ctx, "person", opts.id)));
+    if (direct) {
       const meta = { origin: opts.origin ?? "manual" };
       if (opts.id) {
         await applyUpdatePerson(tx, ctx, opts.id, data, meta);
@@ -106,7 +113,9 @@ export async function submitResource(
       if (dups.length > 0)
         throw new AppError("DUPLICATE", "possible_duplicate", { candidates: dups });
     }
-    if (ctx.role === "superadmin") {
+    const direct =
+      !opts.forceSuggestion && (!opts.id || (await canEditCatalog(tx, ctx, "resource", opts.id)));
+    if (direct) {
       const meta = { origin: opts.origin ?? "manual" };
       if (opts.id) {
         await applyUpdateResource(tx, ctx, opts.id, data, meta);
@@ -142,7 +151,7 @@ export async function submitArchive(
   explanation?: string | null,
 ): Promise<WriteOutcome> {
   return withUser(database, ctx, async (tx) => {
-    if (ctx.role === "superadmin") {
+    if (await canEditCatalog(tx, ctx, type, id)) {
       await applyArchive(tx, ctx, type, id, archived);
       return { mode: "applied", id } as const;
     }
@@ -182,15 +191,29 @@ export async function submitSuggestion(
     sourceUrls: s.sourceUrls,
     origin,
     allowDuplicate: true,
+    forceSuggestion: true,
   };
-  // Regular users always produce suggestions; this path never applies
-  // directly, even for superadmins, so AI proposals stay reviewable.
-  const asUser: AppContext = { ...ctx, role: "user" };
-  if (s.operation === "archive")
-    return submitArchive(database, asUser, s.targetType, s.targetId!, true, s.explanation);
+  // This path always produces a reviewable suggestion (AI catalog corrections).
+  if (s.operation === "archive") {
+    return withUser(database, ctx, async (tx) => {
+      const [row] = await tx
+        .insert(suggestions)
+        .values({
+          userId: ctx.userId,
+          operation: "archive",
+          targetType: s.targetType,
+          targetId: s.targetId!,
+          payload: {},
+          explanation: s.explanation ?? null,
+          origin,
+        })
+        .returning({ id: suggestions.id });
+      return { mode: "suggested", suggestionId: row.id } as const;
+    });
+  }
   return s.targetType === "person"
-    ? submitPerson(database, asUser, s.payload, opts)
-    : submitResource(database, asUser, s.payload, opts);
+    ? submitPerson(database, ctx, s.payload, opts)
+    : submitResource(database, ctx, s.payload, opts);
 }
 
 export async function withdrawSuggestion(database: Database, ctx: AppContext, id: string) {

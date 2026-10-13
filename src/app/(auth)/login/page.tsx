@@ -1,4 +1,4 @@
-import { BookOpen, NotebookPen, Sparkles, Timer } from "lucide-react";
+import { BookOpen, ListTree, Sparkles, Trophy } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { LoginPanel } from "@/components/auth/login-panel";
@@ -19,8 +19,8 @@ export default async function LoginPage() {
   const t = await getTranslations();
   const features = [
     ["library", <BookOpen key="l" />, "indigo"],
-    ["notes", <NotebookPen key="n" />, "violet"],
-    ["journal", <Timer key="j" />, "teal"],
+    ["konspekt", <ListTree key="k" />, "teal"],
+    ["stats", <Trophy key="s" />, "amber"],
     ["assistant", <Sparkles key="a" />, "rose"],
   ] as const;
   return (

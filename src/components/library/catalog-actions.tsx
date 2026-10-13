@@ -7,15 +7,21 @@ import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm";
 import { useAction } from "@/lib/use-action";
 
+/**
+ * Edit / archive controls. `canEdit` = admin mode or the user created the
+ * entry; otherwise "edit" opens the form in suggestion mode.
+ */
 export function CatalogActions({
   type,
   id,
   isAdmin,
+  canEdit,
   archived,
 }: {
   type: "person" | "resource";
   id: string;
   isAdmin: boolean;
+  canEdit: boolean;
   archived: boolean;
 }) {
   const t = useTranslations();
@@ -23,14 +29,14 @@ export function CatalogActions({
   const base = type === "person" ? "/people" : "/library";
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" size="sm" asChild>
+      <Button variant="ghost" size="sm" asChild>
         <Link href={`${base}/${id}/edit`}>
-          <Pencil /> {isAdmin ? t("common.edit") : t("resource.suggestEdit")}
+          <Pencil /> {canEdit ? t("common.edit") : t("resource.suggestEdit")}
         </Link>
       </Button>
-      {archived && isAdmin ? (
+      {archived && (isAdmin || canEdit) ? (
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() =>
             exec(() => archiveCatalogAction(type, id, false), { success: t("common.restore") })
@@ -39,14 +45,13 @@ export function CatalogActions({
           <ArchiveRestore /> {t("common.restore")}
         </Button>
       ) : (
-        !archived && (
+        !archived &&
+        canEdit && (
           <ConfirmButton
             variant="ghost"
             message={type === "person" ? t("person.archiveConfirm") : t("resource.archiveConfirm")}
             onConfirm={() =>
-              exec(() => archiveCatalogAction(type, id, true), {
-                success: isAdmin ? t("common.archived") : t("resource.archiveRequested"),
-              })
+              exec(() => archiveCatalogAction(type, id, true), { success: t("common.archived") })
             }
           >
             <Archive /> {t("common.archive")}

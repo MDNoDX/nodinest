@@ -40,7 +40,7 @@ export default async function AdminUsers() {
                 </Badge>
               </td>
               <td className="text-muted px-4 py-2 text-xs tabular-nums">
-                {u.notes} · {u.sessions}
+                {u.records} · {u.notes}
               </td>
               <td className="text-muted px-4 py-2 text-xs">{fmtDate(u.createdAt, locale, tz)}</td>
               <td className="px-4 py-2">

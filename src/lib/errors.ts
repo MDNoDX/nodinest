@@ -15,9 +15,6 @@ export type ErrorCode =
   | "STORAGE_UNAVAILABLE"
   | "URL_BLOCKED"
   | "FETCH_FAILED"
-  | "SESSION_OPEN_EXISTS"
-  | "SESSION_OVERLAP"
-  | "SESSION_STATE"
   | "INTERNAL";
 
 export class AppError extends Error {

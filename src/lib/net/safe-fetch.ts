@@ -55,12 +55,23 @@ export type FetchedPage = {
   status: number;
   contentType: string;
   body: string;
+  /** Raw bytes (only when `binary: true`). */
+  bytes?: Uint8Array;
   truncated: boolean;
 };
 
 export async function safeFetch(
   rawUrl: string,
-  opts: { maxBytes?: number; timeoutMs?: number; maxRedirects?: number; accept?: string } = {},
+  opts: {
+    maxBytes?: number;
+    timeoutMs?: number;
+    maxRedirects?: number;
+    accept?: string;
+    /** Extra allowed content types (e.g. application/pdf). */
+    allowTypes?: string[];
+    /** Return raw bytes; oversized bodies fail instead of truncating. */
+    binary?: boolean;
+  } = {},
 ): Promise<FetchedPage> {
   const maxBytes = opts.maxBytes ?? 1_500_000;
   const maxRedirects = opts.maxRedirects ?? 3;
@@ -101,7 +112,7 @@ export async function safeFetch(
         .split(";")[0]
         .trim()
         .toLowerCase();
-      if (!ALLOWED_TYPES.includes(contentType)) {
+      if (![...ALLOWED_TYPES, ...(opts.allowTypes ?? [])].includes(contentType)) {
         await res.body?.cancel();
         throw new AppError("FETCH_FAILED", "unsupported_content_type");
       }
@@ -119,6 +130,10 @@ export async function safeFetch(
         if (done) break;
         size += value.byteLength;
         if (size > maxBytes) {
+          if (opts.binary) {
+            await reader.cancel();
+            throw new AppError("FETCH_FAILED", "too_large");
+          }
           chunks.push(value.subarray(0, value.byteLength - (size - maxBytes)));
           truncated = true;
           await reader.cancel();
@@ -126,7 +141,17 @@ export async function safeFetch(
         }
         chunks.push(value);
       }
-      const body = new TextDecoder("utf-8", { fatal: false }).decode(Buffer.concat(chunks));
+      const raw = Buffer.concat(chunks);
+      if (opts.binary)
+        return {
+          url: check.url.toString(),
+          status: res.status,
+          contentType,
+          body: "",
+          bytes: new Uint8Array(raw),
+          truncated,
+        };
+      const body = new TextDecoder("utf-8", { fatal: false }).decode(raw);
       return { url: check.url.toString(), status: res.status, contentType, body, truncated };
     }
     throw new AppError("FETCH_FAILED", "too_many_redirects");

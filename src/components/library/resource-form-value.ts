@@ -18,25 +18,17 @@ export type ResourceFormValue = {
   coverUrl: string;
   coverFileId: string | null;
   language: string;
+  /** Original publication / writing date. */
+  originalDate: string;
+  /** Edition the user read. */
   publicationDate: string;
   sourceUrl: string;
-  sourceNote: string;
-  verification: "unverified" | "verified" | "disputed";
   contributors: Contributor[];
   categoryIds: string[];
   tags: string[];
   identifiers: Ident[];
   links: LinkRow[];
-  book: {
-    publisher: string;
-    edition: string;
-    pageCount: string;
-    originalLanguage: string;
-    tableOfContents: string;
-    readingUrl: string;
-    purchaseUrl: string;
-    fileFormat: string;
-  };
+  book: { publisher: string; pageCount: string; originalLanguage: string; readingUrl: string };
   media: {
     platform: string;
     channel: string;
@@ -54,24 +46,14 @@ export const emptyResource = (type: ResourceType = "book"): ResourceFormValue =>
   coverUrl: "",
   coverFileId: null,
   language: "",
+  originalDate: "",
   publicationDate: "",
   sourceUrl: "",
-  sourceNote: "",
-  verification: "unverified",
   contributors: [],
   categoryIds: [],
   tags: [],
   identifiers: [],
   links: [],
-  book: {
-    publisher: "",
-    edition: "",
-    pageCount: "",
-    originalLanguage: "",
-    tableOfContents: "",
-    readingUrl: "",
-    purchaseUrl: "",
-    fileFormat: "",
-  },
+  book: { publisher: "", pageCount: "", originalLanguage: "", readingUrl: "" },
   media: { platform: "", channel: "", durationMinutes: "", transcript: "", transcriptUrl: "" },
 });

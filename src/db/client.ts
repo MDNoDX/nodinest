@@ -13,7 +13,10 @@ export type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 /** The authenticated actor every user-scoped operation runs as. */
 export type AppContext = {
   userId: string;
+  /** Effective role (superadmin only while admin mode is on). */
   role: "user" | "superadmin";
+  /** The account is a superadmin (used for unlimited AI). */
+  superadminAccount?: boolean;
 };
 
 export function createDb(url: string, opts: { max?: number } = {}): Database {

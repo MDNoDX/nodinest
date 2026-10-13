@@ -25,7 +25,7 @@ export async function listUsers(database: Database, ctx: AppContext) {
       status: user.status,
       createdAt: user.createdAt,
       notes: sql<number>`(select count(*)::int from nodinest.notes n where n.user_id = "user"."id" and n.deleted_at is null)`,
-      sessions: sql<number>`(select count(*)::int from nodinest.study_sessions s where s.user_id = "user"."id" and s.deleted_at is null)`,
+      records: sql<number>`(select count(*)::int from nodinest.learning_records lr where lr.user_id = "user"."id")`,
     })
     .from(user)
     .orderBy(desc(user.createdAt))
@@ -199,7 +199,7 @@ export async function systemOverview(database: Database, ctx: AppContext) {
       (select count(*)::int from nodinest.people where deleted_at is null) as people,
       (select count(*)::int from nodinest.resources where deleted_at is null) as resources,
       (select count(*)::int from nodinest.notes where deleted_at is null) as notes,
-      (select count(*)::int from nodinest.study_sessions where deleted_at is null) as sessions,
+      (select count(*)::int from nodinest.learning_records) as records,
       (select count(*)::int from nodinest.suggestions where status = 'pending') as pending_suggestions,
       (select coalesce(sum(size_bytes), 0)::bigint from nodinest.files where deleted_at is null) as storage_bytes,
       (select coalesce(sum(count), 0)::int from nodinest.rate_limits where key like 'ai:%' and window_start >= date_trunc('day', now())) as ai_requests_today,

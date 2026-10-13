@@ -21,13 +21,16 @@ import type { PersonFormValue } from "./person-form-value";
 export function PersonForm({
   initial,
   personId,
-  isAdmin,
+  canEditDirectly: isAdmin,
   storageEnabled,
+  userId,
 }: {
   initial: PersonFormValue;
   personId?: string;
-  isAdmin: boolean;
+  /** New entries and the creator's / admin's own edits apply directly. */
+  canEditDirectly: boolean;
   storageEnabled: boolean;
+  userId: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -208,6 +211,7 @@ export function PersonForm({
         <div className="sm:col-span-2">
           <FileUpload
             purpose="portrait"
+            userId={userId}
             enabled={storageEnabled}
             currentFileId={v.portraitFileId}
             onUploaded={(id) => set("portraitFileId", id)}

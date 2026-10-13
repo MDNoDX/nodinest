@@ -28,17 +28,20 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
 
 ## Personal data (private, RLS: owner only)
 
-- `learning_records` — one per (user, resource) (`UNIQUE`): status, dates, rating 1–5,
-  review, goals, notes, progress current/total/unit, last accessed.
-- `study_sessions` — `timer` or `manual`; `status` active/paused/completed; `active_seconds`
-  accumulates only running time; `last_resumed_at` set while running. Partial unique index:
-  one open (active/paused) session per user. CHECKs: end ≥ start, completed ⇒ ended & not running.
+- `learning_records` — one per (user, resource) (`UNIQUE`): status (planned / in_progress /
+  completed / paused; legacy `abandoned` is shown as paused), `started_at` / `completed_at`
+  (timestamptz, exact time), rating 1–10, short review, progress current/total/unit.
+- `conspect_sections` — the user's chapter-by-chapter konspekt of a resource (title, content,
+  page range, position), FTS-indexed.
+- `book_text_sources` (the user's PDF file or reading URL; status, page count) and
+  `book_pages` (one row per extracted page, FTS-indexed) — used for in-book search and the AI.
 - `notes` — `kind` note|quote; quotes keep the exact `quote_text` separate from the user's
-  `body` commentary; optional resource, attributed person (only set explicitly), session,
+  `body` commentary; optional resource, attributed person (only set explicitly),
   page range, chapter/section, video timestamp, visibility (private|public), verification.
-- `collections` (+ `collection_items` pointing to exactly one resource or note);
-  default collections are seeded per user via `system_key` (translated names).
-- `goals` (metric × period × target, optional type filter), `plans` (scheduled activities).
+- `collections` (`ranked` flag) + `collection_items` (exactly one resource or note,
+  `position` for ranked "Top N" lists); default collections are seeded via `system_key`.
+- `goals` (completed resources or pages × week/month/year × target, optional type filter),
+  `plans` (title, optional resource, `start_on` / `end_on`, done).
 
 ## Collaboration & operations
 
@@ -46,7 +49,8 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
   `base_snapshot` (record at submission, for before/after diffs and staleness warnings),
   explanation, source URLs, status, reviewer, review note, applied target.
 - `audit_logs` — append-only record of privileged/global changes with before/after snapshots.
-- `files` — storage metadata (owner, bucket, path, type, size, purpose, catalog flag, resource).
+- `files` — Vercel Blob metadata (owner, pathname, type, size, purpose, catalog flag, resource).
+- Catalog rows carry `created_by`; RLS lets the creator (or admin mode) edit their own entries.
 - `ai_conversations`, `ai_messages`, `ai_actions` (proposed → completed|failed|rejected).
 - `ai_cache` (public URL metadata, TTL), `app_settings` (AI settings), `rate_limits`.
 - Better Auth: `user` (+ `role`, `status`, `locale`, `timezone`), `session`, `account`, `verification`.
@@ -62,6 +66,6 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
 ## Search columns
 
 Generated `search tsvector` columns on `people`, `resources`, `media_details` (transcripts),
-`notes`, `study_sessions`, built with `to_tsvector('simple', nn_norm(...))` and weights
+`notes`, `conspect_sections`, `book_pages`, built with `to_tsvector('simple', nn_norm(...))` and weights
 (A title/name, B description/body, C biography, D location). GIN indexes on all of them plus
 trigram GIN and `text_pattern_ops` indexes on names, aliases and titles.

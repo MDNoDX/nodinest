@@ -4,7 +4,7 @@
  */
 import "server-only";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db, type AppContext } from "@/db";
@@ -12,12 +12,21 @@ import { user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { auth } from "./config";
 
+export const ADMIN_MODE_COOKIE = "nn_admin_mode";
+
 export type CurrentUser = {
   id: string;
   name: string;
   email: string;
   image: string | null;
+  /**
+   * EFFECTIVE role. A superadmin account works as a regular user until it
+   * switches "admin mode" on (cookie); only then is this "superadmin".
+   */
   role: "user" | "superadmin";
+  /** The account itself is a superadmin (DB role), regardless of the mode. */
+  isSuperadmin: boolean;
+  adminMode: boolean;
   locale: string;
   timezone: string;
 };
@@ -39,9 +48,13 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .from(user)
     .where(eq(user.id, s.user.id));
   if (!u || u.status !== "active") return null;
-  const { status: _status, ...rest } = u;
+  const { status: _status, role, ...rest } = u;
   void _status;
-  return rest;
+  const isSuperadmin = role === "superadmin";
+  // The cookie can only *narrow* privileges: it never grants a role the DB
+  // didn't, so it is safe to read from the client.
+  const adminMode = isSuperadmin && (await cookies()).get(ADMIN_MODE_COOKIE)?.value === "1";
+  return { ...rest, role: adminMode ? "superadmin" : "user", isSuperadmin, adminMode };
 });
 
 /** For pages/layouts: redirects to /login when signed out. */
@@ -61,7 +74,7 @@ export async function requireSuperadminPage(): Promise<CurrentUser> {
 export async function requireActor(): Promise<{ user: CurrentUser; ctx: AppContext }> {
   const u = await getCurrentUser();
   if (!u) throw new AppError("UNAUTHENTICATED");
-  return { user: u, ctx: { userId: u.id, role: u.role } };
+  return { user: u, ctx: toCtx(u) };
 }
 
 export async function requireSuperadminActor(): Promise<{ user: CurrentUser; ctx: AppContext }> {
@@ -71,5 +84,5 @@ export async function requireSuperadminActor(): Promise<{ user: CurrentUser; ctx
 }
 
 export function toCtx(u: CurrentUser): AppContext {
-  return { userId: u.id, role: u.role };
+  return { userId: u.id, role: u.role, superadminAccount: u.isSuperadmin };
 }

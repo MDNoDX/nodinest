@@ -1,10 +1,10 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
-import { Upload, X } from "lucide-react";
+import { upload } from "@vercel/blob/client";
+import { ImagePlus, Upload, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { confirmUploadAction, createUploadAction } from "@/app/actions/files";
+import { registerUploadAction } from "@/app/actions/files";
 import { Button } from "./button";
 
 const ACCEPT = {
@@ -14,9 +14,9 @@ const ACCEPT = {
 };
 
 /**
- * Direct-to-storage upload with progress: the server issues a short-lived
- * signed URL after validating type/size/quota, the browser PUTs the file,
- * then the server verifies the stored object before it is used.
+ * Direct-to-Blob upload with progress. The server issues a token only after
+ * checking auth, type, size and the per-user path; afterwards it verifies the
+ * stored object before the file can be used.
  */
 export function FileUpload({
   purpose,
@@ -26,6 +26,8 @@ export function FileUpload({
   onRemoved,
   label,
   resourceId,
+  userId,
+  variant = "button",
 }: {
   purpose: "cover" | "portrait" | "attachment";
   enabled: boolean;
@@ -34,6 +36,8 @@ export function FileUpload({
   onRemoved?: () => void;
   label: string;
   resourceId?: string;
+  userId: string;
+  variant?: "button" | "tile";
 }) {
   const t = useTranslations();
   const input = useRef<HTMLInputElement>(null);
@@ -46,71 +50,82 @@ export function FileUpload({
       </p>
     );
 
-  const upload = async (file: File) => {
-    const created = await createUploadAction({
-      purpose,
-      filename: file.name,
-      mime: file.type,
-      size: file.size,
-      resourceId: resourceId ?? null,
-    });
-    if (!created.ok) {
-      toast.error(
-        created.message === "file_too_large"
-          ? t("upload.tooLarge", { max: purpose === "attachment" ? 10 : 5 })
-          : created.message === "unsupported_file_type"
-            ? t("upload.badType")
-            : t(`errors.${created.code}`),
-      );
-      return;
-    }
+  const doUpload = async (file: File) => {
     setProgress(0);
-    const ok = await new Promise<boolean>((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", created.data.signedUrl);
-      xhr.setRequestHeader("content-type", file.type);
-      xhr.setRequestHeader("x-upsert", "false");
-      xhr.upload.onprogress = (e) =>
-        e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-      xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
-      xhr.onerror = () => resolve(false);
-      xhr.send(file);
-    });
-    setProgress(null);
-    if (!ok) {
-      toast.error(t("errors.STORAGE_UNAVAILABLE"));
-      return;
+    try {
+      const safeName =
+        file.name
+          .normalize("NFKD")
+          .replace(/[^\w.\-]+/g, "_")
+          .slice(-80) || "file";
+      const blob = await upload(`u/${userId}/${purpose}/${safeName}`, file, {
+        access: "private",
+        handleUploadUrl: "/api/blob/upload",
+        clientPayload: JSON.stringify({ purpose, size: file.size, mime: file.type }),
+        contentType: file.type,
+        multipart: file.size > 20 * 1024 * 1024,
+        onUploadProgress: (e) => setProgress(Math.round(e.percentage)),
+      });
+      const r = await registerUploadAction({
+        pathname: blob.pathname,
+        purpose,
+        originalName: file.name,
+        resourceId: resourceId ?? null,
+      });
+      if (!r.ok) {
+        toast.error(t(`errors.${r.code}`));
+        return;
+      }
+      toast.success(t("upload.done"));
+      onUploaded(r.data.fileId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(
+        /too large|maximum/i.test(msg)
+          ? t("upload.tooLarge", { max: purpose === "attachment" ? 50 : 8 })
+          : /content type/i.test(msg)
+            ? t("upload.badType")
+            : t("errors.STORAGE_UNAVAILABLE"),
+      );
+    } finally {
+      setProgress(null);
+      if (input.current) input.current.value = "";
     }
-    const confirmed = await confirmUploadAction(created.data.fileId);
-    if (!confirmed.ok) {
-      toast.error(t(`errors.${confirmed.code}`));
-      return;
-    }
-    toast.success(t("upload.done"));
-    onUploaded(created.data.fileId);
   };
+
+  const picker = (
+    <input
+      ref={input}
+      type="file"
+      accept={ACCEPT[purpose]}
+      className="sr-only"
+      aria-label={label}
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) void doUpload(f);
+      }}
+    />
+  );
+
+  if (variant === "tile")
+    return (
+      <div className="flex flex-col gap-2">
+        {picker}
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          disabled={progress !== null}
+          className="border-border-strong text-muted hover:border-primary hover:text-primary flex aspect-[2/3] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-xs font-medium transition-colors"
+        >
+          <ImagePlus className="size-6" />
+          {progress !== null ? t("upload.uploading", { percent: progress }) : label}
+        </button>
+      </div>
+    );
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {currentFileId && purpose !== "attachment" && (
-        <img
-          src={`/api/files/${currentFileId}`}
-          alt=""
-          className="border-border h-16 w-12 rounded border object-cover"
-        />
-      )}
-      <input
-        ref={input}
-        type="file"
-        accept={ACCEPT[purpose]}
-        className="sr-only"
-        aria-label={label}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void upload(f);
-          e.target.value = "";
-        }}
-      />
+      {picker}
       <Button
         type="button"
         variant="outline"
@@ -123,7 +138,7 @@ export function FileUpload({
           ? t("upload.uploading", { percent: progress })
           : currentFileId
             ? t("upload.replace")
-            : `${t("upload.choose")} — ${label}`}
+            : label}
       </Button>
       {progress !== null && (
         <div

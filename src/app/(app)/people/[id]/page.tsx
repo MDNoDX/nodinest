@@ -109,6 +109,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               type="person"
               id={p.id}
               isAdmin={user.role === "superadmin"}
+              canEdit={d.canEdit}
               archived={!!p.deletedAt}
             />
           </div>

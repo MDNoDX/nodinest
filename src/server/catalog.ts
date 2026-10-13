@@ -41,8 +41,25 @@ import {
 } from "@/lib/validation";
 import { audit } from "./audit";
 
-function assertSuperadmin(ctx: AppContext) {
-  if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
+/**
+ * Catalog edit rule: the superadmin (in admin mode) may edit anything; every
+ * other user may edit the entries they created. Everything else goes through
+ * suggestions. RLS enforces the same rule (drizzle/0007_v2_rls.sql).
+ */
+export async function canEditCatalog(
+  tx: Tx | Database,
+  ctx: AppContext,
+  type: "person" | "resource",
+  id: string,
+): Promise<boolean> {
+  if (ctx.role === "superadmin") return true;
+  const table = type === "person" ? people : resources;
+  const [row] = await tx.select({ createdBy: table.createdBy }).from(table).where(eq(table.id, id));
+  return !!row && row.createdBy === ctx.userId;
+}
+
+async function assertCanEdit(tx: Tx, ctx: AppContext, type: "person" | "resource", id: string) {
+  if (!(await canEditCatalog(tx, ctx, type, id))) throw new AppError("FORBIDDEN");
 }
 
 export function parsePerson(input: unknown): PersonInput {
@@ -291,7 +308,6 @@ export async function applyCreatePerson(
   data: PersonInput,
   meta?: Record<string, unknown>,
 ) {
-  assertSuperadmin(ctx);
   const [row] = await tx
     .insert(people)
     .values({ ...personRow(data), createdBy: ctx.userId, updatedBy: ctx.userId })
@@ -315,7 +331,7 @@ export async function applyUpdatePerson(
   data: PersonInput,
   meta?: Record<string, unknown>,
 ) {
-  assertSuperadmin(ctx);
+  await assertCanEdit(tx, ctx, "person", id);
   const before = await getPersonSnapshot(tx, id);
   if (!before) throw new AppError("NOT_FOUND");
   await tx
@@ -342,7 +358,7 @@ export async function applyArchive(
   archived: boolean,
   meta?: Record<string, unknown>,
 ) {
-  assertSuperadmin(ctx);
+  await assertCanEdit(tx, ctx, type, id);
   const table = type === "person" ? people : resources;
   const res = await tx
     .update(table)
@@ -465,8 +481,8 @@ function resourceRow(data: ResourceInput) {
     coverFileId: data.coverFileId ?? null,
     language: data.language,
     publicationDate: data.publicationDate,
+    originalDate: data.originalDate,
     sourceUrl: data.sourceUrl,
-    sourceNote: data.sourceNote,
     verification: data.verification,
   };
 }
@@ -477,7 +493,6 @@ export async function applyCreateResource(
   data: ResourceInput,
   meta?: Record<string, unknown>,
 ) {
-  assertSuperadmin(ctx);
   const [row] = await tx
     .insert(resources)
     .values({ ...resourceRow(data), createdBy: ctx.userId, updatedBy: ctx.userId })
@@ -501,7 +516,7 @@ export async function applyUpdateResource(
   data: ResourceInput,
   meta?: Record<string, unknown>,
 ) {
-  assertSuperadmin(ctx);
+  await assertCanEdit(tx, ctx, "resource", id);
   const before = await getResourceSnapshot(tx, id);
   if (!before) throw new AppError("NOT_FOUND");
   await tx
@@ -593,8 +608,8 @@ export async function getResourceSnapshot(
     coverFileId: r.coverFileId,
     language: r.language,
     publicationDate: r.publicationDate,
+    originalDate: r.originalDate,
     sourceUrl: r.sourceUrl,
-    sourceNote: r.sourceNote,
     verification: r.verification,
     contributors: contributors.map((c) => ({
       personId: c.personId,
@@ -608,13 +623,9 @@ export async function getResourceSnapshot(
     book: book
       ? {
           publisher: book.publisher,
-          edition: book.edition,
           pageCount: book.pageCount,
           originalLanguage: book.originalLanguage,
-          tableOfContents: book.tableOfContents,
           readingUrl: book.readingUrl,
-          purchaseUrl: book.purchaseUrl,
-          fileFormat: book.fileFormat,
         }
       : null,
     media: media
@@ -640,6 +651,7 @@ export type ResourceListItem = {
   publicationDate: string | null;
   contributors: string;
   myStatus: string | null;
+  myRating: number | null;
   updatedAt: Date;
 };
 
@@ -701,11 +713,12 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
       publication_date: string | null;
       contributors: string | null;
       my_status: string | null;
+      my_rating: number | null;
       updated_at: Date;
       total: number;
     }>(sql`
       select r.id, r.type, r.title, r.cover_url, r.cover_file_id, r.publication_date, r.updated_at,
-        lr.status as my_status,
+        lr.status as my_status, lr.rating as my_rating,
         (select string_agg(p.full_name, ', ' order by c.position)
            from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
           where c.resource_id = r.id) as contributors,
@@ -725,7 +738,8 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
         coverFileId: r.cover_file_id,
         publicationDate: r.publication_date,
         contributors: r.contributors ?? "",
-        myStatus: r.my_status,
+        myStatus: r.my_status === "abandoned" ? "paused" : r.my_status,
+        myRating: r.my_rating,
         updatedAt: new Date(r.updated_at),
       })),
       total: Number(rows[0]?.total ?? 0),
@@ -826,10 +840,15 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       )
       .orderBy(desc(notes.createdAt))
       .limit(20);
-    const totals = await tx.execute<{ seconds: number; sessions: number }>(sql`
-      select coalesce(sum(active_seconds), 0)::int as seconds, count(*)::int as sessions
-      from nodinest.study_sessions
-      where user_id = ${ctx.userId} and resource_id = ${id} and status = 'completed' and deleted_at is null`);
+    const [mine] = await tx.execute<{
+      sections: number;
+      text_pages: number;
+      text_status: string | null;
+    }>(sql`
+      select
+        (select count(*)::int from nodinest.conspect_sections c where c.user_id = ${ctx.userId} and c.resource_id = ${id}) as sections,
+        (select coalesce(sum(pages), 0)::int from nodinest.book_text_sources b where b.user_id = ${ctx.userId} and b.resource_id = ${id} and b.status = 'ready') as text_pages,
+        (select b.status::text from nodinest.book_text_sources b where b.user_id = ${ctx.userId} and b.resource_id = ${id} order by b.updated_at desc limit 1) as text_status`);
     return {
       resource: r,
       book: book ?? null,
@@ -843,7 +862,12 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       record: record ?? null,
       myNotes,
       publicNotes,
-      myTotals: totals[0] ?? { seconds: 0, sessions: 0 },
+      mine: {
+        sections: mine?.sections ?? 0,
+        textPages: mine?.text_pages ?? 0,
+        textStatus: mine?.text_status ?? null,
+      },
+      canEdit: ctx.role === "superadmin" || r.createdBy === ctx.userId,
     };
   });
 }
@@ -943,7 +967,14 @@ export async function getPersonDetail(database: Database, ctx: AppContext, id: s
       )
       .orderBy(desc(notes.createdAt))
       .limit(20);
-    return { person: p, aliases, links, works, quotes };
+    return {
+      person: p,
+      aliases,
+      links,
+      works,
+      quotes,
+      canEdit: ctx.role === "superadmin" || p.createdBy === ctx.userId,
+    };
   });
 }
 
@@ -1004,7 +1035,7 @@ export async function addRelation(
   toId: string,
   kind: "edition_of" | "translation_of" | "part_of" | "related",
 ) {
-  assertSuperadmin(ctx);
+  await assertCanEdit(tx, ctx, "resource", fromId);
   if (fromId === toId) throw new AppError("VALIDATION", "self_relation");
   await tx.insert(resourceRelations).values({ fromId, toId, kind }).onConflictDoNothing();
   await audit(tx, {

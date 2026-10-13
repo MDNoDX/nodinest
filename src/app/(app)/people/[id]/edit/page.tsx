@@ -4,7 +4,7 @@ import { PersonForm } from "@/components/people/person-form";
 import { PageHeader } from "@/components/ui/misc";
 import { withUser } from "@/db";
 import { pageContext } from "@/lib/page";
-import { getPersonSnapshot } from "@/server/catalog";
+import { canEditCatalog, getPersonSnapshot } from "@/server/catalog";
 import { isStorageConfigured } from "@/server/storage";
 
 export const dynamic = "force-dynamic";
@@ -14,23 +14,23 @@ export default async function EditPersonPage({ params }: { params: Promise<{ id:
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { ctx, db, user } = await pageContext();
   const t = await getTranslations();
-  const s = await withUser(db, ctx, (tx) => getPersonSnapshot(tx, id));
+  const [s, canEdit] = await Promise.all([
+    withUser(db, ctx, (tx) => getPersonSnapshot(tx, id)),
+    canEditCatalog(db, ctx, "person", id),
+  ]);
   if (!s) notFound();
   const str = (x: string | null | undefined) => x ?? "";
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
         section="people"
-        title={user.role === "superadmin" ? t("person.editTitle") : t("resource.suggestEdit")}
-        subtitle={
-          user.role === "superadmin"
-            ? t("resource.newSubtitleAdmin")
-            : t("resource.newSubtitleUser")
-        }
+        title={canEdit ? t("person.editTitle") : t("resource.suggestEdit")}
+        subtitle={canEdit ? t("resource.newSubtitleAdmin") : t("resource.newSubtitleUser")}
       />
       <PersonForm
         personId={id}
-        isAdmin={user.role === "superadmin"}
+        canEditDirectly={canEdit}
+        userId={user.id}
         storageEnabled={isStorageConfigured()}
         initial={{
           fullName: s.fullName,

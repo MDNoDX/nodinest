@@ -54,6 +54,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
     sort: (["relevance", "title", "date", "updated"].includes(sp(p.sort) ?? "")
       ? sp(p.sort)
       : "relevance") as "relevance",
+    resourceId: /^[0-9a-f-]{36}$/i.test(sp(p.resource) ?? "") ? sp(p.resource)! : null,
     page: spInt(p.page),
   };
   const res = q.trim() ? await universalSearch(db, ctx, filters) : null;
@@ -68,6 +69,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
       from: filters.from,
       to: filters.to,
       sort: filters.sort === "relevance" ? null : filters.sort,
+      resource: filters.resourceId,
     };
     for (const [k, v] of Object.entries({ ...base, ...o })) if (v) u.set(k, v);
     return `/search?${u}`;
@@ -94,6 +96,17 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
           />
         </div>
         {group && <input type="hidden" name="group" value={group} />}
+        {filters.resourceId && (
+          <>
+            <input type="hidden" name="resource" value={filters.resourceId} />
+            <p className="text-muted flex items-center gap-2 text-sm">
+              <Badge tone="primary">{t("search.inOneBook")}</Badge>
+              <Link href={params({ resource: null, page: null })} className="hover:underline">
+                {t("common.reset")}
+              </Link>
+            </p>
+          </>
+        )}
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <Select
             name="type"
@@ -219,6 +232,9 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
                     <li key={`${h.group}-${h.id}`}>
                       <Link
                         href={h.href}
+                        {...(/^(https?:|\/api\/)/.test(h.href)
+                          ? { target: "_blank", rel: "noopener noreferrer nofollow" }
+                          : {})}
                         className="hover:bg-surface-2/60 focus-visible:bg-surface-2 block px-4 py-3"
                       >
                         <div className="flex flex-wrap items-center gap-2">

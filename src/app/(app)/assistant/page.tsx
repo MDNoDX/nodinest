@@ -21,33 +21,33 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
   const c = sp((await searchParams).c);
   const [convs, avail, settings, conv] = await Promise.all([
     listConversations(ctx),
-    aiAvailability(user.role === "superadmin"),
+    aiAvailability(user.isSuperadmin),
     getAiSettings(db),
     c && /^[0-9a-f-]{36}$/i.test(c) ? getConversation(ctx, c) : Promise.resolve(null),
   ]);
   const messages: ChatMessage[] =
     conv?.messages.map((m) => {
-      const trace = m.toolTrace as { trace?: { tool: string }[]; proposals?: string[] } | null;
+      const trace = m.toolTrace as {
+        trace?: { tool: string }[];
+        actions?: string[];
+        proposals?: string[];
+      } | null;
       return {
         id: m.id,
         role: m.role,
         content: m.content,
-        proposals: trace?.proposals ?? [],
+        actions: trace?.actions ?? trace?.proposals ?? [],
         tools: trace?.trace?.map((x) => x.tool) ?? [],
       };
     }) ?? [];
   const actions: ChatAction[] =
     conv?.actions.map((a) => {
-      const res = (a.result ?? {}) as {
-        preview?: ChatAction["preview"];
-        outcome?: ChatAction["outcome"];
-      };
+      const res = (a.result ?? {}) as { outcome?: ChatAction["outcome"] };
       return {
         id: a.id,
         tool: a.tool,
         args: a.args as Record<string, unknown>,
         status: a.status,
-        preview: res.preview,
         outcome: res.outcome,
         error: a.error,
       };
@@ -99,7 +99,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           initialActions={actions}
           available={avail.available}
           unavailableReason={avail.reason}
-          dailyLimit={user.role === "superadmin" ? null : settings.dailyLimitPerUser}
+          dailyLimit={user.isSuperadmin ? null : settings.dailyLimitPerUser}
         />
       </div>
     </>
