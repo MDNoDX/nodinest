@@ -82,3 +82,13 @@ Icons: `node scripts/make-icons.mjs`. To test the SW locally use the `nodinest-p
 (after `next build`) — it only runs public pages, since prod cookies need HTTPS.
 Files: Vercel Blob (private store `nodinest-files`), client upload via `/api/blob/upload`,
 served via `/api/files/[id]`. PDF text: `unpdf` → `book_pages` (FTS) in `server/booktext.ts`.
+
+## Mac app (`mac/`)
+
+Native AppKit + WKWebView wrapper around the production site (`./mac/build.sh` → universal
+`dist/NodiNest.app` + `dist/NodiNest-<ver>.dmg`, ad-hoc signed). Google blocks sign-in inside web
+views, so Google navigations open `ASWebAuthenticationSession` on `/app-login`, which returns
+`nodinest://auth?code=…` (one-time, hashed, 2 min — `server/app-handoff.ts`); the app redeems it
+at `/api/app/handoff`. Downloads use a Save sheet (no folder-permission prompt). Point it at a
+local server with `defaults write app.nodinest.mac NodiNestBaseURL http://localhost:3100`
+(delete it afterwards); `NODINEST_DEBUG=1` prints navigation/download logs to stderr.

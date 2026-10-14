@@ -48,3 +48,4 @@ next-env.d.ts
 /playwright/.cache/
 /.next-e2e/
 /.next-build/
+/dist

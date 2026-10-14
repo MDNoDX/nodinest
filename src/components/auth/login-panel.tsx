@@ -31,9 +31,12 @@ function GoogleIcon() {
 export function LoginPanel({
   googleEnabled,
   devEnabled,
+  next = "/",
 }: {
   googleEnabled: boolean;
   devEnabled: boolean;
+  /** Where to go after signing in (validated same-site path). */
+  next?: string;
 }) {
   const t = useTranslations("auth");
   const tl = useTranslations("locale");
@@ -51,7 +54,7 @@ export function LoginPanel({
   const google = () =>
     start(async () => {
       setError(null);
-      const r = await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+      const r = await authClient.signIn.social({ provider: "google", callbackURL: next });
       if (r.error) setError(t("failed"));
     });
 
@@ -68,7 +71,7 @@ export function LoginPanel({
             });
       if (r.error) setError(t("failed"));
       else {
-        router.push("/");
+        router.push(next);
         router.refresh();
       }
     });

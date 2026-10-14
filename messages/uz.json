@@ -1019,6 +1019,7 @@
     "nothing": "Yuklab olish uchun hali taqriz yozilmagan.",
     "tooMany": "Juda ko‘p yuklab olish. Birozdan keyin urinib ko‘ring.",
     "offline": "Yuklab olish uchun internet kerak.",
-    "downloadAll": "Hammasini yuklab olish"
+    "downloadAll": "Hammasini yuklab olish",
+    "savingToDownloads": "Fayl «Yuklanmalar» papkasiga saqlanmoqda…"
   }
 }

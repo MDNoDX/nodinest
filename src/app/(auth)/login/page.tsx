@@ -14,8 +14,19 @@ export async function generateMetadata() {
   return { title: t("signIn") };
 }
 
-export default async function LoginPage() {
-  if (await getCurrentUser()) redirect("/");
+/** Only same-site paths are allowed as a return address (no open redirects). */
+function safeNext(v: string | string[] | undefined): string {
+  const n = Array.isArray(v) ? v[0] : v;
+  return n && /^\/(?![/\\])/.test(n) ? n.slice(0, 200) : "/";
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const next = safeNext((await searchParams).next);
+  if (await getCurrentUser()) redirect(next);
   const t = await getTranslations();
   const features = [
     ["library", <BookOpen key="l" />, "indigo"],
@@ -53,7 +64,11 @@ export default async function LoginPage() {
             <h1 className="mt-4 text-3xl font-bold tracking-tight">{t("auth.signInTitle")}</h1>
             <p className="text-muted mt-2 text-sm">{t("brand.tagline")}</p>
           </div>
-          <LoginPanel googleEnabled={authProviders.google} devEnabled={authProviders.devLogin} />
+          <LoginPanel
+            googleEnabled={authProviders.google}
+            devEnabled={authProviders.devLogin}
+            next={next}
+          />
           <p className="text-muted mt-6 text-center text-xs">{t("auth.privacyNote")}</p>
         </section>
       </div>

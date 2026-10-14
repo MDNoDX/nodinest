@@ -1019,6 +1019,7 @@
     "nothing": "No write-ups to download yet.",
     "tooMany": "Too many downloads. Try again shortly.",
     "offline": "Downloading needs an internet connection.",
-    "downloadAll": "Download all"
+    "downloadAll": "Download all",
+    "savingToDownloads": "Saving to your Downloads folder…"
   }
 }

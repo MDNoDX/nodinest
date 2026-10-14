@@ -919,3 +919,15 @@ export type Goal = typeof goals.$inferSelect;
 export type Plan = typeof plans.$inferSelect;
 export type Suggestion = typeof suggestions.$inferSelect;
 export type Category = typeof categories.$inferSelect;
+
+/**
+ * Mac app sign-in hand-off: after Google sign-in in the system browser sheet,
+ * a one-time code (stored hashed, 2 min) carries the session into the app.
+ * Server-only (no policy for the app role).
+ */
+export const appHandoffs = nodinest.table("app_handoffs", {
+  codeHash: text("code_hash").primaryKey(),
+  sessionCookie: text("session_cookie").notNull(),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: createdAt(),
+});

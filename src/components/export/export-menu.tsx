@@ -52,6 +52,16 @@ export function ExportMenu({
       await beforeDownload?.();
       const base = resourceId ? `/api/export/taqriz/${resourceId}` : "/api/export/taqriz";
       const url = `${base}?format=${format}${notes ? "&notes=1" : ""}`;
+      // The Mac app saves attachment responses itself (to ~/Downloads).
+      if (/NodiNestMac\//.test(navigator.userAgent)) {
+        const link = document.createElement("a");
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success(t("savingToDownloads"));
+        return;
+      }
       // Check first so errors show as a message, not as a broken file.
       const res = await fetch(url, { method: "GET" });
       if (!res.ok) {
