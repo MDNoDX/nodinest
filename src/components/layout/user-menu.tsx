@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { DropdownMenu as M } from "radix-ui";
 import { useTransition } from "react";
 import { setLocaleAction } from "@/app/actions/personal";
+import { clearOfflineData } from "@/components/pwa/pwa";
 import { authClient } from "@/lib/auth/client";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -90,6 +91,7 @@ export function UserMenu({
             className={item}
             onSelect={async () => {
               await authClient.signOut();
+              await clearOfflineData();
               router.push("/login");
               router.refresh();
             }}

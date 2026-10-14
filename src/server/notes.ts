@@ -312,6 +312,20 @@ export async function getCollection(database: Database, ctx: AppContext, id: str
         resourceType: resources.type,
         coverUrl: resources.coverUrl,
         coverFileId: resources.coverFileId,
+        description: resources.description,
+        originalDate: resources.originalDate,
+        publicationDate: resources.publicationDate,
+        pageCount: sql<
+          number | null
+        >`(select b.page_count from nodinest.book_details b where b.resource_id = "collection_items"."resource_id")`,
+        durationSeconds: sql<
+          number | null
+        >`(select m.duration_seconds from nodinest.media_details m where m.resource_id = "collection_items"."resource_id")`,
+        lessonCount: sql<
+          number | null
+        >`(select m.lesson_count from nodinest.media_details m where m.resource_id = "collection_items"."resource_id")`,
+        myStatus: sql<string | null>`(select lr.status::text from nodinest.learning_records lr
+          where lr.user_id = ${ctx.userId} and lr.resource_id = "collection_items"."resource_id")`,
         noteId: notes.id,
         noteKind: notes.kind,
         noteTitle: notes.title,

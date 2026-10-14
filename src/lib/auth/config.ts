@@ -37,6 +37,9 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30,
     updateAge: 60 * 60 * 24,
+    // Signed cookie copy of the session: no session-table query per request.
+    // Safe because getCurrentUser() still re-reads role + status from the DB.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
   user: {
     additionalFields: {

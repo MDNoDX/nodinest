@@ -72,7 +72,8 @@
     "skipToContent": "Skip to content",
     "createAnyway": "Create anyway",
     "tryAgain": "Try again",
-    "or": "or"
+    "or": "or",
+    "change": "Change"
   },
   "nav": {
     "main": "Main navigation",
@@ -102,7 +103,8 @@
     "newPerson": "Add person",
     "adminMode": "Admin mode",
     "adminOn": "Admin mode is on",
-    "adminOff": "Normal mode"
+    "adminOff": "Normal mode",
+    "publishers": "Publishers"
   },
   "theme": {
     "label": "Theme",
@@ -129,12 +131,12 @@
     "signUp": "Create local account",
     "signingIn": "Signing in…",
     "failed": "Sign-in failed. Check your details and try again.",
-    "privacyNote": "Your notes, konspekts and reflections are private by default.",
+    "privacyNote": "Your notes, write-ups and reflections are private by default.",
     "features": {
       "library": "Books, courses, videos and articles — with covers, in one place",
-      "konspekt": "Chapter-by-chapter konspekt for every book",
       "stats": "Ranked collections and pages-read counts",
-      "assistant": "Jarvis-style AI: adds, organizes, searches inside your PDFs"
+      "assistant": "Jarvis-style AI: adds, organizes, searches inside your PDFs",
+      "taqriz": "A write-up for every book: write freely or in chapters"
     }
   },
   "dashboard": {
@@ -209,7 +211,13 @@
     "in_progress": "Reading",
     "completed": "Read",
     "paused": "Paused",
-    "none": "Not in my library"
+    "none": "Not in my library",
+    "removed": "Removed from your library",
+    "change": "change status",
+    "add": "Add to my library",
+    "removeFromLibrary": "Remove from my library",
+    "ribbonHint": "Set the status in one click",
+    "notInLibrary": "Not in my library"
   },
   "verification": {
     "unverified": "Unverified",
@@ -296,7 +304,7 @@
     "originalTitle": "Original title",
     "description": "Description / synopsis",
     "cover": "Cover image",
-    "coverUrl": "Cover image URL",
+    "coverUrl": "Or paste an image link",
     "language": "Language",
     "publicationDate": "Publication date",
     "partialDateHint": "YYYY, YYYY-MM or YYYY-MM-DD. Leave empty if unknown.",
@@ -321,8 +329,6 @@
     "readingUrl": "Read online (external link)",
     "purchaseUrl": "Purchase link",
     "fileFormat": "Format (e.g. PDF, EPUB, Print)",
-    "platform": "Platform",
-    "channel": "Channel / publisher",
     "duration": "Duration (minutes)",
     "transcript": "Transcript",
     "transcriptUrl": "Transcript URL",
@@ -390,12 +396,20 @@
     "indexedPages": "{count} pages indexed — search and the AI can find things inside the book.",
     "indexFailed": "Couldn't extract the text.",
     "indexHint": "Indexed text lets search and the AI find passages with page numbers.",
-    "konspekt": "Konspekt",
-    "konspektOpen": "Open konspekt",
-    "konspektEmpty": "No konspekt yet. Summarise it chapter by chapter.",
-    "konspektChapters": "{count, plural, =0 {No chapters} one {# chapter} other {# chapters}}",
     "canEditHint": "You added this entry — you can edit it.",
-    "notFoundOnline": "Not found"
+    "notFoundOnline": "Not found",
+    "releaseDate": "Release date",
+    "lessonCount": "Lessons",
+    "where": "Where",
+    "whereHint": "Channel, platform, site or school",
+    "watchUrl": "Link (watch / listen)",
+    "readingTime": "Reading time (minutes)",
+    "publisherHint": "Type it once — then pick it from the list.",
+    "publisherPlaceholder": "Search or type a new publisher…",
+    "createPublisher": "“{name}” — new publisher",
+    "newBadge": "new",
+    "notesCount": "{count, plural, one {# note} other {# notes}}",
+    "allNotes": "Open all {count} notes"
   },
   "record": {
     "status": "Status",
@@ -404,7 +418,7 @@
     "rating": "Rating",
     "ratingValue": "{value} of 5",
     "noRating": "No rating",
-    "review": "Short review",
+    "review": "Short opinion",
     "goals": "Learning goals",
     "personalNotes": "Personal notes",
     "progress": "Progress",
@@ -413,14 +427,14 @@
     "unit": "Unit",
     "save": "Save learning record",
     "removeFromLibrary": "Remove from my library",
-    "removeConfirm": "Remove this from your library? Notes and the konspekt are kept.",
+    "removeConfirm": "Remove this from your library? Notes and the write-up are kept.",
     "updated": "Learning record updated.",
     "title": "My reading",
     "startedAt": "Started",
     "completedAt": "Finished",
     "rating10": "Rating (out of 10)",
     "clear": "Clear",
-    "reviewHint": "Overall impression. Details go to the Konspekt.",
+    "reviewHint": "Your impression in a sentence or two. Details go in the write-up.",
     "saved": "Saved.",
     "now": "Now",
     "quickStatus": "Status"
@@ -505,8 +519,9 @@
     "pages": "pp. {from}–{to}",
     "readOnly": "Shared by another user (read-only).",
     "attributed": "— {name}",
-    "kindNoteHint": "An idea, summary or reflection",
-    "kindQuoteHint": "An exact passage from a source"
+    "kindNoteHint": "A thought, takeaway or reminder",
+    "kindQuoteHint": "An exact passage from a source",
+    "forResource": "Notes and quotes for “{title}”"
   },
   "collections": {
     "title": "Collections",
@@ -589,8 +604,8 @@
       "transcripts": "Transcripts",
       "categories": "Topics",
       "tags": "Tags",
-      "conspect": "Konspekt",
-      "booktext": "Book text"
+      "booktext": "Book text",
+      "taqriz": "Write-ups"
     },
     "all": "Everything",
     "relevance": "Relevance",
@@ -603,11 +618,15 @@
     "noResultsHint": "Try fewer words, check spelling or remove filters.",
     "startTyping": "Type at least one word to search.",
     "showAll": "Show all {count}",
-    "inOneBook": "Inside this book only"
+    "inOneBook": "Inside this book only",
+    "genres": "Genres",
+    "genresAll": "· matching all of them",
+    "browseHint": "Type words or pick genres / a type / a status.",
+    "noBrowseResults": "Nothing matches this selection"
   },
   "assistant": {
     "title": "AI assistant",
-    "subtitle": "Like Jarvis: adds books, finds covers, writes konspekts, searches inside books.",
+    "subtitle": "Like Jarvis: adds books, finds covers, writes up summaries, searches inside books.",
     "placeholder": "E.g. “Add Sapiens with its cover, mark it read, rating 9”",
     "send": "Send",
     "thinking": "Thinking…",
@@ -637,7 +656,6 @@
       "add_person": "Person added",
       "suggest_correction": "Correction suggested",
       "update_my_record": "Reading record updated",
-      "write_konspekt": "Konspekt written",
       "add_to_collection": "Added to collection",
       "set_rank": "Ranking changed",
       "create_goal": "Goal added",
@@ -645,13 +663,14 @@
       "remove_from_library": "Remove from library",
       "delete_note": "Delete note",
       "delete_collection": "Delete collection",
-      "archive_resource": "Archive resource"
+      "archive_resource": "Archive resource",
+      "write_taqriz": "Write-up updated"
     },
     "suggestedReview": "Sent to administrator review.",
     "examples": {
       "title": "Try asking",
       "one": "Find “Sapiens” online and add it with its cover",
-      "two": "Write a konspekt of chapter 2 of Xamsa",
+      "two": "Add a short summary of Xamsa’s 2nd chapter to my write-up",
       "three": "Find the word “patience” inside my books",
       "four": "Make my Top 10 books list"
     },
@@ -765,7 +784,7 @@
     "storageUsed": "{used} of {total} used",
     "storageOff": "File uploads are not configured. External links still work.",
     "privacy": "Privacy",
-    "privacyBody": "Notes, quotes, konspekts, ratings and reading records belong to you only. Only quotes you mark public are visible to other users.",
+    "privacyBody": "Notes, quotes, write-ups, ratings and reading records belong to you only. Only quotes you mark public are visible to other users.",
     "saved": "Settings saved."
   },
   "admin": {
@@ -891,25 +910,88 @@
     "completed": "Watched",
     "paused": "Paused"
   },
-  "konspekt": {
-    "title": "Konspekt",
+  "taqriz": {
+    "title": "Write-up",
+    "back": "Back to the resource",
     "contents": "Contents",
+    "noChapters": "Chapters are optional. Turn any line or selected sentence into a chapter and it shows up here.",
     "addChapter": "Add chapter",
-    "newChapter": "New chapter",
-    "chapterTitle": "Chapter title",
-    "write": "Write a short summary…",
+    "chapter": "Chapter",
+    "subchapter": "Sub-chapter",
+    "text": "Plain text",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strike": "Strikethrough",
+    "bullets": "Bulleted list",
+    "numbers": "Numbered list",
+    "quote": "Quote",
+    "undo": "Undo",
+    "redo": "Redo",
+    "words": "{count, plural, one {# word} other {# words}}",
     "saving": "Saving…",
     "saved": "Saved",
-    "unsaved": "Unsaved changes",
-    "deleteChapter": "Delete chapter",
-    "deleteConfirm": "Delete this chapter?",
-    "moveUp": "Move up",
-    "moveDown": "Move down",
-    "pages": "Pages",
-    "emptyTitle": "Start your konspekt",
-    "emptyBody": "Summarise chapter by chapter — contents on the left, text on the right.",
-    "back": "Back to resource",
-    "askAi": "Ask AI",
-    "words": "{count} words"
+    "savedOffline": "Saved on this device — will sync when online",
+    "unsaved": "Unsaved",
+    "conflict": "This write-up was changed on another device. Which version should stay?",
+    "conflictShort": "Changed elsewhere",
+    "keepMine": "Keep mine",
+    "loadTheirs": "Load theirs",
+    "placeholder": "Write your thoughts… Select a sentence and press “Make chapter” if you like.",
+    "chapterPlaceholder": "Chapter title",
+    "makeChapter": "Make chapter",
+    "askAi": "Ask the AI to help write it",
+    "summary": "{words, plural, one {# word} other {# words}} · {chapters, plural, =0 {no chapters} one {# chapter} other {# chapters}}",
+    "hint": "Your thoughts, takeaways and summary — write freely or split into chapters.",
+    "start": "Start writing"
+  },
+  "dates": {
+    "kind": "Date kind",
+    "exact": "Exact",
+    "approx": "Approx.",
+    "range": "Range",
+    "century": "Century",
+    "approxPrefix": "c.",
+    "from": "from",
+    "to": "to",
+    "centurySuffix": "century"
+  },
+  "card": {
+    "pages": "{count} pages",
+    "lessons": "{count} lessons",
+    "minutes": "{count} min",
+    "hours": "{h} h {m} min"
+  },
+  "publishers": {
+    "title": "Publishers",
+    "subtitle": "The publishers of your books.",
+    "add": "Add publisher",
+    "name": "Name",
+    "city": "City",
+    "country": "Country",
+    "website": "Website",
+    "empty": "No publishers yet",
+    "emptyBody": "Type a publisher when adding a book — it appears here.",
+    "books": "{count, plural, =0 {no books} one {# book} other {# books}}",
+    "noBooks": "No books from this publisher yet."
+  },
+  "install": {
+    "title": "Install the app (Mac and phone)",
+    "why": "Install NodiNest as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
+    "installNow": "Install now",
+    "installed": "Installed — you are using the app window.",
+    "mac": "Mac",
+    "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install NodiNest”). It appears in Launchpad and the Dock.",
+    "macSafari": "Safari: File → Add to Dock. It appears in the Dock and Launchpad.",
+    "phone": "iPhone / Android",
+    "ios": "iPhone/iPad (Safari): Share → Add to Home Screen.",
+    "android": "Android (Chrome): ⋮ menu → Install app, or accept the prompt.",
+    "offlineNote": "Offline: pages you have viewed and PDFs you have opened stay on the device; write-ups can be edited offline and sync when you are back online. The AI, search and adding new items need internet."
+  },
+  "offline": {
+    "title": "No internet",
+    "body": "This page hasn’t been opened on this device yet. Pages, covers and write-ups you have opened before work offline.",
+    "retry": "Try again",
+    "banner": "Offline — showing saved pages"
   }
 }

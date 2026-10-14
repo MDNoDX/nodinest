@@ -11,7 +11,7 @@ import { isValidTimeZone } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { LEARNING_STATUSES } from "@/lib/validation";
 import { indexFromFile, indexFromUrl } from "@/server/booktext";
-import { createSection, deleteSection, reorderSections, updateSection } from "@/server/conspect";
+import { deleteWriteup, saveWriteup } from "@/server/writeups";
 import {
   deleteGoal,
   deletePlan,
@@ -56,33 +56,25 @@ export async function removeRecordAction(resourceId: string) {
   });
 }
 
-// ─── Konspekt ───
-export async function createSectionAction(
+// ─── Taqriz (free-form write-up) ───
+/** Autosave target: no revalidation (the editor holds the state). */
+export async function saveWriteupAction(
   resourceId: string,
-  input: unknown,
-  afterId?: string | null,
+  doc: unknown,
+  opts: { baseUpdatedAt?: string | null; force?: boolean } = {},
 ) {
-  return run(async ({ ctx, db }) => {
-    const sid = await createSection(db, ctx, id.parse(resourceId), input, {
-      afterId: optId.parse(afterId) ?? null,
-    });
-    revalidatePath(`/library/${resourceId}`, "layout");
-    return sid;
-  });
-}
-export async function updateSectionAction(sectionId: string, input: unknown) {
-  return run(async ({ ctx, db }) => updateSection(db, ctx, id.parse(sectionId), input));
-}
-export async function deleteSectionAction(sectionId: string) {
-  return run(async ({ ctx, db }) => {
-    await deleteSection(db, ctx, id.parse(sectionId));
-    revalidatePath("/library", "layout");
-  });
-}
-export async function reorderSectionsAction(resourceId: string, ids: string[]) {
   return run(async ({ ctx, db }) =>
-    reorderSections(db, ctx, id.parse(resourceId), z.array(id).max(1000).parse(ids)),
+    saveWriteup(db, ctx, id.parse(resourceId), doc, {
+      baseUpdatedAt: z.string().max(40).nullish().parse(opts.baseUpdatedAt) ?? null,
+      force: opts.force === true,
+    }),
   );
+}
+export async function deleteWriteupAction(resourceId: string) {
+  return run(async ({ ctx, db }) => {
+    await deleteWriteup(db, ctx, id.parse(resourceId));
+    revalidatePath(`/library/${resourceId}`, "layout");
+  });
 }
 
 // ─── Book text (PDF / reading link) ───

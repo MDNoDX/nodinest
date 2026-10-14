@@ -28,11 +28,19 @@ export type ResourceFormValue = {
   tags: string[];
   identifiers: Ident[];
   links: LinkRow[];
-  book: { publisher: string; pageCount: string; originalLanguage: string; readingUrl: string };
+  book: {
+    /** A picked publisher, or a new name typed by the user. */
+    publisherId: string | null;
+    publisherName: string;
+    pageCount: string;
+    originalLanguage: string;
+    readingUrl: string;
+  };
   media: {
     platform: string;
     channel: string;
     durationMinutes: string;
+    lessonCount: string;
     transcript: string;
     transcriptUrl: string;
   };
@@ -54,6 +62,19 @@ export const emptyResource = (type: ResourceType = "book"): ResourceFormValue =>
   tags: [],
   identifiers: [],
   links: [],
-  book: { publisher: "", pageCount: "", originalLanguage: "", readingUrl: "" },
-  media: { platform: "", channel: "", durationMinutes: "", transcript: "", transcriptUrl: "" },
+  book: {
+    publisherId: null,
+    publisherName: "",
+    pageCount: "",
+    originalLanguage: "",
+    readingUrl: "",
+  },
+  media: {
+    platform: "",
+    channel: "",
+    durationMinutes: "",
+    lessonCount: "",
+    transcript: "",
+    transcriptUrl: "",
+  },
 });

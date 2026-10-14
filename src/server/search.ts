@@ -1,6 +1,6 @@
 /**
  * Universal search across people, resources, transcripts, notes, quotations,
- * konspekt sections, the text of indexed books (PDF/links), categories and tags.
+ * taqriz write-ups, the text of indexed books (PDF/links), categories and tags.
  *
  * Matching: PostgreSQL full-text (prefix tsquery over apostrophe-normalised
  * 'simple' vectors, AND semantics across words) plus indexed substring match
@@ -24,7 +24,7 @@ export const SEARCH_GROUPS = [
   "notes",
   "quotes",
   "transcripts",
-  "conspect",
+  "taqriz",
   "booktext",
   "categories",
   "tags",
@@ -37,6 +37,8 @@ export type SearchFilters = {
   resourceType?: string | null;
   personId?: string | null;
   categoryId?: string | null;
+  /** Genres: a resource must belong to ALL of them. */
+  categoryIds?: string[];
   status?: string | null;
   /** Limits in-book text and konspekt hits to one resource. */
   resourceId?: string | null;
@@ -57,6 +59,11 @@ export type SearchHit = {
   snippet: SnippetPart[];
   date: string | null;
   rank: number;
+  /** Resources only: cover and the user's own state (status ribbon). */
+  cover?: string | null;
+  status?: string | null;
+  rating?: number | null;
+  progress?: number | null;
 };
 
 export type GroupResult = { hits: SearchHit[]; total: number };
@@ -104,7 +111,13 @@ async function searchResources(
     filters.push(
       sql`exists (select 1 from nodinest.resource_categories rc where rc.resource_id = r.id and rc.category_id = ${f.categoryId})`,
     );
-  if (f.status) filters.push(sql`lr.status = ${f.status}`);
+  for (const cid of (f.categoryIds ?? []).slice(0, 10))
+    filters.push(
+      sql`exists (select 1 from nodinest.resource_categories rc where rc.resource_id = r.id and rc.category_id = ${cid})`,
+    );
+  if (f.status === "none") filters.push(sql`lr.id is null`);
+  else if (f.status === "paused") filters.push(sql`lr.status in ('paused', 'abandoned')`);
+  else if (f.status) filters.push(sql`lr.status = ${f.status}`);
   if (f.from) filters.push(sql`r.publication_date >= ${f.from.slice(0, 4)}`);
   if (f.to) filters.push(sql`left(r.publication_date, 4) <= ${f.to.slice(0, 4)}`);
   const extra = filters.length ? sql` and ${sql.join(filters, sql` and `)}` : sql``;
@@ -118,23 +131,35 @@ async function searchResources(
     rank: number;
     total: number;
     updated_at: Date;
+    cover_url: string | null;
+    cover_file_id: string | null;
+    my_status: string | null;
+    my_rating: number | null;
+    progress: number | null;
   }>(sql`
     select r.id, r.title, r.type::text, r.description, r.publication_date, r.updated_at,
+      r.cover_url, r.cover_file_id, lr.status::text as my_status, lr.rating as my_rating,
+      case when lr.progress_total > 0 and lr.progress_current is not null
+        then least(100, round(100.0 * lr.progress_current / lr.progress_total))::int end as progress,
       (select string_agg(p.full_name, ', ' order by c.position) from nodinest.resource_contributors c
         join nodinest.people p on p.id = c.person_id where c.resource_id = r.id) as contributors,
-      (ts_rank(r.search, to_tsquery('simple', ${q.tsq}))
+      (${q.tsq ? sql`ts_rank(r.search, to_tsquery('simple', ${q.tsq}))` : sql`0`}
         + case when nodinest.nn_norm(r.title) like ${q.prefix} then 1 else 0 end
         + case when exists (select 1 from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
             where c.resource_id = r.id and p.search @@ to_tsquery('simple', ${q.tsq})) then 0.5 else 0 end) as rank,
       count(*) over() as total
     from nodinest.resources r
     left join nodinest.learning_records lr on lr.resource_id = r.id and lr.user_id = ${ctx.userId}
-    where r.deleted_at is null and (
+    where r.deleted_at is null ${
+      q.tsq
+        ? sql`and (
       r.search @@ to_tsquery('simple', ${q.tsq})
       or nodinest.nn_norm(r.title) like ${q.like}
       or exists (select 1 from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
                  where c.resource_id = r.id and p.search @@ to_tsquery('simple', ${q.tsq}))
-    ) ${extra}
+    )`
+        : sql``
+    } ${extra}
     order by ${orderBy(f.sort, { title: sql`r.title`, date: sql`r.publication_date`, updated: sql`r.updated_at` })}
     limit ${limit} offset ${offset}`);
   return {
@@ -149,6 +174,10 @@ async function searchResources(
       snippet: r.description ? makeSnippet(r.description, q.tokens, 60) : [],
       date: r.publication_date,
       rank: Number(r.rank),
+      cover: r.cover_file_id ? `/api/files/${r.cover_file_id}` : r.cover_url,
+      status: r.my_status === "abandoned" ? "paused" : r.my_status,
+      rating: r.my_rating,
+      progress: r.progress,
     })),
   };
 }
@@ -351,7 +380,7 @@ async function searchBookPages(
   };
 }
 
-async function searchConspect(
+async function searchTaqriz(
   tx: Tx,
   ctx: AppContext,
   q: Q,
@@ -363,27 +392,26 @@ async function searchConspect(
     id: string;
     resource_id: string;
     resource_title: string;
-    title: string;
-    content: string;
+    plain: string;
     rank: number;
     total: number;
   }>(sql`
-    select c.id, c.resource_id, r.title as resource_title, c.title, c.content,
-      ts_rank(c.search, to_tsquery('simple', ${q.tsq})) as rank, count(*) over() as total
-    from nodinest.conspect_sections c join nodinest.resources r on r.id = c.resource_id
-    where c.user_id = ${ctx.userId} and c.search @@ to_tsquery('simple', ${q.tsq})
-      ${f.resourceId ? sql`and c.resource_id = ${f.resourceId}` : sql``}
+    select w.id, w.resource_id, r.title as resource_title, w.plain,
+      ts_rank(w.search, to_tsquery('simple', ${q.tsq})) as rank, count(*) over() as total
+    from nodinest.writeups w join nodinest.resources r on r.id = w.resource_id
+    where w.user_id = ${ctx.userId} and w.search @@ to_tsquery('simple', ${q.tsq})
+      ${f.resourceId ? sql`and w.resource_id = ${f.resourceId}` : sql``}
     order by rank desc limit ${limit} offset ${offset}`);
   return {
     total: Number(rows[0]?.total ?? 0),
     hits: rows.map((r) => ({
-      group: "conspect",
+      group: "taqriz",
       id: r.id,
-      href: `/library/${r.resource_id}/konspekt?s=${r.id}`,
-      title: r.title,
-      subtitle: r.resource_title,
+      href: `/library/${r.resource_id}/taqriz?q=${encodeURIComponent(q.tokens.join(" "))}`,
+      title: r.resource_title,
+      subtitle: null,
       kind: null,
-      snippet: makeSnippet(r.content, q.tokens, 100),
+      snippet: makeSnippet(r.plain, q.tokens, 120),
       date: null,
       rank: Number(r.rank),
     })),
@@ -452,37 +480,56 @@ async function searchTags(
   };
 }
 
+/** Browsing by filters alone (genres, type, status) without a text query. */
+function isBrowse(f: SearchFilters) {
+  return !!(f.categoryIds?.length || f.resourceType || f.status);
+}
+
 export async function universalSearch(database: Database, ctx: AppContext, f: SearchFilters) {
   const tokens = searchTokens(f.q);
   const tsq = toPrefixTsQuery(tokens);
-  if (!tsq)
-    return {
-      query: f.q,
-      groups: {} as Partial<Record<SearchGroup, GroupResult>>,
-      tokens,
-      page: 1,
-      pageSize: PAGE_SIZE,
-    };
-  const norm = normalizeText(f.q);
-  const q: Q = { tsq, tokens, like: `%${escapeLike(norm)}%`, prefix: `${escapeLike(norm)}%` };
   const page = Math.max(1, f.page ?? 1);
-  const single = f.group ?? null;
+  const empty = {
+    query: f.q,
+    groups: {} as Partial<Record<SearchGroup, GroupResult>>,
+    tokens,
+    page,
+    pageSize: PAGE_SIZE,
+  };
+  if (!tsq && !isBrowse(f)) return empty;
+  const norm = normalizeText(f.q);
+  const q: Q = {
+    tsq: tsq ?? "",
+    tokens,
+    like: `%${escapeLike(norm)}%`,
+    prefix: `${escapeLike(norm)}%`,
+  };
+  // Without words only resources can be browsed (by genre / type / status).
+  const single = tsq ? (f.group ?? null) : "resources";
   const limit = single ? PAGE_SIZE : PREVIEW_LIMIT;
   const offset = single ? (page - 1) * PAGE_SIZE : 0;
 
   return withUser(database, ctx, async (tx) => {
-    const groups: Partial<Record<SearchGroup, GroupResult>> = {};
     const want = (g: SearchGroup) => !single || single === g;
-    if (want("resources")) groups.resources = await searchResources(tx, ctx, q, f, limit, offset);
-    if (want("people")) groups.people = await searchPeopleGroup(tx, q, f, limit, offset);
-    if (want("notes")) groups.notes = await searchNotesGroup(tx, ctx, q, f, "note", limit, offset);
-    if (want("quotes"))
-      groups.quotes = await searchNotesGroup(tx, ctx, q, f, "quote", limit, offset);
-    if (want("transcripts")) groups.transcripts = await searchTranscripts(tx, q, f, limit, offset);
-    if (want("conspect")) groups.conspect = await searchConspect(tx, ctx, q, f, limit, offset);
-    if (want("booktext")) groups.booktext = await searchBookPages(tx, ctx, q, f, limit, offset);
-    if (want("categories")) groups.categories = await searchCategories(tx, q, limit, offset);
-    if (want("tags")) groups.tags = await searchTags(tx, ctx, q, limit, offset);
+    // Groups are independent: issue them together (pipelined on one connection).
+    const jobs: [SearchGroup, Promise<GroupResult>][] = [];
+    const add = (g: SearchGroup, run: () => Promise<GroupResult>) => {
+      if (want(g)) jobs.push([g, run()]);
+    };
+    add("resources", () => searchResources(tx, ctx, q, f, limit, offset));
+    if (tsq) {
+      add("people", () => searchPeopleGroup(tx, q, f, limit, offset));
+      add("notes", () => searchNotesGroup(tx, ctx, q, f, "note", limit, offset));
+      add("quotes", () => searchNotesGroup(tx, ctx, q, f, "quote", limit, offset));
+      add("transcripts", () => searchTranscripts(tx, q, f, limit, offset));
+      add("taqriz", () => searchTaqriz(tx, ctx, q, f, limit, offset));
+      add("booktext", () => searchBookPages(tx, ctx, q, f, limit, offset));
+      add("categories", () => searchCategories(tx, q, limit, offset));
+      add("tags", () => searchTags(tx, ctx, q, limit, offset));
+    }
+    const results = await Promise.all(jobs.map(([, p]) => p));
+    const groups: Partial<Record<SearchGroup, GroupResult>> = {};
+    jobs.forEach(([g], i) => (groups[g] = results[i]));
     return { query: f.q, groups, tokens, page, pageSize: PAGE_SIZE };
   });
 }

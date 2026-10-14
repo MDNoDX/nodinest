@@ -15,6 +15,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ProgressBar } from "@/components/charts/hbar-list";
 import { Cover, coverSrc } from "@/components/library/cover";
+import { ResourceCard } from "@/components/library/resource-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, EmptyState, IconChip } from "@/components/ui/misc";
@@ -168,7 +169,7 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card>
             <CardHeader
@@ -188,40 +189,10 @@ export default async function DashboardPage() {
               {reading.length === 0 ? (
                 <p className="text-muted text-sm">{t("dashboard.emptyReading")}</p>
               ) : (
-                <ul className="grid gap-3 sm:grid-cols-2">
+                <ul className="grid gap-3 xl:grid-cols-2">
                   {reading.map((r) => (
                     <li key={r.id}>
-                      <Link
-                        href={`/library/${r.resourceId}`}
-                        className="border-border hover:bg-surface-2/60 flex gap-3 rounded-xl border p-3 transition-colors"
-                      >
-                        <Cover
-                          type={r.type}
-                          title={r.title}
-                          src={coverSrc(r)}
-                          className="h-24 w-16 shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="line-clamp-2 text-sm font-semibold">{r.title}</div>
-                          {r.authors && (
-                            <div className="text-muted truncate text-xs">{r.authors}</div>
-                          )}
-                          {r.progressTotal ? (
-                            <div className="mt-2.5">
-                              <ProgressBar
-                                value={r.progressCurrent ?? 0}
-                                max={r.progressTotal}
-                                label={r.title}
-                              />
-                              <div className="text-muted mt-1 text-[11px] tabular-nums">
-                                {r.progressCurrent ?? 0} / {r.progressTotal}{" "}
-                                {t(`progressUnits.${r.progressUnit}`)} ·{" "}
-                                {Math.round(((r.progressCurrent ?? 0) / r.progressTotal) * 100)}%
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      </Link>
+                      <ResourceCard r={r} />
                     </li>
                   ))}
                 </ul>

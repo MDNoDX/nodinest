@@ -20,11 +20,7 @@ export default async function NewResourcePage({ searchParams }: { searchParams: 
   const cats = await listCategories(db, ctx);
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        section="library"
-        title={t("newTitle")}
-        subtitle={t("newSubtitleAdmin")}
-      />
+      <PageHeader section="library" title={t("newTitle")} subtitle={t("newSubtitleAdmin")} />
       <ResourceForm
         userId={user.id}
         canEditDirectly

@@ -19,7 +19,7 @@ export default async function LoginPage() {
   const t = await getTranslations();
   const features = [
     ["library", <BookOpen key="l" />, "indigo"],
-    ["konspekt", <ListTree key="k" />, "teal"],
+    ["taqriz", <ListTree key="k" />, "teal"],
     ["stats", <Trophy key="s" />, "amber"],
     ["assistant", <Sparkles key="a" />, "rose"],
   ] as const;

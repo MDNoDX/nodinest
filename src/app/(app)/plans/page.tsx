@@ -29,7 +29,7 @@ export default async function PlansPage({ searchParams }: { searchParams: SP }) 
         subtitle={t("plans.subtitle")}
         actions={<GoalDialog />}
       />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader title={t("plans.goals")} />
           <ul className="flex flex-col gap-5 px-5 pb-5">

@@ -172,7 +172,7 @@ export function ReadingPanel({
         )}
       </div>
       <Link href="/assistant" className="text-primary text-xs font-medium hover:underline">
-        {t("konspekt.askAi")} →
+        {t("taqriz.askAi")} →
       </Link>
     </div>
   );

@@ -3,8 +3,9 @@ import {
   ExternalLink,
   FileText,
   Lock,
+  NotebookPen,
+  PlayCircle,
   Quote,
-  ScrollText,
   StickyNote,
   Star,
 } from "lucide-react";
@@ -24,8 +25,7 @@ import { hueFor, hueStyle } from "@/lib/hues";
 import { pageContext } from "@/lib/page";
 import { MEDIA_LIKE } from "@/lib/validation";
 import { listTextSources } from "@/server/booktext";
-import { getResourceDetail } from "@/server/catalog";
-import { listSections } from "@/server/conspect";
+import { getResourceDetail, getResourceHeader } from "@/server/catalog";
 import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
 
@@ -35,8 +35,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return {};
   const { ctx, db } = await pageContext();
-  const d = await getResourceDetail(db, ctx, id);
-  return { title: d?.resource.title };
+  const r = await getResourceHeader(db, ctx, id);
+  return { title: r?.title };
 }
 
 export default async function ResourcePage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,36 +45,53 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
   const { ctx, db, user, locale, tz } = await pageContext();
   const t = await getTranslations();
   const storage = isStorageConfigured();
-  const [d, cols, inCols, files, sections, sources] = await Promise.all([
+  const [d, cols, inCols, files, sources] = await Promise.all([
     getResourceDetail(db, ctx, id),
     listCollections(db, ctx),
     collectionsContaining(db, ctx, { resourceId: id }),
     storage ? listAttachments(ctx, id) : Promise.resolve([]),
-    listSections(db, ctx, id),
     listTextSources(ctx, id),
   ]);
   if (!d) notFound();
   const r = d.resource;
   const isMedia = MEDIA_LIKE.includes(r.type);
   const youtube = d.identifiers.find((i) => i.scheme === "youtube")?.value;
-  const facts = [
-    r.originalDate && {
-      k: t("resource.originalDate"),
-      v: formatPartialDate(r.originalDate, locale),
-    },
-    r.publicationDate && {
-      k: t("resource.editionDate"),
-      v: formatPartialDate(r.publicationDate, locale),
-    },
-    d.book?.pageCount && { k: t("resource.pageCount"), v: String(d.book.pageCount) },
-    d.media?.durationSeconds && {
-      k: t("resource.durationValue"),
-      v: fmtMinutes(d.media.durationSeconds, locale),
-    },
-    d.book?.publisher && { k: t("resource.publisher"), v: d.book.publisher },
-    d.media?.channel && { k: t("resource.channel"), v: d.media.channel },
-    r.language && { k: t("resource.language"), v: r.language },
-  ].filter(Boolean) as { k: string; v: string }[];
+  const facts = (
+    isMedia
+      ? [
+          r.publicationDate && {
+            k: t("resource.releaseDate"),
+            v: formatPartialDate(r.publicationDate, locale),
+          },
+          d.media?.durationSeconds && {
+            k: t("resource.durationValue"),
+            v: fmtMinutes(d.media.durationSeconds, locale),
+          },
+          d.media?.lessonCount && {
+            k: t("resource.lessonCount"),
+            v: String(d.media.lessonCount),
+          },
+          d.media?.channel && { k: t("resource.where"), v: d.media.channel },
+          r.language && { k: t("resource.language"), v: r.language },
+        ]
+      : [
+          r.originalDate && {
+            k: t("resource.originalDate"),
+            v: formatPartialDate(r.originalDate, locale),
+          },
+          r.publicationDate && {
+            k: t("resource.editionDate"),
+            v: formatPartialDate(r.publicationDate, locale),
+          },
+          d.book?.pageCount && { k: t("resource.pageCount"), v: String(d.book.pageCount) },
+          d.book?.publisherName && {
+            k: t("resource.publisher"),
+            v: d.book.publisherName,
+            href: `/publishers/${d.book.publisherId}`,
+          },
+          r.language && { k: t("resource.language"), v: r.language },
+        ]
+  ).filter(Boolean) as { k: string; v: string; href?: string }[];
   const links = [
     ...(r.sourceUrl
       ? [{ id: "src", kind: "source", url: r.sourceUrl, label: null as string | null }]
@@ -93,12 +110,16 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
   ];
   const progressUnit = d.book?.pageCount
     ? "pages"
-    : d.media?.durationSeconds
-      ? "minutes"
-      : "percent";
+    : d.media?.lessonCount
+      ? "lessons"
+      : d.media?.durationSeconds
+        ? "minutes"
+        : "percent";
   const progressTotal =
     d.book?.pageCount ??
+    d.media?.lessonCount ??
     (d.media?.durationSeconds ? Math.round(d.media.durationSeconds / 60) : null);
+  const chapters = d.mine.writeupHeadings;
   const statusKey = (s: string) => (s === "abandoned" ? "paused" : s);
   const statusLabel = (s: string) =>
     isMedia ? t(`statusMedia.${statusKey(s)}`) : t(`status.${statusKey(s)}`);
@@ -171,7 +192,18 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                     <dt className="text-muted text-[11px] font-medium tracking-wide uppercase">
                       {f.k}
                     </dt>
-                    <dd className="text-sm font-semibold">{f.v}</dd>
+                    <dd className="text-sm font-semibold">
+                      {f.href ? (
+                        <Link
+                          href={f.href}
+                          className="hover:text-primary underline-offset-2 hover:underline"
+                        >
+                          {f.v}
+                        </Link>
+                      ) : (
+                        f.v
+                      )}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -186,9 +218,16 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
               </p>
             )}
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button asChild>
-                <Link href={`/library/${r.id}/konspekt`}>
-                  <ScrollText /> {t("resource.konspekt")}
+              {isMedia && r.sourceUrl && (
+                <Button asChild>
+                  <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
+                    <PlayCircle /> {t("resource.watch")}
+                  </a>
+                </Button>
+              )}
+              <Button asChild variant={isMedia && r.sourceUrl ? "outline" : "primary"}>
+                <Link href={`/library/${r.id}/taqriz`}>
+                  <NotebookPen /> {t("taqriz.title")}
                 </Link>
               </Button>
               <Button variant="outline" asChild>
@@ -220,7 +259,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
           {youtube && (
             <div className="border-border overflow-hidden rounded-2xl border bg-black">
@@ -245,43 +284,40 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
 
           <Card>
             <CardHeader
-              title={t("resource.konspekt")}
-              icon={<ScrollText />}
+              title={t("taqriz.title")}
+              icon={<NotebookPen />}
               hue="violet"
-              description={t("resource.konspektChapters", { count: sections.length })}
+              description={
+                d.mine.writeupWords
+                  ? t("taqriz.summary", { words: d.mine.writeupWords, chapters: chapters.length })
+                  : t("taqriz.hint")
+              }
               action={
                 <Link
-                  href={`/library/${r.id}/konspekt`}
+                  href={`/library/${r.id}/taqriz`}
                   className="text-primary text-xs font-semibold hover:underline"
                 >
-                  {t("resource.konspektOpen")} →
+                  {d.mine.writeupWords ? t("common.open") : t("taqriz.start")} →
                 </Link>
               }
             />
-            <div className="px-5 pb-5">
-              {sections.length === 0 ? (
-                <p className="text-muted text-sm">{t("resource.konspektEmpty")}</p>
-              ) : (
-                <ol className="flex flex-col gap-1">
-                  {sections.map((s, i) => (
-                    <li key={s.id}>
-                      <Link
-                        href={`/library/${r.id}/konspekt?s=${s.id}`}
-                        className="hover:bg-surface-2 flex items-baseline gap-3 rounded-lg px-2 py-1.5 text-sm"
-                      >
-                        <span className="text-muted w-6 shrink-0 text-right text-xs tabular-nums">
-                          {i + 1}.
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">{s.title}</span>
-                        {s.pageFrom != null && (
-                          <span className="text-muted text-xs">p. {s.pageFrom}</span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
+            {chapters.length > 0 && (
+              <ol className="flex flex-col gap-0.5 px-5 pb-5">
+                {chapters.map((c, i) => (
+                  <li key={`${i}-${c}`}>
+                    <Link
+                      href={`/library/${r.id}/taqriz?q=${encodeURIComponent(c)}`}
+                      className="hover:bg-surface-2 flex items-baseline gap-3 rounded-lg px-2 py-1.5 text-sm"
+                    >
+                      <span className="text-muted w-5 shrink-0 text-right text-xs tabular-nums">
+                        {i + 1}.
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{c}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
           </Card>
 
           <Card>
@@ -291,38 +327,73 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
               hue="teal"
               description={
                 <span className="inline-flex items-center gap-1">
-                  <Lock className="size-3" /> {t("resource.myLearningHint")}
+                  <Lock className="size-3" />
+                  {d.myNotes.length
+                    ? t("resource.notesCount", { count: d.myNotes.length })
+                    : t("resource.myLearningHint")}
                 </span>
               }
-            />
-            <ul className="divide-border flex flex-col divide-y px-5 pb-4">
-              {d.myNotes.length === 0 && (
-                <li className="text-muted pb-2 text-sm">{t("dashboard.noNotes")}</li>
-              )}
-              {d.myNotes.map((n) => (
-                <li key={n.id} className="py-3">
-                  <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
-                    {n.kind === "quote" ? (
-                      <blockquote className="border-l-2 border-[var(--c-violet)] pl-3 font-serif italic">
-                        “{n.quoteText}”
-                      </blockquote>
-                    ) : (
-                      <p className="line-clamp-3 text-sm">
-                        {n.title && <strong>{n.title} — </strong>}
-                        {n.body}
-                      </p>
-                    )}
-                    <span className="text-muted mt-1 block text-xs">
-                      {n.pageFrom != null &&
-                        (n.pageTo && n.pageTo !== n.pageFrom
-                          ? t("notes.pages", { from: n.pageFrom, to: n.pageTo })
-                          : t("notes.page", { page: n.pageFrom }))}
-                      {n.location ? ` · ${n.location}` : ""} · {fmtDate(n.createdAt, locale, tz)}
-                    </span>
+              action={
+                d.myNotes.length > 0 ? (
+                  <Link
+                    href={`/notes?resource=${r.id}`}
+                    className="text-primary text-xs font-semibold hover:underline"
+                  >
+                    {t("common.open")} →
                   </Link>
-                </li>
-              ))}
-            </ul>
+                ) : undefined
+              }
+            />
+            {d.myNotes.length === 0 ? (
+              <div className="flex flex-wrap gap-2 px-5 pb-5">
+                <Button size="sm" variant="secondary" asChild>
+                  <Link href={`/notes/new?resource=${r.id}&kind=quote`}>
+                    <Quote /> {t("resource.addQuote")}
+                  </Link>
+                </Button>
+                <Button size="sm" variant="secondary" asChild>
+                  <Link href={`/notes/new?resource=${r.id}`}>
+                    <StickyNote /> {t("resource.addNote")}
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-border flex flex-col divide-y px-5 pb-4">
+                {d.myNotes.slice(0, 4).map((n) => (
+                  <li key={n.id} className="py-3">
+                    <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
+                      {n.kind === "quote" ? (
+                        <blockquote className="line-clamp-4 border-l-2 border-[var(--c-violet)] pl-3 font-serif italic">
+                          “{n.quoteText}”
+                        </blockquote>
+                      ) : (
+                        <p className="line-clamp-3 text-sm">
+                          {n.title && <strong>{n.title} — </strong>}
+                          {n.body}
+                        </p>
+                      )}
+                      <span className="text-muted mt-1 block text-xs">
+                        {n.pageFrom != null &&
+                          (n.pageTo && n.pageTo !== n.pageFrom
+                            ? t("notes.pages", { from: n.pageFrom, to: n.pageTo })
+                            : t("notes.page", { page: n.pageFrom }))}
+                        {n.location ? ` · ${n.location}` : ""} · {fmtDate(n.createdAt, locale, tz)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+                {d.myNotes.length > 4 && (
+                  <li className="pt-3">
+                    <Link
+                      href={`/notes?resource=${r.id}`}
+                      className="text-primary text-sm font-medium hover:underline"
+                    >
+                      {t("resource.allNotes", { count: d.myNotes.length })} →
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            )}
           </Card>
 
           {d.publicNotes.length > 0 && (

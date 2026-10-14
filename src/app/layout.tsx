@@ -3,6 +3,7 @@ import { Inter, Source_Serif_4 } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Pwa } from "@/components/pwa/pwa";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -24,6 +25,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t("tagline"),
     applicationName: "NodiNest",
     robots: { index: false, follow: false },
+    appleWebApp: { capable: true, title: "NodiNest", statusBarStyle: "default" },
+    icons: {
+      icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    },
+    formatDetection: { telephone: false },
   };
 }
 
@@ -43,6 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NextIntlClientProvider>
             {children}
             <Toaster />
+            <Pwa />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

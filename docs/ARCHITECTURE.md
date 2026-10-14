@@ -26,20 +26,21 @@ One deployable unit, no separate backend, no Redis, no vector DB — all within 
 
 ## Modules
 
-| Area                        | Service                              | Notes                                                                                                                                                     |
-| --------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catalog (people, resources) | `server/catalog.ts`                  | type-specific details (`book_details`, `media_details`), contributors, identifiers, links, relations, categories, tags; autocomplete; duplicate detection |
-| Suggestions & moderation    | `server/suggestions.ts`              | superadmin writes apply directly; users create suggestions; approval is transactional + audited                                                           |
-| Records & konspekt          | `server/records.ts`, `server/conspect.ts` | learning records (status, start/finish date-time, 10-star rating, progress, short review); chapter konspekt sections |
-| Book text                   | `server/booktext.ts`                 | PDF/URL text extraction with `unpdf` into `book_pages` (FTS); page search and page reads for the AI |
-| Notes, tags, collections    | `server/notes.ts`                    | private by default; public quotes readable by others; personal tags                                                                                       |
-| Goals & plans               | `server/goals.ts`                    | plans = start on / finish on; goal progress from completed records (count or pages)                                                                                                              |
-| Stats                       | `server/stats.ts`                    | collection metrics: books/pages read, courses, media minutes, by year/type/rating, authors                                                                                                  |
-| Search                      | `server/search.ts`                   | FTS + trigram, grouped results, snippets                                                                                                                  |
-| AI                          | `server/ai/*`                        | Gemini wrapper, tool registry, assistant loop, confirmation                                                                                               |
-| URL import                  | `server/url-import.ts` + `lib/net/*` | SSRF-safe fetch, YouTube oEmbed, Wikipedia REST, OpenGraph/JSON-LD, robots.txt                                                                            |
-| Storage                     | `server/storage.ts`                  | Supabase private bucket, signed upload/download URLs                                                                                                      |
-| Admin                       | `server/admin.ts`                    | users/roles, categories, audit log, overview                                                                                                              |
+| Area                        | Service                                   | Notes                                                                                                                                                                    |
+| --------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Catalog (people, resources) | `server/catalog.ts`                       | type-specific details (`book_details`, `media_details`), contributors, identifiers, links, relations, categories, tags; autocomplete; duplicate detection                |
+| Suggestions & moderation    | `server/suggestions.ts`                   | superadmin writes apply directly; users create suggestions; approval is transactional + audited                                                                          |
+| Records & taqriz            | `server/records.ts`, `server/writeups.ts` | learning records (status, start/finish date-time, 10-star rating, progress, short opinion); free-form taqriz documents with optional chapters, conflict-checked autosave |
+| Publishers                  | `server/publishers.ts`                    | publisher catalog (search, find-or-create, detail with books, creator/admin edits)                                                                                       |
+| Book text                   | `server/booktext.ts`                      | PDF/URL text extraction with `unpdf` into `book_pages` (FTS); page search and page reads for the AI                                                                      |
+| Notes, tags, collections    | `server/notes.ts`                         | private by default; public quotes readable by others; personal tags                                                                                                      |
+| Goals & plans               | `server/goals.ts`                         | plans = start on / finish on; goal progress from completed records (count or pages)                                                                                      |
+| Stats                       | `server/stats.ts`                         | collection metrics: books/pages read, courses, media minutes, by year/type/rating, authors                                                                               |
+| Search                      | `server/search.ts`                        | FTS + trigram, grouped results, snippets                                                                                                                                 |
+| AI                          | `server/ai/*`                             | Gemini wrapper, tool registry, assistant loop, confirmation                                                                                                              |
+| URL import                  | `server/url-import.ts` + `lib/net/*`      | SSRF-safe fetch, YouTube oEmbed, Wikipedia REST, OpenGraph/JSON-LD, robots.txt                                                                                           |
+| Storage                     | `server/storage.ts`                       | Supabase private bucket, signed upload/download URLs                                                                                                                     |
+| Admin                       | `server/admin.ts`                         | users/roles, categories, audit log, overview                                                                                                                             |
 
 ## Key decisions
 
@@ -71,3 +72,14 @@ CSS variables in `src/app/globals.css` (`:root` light, `.dark` dark) mapped to T
 tokens. `next-themes` stores the preference (`nodinest-theme`) and injects a blocking script
 to avoid a flash. Fonts: Inter (UI) and Source Serif 4 (titles, quotes), both with
 Latin-Extended for Uzbek. Motion is limited and disabled under `prefers-reduced-motion`.
+
+## Speed and offline (v3)
+
+- Session: Better Auth signed cookie cache (5 min) — no session-table query per request; role and
+  status are still re-read from `user` on every request.
+- Pages: `(app)/loading.tsx` gives instant navigation feedback; `staleTimes.dynamic = 30` makes
+  re-visits instant (mutations revalidate). Independent queries inside one `withUser`
+  transaction are issued with `Promise.all` (postgres-js pipelines them on the connection).
+- PWA: installable (manifest + icons); `public/sw.js` serves visited pages, covers and opened
+  PDFs offline; taqriz edits made offline are kept in `localStorage` and synced on reconnect
+  (`CONFLICT` if the server copy changed meanwhile → the user chooses).

@@ -4,13 +4,6 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const isDev = process.env.NODE_ENV !== "production";
-const supabaseOrigin = (() => {
-  try {
-    return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : "";
-  } catch {
-    return "";
-  }
-})();
 
 // Inline scripts are needed by next-themes (no-flash theme script) and Next's
 // own bootstrap; everything else is locked down.
@@ -20,7 +13,10 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+  // Covers / PDFs are uploaded straight from the browser to Vercel Blob.
+  "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com",
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
   "media-src 'self' https:",
   "object-src 'none'",
@@ -48,6 +44,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["postgres"],
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
+    // Re-visiting a page within 30 s is instant; any mutation (server action +
+    // revalidatePath) clears it.
+    staleTimes: { dynamic: 30, static: 300 },
   },
   turbopack: {
     rules: {

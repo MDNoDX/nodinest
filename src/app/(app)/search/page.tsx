@@ -1,14 +1,18 @@
-import { Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CoverTile } from "@/components/library/cover-tile";
 import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { Badge, EmptyState, PageHeader, Pagination } from "@/components/ui/misc";
+import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { shortYear } from "@/lib/dates";
+import { hueFor, hueStyle } from "@/lib/hues";
 import type { SnippetPart } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
-import { LEARNING_STATUSES, RESOURCE_TYPES } from "@/lib/validation";
+import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
+import { listCategories } from "@/server/catalog";
 import {
   SEARCH_GROUPS,
   universalSearch,
@@ -32,50 +36,64 @@ function Snippet({ parts }: { parts: SnippetPart[] }) {
   );
 }
 
+const UUID = /^[0-9a-f-]{36}$/i;
+const all = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
+
 export default async function SearchPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db } = await pageContext();
+  const { ctx, db, locale } = await pageContext();
   const t = await getTranslations();
   const p = await searchParams;
   const q = (sp(p.q) ?? "").slice(0, 200);
   const g = sp(p.group);
   const group = (SEARCH_GROUPS as readonly string[]).includes(g ?? "") ? (g as SearchGroup) : null;
+  const statusParam = sp(p.status);
+  const genres = [...new Set(all(p.g).filter((x) => UUID.test(x)))].slice(0, 10);
   const filters = {
     q,
     group,
     resourceType: (RESOURCE_TYPES as readonly string[]).includes(sp(p.type) ?? "")
       ? sp(p.type)!
       : null,
-    status: (LEARNING_STATUSES as readonly string[]).includes(sp(p.status) ?? "")
-      ? sp(p.status)!
-      : null,
+    status:
+      statusParam === "none" || (LEARNING_STATUSES as readonly string[]).includes(statusParam ?? "")
+        ? statusParam!
+        : null,
+    categoryIds: genres,
     visibility: sp(p.visibility) === "public" ? ("public" as const) : ("mine" as const),
     from: sp(p.from) ?? null,
     to: sp(p.to) ?? null,
     sort: (["relevance", "title", "date", "updated"].includes(sp(p.sort) ?? "")
       ? sp(p.sort)
       : "relevance") as "relevance",
-    resourceId: /^[0-9a-f-]{36}$/i.test(sp(p.resource) ?? "") ? sp(p.resource)! : null,
+    resourceId: UUID.test(sp(p.resource) ?? "") ? sp(p.resource)! : null,
     page: spInt(p.page),
   };
-  const res = q.trim() ? await universalSearch(db, ctx, filters) : null;
-  const params = (o: Record<string, string | null>) => {
+  const browsing = !q.trim() && !!(genres.length || filters.resourceType || filters.status);
+  const [res, cats] = await Promise.all([
+    q.trim() || browsing ? universalSearch(db, ctx, filters) : Promise.resolve(null),
+    listCategories(db, ctx),
+  ]);
+  const params = (o: Record<string, string | string[] | null>) => {
     const u = new URLSearchParams();
-    const base: Record<string, string | null> = {
-      q,
+    const base: Record<string, string | string[] | null> = {
+      q: q || null,
       group,
       type: filters.resourceType,
       status: filters.status,
+      g: genres,
       visibility: filters.visibility === "public" ? "public" : null,
       from: filters.from,
       to: filters.to,
       sort: filters.sort === "relevance" ? null : filters.sort,
       resource: filters.resourceId,
     };
-    for (const [k, v] of Object.entries({ ...base, ...o })) if (v) u.set(k, v);
+    for (const [k, v] of Object.entries({ ...base, ...o }))
+      for (const x of Array.isArray(v) ? v : v ? [v] : []) u.append(k, x);
     return `/search?${u}`;
   };
   const groups = res ? (Object.entries(res.groups) as [SearchGroup, GroupResult][]) : [];
   const totalAll = groups.reduce((a, [, r]) => a + r.total, 0);
+  const activeGroup = browsing ? "resources" : group;
 
   return (
     <>
@@ -92,7 +110,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             placeholder={t("search.placeholder")}
             aria-label={t("common.search")}
             className="h-12 pl-11 text-base"
-            autoFocus={!q}
+            autoFocus={!q && !browsing}
           />
         </div>
         {group && <input type="hidden" name="group" value={group} />}
@@ -107,6 +125,46 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             </p>
           </>
         )}
+
+        {cats.length > 0 && (
+          <fieldset>
+            <legend className="text-muted mb-1.5 text-xs font-semibold tracking-wide uppercase">
+              {t("search.genres")}
+              {genres.length > 1 && (
+                <span className="ml-2 font-normal normal-case">{t("search.genresAll")}</span>
+              )}
+            </legend>
+            <div className="flex flex-wrap gap-1.5">
+              {cats.map((c) => {
+                const on = genres.includes(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    style={hueStyle(hueFor(c.id))}
+                    className={cn(
+                      "inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition-colors select-none focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
+                      on
+                        ? "chip hue-border"
+                        : "border-border-strong text-muted hover:bg-surface-2 hover:text-foreground",
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      name="g"
+                      value={c.id}
+                      defaultChecked={on}
+                      className="sr-only"
+                    />
+                    {on && <Check className="size-3.5" />}
+                    {locale === "uz" ? c.nameUz : c.nameEn}
+                    {c.count ? <span className="tabular-nums opacity-60">{c.count}</span> : null}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+
         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <Select
             name="type"
@@ -131,6 +189,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
                 {t(`status.${s}`)}
               </option>
             ))}
+            <option value="none">{t("status.notInLibrary")}</option>
           </Select>
           <Select
             name="visibility"
@@ -159,9 +218,14 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             <option value="updated">{t("search.sortUpdated")}</option>
           </Select>
         </div>
-        <Button type="submit" className="self-start">
-          {t("common.search")}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button type="submit">{t("common.search")}</Button>
+          {(q || genres.length || filters.resourceType || filters.status) && (
+            <Link href="/search" className="text-muted hover:text-foreground text-sm">
+              {t("common.reset")}
+            </Link>
+          )}
+        </div>
       </AutoSubmitForm>
 
       {q.trim() && (
@@ -199,12 +263,16 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
         </nav>
       )}
 
-      {!q.trim() ? (
-        <EmptyState icon={<Search />} title={t("search.startTyping")} />
+      {!res ? (
+        <EmptyState
+          icon={<Search />}
+          title={t("search.startTyping")}
+          body={t("search.browseHint")}
+        />
       ) : totalAll === 0 ? (
         <EmptyState
           icon={<Search />}
-          title={t("search.noResults", { q })}
+          title={q ? t("search.noResults", { q }) : t("search.noBrowseResults")}
           body={t("search.noResultsHint")}
         />
       ) : (
@@ -213,12 +281,12 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
             .filter(([, r]) => r.total > 0)
             .map(([key, r]) => (
               <section key={key} aria-labelledby={`g-${key}`}>
-                <div className="mb-2 flex items-baseline justify-between">
+                <div className="mb-3 flex items-baseline justify-between">
                   <h2 id={`g-${key}`} className="text-sm font-semibold">
                     {t(`search.groups.${key}`)}{" "}
                     <span className="text-muted font-normal">({r.total})</span>
                   </h2>
-                  {!group && r.total > r.hits.length && (
+                  {!activeGroup && r.total > r.hits.length && (
                     <Link
                       href={params({ group: key })}
                       className="text-primary text-xs font-medium hover:underline"
@@ -227,54 +295,85 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
                     </Link>
                   )}
                 </div>
-                <ul className="card divide-border divide-y">
-                  {r.hits.map((h) => (
-                    <li key={`${h.group}-${h.id}`}>
-                      <Link
-                        href={h.href}
-                        {...(/^(https?:|\/api\/)/.test(h.href)
-                          ? { target: "_blank", rel: "noopener noreferrer nofollow" }
-                          : {})}
-                        className="hover:bg-surface-2/60 focus-visible:bg-surface-2 block px-4 py-3"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cn("font-medium", key === "quotes" && "text-muted text-sm")}
-                          >
-                            {h.title}
-                          </span>
-                          {h.kind && key !== "notes" && key !== "quotes" && (
-                            <Badge>
-                              {t.has(`types.${h.kind}`) ? t(`types.${h.kind}`) : h.kind}
-                            </Badge>
-                          )}
-                        </div>
-                        {h.subtitle && <div className="text-muted text-xs">{h.subtitle}</div>}
-                        {key === "quotes" ? (
-                          <p className="mt-1 font-serif italic">
-                            “
-                            {h.snippet.map((p, i) =>
-                              p.match ? (
-                                <mark key={i}>{p.text}</mark>
-                              ) : (
-                                <span key={i}>{p.text}</span>
-                              ),
+                {key === "resources" ? (
+                  <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    {r.hits.map((h) => (
+                      <li key={h.id}>
+                        <CoverTile
+                          id={h.id}
+                          type={h.kind as ResourceType}
+                          title={h.title}
+                          cover={h.cover ?? null}
+                          line={h.subtitle}
+                          status={h.status ?? null}
+                          progress={h.progress}
+                          rating={h.rating}
+                          meta={
+                            <>
+                              <TypeBadge
+                                type={h.kind as ResourceType}
+                                label={t(`types.${h.kind}`)}
+                              />
+                              {h.date && <span>{shortYear(h.date)}</span>}
+                            </>
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="card divide-border divide-y">
+                    {r.hits.map((h) => (
+                      <li key={`${h.group}-${h.id}`}>
+                        <Link
+                          href={h.href}
+                          {...(/^(https?:|\/api\/)/.test(h.href)
+                            ? { target: "_blank", rel: "noopener noreferrer nofollow" }
+                            : {})}
+                          className="hover:bg-surface-2/60 focus-visible:bg-surface-2 block px-4 py-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={cn(
+                                "font-medium",
+                                key === "quotes" && "text-muted text-sm",
+                              )}
+                            >
+                              {h.title}
+                            </span>
+                            {h.kind && key !== "notes" && key !== "quotes" && (
+                              <Badge>
+                                {t.has(`types.${h.kind}`) ? t(`types.${h.kind}`) : h.kind}
+                              </Badge>
                             )}
-                            ”
-                          </p>
-                        ) : (
-                          <Snippet parts={h.snippet} />
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                          </div>
+                          {h.subtitle && <div className="text-muted text-xs">{h.subtitle}</div>}
+                          {key === "quotes" ? (
+                            <p className="mt-1 font-serif italic">
+                              “
+                              {h.snippet.map((p, i) =>
+                                p.match ? (
+                                  <mark key={i}>{p.text}</mark>
+                                ) : (
+                                  <span key={i}>{p.text}</span>
+                                ),
+                              )}
+                              ”
+                            </p>
+                          ) : (
+                            <Snippet parts={h.snippet} />
+                          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
             ))}
-          {group && res && (
+          {activeGroup && res && (
             <Pagination
               page={res.page}
-              total={res.groups[group]?.total ?? 0}
+              total={res.groups[activeGroup]?.total ?? 0}
               pageSize={res.pageSize}
               hrefFor={(n) => params({ page: String(n) })}
               labels={{
@@ -282,7 +381,10 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
                 next: t("common.next"),
                 page: t("common.page", {
                   page: res.page,
-                  total: Math.max(1, Math.ceil((res.groups[group]?.total ?? 0) / res.pageSize)),
+                  total: Math.max(
+                    1,
+                    Math.ceil((res.groups[activeGroup]?.total ?? 0) / res.pageSize),
+                  ),
                 }),
               }}
             />

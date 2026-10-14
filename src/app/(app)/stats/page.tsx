@@ -139,7 +139,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
           }
         />
       ) : (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
           {year ? (
             <Card className="lg:col-span-2">
               <CardHeader title={t("stats.byMonth")} />

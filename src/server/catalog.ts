@@ -10,6 +10,7 @@ import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "d
 import { withUser, type AppContext, type Database, type Tx } from "@/db/client";
 import {
   bookDetails,
+  publishers,
   categories,
   learningRecords,
   mediaDetails,
@@ -28,6 +29,7 @@ import {
 } from "@/db/schema";
 import { textArray } from "@/db/sql-helpers";
 import { AppError } from "@/lib/errors";
+import { ensurePublisher } from "./publishers";
 import { duplicateKey, escapeLike, normalizeTag, normalizeText, parseIsbn } from "@/lib/normalize";
 import {
   BOOK_LIKE,
@@ -426,7 +428,10 @@ async function setResourceChildren(tx: Tx, ctx: AppContext, id: string, data: Re
   await tx.delete(bookDetails).where(eq(bookDetails.resourceId, id));
   await tx.delete(mediaDetails).where(eq(mediaDetails.resourceId, id));
   if (BOOK_LIKE.includes(data.type) && data.book) {
-    await tx.insert(bookDetails).values({ resourceId: id, ...data.book });
+    const { publisherId, publisherName, ...book } = data.book;
+    const pid =
+      publisherId ?? (publisherName ? await ensurePublisher(tx, ctx, publisherName) : null);
+    await tx.insert(bookDetails).values({ resourceId: id, ...book, publisherId: pid });
   }
   if (MEDIA_LIKE.includes(data.type) && data.media) {
     await tx.insert(mediaDetails).values({ resourceId: id, ...data.media });
@@ -622,7 +627,8 @@ export async function getResourceSnapshot(
     links,
     book: book
       ? {
-          publisher: book.publisher,
+          publisherId: book.publisherId,
+          publisherName: null,
           pageCount: book.pageCount,
           originalLanguage: book.originalLanguage,
           readingUrl: book.readingUrl,
@@ -633,6 +639,7 @@ export async function getResourceSnapshot(
           platform: media.platform,
           channel: media.channel,
           durationSeconds: media.durationSeconds,
+          lessonCount: media.lessonCount,
           transcript: media.transcript,
           transcriptUrl: media.transcriptUrl,
         }
@@ -753,9 +760,21 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
   return withUser(database, ctx, async (tx) => {
     const [r] = await tx.select().from(resources).where(eq(resources.id, id));
     if (!r || (r.deletedAt && ctx.role !== "superadmin")) return null;
-    const [book] = await tx.select().from(bookDetails).where(eq(bookDetails.resourceId, id));
-    const [media] = await tx.select().from(mediaDetails).where(eq(mediaDetails.resourceId, id));
-    const contributors = await tx
+    // Independent reads are issued together: postgres-js pipelines them on the
+    // transaction's connection, so the page waits ~1 round-trip instead of 10.
+    const bookQ = tx
+      .select({
+        publisherId: bookDetails.publisherId,
+        publisherName: publishers.name,
+        pageCount: bookDetails.pageCount,
+        originalLanguage: bookDetails.originalLanguage,
+        readingUrl: bookDetails.readingUrl,
+      })
+      .from(bookDetails)
+      .leftJoin(publishers, eq(publishers.id, bookDetails.publisherId))
+      .where(eq(bookDetails.resourceId, id));
+    const mediaQ = tx.select().from(mediaDetails).where(eq(mediaDetails.resourceId, id));
+    const contributorsQ = tx
       .select({
         id: people.id,
         fullName: people.fullName,
@@ -766,12 +785,12 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       .innerJoin(people, eq(people.id, resourceContributors.personId))
       .where(eq(resourceContributors.resourceId, id))
       .orderBy(asc(resourceContributors.position));
-    const identifiers = await tx
+    const identifiersQ = tx
       .select()
       .from(resourceIdentifiers)
       .where(eq(resourceIdentifiers.resourceId, id));
-    const links = await tx.select().from(resourceLinks).where(eq(resourceLinks.resourceId, id));
-    const cats = await tx
+    const linksQ = tx.select().from(resourceLinks).where(eq(resourceLinks.resourceId, id));
+    const catsQ = tx
       .select({
         id: categories.id,
         nameUz: categories.nameUz,
@@ -781,12 +800,12 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       .from(resourceCategories)
       .innerJoin(categories, eq(categories.id, resourceCategories.categoryId))
       .where(eq(resourceCategories.resourceId, id));
-    const tagRows = await tx
+    const tagsQ = tx
       .select({ id: tags.id, name: tags.name })
       .from(resourceTags)
       .innerJoin(tags, eq(tags.id, resourceTags.tagId))
       .where(eq(resourceTags.resourceId, id));
-    const relatedRows = await tx.execute<{
+    const relatedQ = tx.execute<{
       id: string;
       title: string;
       type: ResourceType;
@@ -808,17 +827,17 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
         where c1.resource_id = ${id} and r2.deleted_at is null
         limit 8)
     `);
-    const [record] = await tx
+    const recordQ = tx
       .select()
       .from(learningRecords)
       .where(and(eq(learningRecords.resourceId, id), eq(learningRecords.userId, ctx.userId)));
-    const myNotes = await tx
+    const myNotesQ = tx
       .select()
       .from(notes)
       .where(and(eq(notes.resourceId, id), eq(notes.userId, ctx.userId), isNull(notes.deletedAt)))
       .orderBy(desc(notes.createdAt))
       .limit(50);
-    const publicNotes = await tx
+    const publicNotesQ = tx
       .select({
         id: notes.id,
         kind: notes.kind,
@@ -840,15 +859,46 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       )
       .orderBy(desc(notes.createdAt))
       .limit(20);
-    const [mine] = await tx.execute<{
-      sections: number;
+    const mineQ = tx.execute<{
+      words: number | null;
+      headings: string[] | null;
       text_pages: number;
       text_status: string | null;
     }>(sql`
       select
-        (select count(*)::int from nodinest.conspect_sections c where c.user_id = ${ctx.userId} and c.resource_id = ${id}) as sections,
+        (select w.words from nodinest.writeups w where w.user_id = ${ctx.userId} and w.resource_id = ${id}) as words,
+        (select array(select h->'content'->0->>'text'
+           from nodinest.writeups w, jsonb_array_elements(w.doc->'content') h
+          where w.user_id = ${ctx.userId} and w.resource_id = ${id} and h->>'type' = 'heading' limit 12)) as headings,
         (select coalesce(sum(pages), 0)::int from nodinest.book_text_sources b where b.user_id = ${ctx.userId} and b.resource_id = ${id} and b.status = 'ready') as text_pages,
         (select b.status::text from nodinest.book_text_sources b where b.user_id = ${ctx.userId} and b.resource_id = ${id} order by b.updated_at desc limit 1) as text_status`);
+    const [
+      [book],
+      [media],
+      contributors,
+      identifiers,
+      links,
+      cats,
+      tagRows,
+      relatedRows,
+      [record],
+      myNotes,
+      publicNotes,
+      [mine],
+    ] = await Promise.all([
+      bookQ,
+      mediaQ,
+      contributorsQ,
+      identifiersQ,
+      linksQ,
+      catsQ,
+      tagsQ,
+      relatedQ,
+      recordQ,
+      myNotesQ,
+      publicNotesQ,
+      mineQ,
+    ]);
     return {
       resource: r,
       book: book ?? null,
@@ -863,7 +913,8 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
       myNotes,
       publicNotes,
       mine: {
-        sections: mine?.sections ?? 0,
+        writeupWords: mine?.words ?? null,
+        writeupHeadings: (mine?.headings ?? []).filter(Boolean),
         textPages: mine?.text_pages ?? 0,
         textStatus: mine?.text_status ?? null,
       },
@@ -1044,5 +1095,32 @@ export async function addRelation(
     entityType: "resource",
     entityId: fromId,
     after: { toId, kind },
+  });
+}
+
+/** Minimal header for sub-pages (taqriz): one query instead of the full detail. */
+export async function getResourceHeader(database: Database, ctx: AppContext, id: string) {
+  return withUser(database, ctx, async (tx) => {
+    const [r] = await tx.execute<{
+      title: string;
+      type: ResourceType;
+      cover_url: string | null;
+      cover_file_id: string | null;
+      authors: string | null;
+    }>(sql`
+      select r.title, r.type, r.cover_url, r.cover_file_id,
+        (select string_agg(p.full_name, ', ' order by c.position)
+           from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
+          where c.resource_id = r.id) as authors
+      from nodinest.resources r where r.id = ${id} and r.deleted_at is null`);
+    return r
+      ? {
+          title: r.title,
+          type: r.type,
+          coverUrl: r.cover_url,
+          coverFileId: r.cover_file_id,
+          authors: r.authors,
+        }
+      : null;
   });
 }

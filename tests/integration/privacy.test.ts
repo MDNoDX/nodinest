@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withUser } from "@/db/client";
-import { bookPages, bookTextSources, conspectSections, learningRecords, notes } from "@/db/schema";
-import { createSection, listSections, updateSection } from "@/server/conspect";
+import { bookPages, bookTextSources, learningRecords, notes, writeups } from "@/db/schema";
+import { getWriteup, saveWriteup } from "@/server/writeups";
 import { submitResource } from "@/server/suggestions";
 import { deleteNote, getNote, listNotes, saveNote } from "@/server/notes";
 import { universalSearch } from "@/server/search";
@@ -91,22 +91,27 @@ describe("cross-user privacy", () => {
   it("RLS rejects inserting rows owned by someone else", async () => {
     await expect(
       withUser(db, bob, (tx) =>
-        tx.insert(conspectSections).values({
+        tx.insert(writeups).values({
           userId: alice.userId,
           resourceId,
-          title: "Forged",
+          doc: { type: "doc", content: [] },
         }),
       ),
     ).rejects.toThrow();
   });
 
-  it("konspekts and indexed book text stay private", async () => {
-    const sid = await createSection(db, alice, resourceId, {
-      title: "1-bob",
-      content: "zanjabil konspekt",
+  it("write-ups (taqriz) and indexed book text stay private", async () => {
+    await saveWriteup(db, alice, resourceId, {
+      type: "doc",
+      content: [
+        { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "1-bob" }] },
+        { type: "paragraph", content: [{ type: "text", text: "zanjabil taqriz" }] },
+      ],
     });
-    expect(await listSections(db, bob, resourceId)).toEqual([]);
-    await expect(updateSection(db, bob, sid, { title: "x", content: "y" })).rejects.toThrow();
+    expect(await getWriteup(db, bob, resourceId)).toBeNull();
+    // Bob saving "his" write-up of the same book never touches Alice's.
+    await saveWriteup(db, bob, resourceId, { type: "doc", content: [] });
+    expect((await getWriteup(db, alice, resourceId))?.words).toBe(3);
     const [src] = await withUser(db, alice, (tx) =>
       tx
         .insert(bookTextSources)
@@ -130,10 +135,10 @@ describe("cross-user privacy", () => {
       }),
     );
     const bobSees = await universalSearch(db, bob, { q: "zanjabil" });
-    expect(bobSees.groups.conspect?.total ?? 0).toBe(0);
+    expect(bobSees.groups.taqriz?.total ?? 0).toBe(0);
     expect(bobSees.groups.booktext?.total ?? 0).toBe(0);
     const aliceSees = await universalSearch(db, alice, { q: "zanjabil", resourceId });
-    expect(aliceSees.groups.conspect?.total).toBe(1);
+    expect(aliceSees.groups.taqriz?.total).toBe(1);
     expect(aliceSees.groups.booktext?.total).toBe(1);
     expect(aliceSees.groups.booktext?.hits[0].href).toBe("https://e.test/a.pdf#page=1");
     const raw = await withUser(db, bob, (tx) => tx.select().from(bookPages));

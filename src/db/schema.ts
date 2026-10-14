@@ -250,11 +250,15 @@ export const files = nodinest.table(
 );
 
 // ─── 2. Shared catalog ──────────────────────────────────────────────────────
-/** Partial ISO dates: "YYYY", "YYYY-MM" or "YYYY-MM-DD". Unknown stays NULL. */
+/**
+ * Flexible historical dates (EDTF subset). Unknown stays NULL.
+ *   "1499" / "1499-05" / "1499-05-12"   exact (partial ISO)
+ *   "1150~"                              approximately
+ *   "1100/1200"                          somewhere in this range (also centuries)
+ */
+const PD = "-?[0-9]{1,4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?";
 const partialDateCheck = (col: string) =>
-  sql.raw(
-    `${col} IS NULL OR ${col} ~ '^-?[0-9]{1,4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?$'`,
-  );
+  sql.raw(`${col} IS NULL OR ${col} ~ '^(${PD}~?|${PD}/${PD})$'`);
 
 export const people = nodinest.table(
   "people",
@@ -346,11 +350,29 @@ export const resources = nodinest.table(
 );
 
 /** Book / course-material specific metadata (1:1 with resources). */
+/** Publishers are catalog entries like people: written once, then picked. */
+export const publishers = nodinest.table(
+  "publishers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    city: text("city"),
+    country: text("country"),
+    description: text("description"),
+    websiteUrl: text("website_url"),
+    createdBy: uuid("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    deletedAt: ts("deleted_at"),
+  },
+  (t) => [index("publishers_updated_idx").on(t.updatedAt)],
+);
+
 export const bookDetails = nodinest.table("book_details", {
   resourceId: uuid("resource_id")
     .primaryKey()
     .references(() => resources.id, { onDelete: "cascade" }),
-  publisher: text("publisher"),
+  publisherId: uuid("publisher_id").references(() => publishers.id, { onDelete: "set null" }),
   pageCount: integer("page_count"),
   originalLanguage: text("original_language"),
   readingUrl: text("reading_url"),
@@ -364,6 +386,8 @@ export const mediaDetails = nodinest.table("media_details", {
   platform: text("platform"),
   channel: text("channel"),
   durationSeconds: integer("duration_seconds"),
+  /** Courses: number of lessons. */
+  lessonCount: integer("lesson_count"),
   transcript: text("transcript"),
   transcriptUrl: text("transcript_url"),
 });
@@ -682,9 +706,14 @@ export const plans = nodinest.table(
   (t) => [index("plans_user_date_idx").on(t.userId, t.startOn)],
 );
 
-/** Konspekt: a user's chapter-by-chapter summary of a resource. */
-export const conspectSections = nodinest.table(
-  "conspect_sections",
+/**
+ * Taqriz: the user's free-form write-up of a resource — one document per
+ * (user, resource). Headings ("boblar") are optional and form the outline.
+ * `doc` is a ProseMirror/Tiptap JSON tree (validated server-side);
+ * `plain` is its text (search, AI, word count).
+ */
+export const writeups = nodinest.table(
+  "writeups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id")
@@ -693,15 +722,13 @@ export const conspectSections = nodinest.table(
     resourceId: uuid("resource_id")
       .notNull()
       .references(() => resources.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
-    content: text("content").notNull().default(""),
-    pageFrom: integer("page_from"),
-    pageTo: integer("page_to"),
-    position: integer("position").notNull().default(0),
+    doc: jsonb("doc").notNull(),
+    plain: text("plain").notNull().default(""),
+    words: integer("words").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("conspect_user_resource_idx").on(t.userId, t.resourceId, t.position)],
+  (t) => [uniqueIndex("writeups_user_resource_uq").on(t.userId, t.resourceId)],
 );
 
 /** Where the full text of a resource comes from (the user's PDF or a reading link). */

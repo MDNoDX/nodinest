@@ -125,8 +125,12 @@ export async function listMyRecords(database: Database, ctx: AppContext, status?
         type: resources.type,
         coverUrl: resources.coverUrl,
         coverFileId: resources.coverFileId,
+        description: resources.description,
+        originalDate: resources.originalDate,
+        publicationDate: resources.publicationDate,
         pageCount: bookDetails.pageCount,
         durationSeconds: mediaDetails.durationSeconds,
+        lessonCount: mediaDetails.lessonCount,
         authors: sql<string | null>`(select string_agg(p.full_name, ', ' order by c.position)
           from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
           where c.resource_id = "resources"."id")`,

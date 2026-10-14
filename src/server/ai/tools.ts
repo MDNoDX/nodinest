@@ -37,7 +37,8 @@ import {
   listCategories,
   searchPeople,
 } from "../catalog";
-import { createSection, listSections, updateSection } from "../conspect";
+import { getWriteup, writeToWriteup } from "../writeups";
+import { docToPlain } from "@/lib/writeup-doc";
 import { listGoalsWithProgress, listPlans, saveGoal, savePlan } from "../goals";
 import { lookupBooks, lookupPerson } from "../lookup";
 import {
@@ -199,14 +200,13 @@ export const TOOLS = {
     perm: "read_library",
     mode: "read",
     description:
-      "Full details of one resource: metadata, authors, the user's status / rating(10) / exact dates / review, konspekt chapters, and whether its full text (PDF/link) is indexed.",
+      "Full details of one resource: metadata, authors, the user's status / rating(10) / exact dates / review, taqriz (free-form write-up) chapters, and whether its full text (PDF/link) is indexed.",
     parameters: obj(resourceRef),
     args: z.object(resourceRefSchema),
     run: async (ctx, a) => {
       const id = await resolveResource(ctx, a);
       const d = await getResourceDetail(db, ctx, id);
       if (!d) throw new AppError("NOT_FOUND");
-      const sections = await listSections(db, ctx, id);
       return {
         id,
         type: d.resource.type,
@@ -233,7 +233,9 @@ export const TOOLS = {
               ? `${d.record.progressCurrent}/${d.record.progressTotal ?? "?"} ${d.record.progressUnit}`
               : null,
         },
-        konspekt: sections.map((s) => ({ id: s.id, title: s.title, chars: s.content.length })),
+        taqriz: d.mine.writeupWords
+          ? { words: d.mine.writeupWords, chapters: d.mine.writeupHeadings }
+          : null,
         myNotes: d.myNotes.length,
         fullText: { status: d.mine.textStatus, pages: d.mine.textPages },
       };
@@ -352,7 +354,7 @@ export const TOOLS = {
     perm: "read_library",
     mode: "read",
     description:
-      "Read the exact text of pages of an indexed book (max 15 pages per call) — to quote exactly, summarise chapters or write a konspekt.",
+      "Read the exact text of pages of an indexed book (max 15 pages per call) — to quote exactly, summarise chapters or write a taqriz.",
     parameters: obj({ ...resourceRef, fromPage: int("First page"), toPage: int("Last page") }, [
       "fromPage",
       "toPage",
@@ -371,20 +373,19 @@ export const TOOLS = {
       };
     },
   }),
-  get_konspekt: def({
+  get_taqriz: def({
     perm: "read_library",
     mode: "read",
-    description: "Read the user's konspekt (chapter summaries) of a resource.",
+    description:
+      "Read the user's taqriz (free-form write-up / summary) of a resource. Chapters are marked with '## '.",
     parameters: obj(resourceRef),
     args: z.object(resourceRefSchema),
     run: async (ctx, a) => {
       const id = await resolveResource(ctx, a);
-      return (await listSections(db, ctx, id)).map((s) => ({
-        id: s.id,
-        title: s.title,
-        pages: s.pageFrom ? `${s.pageFrom}-${s.pageTo ?? ""}` : null,
-        content: s.content.slice(0, 4000),
-      }));
+      const w = await getWriteup(db, ctx, id);
+      if (!w) return { empty: true };
+      const text = docToPlain(w.doc, { markHeadings: true });
+      return { words: w.words, text: text.slice(0, 20_000), truncated: text.length > 20_000 };
     },
   }),
   get_collection_stats: def({
@@ -548,17 +549,20 @@ export const TOOLS = {
         authors: arr({ type: "string" }, "Author / speaker names"),
         authorRole: str("Role of those people", { enum: [...CONTRIBUTOR_ROLES] }),
         description: str("Short description"),
-        originalDate: str("Original publication / writing date: YYYY, YYYY-MM or YYYY-MM-DD"),
-        editionDate: str("Year/date of the edition the user reads"),
-        publisher: str("Publisher"),
+        originalDate: str(
+          'Original writing / first publication date (books). Flexible date: YYYY, YYYY-MM, YYYY-MM-DD; "YYYY~" = approximately; "YYYY/YYYY" = somewhere in that range (12th century = "1101/1200"); negative = BC',
+        ),
+        editionDate: str("Books: the edition the user reads. Other types: release date"),
+        publisher: str("Publisher name (books; existing publishers are reused)"),
         pageCount: int("Pages"),
         language: str("Language code, e.g. uz, en, ru"),
         isbn: str("ISBN"),
         coverUrl: str("Cover image URL (https)"),
         sourceUrl: str("Canonical/source URL"),
         readingUrl: str("Where it can be read online"),
-        durationMinutes: int("Length in minutes (media)"),
-        channel: str("Channel / publisher (media)"),
+        durationMinutes: int("Length in minutes (non-book types; articles: reading time)"),
+        channel: str("Where: channel, platform, site or university (non-book types)"),
+        lessonCount: int("Courses: number of lessons"),
         categoryIds: arr({ type: "string" }, "Category UUIDs from list_categories"),
         tags: arr({ type: "string" }),
         status: str("Also add to the user's library with this status", {
@@ -586,13 +590,14 @@ export const TOOLS = {
       readingUrl: httpUrl.optional(),
       durationMinutes: z.number().int().min(1).max(100_000).optional(),
       channel: z.string().trim().max(200).optional(),
+      lessonCount: z.number().int().min(1).max(10_000).optional(),
       categoryIds: z.array(uuid).max(10).optional(),
       tags: z.array(z.string().trim().min(1).max(48)).max(10).optional(),
       status: z.enum(LEARNING_STATUSES).optional(),
       force: z.boolean().optional(),
     }),
     run: async (ctx, a) => {
-      const isBook = a.type === "book" || a.type === "course";
+      const isBook = a.type === "book";
       const isbnDigits = a.isbn?.replace(/[\s-]/g, "") ?? "";
       const role = a.authorRole ?? (isBook || a.type === "article" ? "author" : "speaker");
       const contributors: {
@@ -630,12 +635,13 @@ export const TOOLS = {
               ? [{ scheme: isbnDigits.length === 10 ? "isbn10" : "isbn13", value: isbnDigits }]
               : [],
             book: isBook
-              ? { publisher: a.publisher, pageCount: a.pageCount, readingUrl: a.readingUrl }
+              ? { publisherName: a.publisher, pageCount: a.pageCount, readingUrl: a.readingUrl }
               : null,
             media: !isBook
               ? {
                   channel: a.channel,
                   durationSeconds: a.durationMinutes ? a.durationMinutes * 60 : null,
+                  lessonCount: a.lessonCount,
                 }
               : null,
           },
@@ -668,8 +674,10 @@ export const TOOLS = {
           title: str(""),
           originalTitle: str(""),
           description: str(""),
-          originalDate: str("YYYY[-MM[-DD]]"),
-          editionDate: str("YYYY[-MM[-DD]]"),
+          originalDate: str(
+            'Flexible date: YYYY, YYYY-MM, YYYY-MM-DD; "YYYY~" = approximately; "YYYY/YYYY" = somewhere in that range (12th century = "1101/1200"); negative = BC',
+          ),
+          editionDate: str("Edition / release date (same format)"),
           coverUrl: str("https image URL"),
           sourceUrl: str(""),
           language: str(""),
@@ -678,6 +686,7 @@ export const TOOLS = {
           readingUrl: str(""),
           durationMinutes: int(""),
           channel: str(""),
+          lessonCount: int("Courses"),
         }),
       },
       ["changes"],
@@ -698,6 +707,7 @@ export const TOOLS = {
         readingUrl: httpUrl.optional(),
         durationMinutes: z.number().int().min(1).max(100_000).optional(),
         channel: z.string().trim().max(200).optional(),
+        lessonCount: z.number().int().min(1).max(10_000).optional(),
       }),
     }),
     run: async (ctx, a) => updateResourceFields(ctx, await resolveResource(ctx, a), a.changes),
@@ -872,58 +882,34 @@ export const TOOLS = {
       return { updated: true, href: `/library/${id}` };
     },
   }),
-  write_konspekt: def({
+  write_taqriz: def({
     perm: "write_personal",
     mode: "act",
     description:
-      "Write the user's konspekt for a resource: creates a chapter section, or updates an existing one (by sectionId or the same title). mode=append adds to the end. Write in the user's language, well structured.",
+      "Write into the user's taqriz (free-form write-up) of a resource, in the user's language. Text is light Markdown: '## ' chapter titles, '- ' lists, '> ' quotes, **bold**. mode=append adds at the end (or at the end of `chapter` if it exists, else creates that chapter); mode=replace_chapter rewrites that chapter's text. Chapters are optional.",
     parameters: obj(
       {
         ...resourceRef,
-        sectionId: str("Existing section UUID"),
-        sectionTitle: str("Chapter / section title"),
-        content: str("Text"),
-        mode: str("replace or append", { enum: ["replace", "append"] }),
-        pageFrom: int(""),
-        pageTo: int(""),
+        chapter: str("Optional chapter title"),
+        markdown: str("Text to write"),
+        mode: str("append | replace_chapter", { enum: ["append", "replace_chapter"] }),
       },
-      ["sectionTitle", "content"],
+      ["markdown"],
     ),
     args: z.object({
       ...resourceRefSchema,
-      sectionId: uuid.optional(),
-      sectionTitle: z.string().trim().min(1).max(300),
-      content: z.string().max(100_000),
-      mode: z.enum(["replace", "append"]).optional(),
-      pageFrom: z.number().int().min(0).optional(),
-      pageTo: z.number().int().min(0).optional(),
+      chapter: z.string().trim().max(300).optional(),
+      markdown: z.string().min(1).max(100_000),
+      mode: z.enum(["append", "replace_chapter"]).optional(),
     }),
     run: async (ctx, a) => {
       const id = await resolveResource(ctx, a);
-      const sections = await listSections(db, ctx, id);
-      const existing =
-        sections.find((s) => s.id === a.sectionId) ??
-        sections.find((s) => normalizeText(s.title) === normalizeText(a.sectionTitle));
-      if (existing) {
-        const content =
-          a.mode === "append" && existing.content
-            ? `${existing.content}\n\n${a.content}`
-            : a.content;
-        await updateSection(db, ctx, existing.id, {
-          title: a.sectionTitle,
-          content,
-          pageFrom: a.pageFrom ?? existing.pageFrom,
-          pageTo: a.pageTo ?? existing.pageTo,
-        });
-        return { updated: true, href: `/library/${id}/konspekt?s=${existing.id}` };
-      }
-      const sid = await createSection(db, ctx, id, {
-        title: a.sectionTitle,
-        content: a.content,
-        pageFrom: a.pageFrom,
-        pageTo: a.pageTo,
+      const out = await writeToWriteup(db, ctx, id, {
+        chapter: a.chapter,
+        markdown: a.markdown,
+        mode: a.mode ?? "append",
       });
-      return { created: true, href: `/library/${id}/konspekt?s=${sid}` };
+      return { saved: true, words: out.words, href: `/library/${id}/taqriz` };
     },
   }),
   add_to_collection: def({
@@ -1205,12 +1191,13 @@ async function updateResourceFields(
     readingUrl?: string;
     durationMinutes?: number;
     channel?: string;
+    lessonCount?: number;
   },
 ) {
   const snap = await withUser(db, ctx, (tx) => getResourceSnapshot(tx, id));
   if (!snap) throw new AppError("NOT_FOUND");
   const wantsBook = !!(snap.book || c.publisher || c.pageCount || c.readingUrl);
-  const wantsMedia = !!(snap.media || c.durationMinutes || c.channel);
+  const wantsMedia = !!(snap.media || c.durationMinutes || c.channel || c.lessonCount);
   const next = {
     ...snap,
     title: c.title ?? snap.title,
@@ -1225,7 +1212,8 @@ async function updateResourceFields(
     book: wantsBook
       ? {
           ...(snap.book ?? {}),
-          publisher: c.publisher ?? snap.book?.publisher,
+          publisherId: c.publisher ? null : snap.book?.publisherId,
+          publisherName: c.publisher ?? null,
           pageCount: c.pageCount ?? snap.book?.pageCount,
           readingUrl: c.readingUrl ?? snap.book?.readingUrl,
         }
@@ -1235,6 +1223,7 @@ async function updateResourceFields(
           ...(snap.media ?? {}),
           durationSeconds: c.durationMinutes ? c.durationMinutes * 60 : snap.media?.durationSeconds,
           channel: c.channel ?? snap.media?.channel,
+          lessonCount: c.lessonCount ?? snap.media?.lessonCount,
         }
       : null,
   };

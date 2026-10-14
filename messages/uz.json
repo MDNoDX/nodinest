@@ -72,7 +72,8 @@
     "skipToContent": "Asosiy qismga o‘tish",
     "createAnyway": "Baribir yaratish",
     "tryAgain": "Qayta urinish",
-    "or": "yoki"
+    "or": "yoki",
+    "change": "O‘zgartirish"
   },
   "nav": {
     "main": "Asosiy navigatsiya",
@@ -102,7 +103,8 @@
     "newPerson": "Shaxs qo‘shish",
     "adminMode": "Admin rejimi",
     "adminOn": "Admin rejimi yoqilgan",
-    "adminOff": "Oddiy rejim"
+    "adminOff": "Oddiy rejim",
+    "publishers": "Nashriyotlar"
   },
   "theme": {
     "label": "Mavzu",
@@ -129,12 +131,12 @@
     "signUp": "Lokal hisob yaratish",
     "signingIn": "Kirilmoqda…",
     "failed": "Kirish amalga oshmadi. Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",
-    "privacyNote": "Qaydlaringiz, konspektlaringiz va fikrlaringiz sukut bo‘yicha shaxsiy.",
+    "privacyNote": "Qaydlaringiz, taqrizlaringiz va fikrlaringiz sukut bo‘yicha shaxsiy.",
     "features": {
       "library": "Kitob, kurs, video va maqolalar — muqovalari bilan bir joyda",
-      "konspekt": "Har bir kitobga boblar bo‘yicha konspekt",
       "stats": "Reytingli to‘plamlar va o‘qilgan sahifalar hisobi",
-      "assistant": "Jarvis‑uslubidagi AI: qo‘shadi, tartiblaydi, PDF ichidan topadi"
+      "assistant": "Jarvis‑uslubidagi AI: qo‘shadi, tartiblaydi, PDF ichidan topadi",
+      "taqriz": "Har bir kitobga taqriz: erkin yozing yoki boblarga ajrating"
     }
   },
   "dashboard": {
@@ -209,7 +211,13 @@
     "in_progress": "O‘qiyapman",
     "completed": "O‘qidim",
     "paused": "To‘xtatilgan",
-    "none": "Kutubxonamda yo‘q"
+    "none": "Kutubxonamda yo‘q",
+    "removed": "Kutubxonadan olindi",
+    "change": "holatni o‘zgartirish",
+    "add": "Kutubxonaga qo‘shish",
+    "removeFromLibrary": "Kutubxonadan olib tashlash",
+    "ribbonHint": "Holatni bir bosishda belgilang",
+    "notInLibrary": "Kutubxonamda yo‘q"
   },
   "verification": {
     "unverified": "Tasdiqlanmagan",
@@ -296,7 +304,7 @@
     "originalTitle": "Asl sarlavha",
     "description": "Tavsif / qisqacha mazmun",
     "cover": "Muqova rasmi",
-    "coverUrl": "Muqova rasmi URL",
+    "coverUrl": "Yoki rasm havolasini qo‘ying",
     "language": "Til",
     "publicationDate": "Nashr sanasi",
     "partialDateHint": "YYYY, YYYY-MM yoki YYYY-MM-DD. Noma’lum bo‘lsa, bo‘sh qoldiring.",
@@ -321,8 +329,6 @@
     "readingUrl": "Onlayn o‘qish (tashqi havola)",
     "purchaseUrl": "Sotib olish havolasi",
     "fileFormat": "Format (masalan, PDF, EPUB, bosma)",
-    "platform": "Platforma",
-    "channel": "Kanal / nashr qiluvchi",
     "duration": "Davomiyligi (daqiqa)",
     "transcript": "Transkript",
     "transcriptUrl": "Transkript URL",
@@ -390,12 +396,20 @@
     "indexedPages": "{count} sahifa indekslangan — qidiruv va AI kitob ichidan topa oladi.",
     "indexFailed": "Matnni o‘qib bo‘lmadi.",
     "indexHint": "Indekslangan matn bo‘yicha qidiruv va AI kitob ichidan sahifasi bilan topib beradi.",
-    "konspekt": "Konspekt",
-    "konspektOpen": "Konspektni ochish",
-    "konspektEmpty": "Hali konspekt yo‘q. Boblar bo‘yicha qisqacha mazmun yozing.",
-    "konspektChapters": "{count, plural, =0 {Bob yo‘q} other {# ta bob}}",
     "canEditHint": "Bu yozuvni siz qo‘shgansiz — tahrirlay olasiz.",
-    "notFoundOnline": "Topilmadi"
+    "notFoundOnline": "Topilmadi",
+    "releaseDate": "Chiqqan sana",
+    "lessonCount": "Darslar soni",
+    "where": "Qayerda",
+    "whereHint": "Kanal, platforma, sayt yoki o‘quv markazi",
+    "watchUrl": "Havola (ko‘rish / tinglash)",
+    "readingTime": "O‘qish vaqti (daqiqa)",
+    "publisherHint": "Bir marta yozing — keyin ro‘yxatdan tanlaysiz.",
+    "publisherPlaceholder": "Nashriyotni qidiring yoki yangisini yozing…",
+    "createPublisher": "«{name}» — yangi nashriyot",
+    "newBadge": "yangi",
+    "notesCount": "{count, plural, other {# ta qayd}}",
+    "allNotes": "Barcha {count} ta qaydni ochish"
   },
   "record": {
     "status": "Holati",
@@ -404,7 +418,7 @@
     "rating": "Baho",
     "ratingValue": "5 dan {value}",
     "noRating": "Baholanmagan",
-    "review": "Qisqa taqriz",
+    "review": "Qisqa fikr",
     "goals": "O‘rganish maqsadlari",
     "personalNotes": "Shaxsiy qaydlar",
     "progress": "Jarayon",
@@ -413,14 +427,14 @@
     "unit": "Birlik",
     "save": "O‘qish yozuvini saqlash",
     "removeFromLibrary": "Kutubxonamdan olib tashlash",
-    "removeConfirm": "Bu manba kutubxonangizdan olib tashlansinmi? Qaydlar va konspekt saqlanib qoladi.",
+    "removeConfirm": "Bu manba kutubxonangizdan olib tashlansinmi? Qaydlar va taqriz saqlanib qoladi.",
     "updated": "O‘qish yozuvi yangilandi.",
     "title": "Mening o‘qishim",
     "startedAt": "Boshladim",
     "completedAt": "Tugatdim",
     "rating10": "Baho (10 dan)",
     "clear": "Tozalash",
-    "reviewHint": "Umumiy taassurot. Batafsil mazmun — Konspektda.",
+    "reviewHint": "Bir-ikki jumlada umumiy taassurot. Batafsil — Taqrizda.",
     "saved": "Saqlandi.",
     "now": "Hozir",
     "quickStatus": "Holat"
@@ -505,8 +519,9 @@
     "pages": "{from}–{to}-betlar",
     "readOnly": "Boshqa foydalanuvchi ulashgan (faqat o‘qish).",
     "attributed": "— {name}",
-    "kindNoteHint": "Fikr, xulosa yoki konspekt",
-    "kindQuoteHint": "Kitob yoki ma’ruzadan aynan ko‘chirma"
+    "kindNoteHint": "Fikr, xulosa yoki eslatma",
+    "kindQuoteHint": "Kitob yoki ma’ruzadan aynan ko‘chirma",
+    "forResource": "«{title}» bo‘yicha qaydlar va iqtiboslar"
   },
   "collections": {
     "title": "To‘plamlar",
@@ -589,8 +604,8 @@
       "transcripts": "Transkriptlar",
       "categories": "Mavzular",
       "tags": "Teglar",
-      "conspect": "Konspekt",
-      "booktext": "Kitob matni"
+      "booktext": "Kitob matni",
+      "taqriz": "Taqrizlar"
     },
     "all": "Hammasi",
     "relevance": "Moslik",
@@ -603,11 +618,15 @@
     "noResultsHint": "Kamroq so‘z bilan urinib ko‘ring, imloni tekshiring yoki filtrlarni olib tashlang.",
     "startTyping": "Qidirish uchun kamida bitta so‘z yozing.",
     "showAll": "Hammasini ko‘rsatish ({count})",
-    "inOneBook": "Faqat shu kitob ichida"
+    "inOneBook": "Faqat shu kitob ichida",
+    "genres": "Janrlar",
+    "genresAll": "· barchasiga mos keladiganlar",
+    "browseHint": "So‘z yozing yoki janr / tur / holatni tanlang.",
+    "noBrowseResults": "Bu tanlovga mos manba topilmadi"
   },
   "assistant": {
     "title": "AI yordamchi",
-    "subtitle": "Jarvis kabi: kitob qo‘shadi, muqova topadi, konspekt yozadi, kitob ichidan qidiradi.",
+    "subtitle": "Jarvis kabi: kitob qo‘shadi, muqova topadi, taqriz yozadi, kitob ichidan qidiradi.",
     "placeholder": "Masalan: «Sapiens kitobini qo‘sh, muqovasi bilan, o‘qidim deb belgila, bahosi 9»",
     "send": "Yuborish",
     "thinking": "O‘ylanmoqda…",
@@ -637,7 +656,6 @@
       "add_person": "Shaxs qo‘shildi",
       "suggest_correction": "Tuzatish taklif qilindi",
       "update_my_record": "O‘qish yozuvi yangilandi",
-      "write_konspekt": "Konspekt yozildi",
       "add_to_collection": "To‘plamga qo‘shildi",
       "set_rank": "Reyting o‘zgardi",
       "create_goal": "Maqsad qo‘shildi",
@@ -645,13 +663,14 @@
       "remove_from_library": "Kutubxonadan olib tashlash",
       "delete_note": "Qaydni o‘chirish",
       "delete_collection": "To‘plamni o‘chirish",
-      "archive_resource": "Manbani arxivlash"
+      "archive_resource": "Manbani arxivlash",
+      "write_taqriz": "Taqriz yozildi"
     },
     "suggestedReview": "Administrator ko‘rib chiqishiga yuborildi.",
     "examples": {
       "title": "Masalan, so‘rang",
       "one": "«Inson» kitobini internetdan topib, muqovasi bilan qo‘sh",
-      "two": "Xamsa’ning 2-bobi uchun konspekt yoz",
+      "two": "Xamsa’ning 2-bobi uchun taqrizga qisqa mazmun yoz",
       "three": "Kitoblarim ichidan «sabr» so‘zini top",
       "four": "Top 10 kitoblarim ro‘yxatini tuz"
     },
@@ -765,7 +784,7 @@
     "storageUsed": "{total} dan {used} ishlatilgan",
     "storageOff": "Fayl yuklash sozlanmagan. Tashqi havolalar ishlayveradi.",
     "privacy": "Maxfiylik",
-    "privacyBody": "Qaydlar, iqtiboslar, konspektlar, reytinglar va o‘qish yozuvlari faqat sizga tegishli. Faqat ochiq deb belgilagan iqtiboslaringiz boshqa foydalanuvchilarga ko‘rinadi.",
+    "privacyBody": "Qaydlar, iqtiboslar, taqrizlar, reytinglar va o‘qish yozuvlari faqat sizga tegishli. Faqat ochiq deb belgilagan iqtiboslaringiz boshqa foydalanuvchilarga ko‘rinadi.",
     "saved": "Sozlamalar saqlandi."
   },
   "admin": {
@@ -891,25 +910,88 @@
     "completed": "Ko‘rdim",
     "paused": "To‘xtatilgan"
   },
-  "konspekt": {
-    "title": "Konspekt",
+  "taqriz": {
+    "title": "Taqriz",
+    "back": "Manbaga qaytish",
     "contents": "Mundarija",
+    "noChapters": "Boblar ixtiyoriy. Istalgan qatorni yoki belgilangan jumlani «Bob» qilsangiz, shu yerda paydo bo‘ladi.",
     "addChapter": "Bob qo‘shish",
-    "newChapter": "Yangi bob",
-    "chapterTitle": "Bob nomi",
-    "write": "Qisqacha mazmunini yozing…",
+    "chapter": "Bob",
+    "subchapter": "Kichik bob",
+    "text": "Oddiy matn",
+    "bold": "Qalin",
+    "italic": "Kursiv",
+    "underline": "Tagiga chizish",
+    "strike": "Ustiga chizish",
+    "bullets": "Ro‘yxat",
+    "numbers": "Raqamli ro‘yxat",
+    "quote": "Iqtibos",
+    "undo": "Bekor qilish",
+    "redo": "Qaytarish",
+    "words": "{count, plural, other {# so‘z}}",
     "saving": "Saqlanmoqda…",
     "saved": "Saqlandi",
-    "unsaved": "Saqlanmagan o‘zgarishlar",
-    "deleteChapter": "Bobni o‘chirish",
-    "deleteConfirm": "Bu bob o‘chirilsinmi?",
-    "moveUp": "Yuqoriga",
-    "moveDown": "Pastga",
-    "pages": "Sahifalar",
-    "emptyTitle": "Konspektni boshlang",
-    "emptyBody": "Boblar bo‘yicha qisqacha mazmun yozing — chapda mundarija, o‘ngda matn.",
-    "back": "Manbaga qaytish",
-    "askAi": "AI’dan so‘rash",
-    "words": "{count} so‘z"
+    "savedOffline": "Qurilmada saqlandi — internet qaytganda yuboriladi",
+    "unsaved": "Saqlanmagan",
+    "conflict": "Bu taqriz boshqa qurilmada o‘zgartirilgan. Qaysi nusxa qolsin?",
+    "conflictShort": "Boshqa qurilmada o‘zgargan",
+    "keepMine": "Menikini saqlash",
+    "loadTheirs": "Ularnikini ochish",
+    "placeholder": "Fikrlaringizni yozing… Xohlasangiz, jumlani belgilab «Bob qilish»ni bosing.",
+    "chapterPlaceholder": "Bob nomi",
+    "makeChapter": "Bob qilish",
+    "askAi": "AI yordamchidan taqriz yozishni so‘rash",
+    "summary": "{words, plural, other {# so‘z}} · {chapters, plural, =0 {boblarsiz} other {# bob}}",
+    "hint": "Kitob haqidagi fikr, xulosa va mazmun — erkin yozing yoki boblarga ajrating.",
+    "start": "Yozishni boshlash"
+  },
+  "dates": {
+    "kind": "Sana turi",
+    "exact": "Aniq",
+    "approx": "Taxminan",
+    "range": "Oraliq",
+    "century": "Asr",
+    "approxPrefix": "taxm.",
+    "from": "dan",
+    "to": "gacha",
+    "centurySuffix": "-asr"
+  },
+  "card": {
+    "pages": "{count} bet",
+    "lessons": "{count} dars",
+    "minutes": "{count} daq.",
+    "hours": "{h} soat {m} daq."
+  },
+  "publishers": {
+    "title": "Nashriyotlar",
+    "subtitle": "Kitoblaringizni chiqargan nashriyotlar.",
+    "add": "Nashriyot qo‘shish",
+    "name": "Nomi",
+    "city": "Shahar",
+    "country": "Davlat",
+    "website": "Sayt",
+    "empty": "Hali nashriyotlar yo‘q",
+    "emptyBody": "Kitob qo‘shganda nashriyotni yozing — u shu yerda paydo bo‘ladi.",
+    "books": "{count, plural, =0 {kitob yo‘q} other {# kitob}}",
+    "noBooks": "Bu nashriyotning kitoblari hali qo‘shilmagan."
+  },
+  "install": {
+    "title": "Ilovani o‘rnatish (Mac va telefon)",
+    "why": "NodiNest’ni alohida ilova sifatida o‘rnating: Dock yoki bosh ekranda o‘z ikonkasi bilan ochiladi, tezroq yuklanadi va internet bo‘lmasa ham avval ochilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz ishlaydi. Bepul, do‘konsiz.",
+    "installNow": "Hozir o‘rnatish",
+    "installed": "Ilova o‘rnatilgan — siz uni ilova oynasida ishlatyapsiz.",
+    "mac": "Mac",
+    "macChrome": "Chrome yoki Edge: manzil satridagi «O‘rnatish» belgisini bosing (yoki ⋮ menyu → «NodiNest’ni o‘rnatish»). Ilova Launchpad va Dock’da paydo bo‘ladi.",
+    "macSafari": "Safari: «Fayl» → «Dock’ga qo‘shish» (Add to Dock). Ilova Dock va Launchpad’da paydo bo‘ladi.",
+    "phone": "iPhone / Android",
+    "ios": "iPhone/iPad (Safari): «Ulashish» tugmasi → «Bosh ekranga qo‘shish» (Add to Home Screen).",
+    "android": "Android (Chrome): ⋮ menyu → «Ilovani o‘rnatish» yoki pastdagi taklifni tasdiqlang.",
+    "offlineNote": "Oflayn: ko‘rilgan sahifalar va ochilgan PDF’lar qurilmada saqlanadi; taqriz oflayn yoziladi va internet qaytganda o‘zi yuboriladi. AI, qidiruv va yangi ma’lumot qo‘shish uchun internet kerak."
+  },
+  "offline": {
+    "title": "Internet yo‘q",
+    "body": "Bu sahifa hali shu qurilmada ochilmagan. Avval ochilgan sahifalar, muqovalar va taqrizlaringiz oflayn ham ishlaydi.",
+    "retry": "Qayta urinish",
+    "banner": "Oflayn rejim — saqlangan sahifalar ko‘rsatilmoqda"
   }
 }

@@ -5,6 +5,7 @@ import { addRelation } from "@/server/catalog";
 import { submitArchive, submitPerson, submitResource } from "@/server/suggestions";
 import { withUser } from "@/db";
 import { lookupBooks } from "@/server/lookup";
+import { savePublisher } from "@/server/publishers";
 import { importUrlMetadata } from "@/server/url-import";
 import { run } from "./_run";
 
@@ -96,4 +97,17 @@ export async function importUrlAction(url: string) {
 /** Book metadata + covers from Google Books / Open Library (add form). */
 export async function lookupBooksAction(query: string) {
   return run(async () => lookupBooks(z.string().trim().min(1).max(300).parse(query), { limit: 6 }));
+}
+
+export async function savePublisherAction(input: unknown, publisherId?: string | null) {
+  return run(async ({ ctx, db }) => {
+    const pid = await savePublisher(
+      db,
+      ctx,
+      input,
+      z.string().uuid().nullish().parse(publisherId) ?? undefined,
+    );
+    revalidatePath("/publishers", "layout");
+    return pid;
+  });
 }

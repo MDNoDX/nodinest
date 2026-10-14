@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   BookOpen,
+  Building2,
   CalendarDays,
   ChevronDown,
   FileText,
@@ -28,12 +29,13 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { importUrlAction, lookupBooksAction, saveResourceAction } from "@/app/actions/catalog";
-import { mapPerson } from "@/components/people/mappers";
+import { mapPerson, mapPublisher } from "@/components/people/mappers";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { FileUpload } from "@/components/ui/file-upload";
+import { FlexDateInput } from "@/components/ui/flex-date-input";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge, IconChip } from "@/components/ui/misc";
 import { TagInput } from "@/components/ui/tag-input";
@@ -76,6 +78,28 @@ type Candidate = {
   infoUrl: string | null;
 };
 
+const PLATFORMS: [RegExp, string][] = [
+  [/(^|\.)youtube\.com$|(^|\.)youtu\.be$/, "YouTube"],
+  [/(^|\.)coursera\.org$/, "Coursera"],
+  [/(^|\.)udemy\.com$/, "Udemy"],
+  [/(^|\.)edx\.org$/, "edX"],
+  [/(^|\.)khanacademy\.org$/, "Khan Academy"],
+  [/(^|\.)stepik\.org$/, "Stepik"],
+  [/(^|\.)spotify\.com$/, "Spotify"],
+  [/(^|\.)podcasts\.apple\.com$/, "Apple Podcasts"],
+  [/(^|\.)vimeo\.com$/, "Vimeo"],
+  [/(^|\.)t\.me$/, "Telegram"],
+];
+/** Platform name from a link (shown as the "where" when nothing was typed). */
+function platformOf(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return PLATFORMS.find(([re]) => re.test(host))?.[1] ?? "";
+  } catch {
+    return "";
+  }
+}
+
 function toPayload(v: ResourceFormValue) {
   const isBook = BOOK_LIKE.includes(v.type);
   const isMedia = MEDIA_LIKE.includes(v.type);
@@ -101,14 +125,23 @@ function toPayload(v: ResourceFormValue) {
     links: v.links
       .filter((l) => l.url.trim())
       .map((l) => ({ kind: l.kind, url: l.url, label: l.label })),
-    book: isBook ? v.book : null,
+    book: isBook
+      ? {
+          publisherId: v.book.publisherId,
+          publisherName: v.book.publisherId ? null : v.book.publisherName,
+          pageCount: v.book.pageCount,
+          originalLanguage: v.book.originalLanguage,
+          readingUrl: v.book.readingUrl,
+        }
+      : null,
     media: isMedia
       ? {
-          platform: v.media.platform,
+          platform: v.media.platform || platformOf(v.sourceUrl),
           channel: v.media.channel,
           durationSeconds: v.media.durationMinutes
             ? Math.round(Number(v.media.durationMinutes) * 60)
             : null,
+          lessonCount: v.type === "course" ? v.media.lessonCount : null,
           transcript: v.media.transcript,
           transcriptUrl: v.media.transcriptUrl,
         }
@@ -277,7 +310,7 @@ export function ResourceForm({
         identifiers.push({ scheme: c.isbn13 ? "isbn13" : "isbn10", value: isbn });
       return {
         ...s,
-        type: s.type === "book" || s.type === "course" ? s.type : "book",
+        type: "book",
         title: c.title,
         description: s.description || c.description || "",
         coverUrl: c.coverUrl ?? s.coverUrl,
@@ -290,7 +323,8 @@ export function ResourceForm({
         identifiers,
         book: {
           ...s.book,
-          publisher: s.book.publisher || c.publisher || "",
+          publisherName:
+            s.book.publisherId || s.book.publisherName ? s.book.publisherName : c.publisher || "",
           pageCount: s.book.pageCount || (c.pageCount ? String(c.pageCount) : ""),
         },
       };
@@ -505,6 +539,9 @@ export function ResourceForm({
                 label={t("upload.coverUpload")}
               />
             )}
+            <label className="text-muted mt-1 flex items-center gap-1.5 text-xs font-medium">
+              <Link2 className="size-3.5" /> {t("resource.coverUrl")}
+            </label>
             <Input
               type="url"
               value={v.coverUrl}
@@ -606,60 +643,89 @@ export function ResourceForm({
         />
       </section>
 
-      {/* 5. Dates & details */}
+      {/* 5. Dates & details — books have their own set; every other type shares one */}
       <section className="card p-5 sm:p-6">
         <SectionTitle title={t("resource.details")} icon={<DetailsIcon />} hue={TYPE_HUE[v.type]} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label={
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="text-muted size-3.5" /> {t("resource.originalDate")}
-              </span>
-            }
-            optional
-            hint={t("resource.originalDateHint")}
-            error={err("originalDate")}
-          >
-            {(p) => (
-              <Input
-                {...p}
-                value={v.originalDate}
-                onChange={(e) => set("originalDate", e.target.value)}
-                placeholder="1499"
-                inputMode="numeric"
-              />
-            )}
-          </Field>
-          <Field
-            label={
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="text-muted size-3.5" /> {t("resource.editionDate")}
-              </span>
-            }
-            optional
-            hint={t("resource.editionDateHint")}
-            error={err("publicationDate")}
-          >
-            {(p) => (
-              <Input
-                {...p}
-                value={v.publicationDate}
-                onChange={(e) => set("publicationDate", e.target.value)}
-                placeholder="2021"
-                inputMode="numeric"
-              />
-            )}
-          </Field>
-          {isBook && (
+          {isBook ? (
             <>
-              <Field label={t("resource.publisher")} optional>
+              <Field
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays className="text-muted size-3.5" /> {t("resource.originalDate")}
+                  </span>
+                }
+                optional
+                hint={t("resource.originalDateHint")}
+                error={err("originalDate")}
+              >
                 {(p) => (
-                  <Input
-                    {...p}
-                    value={v.book.publisher}
-                    onChange={(e) => set("book", { ...v.book, publisher: e.target.value })}
+                  <FlexDateInput
+                    id={p.id}
+                    value={v.originalDate}
+                    invalid={!!err("originalDate")}
+                    onChange={(x) => set("originalDate", x)}
                   />
                 )}
+              </Field>
+              <Field
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays className="text-muted size-3.5" /> {t("resource.editionDate")}
+                  </span>
+                }
+                optional
+                hint={t("resource.editionDateHint")}
+                error={err("publicationDate")}
+              >
+                {(p) => (
+                  <FlexDateInput
+                    id={p.id}
+                    value={v.publicationDate}
+                    invalid={!!err("publicationDate")}
+                    onChange={(x) => set("publicationDate", x)}
+                  />
+                )}
+              </Field>
+              <Field label={t("resource.publisher")} optional hint={t("resource.publisherHint")}>
+                {(p) =>
+                  v.book.publisherId || v.book.publisherName ? (
+                    <div className="border-border-strong bg-surface-2 flex h-10 items-center justify-between gap-2 rounded-lg border px-3 text-sm">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Building2 className="text-muted size-4 shrink-0" />
+                        <span className="truncate font-medium">{v.book.publisherName}</span>
+                        {!v.book.publisherId && (
+                          <Badge tone="accent">{t("resource.newBadge")}</Badge>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-muted hover:text-foreground text-xs"
+                        onClick={() =>
+                          set("book", { ...v.book, publisherId: null, publisherName: "" })
+                        }
+                      >
+                        {t("common.change")}
+                      </button>
+                    </div>
+                  ) : (
+                    <Combobox
+                      id={p.id}
+                      endpoint="/api/autocomplete/publishers"
+                      mapItem={mapPublisher}
+                      ariaLabel={t("resource.publisher")}
+                      placeholder={t("resource.publisherPlaceholder")}
+                      createLabel={(q) => t("resource.createPublisher", { name: q })}
+                      onPick={(o) =>
+                        set("book", {
+                          ...v.book,
+                          publisherId: o.create ? null : o.id,
+                          publisherName: o.label,
+                        })
+                      }
+                    />
+                  )
+                }
               </Field>
               <Field label={t("resource.pageCount")} optional error={err("book.pageCount")}>
                 {(p) => (
@@ -673,19 +739,32 @@ export function ResourceForm({
                 )}
               </Field>
             </>
-          )}
-          {isMedia && (
+          ) : (
             <>
-              <Field label={t("resource.channel")} optional>
+              <Field
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays className="text-muted size-3.5" /> {t("resource.releaseDate")}
+                  </span>
+                }
+                optional
+                error={err("publicationDate")}
+              >
                 {(p) => (
-                  <Input
-                    {...p}
-                    value={v.media.channel}
-                    onChange={(e) => set("media", { ...v.media, channel: e.target.value })}
+                  <FlexDateInput
+                    id={p.id}
+                    value={v.publicationDate}
+                    invalid={!!err("publicationDate")}
+                    placeholder="2024 / 2024-03-15"
+                    onChange={(x) => set("publicationDate", x)}
                   />
                 )}
               </Field>
-              <Field label={t("resource.duration")} optional error={err("media.durationSeconds")}>
+              <Field
+                label={v.type === "article" ? t("resource.readingTime") : t("resource.duration")}
+                optional
+                error={err("media.durationSeconds")}
+              >
                 {(p) => (
                   <Input
                     {...p}
@@ -696,16 +775,31 @@ export function ResourceForm({
                   />
                 )}
               </Field>
-              <Field label={t("resource.platform")} optional>
+              <Field label={t("resource.where")} optional hint={t("resource.whereHint")}>
                 {(p) => (
                   <Input
                     {...p}
-                    value={v.media.platform}
-                    onChange={(e) => set("media", { ...v.media, platform: e.target.value })}
-                    placeholder="YouTube"
+                    value={v.media.channel}
+                    onChange={(e) => set("media", { ...v.media, channel: e.target.value })}
+                    placeholder={
+                      v.type === "course" ? "Coursera, Udemy, TATU…" : "YouTube: kanal nomi"
+                    }
                   />
                 )}
               </Field>
+              {v.type === "course" && (
+                <Field label={t("resource.lessonCount")} optional error={err("media.lessonCount")}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="number"
+                      min={1}
+                      value={v.media.lessonCount}
+                      onChange={(e) => set("media", { ...v.media, lessonCount: e.target.value })}
+                    />
+                  )}
+                </Field>
+              )}
             </>
           )}
           <Field label={t("resource.language")} optional>
@@ -718,19 +812,26 @@ export function ResourceForm({
               />
             )}
           </Field>
-          {isBook && (
-            <Field
-              label={t("resource.readingUrl")}
-              optional
-              error={err("book.readingUrl")}
-              className="sm:col-span-2"
-            >
+          {isBook ? (
+            <Field label={t("resource.readingUrl")} optional error={err("book.readingUrl")}>
               {(p) => (
                 <Input
                   {...p}
                   type="url"
                   value={v.book.readingUrl}
                   onChange={(e) => set("book", { ...v.book, readingUrl: e.target.value })}
+                  placeholder="https://"
+                />
+              )}
+            </Field>
+          ) : (
+            <Field label={t("resource.watchUrl")} optional error={err("sourceUrl")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="url"
+                  value={v.sourceUrl}
+                  onChange={(e) => set("sourceUrl", e.target.value)}
                   placeholder="https://"
                 />
               )}

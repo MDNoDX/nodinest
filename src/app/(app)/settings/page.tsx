@@ -1,4 +1,5 @@
-import { Lock } from "lucide-react";
+import { AppWindow, Lock } from "lucide-react";
+import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
 import { ProfileForm, AppearanceForm } from "@/components/settings/settings-forms";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/misc";
@@ -31,6 +32,12 @@ export default async function SettingsPage() {
         subtitle={t("settings.subtitle")}
       />
       <div className="flex flex-col gap-6">
+        <Card id="install">
+          <CardHeader title={t("install.title")} icon={<AppWindow />} hue="blue" />
+          <div className="px-5 pb-5">
+            <InstallApp />
+          </div>
+        </Card>
         <Card>
           <CardHeader title={t("settings.profile")} />
           <div className="px-5 pb-5">

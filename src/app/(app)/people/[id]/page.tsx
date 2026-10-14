@@ -1,5 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { shortYear } from "@/lib/dates";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { CatalogActions } from "@/components/library/catalog-actions";
@@ -116,7 +117,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
           {p.biography && (
             <Card className="p-5">
@@ -153,7 +154,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                         <div className="line-clamp-2 text-sm font-medium">{w.title}</div>
                         <div className="text-muted text-xs">
                           {t(`types.${w.type}`)} · {t(`contributorRoles.${w.role}`)}
-                          {w.publicationDate ? ` · ${w.publicationDate.slice(0, 4)}` : ""}
+                          {w.publicationDate ? ` · ${shortYear(w.publicationDate)}` : ""}
                         </div>
                         {w.myStatus && (
                           <Badge tone="accent" className="mt-1">

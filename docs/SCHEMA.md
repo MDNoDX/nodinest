@@ -31,8 +31,8 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
 - `learning_records` — one per (user, resource) (`UNIQUE`): status (planned / in_progress /
   completed / paused; legacy `abandoned` is shown as paused), `started_at` / `completed_at`
   (timestamptz, exact time), rating 1–10, short review, progress current/total/unit.
-- `conspect_sections` — the user's chapter-by-chapter konspekt of a resource (title, content,
-  page range, position), FTS-indexed.
+- `writeups` — the user's taqriz of a resource: one Tiptap/ProseMirror JSON `doc` per
+  (user, resource), plus `plain` text (FTS) and `words`. Chapters = headings (optional).
 - `book_text_sources` (the user's PDF file or reading URL; status, page count) and
   `book_pages` (one row per extracted page, FTS-indexed) — used for in-book search and the AI.
 - `notes` — `kind` note|quote; quotes keep the exact `quote_text` separate from the user's
@@ -50,6 +50,10 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
   explanation, source URLs, status, reviewer, review note, applied target.
 - `audit_logs` — append-only record of privileged/global changes with before/after snapshots.
 - `files` — Vercel Blob metadata (owner, pathname, type, size, purpose, catalog flag, resource).
+- `publishers` — catalog entries (name unique by normalised name, city, country, website);
+  `book_details.publisher_id` points to them. Created on the fly from a typed name.
+- `media_details` (all non-book types): platform, channel ("where"), duration, `lesson_count`.
+- Dates on people/resources accept `YYYY[-MM[-DD]]`, `YYYY~` and `A/B` ranges (CHECK).
 - Catalog rows carry `created_by`; RLS lets the creator (or admin mode) edit their own entries.
 - `ai_conversations`, `ai_messages`, `ai_actions` (proposed → completed|failed|rejected).
 - `ai_cache` (public URL metadata, TTL), `app_settings` (AI settings), `rate_limits`.
@@ -66,6 +70,6 @@ plus the hand-written `drizzle/0001_search_rls.sql` (search vectors, trigram ind
 ## Search columns
 
 Generated `search tsvector` columns on `people`, `resources`, `media_details` (transcripts),
-`notes`, `conspect_sections`, `book_pages`, built with `to_tsvector('simple', nn_norm(...))` and weights
+`notes`, `writeups`, `book_pages`, built with `to_tsvector('simple', nn_norm(...))` and weights
 (A title/name, B description/body, C biography, D location). GIN indexes on all of them plus
 trigram GIN and `text_pattern_ops` indexes on names, aliases and titles.

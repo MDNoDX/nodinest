@@ -1,13 +1,14 @@
-import { BookOpen, Plus, Search, Star } from "lucide-react";
+import { BookOpen, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Cover, coverSrc } from "@/components/library/cover";
+import { coverSrc } from "@/components/library/cover";
+import { CoverTile } from "@/components/library/cover-tile";
 import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
+import { EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
-import { formatPartialDate } from "@/lib/dates";
+import { shortYear } from "@/lib/dates";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { listCategories, listResources } from "@/server/catalog";
 
@@ -16,13 +17,6 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   return { title: (await getTranslations("library"))("title") };
 }
-
-const STATUS_TONE = {
-  planned: "info",
-  in_progress: "primary",
-  completed: "success",
-  paused: "warning",
-} as const;
 
 export default async function LibraryPage({ searchParams }: { searchParams: SP }) {
   const { ctx, db, locale, user } = await pageContext();
@@ -197,38 +191,21 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
         <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {data.items.map((r) => (
             <li key={r.id}>
-              <Link href={`/library/${r.id}`} className="group block rounded-lg">
-                <Cover
-                  type={r.type}
-                  title={r.title}
-                  src={coverSrc(r)}
-                  className="aspect-[2/3] h-auto w-full transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
-                  {r.myStatus && (
-                    <Badge tone={STATUS_TONE[r.myStatus as keyof typeof STATUS_TONE]}>
-                      {t(`status.${r.myStatus}`)}
-                    </Badge>
-                  )}
-                </div>
-                <h2 className="mt-1 line-clamp-2 text-[15px] leading-snug font-semibold group-hover:underline">
-                  {r.title}
-                </h2>
-                {r.contributors && (
-                  <p className="text-muted mt-0.5 line-clamp-1 text-xs">{r.contributors}</p>
-                )}
-                {r.myRating ? (
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold tabular-nums">
-                    <Star className="size-3 fill-[var(--c-amber)] text-[var(--c-amber)]" />{" "}
-                    {r.myRating}/10
-                  </p>
-                ) : r.publicationDate ? (
-                  <p className="text-muted text-xs">
-                    {formatPartialDate(r.publicationDate, locale)}
-                  </p>
-                ) : null}
-              </Link>
+              <CoverTile
+                id={r.id}
+                type={r.type}
+                title={r.title}
+                cover={coverSrc(r)}
+                line={r.contributors}
+                status={r.myStatus}
+                rating={r.myRating}
+                meta={
+                  <>
+                    <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
+                    {r.publicationDate && <span>{shortYear(r.publicationDate)}</span>}
+                  </>
+                }
+              />
             </li>
           ))}
         </ul>

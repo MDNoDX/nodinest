@@ -9,6 +9,7 @@ import { savePersonAction } from "@/app/actions/catalog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
+import { FlexDateInput } from "@/components/ui/flex-date-input";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/misc";
@@ -121,17 +122,23 @@ export function PersonForm({
           error={errors.birthDate}
         >
           {(p) => (
-            <Input
-              {...p}
+            <FlexDateInput
+              id={p.id}
               value={v.birthDate}
-              onChange={(e) => set("birthDate", e.target.value)}
+              invalid={!!errors.birthDate}
+              onChange={(x) => set("birthDate", x)}
               placeholder="1441-02-09"
             />
           )}
         </Field>
         <Field label={t("person.deathDate")} optional error={errors.deathDate}>
           {(p) => (
-            <Input {...p} value={v.deathDate} onChange={(e) => set("deathDate", e.target.value)} />
+            <FlexDateInput
+              id={p.id}
+              value={v.deathDate}
+              invalid={!!errors.deathDate}
+              onChange={(x) => set("deathDate", x)}
+            />
           )}
         </Field>
         <Field label={t("person.nationality")} optional>

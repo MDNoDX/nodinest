@@ -3,7 +3,7 @@
  * and suggestion approval, so all entry points share identical rules.
  */
 import { z } from "zod";
-import { isValidPartialDate } from "./dates";
+import { dateBounds, isValidPartialDate } from "./dates";
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optText = (max: number) =>
@@ -71,8 +71,17 @@ export const RESOURCE_TYPES = [
   "other",
 ] as const;
 export type ResourceType = (typeof RESOURCE_TYPES)[number];
-export const BOOK_LIKE: ResourceType[] = ["book", "course"];
-export const MEDIA_LIKE: ResourceType[] = ["video", "lecture", "interview", "podcast", "article"];
+/** Books have their own details; every other type shares one simple set. */
+export const BOOK_LIKE: ResourceType[] = ["book"];
+export const MEDIA_LIKE: ResourceType[] = [
+  "course",
+  "video",
+  "lecture",
+  "interview",
+  "podcast",
+  "article",
+  "other",
+];
 
 export const CONTRIBUTOR_ROLES = [
   "author",
@@ -112,10 +121,13 @@ export const personInput = z
     links: z.array(linkSchema).max(20).default([]),
     verification: z.enum(["unverified", "verified", "disputed"]).default("unverified"),
   })
-  .refine((p) => !p.birthDate || !p.deathDate || p.birthDate <= p.deathDate, {
-    message: "death_before_birth",
-    path: ["deathDate"],
-  });
+  .refine(
+    (p) => !p.birthDate || !p.deathDate || dateBounds(p.birthDate)[0] <= dateBounds(p.deathDate)[1],
+    {
+      message: "death_before_birth",
+      path: ["deathDate"],
+    },
+  );
 export type PersonInput = z.infer<typeof personInput>;
 
 /** A contributor is an existing person or a new name (created on save/approval). */
@@ -156,7 +168,9 @@ export const resourceInput = z.object({
   links: z.array(linkSchema).max(20).default([]),
   book: z
     .object({
-      publisher: optText(200),
+      /** Picked publisher, or the name of a new one to create. */
+      publisherId: uuid.optional().nullable(),
+      publisherName: optText(200),
       pageCount: optInt(1, 100_000),
       originalLanguage: optText(40),
       readingUrl: optUrl,
@@ -168,6 +182,7 @@ export const resourceInput = z.object({
       platform: optText(80),
       channel: optText(200),
       durationSeconds: optInt(1, 1_000_000),
+      lessonCount: optInt(1, 10_000),
       transcript: optText(200_000),
       transcriptUrl: optUrl,
     })
@@ -275,23 +290,19 @@ export const planInput = z
     path: ["endOn"],
   });
 
+export const publisherInput = z.object({
+  name: trimmed(200).min(1, "required"),
+  city: optText(120),
+  country: optText(120),
+  description: optText(5000),
+  websiteUrl: optUrl,
+});
+
 export const collectionInput = z.object({
   name: trimmed(120).min(1, "required"),
   description: optText(1000),
   ranked: z.boolean().default(false),
 });
-
-export const conspectSectionInput = z
-  .object({
-    title: trimmed(300).min(1, "required"),
-    content: z.string().max(200_000).default(""),
-    pageFrom: optInt(0, 100_000),
-    pageTo: optInt(0, 100_000),
-  })
-  .refine((c) => c.pageFrom == null || c.pageTo == null || c.pageTo >= c.pageFrom, {
-    message: "page_range",
-    path: ["pageTo"],
-  });
 
 export const categoryInput = z.object({
   slug: z

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpen,
+  Building2,
   CalendarCheck,
   FolderHeart,
   Home,
@@ -20,6 +21,7 @@ export const NAV_PRIMARY: NavItem[] = [
   { href: "/", key: "dashboard", icon: Home },
   { href: "/library", key: "library", icon: BookOpen },
   { href: "/people", key: "people", icon: Users },
+  { href: "/publishers", key: "publishers", icon: Building2 },
   { href: "/collections", key: "collections", icon: FolderHeart },
   { href: "/notes", key: "notes", icon: NotebookPen },
   { href: "/plans", key: "plans", icon: CalendarCheck },

@@ -1,11 +1,11 @@
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ResourceForm } from "@/components/library/resource-form";
 import type { ResourceFormValue } from "@/components/library/resource-form-value";
 import { PageHeader } from "@/components/ui/misc";
 import { withUser } from "@/db";
-import { people } from "@/db/schema";
+import { people, publishers } from "@/db/schema";
 import { pageContext } from "@/lib/page";
 import { canEditCatalog, getResourceSnapshot, listCategories } from "@/server/catalog";
 import { isStorageConfigured } from "@/server/storage";
@@ -32,6 +32,16 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
       )
     : [];
   const nameOf = new Map(names.map((n) => [n.id, n.fullName]));
+  const publisherName = snap.book?.publisherId
+    ? (
+        await withUser(db, ctx, (tx) =>
+          tx
+            .select({ name: publishers.name })
+            .from(publishers)
+            .where(eq(publishers.id, snap.book!.publisherId!)),
+        )
+      )[0]?.name
+    : null;
   const s = (v: string | null | undefined) => v ?? "";
   const initial: ResourceFormValue = {
     type: snap.type,
@@ -55,7 +65,8 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
     identifiers: snap.identifiers,
     links: snap.links.map((l) => ({ kind: l.kind, url: l.url, label: s(l.label) })),
     book: {
-      publisher: s(snap.book?.publisher),
+      publisherId: snap.book?.publisherId ?? null,
+      publisherName: snap.book?.publisherId ? (publisherName ?? "") : "",
       pageCount: snap.book?.pageCount ? String(snap.book.pageCount) : "",
       originalLanguage: s(snap.book?.originalLanguage),
       readingUrl: s(snap.book?.readingUrl),
@@ -66,6 +77,7 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
       durationMinutes: snap.media?.durationSeconds
         ? String(Math.round(snap.media.durationSeconds / 60))
         : "",
+      lessonCount: snap.media?.lessonCount ? String(snap.media.lessonCount) : "",
       transcript: s(snap.media?.transcript),
       transcriptUrl: s(snap.media?.transcriptUrl),
     },

@@ -67,7 +67,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           </Button>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[15rem_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[15rem_1fr] [&>*]:min-w-0">
         <aside className="hidden lg:block">
           <h2 className="text-muted mb-2 text-xs font-semibold tracking-wide uppercase">
             {t("history")}

@@ -1,5 +1,6 @@
 import { Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
+import { shortYear } from "@/lib/dates";
 import { getTranslations } from "next-intl/server";
 import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Avatar } from "@/components/ui/avatar";
@@ -89,7 +90,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: SP })
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.items.map((pr) => {
             const img = pr.portrait_file_id ? `/api/files/${pr.portrait_file_id}` : pr.portrait_url;
-            const years = [pr.birth_date?.slice(0, 4), pr.death_date?.slice(0, 4)]
+            const years = [shortYear(pr.birth_date), shortYear(pr.death_date)]
               .filter(Boolean)
               .join("–");
             return (

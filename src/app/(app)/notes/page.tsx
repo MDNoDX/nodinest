@@ -9,6 +9,7 @@ import { fmtDate } from "@/lib/format";
 import { hueFor, hueStyle, TYPE_HUE } from "@/lib/hues";
 import { normalizeTag } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
+import { getResourceHeader } from "@/server/catalog";
 import { listMyTags, listNotes } from "@/server/notes";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +24,18 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
   const tab = sp(p.tab) ?? "all";
   const tag = sp(p.tag) ?? null;
   const page = spInt(p.page);
-  const [data, tags] = await Promise.all([
+  const rid = sp(p.resource);
+  const resourceId = rid && /^[0-9a-f-]{36}$/i.test(rid) ? rid : null;
+  const [data, tags, res] = await Promise.all([
     listNotes(db, ctx, {
       kind: tab === "notes" ? "note" : tab === "quotes" ? "quote" : null,
       trash: tab === "trash",
       tag,
+      resourceId,
       page,
     }),
     listMyTags(db, ctx),
+    resourceId ? getResourceHeader(db, ctx, resourceId) : Promise.resolve(null),
   ]);
   const tabs = [
     ["all", t("notes.all"), Layers, "blue"],
@@ -40,7 +45,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
   ] as const;
   const href = (o: Record<string, string | null>) => {
     const u = new URLSearchParams();
-    for (const [k, val] of Object.entries({ tab, tag, ...o }))
+    for (const [k, val] of Object.entries({ tab, tag, resource: resourceId, ...o }))
       if (val && !(k === "tab" && val === "all")) u.set(k, val);
     return `/notes${u.size ? `?${u}` : ""}`;
   };
@@ -49,17 +54,24 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
     <>
       <PageHeader
         section="notes"
+        eyebrow={
+          res ? (
+            <Link href={`/library/${resourceId}`} className="hover:underline">
+              {res.title}
+            </Link>
+          ) : undefined
+        }
         title={t("notes.title")}
-        subtitle={t("notes.subtitle")}
+        subtitle={res ? t("notes.forResource", { title: res.title }) : t("notes.subtitle")}
         actions={
           <>
             <Button variant="outline" asChild>
-              <Link href="/notes/new?kind=quote">
+              <Link href={`/notes/new?kind=quote${resourceId ? `&resource=${resourceId}` : ""}`}>
                 <Quote /> {t("notes.newQuote")}
               </Link>
             </Button>
             <Button asChild>
-              <Link href="/notes/new">
+              <Link href={`/notes/new${resourceId ? `?resource=${resourceId}` : ""}`}>
                 <Plus /> {t("notes.new")}
               </Link>
             </Button>
