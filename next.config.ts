@@ -57,7 +57,23 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      // Everything except the service worker script.
+      { source: "/((?!sw\\.js$).*)", headers: securityHeaders },
+      {
+        // A service worker's own fetches are governed by ITS script's CSP:
+        // it must be able to load cover / profile images from other https sites.
+        source: "/sw.js",
+        headers: [
+          ...securityHeaders.filter((h) => h.key !== "Content-Security-Policy"),
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; connect-src 'self' https:; img-src 'self' data: https:",
+          },
+          { key: "Cache-Control", value: "no-cache" },
+        ],
+      },
+    ];
   },
 };
 

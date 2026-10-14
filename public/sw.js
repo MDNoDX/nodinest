@@ -10,7 +10,7 @@
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;
@@ -43,7 +43,8 @@ self.addEventListener("message", (event) => {
     event.waitUntil(Promise.all([PAGES, FILES, IMAGES].map((k) => caches.delete(k))));
 });
 
-const good = (res) => res && res.ok && !res.redirected && (res.type === "basic" || res.type === "cors");
+const good = (res) =>
+  res && res.ok && !res.redirected && (res.type === "basic" || res.type === "cors");
 
 async function trim(cacheName, max) {
   const cache = await caches.open(cacheName);
@@ -70,12 +71,13 @@ async function staleWhileRevalidate(req, event) {
       }
       return res;
     })
-    .catch(() => hit);
+    .catch(() => null);
   if (hit) {
     event.waitUntil(update);
     return hit;
   }
-  return update;
+  // Never answer an image with nothing: let the browser try on its own.
+  return (await update) || fetch(req.url, { mode: "no-cors" }).catch(() => Response.error());
 }
 
 async function page(event) {
@@ -123,7 +125,11 @@ self.addEventListener("fetch", (event) => {
 
   if (same) {
     const p = url.pathname;
-    if (p.startsWith("/api/auth") || p.startsWith("/api/blob") || p.startsWith("/_next/webpack-hmr"))
+    if (
+      p.startsWith("/api/auth") ||
+      p.startsWith("/api/blob") ||
+      p.startsWith("/_next/webpack-hmr")
+    )
       return;
     if (p.startsWith("/_next/static/") || p.startsWith("/icons/") || p === "/nodinest-icon.svg") {
       event.respondWith(cacheFirst(req));
