@@ -28,6 +28,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { saveWriteupAction } from "@/app/actions/personal";
+import { ExportMenu } from "@/components/export/export-menu";
 import { Cover } from "@/components/library/cover";
 import { cn } from "@/lib/cn";
 import { countWords, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
@@ -337,6 +338,16 @@ export function TaqrizEditor({
       .run();
   };
 
+  /** Saves pending edits before an export so the file has the latest text. */
+  const flush = async () => {
+    if (!editor) return;
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    await save(editor);
+  };
+
   const chapters = info?.chapters ?? [];
   const status =
     state === "saving" ? (
@@ -530,6 +541,12 @@ export function TaqrizEditor({
               <Redo2 className="size-4" />
             </Tool>
             <span className="text-muted ml-auto flex shrink-0 items-center gap-3 pl-3 text-xs">
+              <ExportMenu
+                resourceId={resource.id}
+                beforeDownload={flush}
+                variant="ghost"
+                className="h-8"
+              />
               <span className="hidden tabular-nums sm:inline">
                 {t("words", { count: info?.words ?? 0 })}
               </span>

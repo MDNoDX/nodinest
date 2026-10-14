@@ -943,7 +943,10 @@
     "askAi": "Ask the AI to help write it",
     "summary": "{words, plural, one {# word} other {# words}} · {chapters, plural, =0 {no chapters} one {# chapter} other {# chapters}}",
     "hint": "Your thoughts, takeaways and summary — write freely or split into chapters.",
-    "start": "Start writing"
+    "start": "Start writing",
+    "plural": "Write-ups",
+    "noneYet": "No write-ups yet",
+    "listSummary": "{count, plural, one {# write-up} other {# write-ups}} · {words, plural, one {# word} other {# words}}"
   },
   "dates": {
     "kind": "Date kind",
@@ -993,5 +996,29 @@
     "body": "This page hasn’t been opened on this device yet. Pages, covers and write-ups you have opened before work offline.",
     "retry": "Try again",
     "banner": "Offline — showing saved pages"
+  },
+  "export": {
+    "download": "Download",
+    "thisOne": "Download this write-up",
+    "all": "All my write-ups — one file",
+    "formats": {
+      "pdf": "PDF",
+      "docx": "Word (.docx)",
+      "md": "Markdown (.md)",
+      "txt": "Plain text (.txt)"
+    },
+    "hints": {
+      "pdf": "Print-ready: cover, contents, page numbers",
+      "docx": "Edit in Word / Pages / Google Docs",
+      "md": "For Obsidian, Notion and other note apps",
+      "txt": "Opens on any device"
+    },
+    "withNotes": "Include notes and quotes",
+    "ready": "Ready: {name}",
+    "failed": "Couldn’t prepare the file. Please try again.",
+    "nothing": "No write-ups to download yet.",
+    "tooMany": "Too many downloads. Try again shortly.",
+    "offline": "Downloading needs an internet connection.",
+    "downloadAll": "Download all"
   }
 }

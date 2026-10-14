@@ -41,7 +41,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Lets E2E run its own dev server alongside a normal one.
   distDir: process.env.NEXT_DIST_DIR || ".next",
-  serverExternalPackages: ["postgres"],
+  serverExternalPackages: ["postgres", "@react-pdf/renderer", "sharp"],
+  // Fonts for PDF export are read from disk at runtime.
+  outputFileTracingIncludes: { "/api/export/**": ["./src/server/export/fonts/**"] },
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
     // Re-visiting a page within 30 s is instant; any mutation (server action +

@@ -943,7 +943,10 @@
     "askAi": "AI yordamchidan taqriz yozishni so‘rash",
     "summary": "{words, plural, other {# so‘z}} · {chapters, plural, =0 {boblarsiz} other {# bob}}",
     "hint": "Kitob haqidagi fikr, xulosa va mazmun — erkin yozing yoki boblarga ajrating.",
-    "start": "Yozishni boshlash"
+    "start": "Yozishni boshlash",
+    "plural": "Taqrizlar",
+    "noneYet": "Hali taqriz yozilmagan",
+    "listSummary": "{count, plural, other {# ta taqriz}} · {words, plural, other {# so‘z}}"
   },
   "dates": {
     "kind": "Sana turi",
@@ -993,5 +996,29 @@
     "body": "Bu sahifa hali shu qurilmada ochilmagan. Avval ochilgan sahifalar, muqovalar va taqrizlaringiz oflayn ham ishlaydi.",
     "retry": "Qayta urinish",
     "banner": "Oflayn rejim — saqlangan sahifalar ko‘rsatilmoqda"
+  },
+  "export": {
+    "download": "Yuklab olish",
+    "thisOne": "Shu taqrizni yuklab olish",
+    "all": "Barcha taqrizlarim — bitta faylda",
+    "formats": {
+      "pdf": "PDF",
+      "docx": "Word (.docx)",
+      "md": "Markdown (.md)",
+      "txt": "Oddiy matn (.txt)"
+    },
+    "hints": {
+      "pdf": "Chop etishga tayyor: muqova, mundarija, sahifa raqamlari",
+      "docx": "Word / Pages / Google Docs’da tahrirlash uchun",
+      "md": "Obsidian, Notion va boshqa yozuv ilovalari uchun",
+      "txt": "Har qanday qurilmada ochiladi"
+    },
+    "withNotes": "Qaydlar va iqtiboslarni ham qo‘shish",
+    "ready": "Tayyor: {name}",
+    "failed": "Faylni tayyorlab bo‘lmadi. Qayta urinib ko‘ring.",
+    "nothing": "Yuklab olish uchun hali taqriz yozilmagan.",
+    "tooMany": "Juda ko‘p yuklab olish. Birozdan keyin urinib ko‘ring.",
+    "offline": "Yuklab olish uchun internet kerak.",
+    "downloadAll": "Hammasini yuklab olish"
   }
 }

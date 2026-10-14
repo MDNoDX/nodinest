@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ExportMenu } from "@/components/export/export-menu";
 import { CatalogActions } from "@/components/library/catalog-actions";
 import { CollectionPicker } from "@/components/library/collection-picker";
 import { Cover, coverSrc } from "@/components/library/cover";
@@ -293,12 +294,17 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                   : t("taqriz.hint")
               }
               action={
-                <Link
-                  href={`/library/${r.id}/taqriz`}
-                  className="text-primary text-xs font-semibold hover:underline"
-                >
-                  {d.mine.writeupWords ? t("common.open") : t("taqriz.start")} →
-                </Link>
+                <span className="flex items-center gap-2">
+                  {d.mine.writeupWords ? (
+                    <ExportMenu resourceId={r.id} variant="ghost" className="h-8" />
+                  ) : null}
+                  <Link
+                    href={`/library/${r.id}/taqriz`}
+                    className="text-primary text-xs font-semibold hover:underline"
+                  >
+                    {d.mine.writeupWords ? t("common.open") : t("taqriz.start")} →
+                  </Link>
+                </span>
               }
             />
             {chapters.length > 0 && (

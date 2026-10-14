@@ -1,4 +1,7 @@
-import { FileText, Layers, NotebookPen, Plus, Quote, Trash2 } from "lucide-react";
+import { FileText, Layers, NotebookPen, NotebookText, Plus, Quote, Trash2 } from "lucide-react";
+import { ExportMenu } from "@/components/export/export-menu";
+import { Cover, coverSrc } from "@/components/library/cover";
+import type { ResourceType } from "@/lib/validation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { NoteRowActions } from "@/components/notes/note-row-actions";
@@ -11,6 +14,7 @@ import { normalizeTag } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { getResourceHeader } from "@/server/catalog";
 import { listMyTags, listNotes } from "@/server/notes";
+import { listMyWriteups } from "@/server/writeups";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -26,7 +30,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
   const page = spInt(p.page);
   const rid = sp(p.resource);
   const resourceId = rid && /^[0-9a-f-]{36}$/i.test(rid) ? rid : null;
-  const [data, tags, res] = await Promise.all([
+  const [data, tags, res, writeups] = await Promise.all([
     listNotes(db, ctx, {
       kind: tab === "notes" ? "note" : tab === "quotes" ? "quote" : null,
       trash: tab === "trash",
@@ -36,11 +40,13 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
     }),
     listMyTags(db, ctx),
     resourceId ? getResourceHeader(db, ctx, resourceId) : Promise.resolve(null),
+    tab === "taqriz" ? listMyWriteups(db, ctx, 200) : Promise.resolve([]),
   ]);
   const tabs = [
     ["all", t("notes.all"), Layers, "blue"],
     ["notes", t("notes.onlyNotes"), FileText, "teal"],
     ["quotes", t("notes.onlyQuotes"), Quote, "violet"],
+    ["taqriz", t("taqriz.plural"), NotebookText, "indigo"],
     ["trash", t("notes.trash"), Trash2, "slate"],
   ] as const;
   const href = (o: Record<string, string | null>) => {
@@ -101,7 +107,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
             );
           })}
         </nav>
-        {tags.length > 0 && (
+        {tags.length > 0 && tab !== "taqriz" && (
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tg) => {
               const on = tag === tg.normalized;
@@ -123,7 +129,49 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
         )}
       </div>
 
-      {data.items.length === 0 ? (
+      {tab === "taqriz" ? (
+        writeups.length === 0 ? (
+          <EmptyState
+            hue="indigo"
+            icon={<NotebookText />}
+            title={t("taqriz.noneYet")}
+            body={t("taqriz.hint")}
+          />
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-muted text-sm">
+                {t("taqriz.listSummary", {
+                  count: writeups.length,
+                  words: writeups.reduce((a, w) => a + w.words, 0),
+                })}
+              </p>
+              <ExportMenu label={t("export.downloadAll")} variant="primary" />
+            </div>
+            <ul className="grid gap-3 md:grid-cols-2">
+              {writeups.map((w) => (
+                <li key={w.resource_id} className="card flex items-center gap-3 p-3">
+                  <Link href={`/library/${w.resource_id}/taqriz`} className="shrink-0">
+                    <Cover
+                      type={w.type as ResourceType}
+                      title={w.title}
+                      src={coverSrc({ coverUrl: w.cover_url, coverFileId: w.cover_file_id })}
+                      size="sm"
+                    />
+                  </Link>
+                  <Link href={`/library/${w.resource_id}/taqriz`} className="min-w-0 flex-1">
+                    <span className="line-clamp-2 font-semibold hover:underline">{w.title}</span>
+                    <span className="text-muted block text-xs">
+                      {t("taqriz.words", { count: w.words })} · {fmtDate(w.updated_at, locale, tz)}
+                    </span>
+                  </Link>
+                  <ExportMenu resourceId={w.resource_id} variant="ghost" label="" className="h-8" />
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      ) : data.items.length === 0 ? (
         <EmptyState
           hue="violet"
           icon={<NotebookPen />}
@@ -217,20 +265,22 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
           })}
         </ul>
       )}
-      <Pagination
-        page={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        hrefFor={(n) => href({ page: String(n) })}
-        labels={{
-          previous: t("common.previous"),
-          next: t("common.next"),
-          page: t("common.page", {
-            page: data.page,
-            total: Math.max(1, Math.ceil(data.total / data.pageSize)),
-          }),
-        }}
-      />
+      {tab !== "taqriz" && (
+        <Pagination
+          page={data.page}
+          total={data.total}
+          pageSize={data.pageSize}
+          hrefFor={(n) => href({ page: String(n) })}
+          labels={{
+            previous: t("common.previous"),
+            next: t("common.next"),
+            page: t("common.page", {
+              page: data.page,
+              total: Math.max(1, Math.ceil(data.total / data.pageSize)),
+            }),
+          }}
+        />
+      )}
     </>
   );
 }
