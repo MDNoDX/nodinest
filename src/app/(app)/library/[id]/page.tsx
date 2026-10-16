@@ -291,7 +291,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
               description={
                 d.mine.writeupWords
                   ? t("taqriz.summary", { words: d.mine.writeupWords, chapters: chapters.length })
-                  : t("taqriz.hint")
+                  : undefined
               }
               action={
                 <span className="flex items-center gap-2">

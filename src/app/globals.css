@@ -348,3 +348,26 @@
 .taqriz-doc h3.is-empty::before {
   font-weight: 600;
 }
+.taqriz-doc .taqriz-image {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 1em auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.taqriz-doc .taqriz-image.ProseMirror-selectednode {
+  outline: 3px solid var(--primary);
+}
+.taqriz-doc .taqriz-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.35em 0.8em;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9em;
+  text-decoration: none;
+  color: var(--foreground);
+  background: var(--surface);
+}

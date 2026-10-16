@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const t = await getTranslations("admin");
   return (
     <>
-      <PageHeader section="admin" title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader section="admin" title={t("title")} />
       <AdminTabs
         tabs={[
           { href: "/admin", label: t("overview") },

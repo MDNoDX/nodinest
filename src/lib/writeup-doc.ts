@@ -25,7 +25,13 @@ const BLOCKS = new Set([
   "listItem",
   "blockquote",
   "horizontalRule",
+  // Media the user uploaded (private files, referenced by id).
+  "image",
+  "audio",
+  "file",
 ]);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 const SIMPLE_MARKS = new Set(["bold", "italic", "underline", "strike"]);
 const MAX_TEXT = 400_000;
 const MAX_NODES = 30_000;
@@ -83,6 +89,20 @@ export function sanitizeDoc(raw: unknown): WriteupDoc {
       }
       case "horizontalRule":
         return { type: "horizontalRule" };
+      case "image":
+      case "audio":
+      case "file": {
+        const fileId = o.attrs?.fileId;
+        if (typeof fileId !== "string" || !UUID.test(fileId)) return null;
+        return {
+          type: o.type,
+          attrs: {
+            fileId,
+            name: str(o.attrs?.name, 200),
+            ...(o.type === "file" ? { mime: str(o.attrs?.mime, 100) } : {}),
+          },
+        };
+      }
       case "listItem": {
         const content = blocks(o.content);
         return { type: "listItem", content: content.length ? content : [{ type: "paragraph" }] };
@@ -130,6 +150,8 @@ export function docToPlain(doc: WriteupDoc, opts: { markHeadings?: boolean } = {
         );
       else if (n.type === "blockquote") walk(n.content ?? [], "> ");
       else if (n.type === "paragraph") out.push(prefix + textOf(n));
+      else if (n.type === "image" || n.type === "audio" || n.type === "file")
+        out.push(`[${n.type}: ${String(n.attrs?.name ?? "")}]`);
     }
   };
   walk(doc.content);
@@ -139,6 +161,16 @@ export function docToPlain(doc: WriteupDoc, opts: { markHeadings?: boolean } = {
 export function countWords(plain: string): number {
   const m = plain.match(/[\p{L}\p{N}'’‘ʻʼ-]+/gu);
   return m ? m.length : 0;
+}
+
+/** File ids embedded in a document (images / audio / files). */
+export function docMedia(doc: WriteupDoc): { type: string; fileId: string; name: string }[] {
+  return doc.content.flatMap((n) =>
+    (n.type === "image" || n.type === "audio" || n.type === "file") &&
+    typeof n.attrs?.fileId === "string"
+      ? [{ type: n.type, fileId: n.attrs.fileId as string, name: String(n.attrs?.name ?? "") }]
+      : [],
+  );
 }
 
 export type OutlineItem = { index: number; level: 2 | 3; text: string };

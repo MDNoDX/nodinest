@@ -160,7 +160,6 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
         </Field>
         <Field
           label={isQuote ? t("notes.commentary") : t("notes.body")}
-          hint={isQuote ? t("notes.commentaryHint") : undefined}
           optional={isQuote}
           error={errors.body}
         >
@@ -251,12 +250,7 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
             <Input {...p} value={v.location} onChange={(e) => set("location", e.target.value)} />
           )}
         </Field>
-        <Field
-          label={t("common.tags")}
-          optional
-          hint={t("resource.tagsHint")}
-          className="sm:col-span-2"
-        >
+        <Field label={t("common.tags")} optional className="sm:col-span-2">
           {(p) => (
             <TagInput
               id={p.id}

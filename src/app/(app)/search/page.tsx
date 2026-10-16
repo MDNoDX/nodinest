@@ -1,14 +1,11 @@
-import { Check, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverTile } from "@/components/library/cover-tile";
-import { AutoSubmitForm } from "@/components/ui/auto-submit";
-import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { SearchControls } from "@/components/search/search-controls";
 import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { shortYear } from "@/lib/dates";
-import { hueFor, hueStyle } from "@/lib/hues";
 import type { SnippetPart } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
@@ -97,136 +94,18 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <PageHeader section="search" title={t("search.title")} subtitle={t("search.hint")} />
-      <AutoSubmitForm className="mb-4 flex flex-col gap-3">
-        <div className="relative">
-          <Search
-            className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2"
-            aria-hidden
-          />
-          <Input
-            name="q"
-            defaultValue={q}
-            placeholder={t("search.placeholder")}
-            aria-label={t("common.search")}
-            className="h-12 pl-11 text-base"
-            autoFocus={!q && !browsing}
-          />
-        </div>
-        {group && <input type="hidden" name="group" value={group} />}
-        {filters.resourceId && (
-          <>
-            <input type="hidden" name="resource" value={filters.resourceId} />
-            <p className="text-muted flex items-center gap-2 text-sm">
-              <Badge tone="primary">{t("search.inOneBook")}</Badge>
-              <Link href={params({ resource: null, page: null })} className="hover:underline">
-                {t("common.reset")}
-              </Link>
-            </p>
-          </>
-        )}
-
-        {cats.length > 0 && (
-          <fieldset>
-            <legend className="text-muted mb-1.5 text-xs font-semibold tracking-wide uppercase">
-              {t("search.genres")}
-              {genres.length > 1 && (
-                <span className="ml-2 font-normal normal-case">{t("search.genresAll")}</span>
-              )}
-            </legend>
-            <div className="flex flex-wrap gap-1.5">
-              {cats.map((c) => {
-                const on = genres.includes(c.id);
-                return (
-                  <label
-                    key={c.id}
-                    style={hueStyle(hueFor(c.id))}
-                    className={cn(
-                      "inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition-colors select-none focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
-                      on
-                        ? "chip hue-border"
-                        : "border-border-strong text-muted hover:bg-surface-2 hover:text-foreground",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      name="g"
-                      value={c.id}
-                      defaultChecked={on}
-                      className="sr-only"
-                    />
-                    {on && <Check className="size-3.5" />}
-                    {locale === "uz" ? c.nameUz : c.nameEn}
-                    {c.count ? <span className="tabular-nums opacity-60">{c.count}</span> : null}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        )}
-
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Select
-            name="type"
-            defaultValue={filters.resourceType ?? ""}
-            aria-label={t("common.type")}
-          >
-            <option value="">{t("library.allTypes")}</option>
-            {RESOURCE_TYPES.map((r) => (
-              <option key={r} value={r}>
-                {t(`types.${r}`)}
-              </option>
-            ))}
-          </Select>
-          <Select
-            name="status"
-            defaultValue={filters.status ?? ""}
-            aria-label={t("library.myStatus")}
-          >
-            <option value="">{t("library.anyStatus")}</option>
-            {LEARNING_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`status.${s}`)}
-              </option>
-            ))}
-            <option value="none">{t("status.notInLibrary")}</option>
-          </Select>
-          <Select
-            name="visibility"
-            defaultValue={filters.visibility}
-            aria-label={t("common.visibility")}
-          >
-            <option value="mine">{t("search.mine")}</option>
-            <option value="public">{t("search.publicNotes")}</option>
-          </Select>
-          <Input
-            type="date"
-            name="from"
-            defaultValue={filters.from ?? ""}
-            aria-label={t("common.from")}
-          />
-          <Input
-            type="date"
-            name="to"
-            defaultValue={filters.to ?? ""}
-            aria-label={t("common.to")}
-          />
-          <Select name="sort" defaultValue={filters.sort} aria-label={t("common.sort")}>
-            <option value="relevance">{t("search.relevance")}</option>
-            <option value="title">{t("search.sortTitle")}</option>
-            <option value="date">{t("search.sortDate")}</option>
-            <option value="updated">{t("search.sortUpdated")}</option>
-          </Select>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit">{t("common.search")}</Button>
-          {(q || genres.length || filters.resourceType || filters.status) && (
-            <Link href="/search" className="text-muted hover:text-foreground text-sm">
-              {t("common.reset")}
-            </Link>
-          )}
-        </div>
-      </AutoSubmitForm>
+      <PageHeader section="search" title={t("search.title")} />
+      <SearchControls
+        categories={cats.map((c) => ({ id: c.id, name: locale === "uz" ? c.nameUz : c.nameEn }))}
+      />
+      {filters.resourceId && (
+        <p className="text-muted -mt-2 mb-4 flex items-center gap-2 text-sm">
+          <Badge tone="primary">{t("search.inOneBook")}</Badge>
+          <Link href={params({ resource: null, page: null })} className="hover:underline">
+            {t("common.reset")}
+          </Link>
+        </p>
+      )}
 
       {q.trim() && (
         <nav className="mb-6 flex flex-wrap gap-1.5" aria-label={t("common.filters")}>
@@ -242,38 +121,35 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
           >
             {t("search.all")}
           </Link>
-          {SEARCH_GROUPS.map((sg) => (
-            <Link
-              key={sg}
-              href={params({ group: sg, page: null })}
-              aria-current={group === sg ? "page" : undefined}
-              className={cn(
-                "rounded-full px-3 py-1 text-sm",
-                group === sg
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-surface-2 text-muted hover:text-foreground",
-              )}
-            >
-              {t(`search.groups.${sg}`)}
-              {!group && res?.groups[sg] ? (
-                <span className="ml-1 opacity-70">{res.groups[sg]!.total}</span>
-              ) : null}
-            </Link>
-          ))}
+          {SEARCH_GROUPS.filter((sg) => group === sg || (res?.groups[sg]?.total ?? 0) > 0).map(
+            (sg) => (
+              <Link
+                key={sg}
+                href={params({ group: sg, page: null })}
+                aria-current={group === sg ? "page" : undefined}
+                className={cn(
+                  "rounded-full px-3 py-1 text-sm",
+                  group === sg
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface-2 text-muted hover:text-foreground",
+                )}
+              >
+                {t(`search.groups.${sg}`)}
+                {!group && res?.groups[sg] ? (
+                  <span className="ml-1 opacity-70">{res.groups[sg]!.total}</span>
+                ) : null}
+              </Link>
+            ),
+          )}
         </nav>
       )}
 
       {!res ? (
-        <EmptyState
-          icon={<Search />}
-          title={t("search.startTyping")}
-          body={t("search.browseHint")}
-        />
+        <EmptyState icon={<Search />} title={t("search.startTyping")} />
       ) : totalAll === 0 ? (
         <EmptyState
           icon={<Search />}
           title={q ? t("search.noResults", { q }) : t("search.noBrowseResults")}
-          body={t("search.noResultsHint")}
         />
       ) : (
         <div className="flex flex-col gap-8">

@@ -6,7 +6,7 @@ import { authorizeUpload } from "@/server/storage";
 import { apiError } from "../../_utils";
 
 const payloadSchema = z.object({
-  purpose: z.enum(["cover", "portrait", "attachment"]),
+  purpose: z.enum(["cover", "portrait", "attachment", "media"]),
   size: z.number().int().positive(),
   mime: z.string().max(100),
 });

@@ -21,7 +21,7 @@ export default async function TaqrizPage({
 }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const { ctx, db } = await pageContext();
+  const { ctx, db, user } = await pageContext();
   const [r, w, q] = await Promise.all([
     getResourceHeader(db, ctx, id),
     getWriteup(db, ctx, id),
@@ -39,6 +39,7 @@ export default async function TaqrizPage({
       }}
       initial={{ doc: w?.doc ?? null, updatedAt: w?.updatedAt.toISOString() ?? null }}
       focusQuery={q}
+      userId={user.id}
     />
   );
 }

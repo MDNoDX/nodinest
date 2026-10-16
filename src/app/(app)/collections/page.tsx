@@ -29,12 +29,10 @@ export default async function CollectionsPage() {
       <PageHeader
         section="collections"
         title={t("collections.title")}
-        subtitle={t("collections.subtitle")}
         actions={<CollectionDialog />}
       />
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-semibold">{t("collections.shelves")}</h2>
-        <p className="text-muted mb-3 text-xs">{t("collections.shelvesHint")}</p>
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {shelves.map((s) => (
             <li key={s.key}>

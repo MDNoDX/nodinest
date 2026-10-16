@@ -13,6 +13,7 @@
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>Ovozli xabar va taqrizga audio yozish uchun mikrofon kerak.</string>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
   <key>NSHumanReadableCopyright</key><string>NodiNest — bilimlar uchun shaxsiy makon</string>
   <key>CFBundleURLTypes</key>

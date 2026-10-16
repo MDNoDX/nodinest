@@ -41,6 +41,28 @@ function runs(nodes?: DocNode[]): ParagraphChild[] {
   });
 }
 
+let IMAGES: Record<string, Uint8Array> = {};
+
+/** Width/height from a JPEG's SOF marker (keeps images in proportion). */
+function jpegSize(b: Uint8Array): [number, number] | null {
+  let i = 2;
+  while (i + 9 < b.length) {
+    if (b[i] !== 0xff) return null;
+    const m = b[i + 1];
+    const len = (b[i + 2] << 8) | b[i + 3];
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc)
+      return [(b[i + 7] << 8) | b[i + 8], (b[i + 5] << 8) | b[i + 6]];
+    i += 2 + len;
+  }
+  return null;
+}
+function fit(b: Uint8Array, maxW = 460, maxH = 420) {
+  const [w, h] = jpegSize(b) ?? [maxW, maxH];
+  const k = Math.min(maxW / w, maxH / h, 1);
+  return { width: Math.round(w * k), height: Math.round(h * k) };
+}
+let LBL = { audio: "Audio", file: "File" };
+
 function blocks(nodes: DocNode[], level = 0, quote = false): Paragraph[] {
   const out: Paragraph[] = [];
   for (const n of nodes) {
@@ -64,6 +86,31 @@ function blocks(nodes: DocNode[], level = 0, quote = false): Paragraph[] {
         break;
       case "blockquote":
         out.push(...blocks(n.content ?? [], level, true));
+        break;
+      case "image": {
+        const data = IMAGES[String(n.attrs?.fileId)];
+        if (data)
+          out.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new ImageRun({ type: "jpg", data, transformation: fit(data) })],
+            }),
+          );
+        break;
+      }
+      case "audio":
+      case "file":
+        out.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${n.type === "audio" ? LBL.audio : LBL.file}: ${String(n.attrs?.name ?? "")}`,
+                color: "5B6478",
+                size: 18,
+              }),
+            ],
+          }),
+        );
         break;
       case "horizontalRule":
         out.push(
@@ -104,7 +151,7 @@ function bookSection(it: ExportItem, loc: Loc, tz: string, first: boolean): Para
           new ImageRun({
             type: "jpg",
             data: it.cover,
-            transformation: { width: 150, height: 225 },
+            transformation: fit(it.cover, 150, 225),
           }),
         ],
         spacing: { after: 200 },
@@ -190,7 +237,9 @@ function bookSection(it: ExportItem, loc: Loc, tz: string, first: boolean): Para
     }),
   );
   const content = it.doc?.content ?? [];
-  if (content.some((n) => n.content?.length)) out.push(...blocks(content));
+  IMAGES = it.images ?? {};
+  LBL = { audio: t.audio, file: t.file };
+  if (content.some((n) => n.content?.length || n.attrs?.fileId)) out.push(...blocks(content));
   else
     out.push(
       new Paragraph({

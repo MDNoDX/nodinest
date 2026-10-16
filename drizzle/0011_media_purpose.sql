@@ -1,0 +1,1 @@
+ALTER TYPE "nodinest"."file_purpose" ADD VALUE 'media';

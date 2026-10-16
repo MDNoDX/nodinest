@@ -1,34 +1,48 @@
 "use server";
+import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { deleteConversation, runAssistant } from "@/server/ai/assistant";
-import { getLocale } from "next-intl/server";
+import { transcribeAudio } from "@/server/ai/media";
 import { run } from "./_run";
 
 export async function askAssistantAction(input: {
   conversationId?: string | null;
   message: string;
+  attachments?: string[];
 }) {
   return run(async ({ ctx, user }) => {
     const p = z
-      .object({ conversationId: z.string().uuid().nullish(), message: z.string().min(1).max(6000) })
+      .object({
+        conversationId: z.string().uuid().nullish(),
+        message: z.string().trim().max(6000),
+        attachments: z.array(z.string().uuid()).max(6).default([]),
+      })
+      .refine((v) => v.message.length > 0 || v.attachments.length > 0)
       .parse(input);
     return runAssistant(ctx, {
       conversationId: p.conversationId ?? null,
       message: p.message,
+      attachments: p.attachments,
       locale: await getLocale(),
       timeZone: user.timezone,
     });
   });
 }
 
-export async function confirmAiActionAction(actionId: string) {
-  return run(async ({ ctx, user }) =>
-    confirmAiAction(ctx, z.string().uuid().parse(actionId), {
-      timeZone: user.timezone,
-      locale: await getLocale(),
-    }),
-  );
+/** Runs a proposal the user confirmed (optionally with a choice made on its card). */
+export async function confirmAiActionAction(actionId: string, choice?: unknown) {
+  return run(async ({ ctx, user }) => {
+    const out = await confirmAiAction(
+      ctx,
+      z.string().uuid().parse(actionId),
+      { timeZone: user.timezone, locale: await getLocale() },
+      choice,
+    );
+    revalidatePath("/", "layout");
+    return out;
+  });
 }
 
 export async function rejectAiActionAction(actionId: string) {
@@ -37,4 +51,11 @@ export async function rejectAiActionAction(actionId: string) {
 
 export async function deleteConversationAction(conversationId: string) {
   return run(async ({ ctx }) => deleteConversation(ctx, z.string().uuid().parse(conversationId)));
+}
+
+/** Voice note → text (the user decides whether to keep the audio, the text, or both). */
+export async function transcribeAudioAction(fileId: string) {
+  return run(async ({ ctx }) => ({
+    text: await transcribeAudio(ctx, z.string().uuid().parse(fileId)),
+  }));
 }

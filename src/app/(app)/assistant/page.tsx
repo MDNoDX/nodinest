@@ -31,6 +31,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
         trace?: { tool: string }[];
         actions?: string[];
         proposals?: string[];
+        attachments?: ChatMessage["attachments"];
       } | null;
       return {
         id: m.id,
@@ -38,17 +39,22 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
         content: m.content,
         actions: trace?.actions ?? trace?.proposals ?? [],
         tools: trace?.trace?.map((x) => x.tool) ?? [],
+        attachments: trace?.attachments ?? [],
       };
     }) ?? [];
   const actions: ChatAction[] =
     conv?.actions.map((a) => {
-      const res = (a.result ?? {}) as { outcome?: ChatAction["outcome"] };
+      const res = (a.result ?? {}) as {
+        outcome?: ChatAction["outcome"];
+        preview?: ChatAction["preview"];
+      };
       return {
         id: a.id,
         tool: a.tool,
         args: a.args as Record<string, unknown>,
         status: a.status,
         outcome: res.outcome,
+        preview: res.preview ?? null,
         error: a.error,
       };
     }) ?? [];
@@ -58,7 +64,6 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
       <PageHeader
         section="assistant"
         title={t("title")}
-        subtitle={t("subtitle")}
         actions={
           <Button variant="outline" asChild>
             <Link href="/assistant">
@@ -100,6 +105,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           available={avail.available}
           unavailableReason={avail.reason}
           dailyLimit={user.isSuperadmin ? null : settings.dailyLimitPerUser}
+          userId={user.id}
         />
       </div>
     </>

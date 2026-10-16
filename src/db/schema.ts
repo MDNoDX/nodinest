@@ -131,7 +131,13 @@ export const suggestionStatus = nodinest.enum("suggestion_status", [
   "rejected",
   "withdrawn",
 ]);
-export const filePurpose = nodinest.enum("file_purpose", ["cover", "portrait", "attachment"]);
+export const filePurpose = nodinest.enum("file_purpose", [
+  "cover",
+  "portrait",
+  "attachment",
+  /** Images / PDFs / audio sent to the AI or embedded in a taqriz. */
+  "media",
+]);
 export const textSourceKind = nodinest.enum("text_source_kind", ["file", "url"]);
 export const textSourceStatus = nodinest.enum("text_source_status", ["pending", "ready", "failed"]);
 export const aiActionStatus = nodinest.enum("ai_action_status", [

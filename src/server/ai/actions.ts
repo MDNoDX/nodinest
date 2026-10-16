@@ -15,12 +15,19 @@ import { isToolName, runTool, toolDef } from "./tools";
 export type ActionOutcome =
   { status: "completed"; result: unknown } | { status: "failed"; code: string; details?: unknown };
 
+/** Choices the user may make on a card (never arbitrary argument edits). */
+const CHOICES = z
+  .object({ useExistingId: z.string().uuid().optional(), createNew: z.literal(true).optional() })
+  .strict();
+
 export async function confirmAiAction(
   ctx: AppContext,
   actionId: string,
   env: { timeZone: string; locale: string },
+  choice: unknown = {},
 ): Promise<ActionOutcome> {
   if (!z.string().uuid().safeParse(actionId).success) throw new AppError("NOT_FOUND");
+  const picked = CHOICES.parse(choice ?? {});
   // Claim atomically so a double click cannot run it twice.
   const [action] = await withUser(db, ctx, (tx) =>
     tx
@@ -42,7 +49,11 @@ export async function confirmAiAction(
       throw new AppError("FORBIDDEN");
     if (!settings.allowedTools.includes(toolDef(action.tool).perm))
       throw new AppError("FORBIDDEN", "tool_disabled");
-    const result = await runTool(action.tool, action.args, ctx, env);
+    const args =
+      action.tool === "add_resource" && (picked.useExistingId || picked.createNew)
+        ? { ...(action.args as object), ...picked }
+        : action.args;
+    const result = await runTool(action.tool, args, ctx, env);
     await withUser(db, ctx, (tx) =>
       tx
         .update(aiActions)

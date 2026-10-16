@@ -68,7 +68,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
           ) : undefined
         }
         title={t("notes.title")}
-        subtitle={res ? t("notes.forResource", { title: res.title }) : t("notes.subtitle")}
+        subtitle={res ? t("notes.forResource", { title: res.title }) : undefined}
         actions={
           <>
             <Button variant="outline" asChild>
@@ -131,12 +131,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
 
       {tab === "taqriz" ? (
         writeups.length === 0 ? (
-          <EmptyState
-            hue="indigo"
-            icon={<NotebookText />}
-            title={t("taqriz.noneYet")}
-            body={t("taqriz.hint")}
-          />
+          <EmptyState hue="indigo" icon={<NotebookText />} title={t("taqriz.noneYet")} />
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

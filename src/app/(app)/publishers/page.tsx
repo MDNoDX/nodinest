@@ -21,7 +21,6 @@ export default async function PublishersPage() {
       <PageHeader
         section="publishers"
         title={t("publishers.title")}
-        subtitle={t("publishers.subtitle")}
         actions={<PublisherDialog />}
       />
       {list.length === 0 ? (

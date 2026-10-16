@@ -66,7 +66,7 @@ export async function generate(
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   for (const model of ready.length ? ready : models) {
     try {
-      return await generateWith(model, contents, config, opts.timeoutMs ?? 25_000);
+      return await generateWith(model, contents, config, opts.timeoutMs ?? 55_000);
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         sawQuota = true;

@@ -43,7 +43,7 @@ export function ProfileForm({
           />
         )}
       </Field>
-      <Field label={t("settings.timezone")} hint={t("settings.timezoneHint")}>
+      <Field label={t("settings.timezone")}>
         {(p) => (
           <Select {...p} value={tz} onChange={(e) => setTz(e.target.value)}>
             {zones.map((z) => (

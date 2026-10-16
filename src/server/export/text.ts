@@ -37,6 +37,8 @@ function blocks(nodes: DocNode[], md: boolean, indent = ""): string[] {
     else if (n.type === "blockquote")
       out.push(...blocks(n.content ?? [], md).map((l) => (l ? `> ${l}` : ">")));
     else if (n.type === "horizontalRule") out.push(md ? "---" : "* * *");
+    else if (n.type === "image" || n.type === "audio" || n.type === "file")
+      out.push(`[${String(n.attrs?.name ?? n.type)}]`);
     else if (n.type === "bulletList" || n.type === "orderedList") {
       (n.content ?? []).forEach((li, i) => {
         const marker =
@@ -93,7 +95,8 @@ export function renderText(
       parts.push("", md ? `> **${t.opinion}:** ${it.opinion}` : `${t.opinion}: ${it.opinion}`);
     parts.push("", md ? "---" : "", "");
     const content = it.doc?.content ?? [];
-    if (content.some((n) => n.content?.length)) parts.push(...blocks(content, md));
+    if (content.some((n) => n.content?.length || n.attrs?.fileId))
+      parts.push(...blocks(content, md));
     else parts.push(t.noText, "");
     if (it.notes.length) {
       parts.push(md ? `## ${t.notes}` : t.notes.toUpperCase(), "");

@@ -35,7 +35,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      <PageHeader section="stats" title={t("stats.title")} subtitle={t("stats.subtitle")} />
+      <PageHeader section="stats" title={t("stats.title")} />
       <nav className="mb-6 flex flex-wrap gap-1.5" aria-label={t("stats.byYear")}>
         <Link
           href="/stats"

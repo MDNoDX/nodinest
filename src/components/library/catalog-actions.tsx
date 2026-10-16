@@ -1,8 +1,9 @@
 "use client";
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { archiveCatalogAction } from "@/app/actions/catalog";
+import { archiveCatalogAction, deleteResourceAction } from "@/app/actions/catalog";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm";
 import { useAction } from "@/lib/use-action";
@@ -26,6 +27,7 @@ export function CatalogActions({
 }) {
   const t = useTranslations();
   const { exec } = useAction();
+  const router = useRouter();
   const base = type === "person" ? "/people" : "/library";
   return (
     <div className="flex flex-wrap gap-2">
@@ -46,17 +48,31 @@ export function CatalogActions({
         </Button>
       ) : (
         !archived &&
-        canEdit && (
+        canEdit &&
+        (type === "resource" ? (
           <ConfirmButton
             variant="ghost"
-            message={type === "person" ? t("person.archiveConfirm") : t("resource.archiveConfirm")}
+            message={t("resource.deleteConfirm")}
+            onConfirm={() =>
+              exec(() => deleteResourceAction(id), {
+                success: t("resource.deleted"),
+                onSuccess: () => router.push("/library"),
+              })
+            }
+          >
+            <Trash2 /> {t("common.delete")}
+          </ConfirmButton>
+        ) : (
+          <ConfirmButton
+            variant="ghost"
+            message={t("person.archiveConfirm")}
             onConfirm={() =>
               exec(() => archiveCatalogAction(type, id, true), { success: t("common.archived") })
             }
           >
             <Archive /> {t("common.archive")}
           </ConfirmButton>
-        )
+        ))
       )}
     </div>
   );

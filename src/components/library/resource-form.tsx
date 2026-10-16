@@ -395,7 +395,6 @@ export function ResourceForm({
             <div className="text-[15px] font-semibold tracking-tight">
               {t("resource.findOnline")}
             </div>
-            <p className="text-muted text-xs">{t("resource.findOnlineHint")}</p>
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -554,7 +553,6 @@ export function ResourceForm({
               aria-invalid={!!err("coverUrl") || undefined}
               className="h-9 text-xs"
             />
-            <p className="text-muted text-[11px]">{t("resource.coverHint")}</p>
           </div>
         </div>
       </section>
@@ -687,7 +685,7 @@ export function ResourceForm({
                   />
                 )}
               </Field>
-              <Field label={t("resource.publisher")} optional hint={t("resource.publisherHint")}>
+              <Field label={t("resource.publisher")} optional>
                 {(p) =>
                   v.book.publisherId || v.book.publisherName ? (
                     <div className="border-border-strong bg-surface-2 flex h-10 items-center justify-between gap-2 rounded-lg border px-3 text-sm">
@@ -775,7 +773,7 @@ export function ResourceForm({
                   />
                 )}
               </Field>
-              <Field label={t("resource.where")} optional hint={t("resource.whereHint")}>
+              <Field label={t("resource.where")} optional>
                 {(p) => (
                   <Input
                     {...p}
@@ -878,7 +876,7 @@ export function ResourceForm({
             </div>
           </fieldset>
         )}
-        <Field label={t("common.tags")} optional hint={t("resource.tagsHint")}>
+        <Field label={t("common.tags")} optional>
           {(p) => (
             <TagInput
               id={p.id}

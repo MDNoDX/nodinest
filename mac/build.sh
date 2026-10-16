@@ -31,7 +31,7 @@ for s in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
-codesign --force --deep --sign - --options runtime "$APP"
+codesign --force --deep --sign - --options runtime --entitlements mac/entitlements.plist "$APP"
 codesign --verify --deep --strict "$APP"
 
 DMG="$OUT/NodiNest-$VERSION.dmg"

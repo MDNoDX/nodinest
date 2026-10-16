@@ -8,7 +8,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { safeFetch } from "@/lib/net/safe-fetch";
-import { sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
+import { docMedia, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
 import { readFileBytes } from "../storage";
 
 export type ExportNote = {
@@ -43,6 +43,8 @@ export type ExportItem = {
   updatedAt: Date | null;
   notes: ExportNote[];
   cover: Uint8Array | null;
+  /** JPEGs of images embedded in the taqriz, by file id. */
+  images: Record<string, Uint8Array>;
 };
 
 type Row = {
@@ -187,6 +189,22 @@ export async function loadExport(
       ? ordered.map(() => null)
       : await Promise.all(ordered.map((r) => loadCover(ctx, r)));
 
+  const docs = ordered.map((r) => (r.doc ? sanitizeDoc(r.doc) : null));
+  const images: Record<string, Uint8Array>[] = await Promise.all(
+    docs.map(async (d) => {
+      if (!d || opts.covers === false) return {};
+      const out: Record<string, Uint8Array> = {};
+      for (const m of docMedia(d)
+        .filter((x) => x.type === "image")
+        .slice(0, 30)) {
+        const f = await readFileBytes(ctx, m.fileId).catch(() => null);
+        const jpg = f ? await toJpeg(f.bytes) : null;
+        if (jpg) out[m.fileId] = jpg;
+      }
+      return out;
+    }),
+  );
+
   return ordered.map((r, i) => ({
     resourceId: r.resource_id,
     type: r.type,
@@ -204,10 +222,11 @@ export async function loadExport(
     startedAt: r.started_at ? new Date(r.started_at) : null,
     completedAt: r.completed_at ? new Date(r.completed_at) : null,
     opinion: r.review,
-    doc: r.doc ? sanitizeDoc(r.doc) : null,
+    doc: docs[i],
     words: r.words ?? 0,
     updatedAt: r.updated_at ? new Date(r.updated_at) : null,
     notes: notesBy.get(r.resource_id) ?? [],
     cover: covers[i],
+    images: images[i],
   }));
 }

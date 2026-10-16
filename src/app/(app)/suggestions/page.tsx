@@ -43,11 +43,7 @@ export default async function SuggestionsPage({ searchParams }: { searchParams: 
   };
   return (
     <>
-      <PageHeader
-        section="suggestions"
-        title={t("suggestions.title")}
-        subtitle={t("suggestions.subtitle")}
-      />
+      <PageHeader section="suggestions" title={t("suggestions.title")} />
       <div className="mb-5 flex flex-wrap gap-2">
         {isAdmin && (
           <nav className="bg-surface-2 inline-flex rounded-lg p-1">

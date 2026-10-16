@@ -26,6 +26,9 @@ const L = {
     notes: "Qaydlar va iqtiboslar",
     page: "bet",
     noText: "Taqriz hali yozilmagan.",
+    audio: "Audio yozuv",
+    file: "Fayl",
+    image: "Rasm",
     status: {
       planned: "Rejada",
       in_progress: "Jarayonda",
@@ -65,6 +68,9 @@ const L = {
     notes: "Notes and quotes",
     page: "p.",
     noText: "No write-up yet.",
+    audio: "Audio recording",
+    file: "File",
+    image: "Image",
     status: {
       planned: "Planned",
       in_progress: "In progress",

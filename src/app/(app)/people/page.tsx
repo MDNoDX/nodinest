@@ -34,7 +34,6 @@ export default async function PeoplePage({ searchParams }: { searchParams: SP })
       <PageHeader
         section="people"
         title={t("people.title")}
-        subtitle={t("people.subtitle")}
         actions={
           <Button asChild>
             <Link href="/people/new">

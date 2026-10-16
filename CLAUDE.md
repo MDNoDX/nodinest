@@ -35,11 +35,16 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   directly when `canEditCatalog` (admin mode or creator), otherwise they become suggestions.
   RLS mirrors this (drizzle/0007). Approval re-validates + re-checks duplicates and audits.
 - All writes validate with zod schemas in `src/lib/validation.ts` (shared by forms, AI, approval).
-- AI tools live in the `TOOLS` registry in `server/ai/tools.ts` with a mode: `read`, `act`
-  (runs at once with the user's own permissions, logged in `ai_actions`) or `confirm`
-  (destructive; stored as a proposal, run by `server/ai/actions.ts` after the user confirms).
-  Each tool belongs to a permission group the admin can disable. Never add a tool that runs
+- AI tools live in the `TOOLS` registry in `server/ai/tools.ts`. Read tools run at once; EVERY
+  write tool is `mode: "confirm"`: it becomes an `ai_actions` proposal card (optional `preview`,
+  e.g. duplicates for add_resource) and runs only after the user confirms in the chat (single or
+  "confirm all", in creation order). Cards may pass only whitelisted choices (`useExistingId`,
+  `createNew`). Only `index_book_text` runs without a card. Never add a tool that runs
   SQL/shell or bypasses `submitPerson/submitResource`.
+- Duplicates: `server/merge.ts` (`mergeResources` moves the user's record/notes/taqriz/collection
+  places to the kept entry, archives the rest; `findLibraryDuplicates` → /library/duplicates).
+- AI attachments and voice notes: files with purpose `media` (images, PDFs, audio ≤ 30 MB),
+  passed to Gemini inline by `server/ai/media.ts`; `transcribeAudio` turns speech into text.
 - Never invent data (dates, ISBNs, quotes). Unknown → NULL. Dates are flexible text (EDTF subset,
   `lib/dates.ts` + DB CHECK): `YYYY[-MM[-DD]]`, approx `1150~`, range/century `1101/1200`.
 - Books have their own details (publisher entity, pages, original + edition date). Every other

@@ -113,19 +113,31 @@ describe("AI tool contracts", () => {
       expect(AI_TOOL_NAMES, name).toContain(def.perm);
       expect(["read", "act", "confirm"], name).toContain(def.mode);
       const declared = Object.keys(def.parameters.properties).sort();
-      if (def.args.shape) expect(declared, name).toEqual(Object.keys(def.args.shape).sort());
+      // useExistingId / createNew are chosen on the confirmation card, never by the model.
+      const cardOnly = new Set(["useExistingId", "createNew"]);
+      if (def.args.shape)
+        expect(declared, name).toEqual(
+          Object.keys(def.args.shape)
+            .filter((k) => !cardOnly.has(k))
+            .sort(),
+        );
       for (const r of def.parameters.required ?? []) expect(declared, name).toContain(r);
     }
   });
-  it("destructive tools always need the user's confirmation", () => {
-    const confirm = names.filter((n) => TOOLS[n].mode === "confirm").sort();
-    expect(confirm).toEqual([
-      "archive_resource",
-      "delete_collection",
-      "delete_note",
-      "remove_from_library",
-    ]);
-    for (const n of confirm) expect(["delete", "write_catalog"]).toContain(TOOLS[n].perm);
+  it("every change waits for the user's confirmation", () => {
+    const changing = names.filter((n) => TOOLS[n].mode !== "read");
+    // Only reading a PDF the user gave (index_book_text) runs without a card.
+    expect(changing.filter((n) => TOOLS[n].mode !== "confirm")).toEqual(["index_book_text"]);
+    for (const n of [
+      "add_resource",
+      "update_my_record",
+      "create_note",
+      "merge_resources",
+      "delete_resource",
+    ] as const)
+      expect(TOOLS[n].mode, n).toBe("confirm");
+    // add_resource can no longer bypass duplicate checks.
+    expect(Object.keys(TOOLS.add_resource.parameters.properties as object)).not.toContain("force");
     // Read tools never write.
     for (const n of names.filter((x) => TOOLS[x].mode === "read"))
       expect(["read_library", "read_web"], n).toContain(TOOLS[n].perm);

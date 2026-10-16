@@ -61,7 +61,6 @@ export function ReadingPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-muted text-xs">{t("resource.readingHint")}</p>
       <div className="flex flex-wrap gap-2">
         {readingUrl && (
           <Button asChild variant="outline" size="sm">

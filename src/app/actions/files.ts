@@ -5,7 +5,7 @@ import { run } from "./_run";
 
 export async function registerUploadAction(input: {
   pathname: string;
-  purpose: "cover" | "portrait" | "attachment";
+  purpose: "cover" | "portrait" | "attachment" | "media";
   originalName: string;
   resourceId?: string | null;
 }) {
@@ -13,7 +13,7 @@ export async function registerUploadAction(input: {
     const p = z
       .object({
         pathname: z.string().min(1).max(500),
-        purpose: z.enum(["cover", "portrait", "attachment"]),
+        purpose: z.enum(["cover", "portrait", "attachment", "media"]),
         originalName: z.string().min(1).max(300),
         resourceId: z.string().uuid().nullish(),
       })

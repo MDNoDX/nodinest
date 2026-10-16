@@ -27,11 +27,7 @@ export default async function NewNotePage({ searchParams }: { searchParams: SP }
   const kind = sp(p.kind) === "quote" ? "quote" : "note";
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        section="notes"
-        title={kind === "quote" ? t("newQuote") : t("newTitle")}
-        subtitle={t("subtitle")}
-      />
+      <PageHeader section="notes" title={kind === "quote" ? t("newQuote") : t("newTitle")} />
       <NoteForm
         initial={{
           kind,

@@ -90,12 +90,7 @@ export function PersonForm({
             />
           )}
         </Field>
-        <Field
-          label={t("person.aliases")}
-          optional
-          hint={t("person.aliasesHint")}
-          className="sm:col-span-2"
-        >
+        <Field label={t("person.aliases")} optional className="sm:col-span-2">
           {(p) => (
             <TagInput
               id={p.id}
@@ -115,12 +110,7 @@ export function PersonForm({
             />
           )}
         </Field>
-        <Field
-          label={t("person.birthDate")}
-          optional
-          hint={t("resource.partialDateHint")}
-          error={errors.birthDate}
-        >
+        <Field label={t("person.birthDate")} optional error={errors.birthDate}>
           {(p) => (
             <FlexDateInput
               id={p.id}
@@ -247,7 +237,6 @@ export function PersonForm({
 
       <section className="card p-5">
         <h2 className="text-sm font-semibold">{t("common.links")}</h2>
-        <p className="text-muted mb-3 text-xs">{t("person.linksHint")}</p>
         <ul className="flex flex-col gap-2">
           {v.links.map((l, i) => (
             <li key={i} className="grid gap-2 sm:grid-cols-[9rem_1fr_10rem_auto]">

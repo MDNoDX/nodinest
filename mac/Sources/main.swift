@@ -233,6 +233,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     a.beginSheetModal(for: window) { r in completionHandler(r == .alertFirstButtonReturn) }
   }
 
+  /// Microphone for voice notes — only for our own site.
+  @available(macOS 12.0, *)
+  func webView(
+    _ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+    initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType,
+    decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void
+  ) {
+    decisionHandler(origin.host == BASE.host && type == .microphone ? .grant : .deny)
+  }
+
   // MARK: downloads → ~/Downloads
   func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
     download.delegate = self

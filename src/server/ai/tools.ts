@@ -31,6 +31,7 @@ import {
 import { indexFromFile, indexFromUrl, readBookPages, searchBookText } from "../booktext";
 import {
   findDuplicatePeople,
+  findDuplicateResources,
   getPersonSnapshot,
   getResourceDetail,
   getResourceSnapshot,
@@ -50,7 +51,13 @@ import {
   saveNote,
   toggleCollectionItem,
 } from "../notes";
-import { removeLearningRecord, setLearningStatus, upsertLearningRecord } from "../records";
+import { findLibraryDuplicates, mergeResources } from "../merge";
+import {
+  removeLearningRecord,
+  setLearningStatus,
+  setRating,
+  upsertLearningRecord,
+} from "../records";
 import { universalSearch } from "../search";
 import type { AiToolName } from "../settings";
 import { getCollectionStats } from "../stats";
@@ -75,6 +82,8 @@ type ToolDef<S extends z.ZodTypeAny> = {
   parameters: Record<string, unknown>;
   args: S;
   run: (ctx: AppContext, a: z.infer<S>, env: ToolEnv) => Promise<unknown>;
+  /** What the confirmation card shows before anything changes. */
+  preview?: (ctx: AppContext, a: z.infer<S>) => Promise<Record<string, unknown>>;
 };
 
 const str = (description: string, extra: Record<string, unknown> = {}) => ({
@@ -116,6 +125,57 @@ async function resolveResource(ctx: AppContext, ref: { resourceId?: string; titl
   );
   if (!rows[0]) throw new AppError("NOT_FOUND", `resource_not_found: ${ref.title}`);
   return rows[0].id;
+}
+
+/** Card data for resources shown on a confirmation: cover, authors, year, the user's status. */
+async function describeResources(
+  ctx: AppContext,
+  list: { id: string; score: number; reason: string }[],
+) {
+  if (!list.length) return [];
+  const rows = await withUser(db, ctx, (tx) =>
+    tx.execute<{
+      id: string;
+      title: string;
+      type: string;
+      cover_url: string | null;
+      cover_file_id: string | null;
+      authors: string | null;
+      year: string | null;
+      my_status: string | null;
+      mine: boolean;
+    }>(sql`
+      select r.id, r.title, r.type::text, r.cover_url, r.cover_file_id,
+        (select string_agg(p.full_name, ', ' order by c.position) from nodinest.resource_contributors c
+           join nodinest.people p on p.id = c.person_id where c.resource_id = r.id) as authors,
+        coalesce(r.original_date, r.publication_date) as year,
+        (select lr.status::text from nodinest.learning_records lr where lr.resource_id = r.id and lr.user_id = ${ctx.userId}) as my_status,
+        r.created_by = ${ctx.userId} as mine
+      from nodinest.resources r
+      where r.id in (${sql.join(
+        list.map((d) => sql`${d.id}::uuid`),
+        sql`, `,
+      )})`),
+  );
+  return list
+    .map((d) => {
+      const r = rows.find((x) => x.id === d.id);
+      return r
+        ? {
+            id: r.id,
+            title: r.title,
+            type: r.type,
+            cover: r.cover_file_id ? `/api/files/${r.cover_file_id}` : r.cover_url,
+            authors: r.authors,
+            year: r.year,
+            myStatus: r.my_status,
+            mine: r.mine,
+            reason: d.reason,
+            score: Math.round(d.score * 100) / 100,
+          }
+        : null;
+    })
+    .filter(Boolean);
 }
 
 async function resolveCollection(
@@ -538,9 +598,9 @@ export const TOOLS = {
   // ─── Act: catalog ───────────────────────────────────────────────────────
   add_resource: def({
     perm: "write_catalog",
-    mode: "act",
+    mode: "confirm",
     description:
-      "Add a book/course/video/lecture/article/podcast to the catalog and (optionally) to the user's library with a status. Authors are given by NAME (existing people are reused, missing ones created). Only facts you know (use lookup_book_online first, with its coverUrl). If similar records exist it returns them instead of creating — use the existing id, or retry with force=true for a genuinely different edition.",
+      "Add a book/course/video/lecture/article/podcast to the catalog and (optionally) to the user's library with a status. Authors are given by NAME (existing people are reused, missing ones created). Only facts you know (use lookup_book_online first, with its coverUrl). Every call is shown to the user as a proposal card with possible duplicates; nothing is created until they confirm. Call search_catalog / list_my_library first and do NOT propose a book that already exists (use update_my_record for it). Never guess dates, pages or publishers — leave them out when unknown.",
     parameters: obj(
       {
         type: str("Type", { enum: [...RESOURCE_TYPES] }),
@@ -568,7 +628,7 @@ export const TOOLS = {
         status: str("Also add to the user's library with this status", {
           enum: [...LEARNING_STATUSES],
         }),
-        force: bool("Create even if similar records exist"),
+        rating: int("The user's rating out of 10 (if they gave one)"),
       },
       ["type", "title"],
     ),
@@ -594,9 +654,35 @@ export const TOOLS = {
       categoryIds: z.array(uuid).max(10).optional(),
       tags: z.array(z.string().trim().min(1).max(48)).max(10).optional(),
       status: z.enum(LEARNING_STATUSES).optional(),
-      force: z.boolean().optional(),
+      rating: z.number().int().min(1).max(10).optional(),
+      /** Set on the confirmation card: use this existing entry instead of creating. */
+      useExistingId: uuid.optional(),
+      /** Set on the confirmation card: the user insists it is a different book. */
+      createNew: z.boolean().optional(),
     }),
+    preview: async (ctx, a) => {
+      const isbnDigits = a.isbn?.replace(/[\s-]/g, "") ?? "";
+      const dups = await withUser(db, ctx, (tx) =>
+        findDuplicateResources(tx, {
+          type: a.type,
+          title: a.title,
+          identifiers: isbnDigits
+            ? [{ scheme: isbnDigits.length === 10 ? "isbn10" : "isbn13", value: isbnDigits }]
+            : [],
+          sourceUrl: a.sourceUrl ?? null,
+        }),
+      );
+      return { duplicates: await describeResources(ctx, dups) };
+    },
     run: async (ctx, a) => {
+      const mark = async (id: string) => {
+        if (a.status) await setLearningStatus(db, ctx, id, a.status);
+        if (a.rating) await setRating(db, ctx, id, a.rating);
+      };
+      if (a.useExistingId) {
+        await mark(a.useExistingId);
+        return { linked: true, id: a.useExistingId, href: `/library/${a.useExistingId}` };
+      }
       const isBook = a.type === "book";
       const isbnDigits = a.isbn?.replace(/[\s-]/g, "") ?? "";
       const role = a.authorRole ?? (isBook || a.type === "article" ? "author" : "speaker");
@@ -645,26 +731,29 @@ export const TOOLS = {
                 }
               : null,
           },
-          { allowDuplicate: !!a.force, origin: "ai" },
+          { allowDuplicate: !!a.createNew, origin: "ai" },
         );
-        if (out.mode === "applied" && a.status) await setLearningStatus(db, ctx, out.id, a.status);
+        if (out.mode === "applied") await mark(out.id);
         return out.mode === "applied"
           ? { created: true, id: out.id, href: `/library/${out.id}` }
           : { suggested: true, href: "/suggestions" };
       } catch (err) {
-        if (err instanceof AppError && err.code === "DUPLICATE")
-          return {
-            created: false,
-            duplicates: (err.details as { candidates?: unknown })?.candidates ?? [],
-            hint: "Use an existing id, or call again with force=true if it is really different.",
-          };
+        // An identical entry appeared meanwhile: use it instead of duplicating.
+        if (err instanceof AppError && err.code === "DUPLICATE") {
+          const c = ((err.details as { candidates?: { id: string; score: number }[] })
+            ?.candidates ?? [])[0];
+          if (c && c.score >= 0.95) {
+            await mark(c.id);
+            return { linked: true, id: c.id, href: `/library/${c.id}` };
+          }
+        }
         throw err;
       }
     },
   }),
   update_resource: def({
     perm: "write_catalog",
-    mode: "act",
+    mode: "confirm",
     description:
       "Change catalog fields of a resource (title, dates, description, cover, pages, readingUrl, language, publisher…). Applies directly when the user may edit it; otherwise it becomes a suggestion for the admin.",
     parameters: obj(
@@ -714,7 +803,7 @@ export const TOOLS = {
   }),
   set_cover: def({
     perm: "write_catalog",
-    mode: "act",
+    mode: "confirm",
     description:
       "Set a resource's cover from an https image URL (e.g. coverUrl from lookup_book_online).",
     parameters: obj({ ...resourceRef, imageUrl: str("https image URL") }, ["imageUrl"]),
@@ -724,7 +813,7 @@ export const TOOLS = {
   }),
   add_person: def({
     perm: "write_catalog",
-    mode: "act",
+    mode: "confirm",
     description:
       "Add a person (author, scholar…) to the catalog using facts from sources (lookup_person_online). Never guess dates. Returns duplicates instead of creating when similar people exist (force=true only if really different).",
     parameters: obj(
@@ -785,7 +874,7 @@ export const TOOLS = {
   }),
   suggest_correction: def({
     perm: "write_catalog",
-    mode: "act",
+    mode: "confirm",
     description:
       "Send a correction of someone else's catalog entry to admin review (e.g. biography, dates).",
     parameters: obj(
@@ -834,7 +923,7 @@ export const TOOLS = {
   // ─── Act: personal ──────────────────────────────────────────────────────
   update_my_record: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description:
       "Update the user's own record of a resource: status, rating OUT OF 10, exact start / finish date-times (ISO, e.g. 2026-05-01T21:30), short review, progress. Adds it to the library if needed.",
     parameters: obj({
@@ -884,7 +973,7 @@ export const TOOLS = {
   }),
   write_taqriz: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description:
       "Write into the user's taqriz (free-form write-up) of a resource, in the user's language. Text is light Markdown: '## ' chapter titles, '- ' lists, '> ' quotes, **bold**. mode=append adds at the end (or at the end of `chapter` if it exists, else creates that chapter); mode=replace_chapter rewrites that chapter's text. Chapters are optional.",
     parameters: obj(
@@ -914,7 +1003,7 @@ export const TOOLS = {
   }),
   add_to_collection: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description:
       "Add a resource to one of the user's collections (by name or id; created if missing — ranked=true for Top-N lists). Optional rank places it at that position (#1 = best).",
     parameters: obj({
@@ -941,7 +1030,7 @@ export const TOOLS = {
   }),
   set_rank: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description: "Move a resource to a position in a ranked collection (#1 = best).",
     parameters: obj(
       { ...resourceRef, collectionId: str(""), collectionName: str(""), rank: int("1 = top") },
@@ -962,7 +1051,7 @@ export const TOOLS = {
   }),
   create_note: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description:
       "Create a private note, or an EXACT quotation (with page). Never invent quotations — take exact text from read_book_pages / search_in_books.",
     parameters: obj(
@@ -1019,7 +1108,7 @@ export const TOOLS = {
   }),
   create_plan: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description: "Plan to read/watch something from one date to another (YYYY-MM-DD).",
     parameters: obj(
       {
@@ -1060,7 +1149,7 @@ export const TOOLS = {
   }),
   create_goal: def({
     perm: "write_personal",
-    mode: "act",
+    mode: "confirm",
     description:
       "Create a goal: complete N resources or read N pages per week/month/year (optionally only one type).",
     parameters: obj(
@@ -1160,6 +1249,65 @@ export const TOOLS = {
     run: async (ctx, a) => {
       await deleteCollection(db, ctx, await resolveCollection(ctx, a));
       return { deleted: true, href: "/collections" };
+    },
+  }),
+  find_duplicates: def({
+    perm: "read_library",
+    mode: "read",
+    description:
+      "Find likely duplicate entries in the user's library (same or very similar titles). Use before merge_resources.",
+    parameters: obj({}),
+    args: z.object({}),
+    run: async (ctx) =>
+      (await findLibraryDuplicates(ctx)).map((g) =>
+        g.items.map((i) => ({ id: i.id, title: i.title, authors: i.authors, myStatus: i.status })),
+      ),
+  }),
+  merge_resources: def({
+    perm: "delete",
+    mode: "confirm",
+    description:
+      "Merge duplicate entries into one: the user's record, notes, taqriz and collection places move to `keep`; the duplicates are archived (if the user may edit them). Use ids from find_duplicates / search_catalog.",
+    parameters: obj(
+      {
+        keepId: str("UUID of the entry to keep"),
+        removeIds: arr({ type: "string" }, "UUIDs of the duplicates"),
+      },
+      ["keepId", "removeIds"],
+    ),
+    args: z.object({ keepId: uuid, removeIds: z.array(uuid).min(1).max(10) }),
+    preview: async (ctx, a) => ({
+      keep: (await describeResources(ctx, [{ id: a.keepId, score: 1, reason: "keep" }]))[0] ?? null,
+      remove: await describeResources(
+        ctx,
+        a.removeIds.map((id) => ({ id, score: 1, reason: "remove" })),
+      ),
+    }),
+    run: async (ctx, a) => {
+      const r = await mergeResources(ctx, a.keepId, a.removeIds);
+      return { ...r, href: `/library/${a.keepId}` };
+    },
+  }),
+  delete_resource: def({
+    perm: "delete",
+    mode: "confirm",
+    description:
+      "Delete an entry the user added by mistake: removes it from their library and archives the catalog entry when they created it (otherwise only removes it from their library and suggests archiving).",
+    parameters: obj(resourceRef),
+    args: z.object(resourceRefSchema),
+    preview: async (ctx, a) => ({
+      target:
+        (
+          await describeResources(ctx, [
+            { id: await resolveResource(ctx, a), score: 1, reason: "target" },
+          ])
+        )[0] ?? null,
+    }),
+    run: async (ctx, a) => {
+      const id = await resolveResource(ctx, a);
+      await removeLearningRecord(db, ctx, id).catch(() => {});
+      const out = await submitArchive(db, ctx, "resource", id, true, "Removed by its owner (AI)");
+      return { deleted: true, archived: out.mode === "applied", href: "/library" };
     },
   }),
   archive_resource: def({

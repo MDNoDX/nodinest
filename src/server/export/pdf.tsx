@@ -208,10 +208,14 @@ function Blocks({
   nodes,
   anchor,
   depth = 0,
+  images = {},
+  t,
 }: {
   nodes: DocNode[];
   anchor: string;
   depth?: number;
+  images?: Record<string, Uint8Array>;
+  t?: Labels;
 }) {
   return (
     <>
@@ -245,6 +249,27 @@ function Blocks({
             );
           case "horizontalRule":
             return <View key={key} style={s.rule} />;
+          case "image": {
+            const data = images[String(n.attrs?.fileId)];
+            return data ? (
+              <Image
+                key={key}
+                src={{ data: Buffer.from(data), format: "jpg" }}
+                style={{ maxHeight: 420, objectFit: "contain", marginVertical: 8, borderRadius: 4 }}
+              />
+            ) : null;
+          }
+          case "audio":
+          case "file":
+            return (
+              <Text
+                key={key}
+                style={{ fontFamily: "Sans", fontSize: 9.5, color: MUTED, marginVertical: 4 }}
+              >
+                {n.type === "audio" ? (t?.audio ?? "Audio") : (t?.file ?? "File")}:{" "}
+                {String(n.attrs?.name ?? "")}
+              </Text>
+            );
           case "bulletList":
           case "orderedList": {
             const start = Number(n.attrs?.start ?? 1);
@@ -289,7 +314,7 @@ function BookPages({
   const f = facts(it, loc);
   const started = fmtWhen(it.startedAt, loc, tz);
   const finished = fmtWhen(it.completedAt, loc, tz);
-  const hasText = (it.doc?.content ?? []).some((n) => n.content?.length);
+  const hasText = (it.doc?.content ?? []).some((n) => n.content?.length || n.attrs?.fileId);
   return (
     <>
       <Page size="A4" style={s.page} wrap>
@@ -376,7 +401,7 @@ function BookPages({
 
         <View style={s.rule} />
         {hasText ? (
-          <Blocks nodes={it.doc!.content} anchor={anchor} />
+          <Blocks nodes={it.doc!.content} anchor={anchor} images={it.images} t={t} />
         ) : (
           <Text style={s.empty}>{t.noText}</Text>
         )}

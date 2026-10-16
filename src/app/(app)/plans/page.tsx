@@ -23,12 +23,7 @@ export default async function PlansPage({ searchParams }: { searchParams: SP }) 
   ]);
   return (
     <>
-      <PageHeader
-        section="plans"
-        title={t("plans.title")}
-        subtitle={t("plans.subtitle")}
-        actions={<GoalDialog />}
-      />
+      <PageHeader section="plans" title={t("plans.title")} actions={<GoalDialog />} />
       <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader title={t("plans.goals")} />

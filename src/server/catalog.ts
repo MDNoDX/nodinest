@@ -666,6 +666,8 @@ export type LibraryFilters = {
   q?: string;
   type?: ResourceType | null;
   status?: string | null; // my learning status, "none" = not in my library
+  /** "mine" = only what is in my library (default on the Library page). */
+  scope?: "mine" | "all";
   categoryId?: string | null;
   personId?: string | null;
   sort?: "updated" | "title" | "date" | "added";
@@ -694,7 +696,9 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
         sql`exists (select 1 from nodinest.resource_contributors c where c.resource_id = r.id and c.person_id = ${f.personId})`,
       );
     if (f.status === "none") conds.push(sql`lr.id is null`);
+    else if (f.status === "paused") conds.push(sql`lr.status in ('paused', 'abandoned')`);
     else if (f.status) conds.push(sql`lr.status = ${f.status}`);
+    else if (f.scope === "mine") conds.push(sql`lr.id is not null`);
     const q = f.q ? normalizeText(f.q) : "";
     if (q) {
       const like = `%${escapeLike(q)}%`;

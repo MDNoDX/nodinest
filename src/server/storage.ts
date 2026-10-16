@@ -15,11 +15,33 @@ import { files } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { enforceRateLimit } from "./rate-limit";
 
-export type UploadPurpose = "cover" | "portrait" | "attachment";
+export type UploadPurpose = "cover" | "portrait" | "attachment" | "media";
 
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
+const IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+  "image/heic",
+];
 const DOC_TYPES = ["application/pdf", "application/epub+zip"];
+export const AUDIO_TYPES = [
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/m4a",
+  "audio/aac",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/flac",
+];
+const MEDIA_TYPES = [...IMAGE_TYPES, "application/pdf", ...AUDIO_TYPES];
 export const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+export const MEDIA_MAX_BYTES = 30 * 1024 * 1024;
 export const USER_QUOTA_BYTES = 900 * 1024 * 1024;
 
 export function attachmentMaxBytes() {
@@ -32,11 +54,15 @@ export function isStorageConfigured() {
 }
 
 export function allowedTypes(purpose: UploadPurpose) {
-  return purpose === "attachment" ? DOC_TYPES : IMAGE_TYPES;
+  return purpose === "attachment" ? DOC_TYPES : purpose === "media" ? MEDIA_TYPES : IMAGE_TYPES;
 }
 
 export function maxBytes(purpose: UploadPurpose) {
-  return purpose === "attachment" ? attachmentMaxBytes() : IMAGE_MAX_BYTES;
+  return purpose === "attachment"
+    ? attachmentMaxBytes()
+    : purpose === "media"
+      ? MEDIA_MAX_BYTES
+      : IMAGE_MAX_BYTES;
 }
 
 /** Every user's uploads live under their own prefix. */
@@ -67,7 +93,7 @@ export async function authorizeUpload(
   payload: { purpose: UploadPurpose; size: number; mime: string },
 ) {
   if (!isStorageConfigured()) throw new AppError("STORAGE_UNAVAILABLE");
-  if (!["cover", "portrait", "attachment"].includes(payload.purpose))
+  if (!["cover", "portrait", "attachment", "media"].includes(payload.purpose))
     throw new AppError("VALIDATION", "bad_purpose");
   if (!pathname.startsWith(userPrefix(ctx.userId, payload.purpose)) || pathname.includes(".."))
     throw new AppError("FORBIDDEN");
@@ -125,8 +151,11 @@ export async function registerUpload(
         mimeType: meta.contentType,
         sizeBytes: meta.size,
         purpose: input.purpose,
-        isCatalog: input.purpose !== "attachment",
-        resourceId: input.purpose === "attachment" ? (input.resourceId ?? null) : null,
+        isCatalog: input.purpose === "cover" || input.purpose === "portrait",
+        resourceId:
+          input.purpose === "attachment" || input.purpose === "media"
+            ? (input.resourceId ?? null)
+            : null,
         uploadedAt: new Date(),
       })
       .onConflictDoNothing()

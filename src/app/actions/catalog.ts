@@ -5,7 +5,9 @@ import { addRelation } from "@/server/catalog";
 import { submitArchive, submitPerson, submitResource } from "@/server/suggestions";
 import { withUser } from "@/db";
 import { lookupBooks } from "@/server/lookup";
+import { mergeResources } from "@/server/merge";
 import { savePublisher } from "@/server/publishers";
+import { removeLearningRecord } from "@/server/records";
 import { importUrlMetadata } from "@/server/url-import";
 import { run } from "./_run";
 
@@ -109,5 +111,29 @@ export async function savePublisherAction(input: unknown, publisherId?: string |
     );
     revalidatePath("/publishers", "layout");
     return pid;
+  });
+}
+
+/** Merge duplicates into `keepId` (the user's data moves; duplicates are archived). */
+export async function mergeResourcesAction(keepId: string, removeIds: string[]) {
+  return run(async ({ ctx }) => {
+    const out = await mergeResources(
+      ctx,
+      z.string().uuid().parse(keepId),
+      z.array(z.string().uuid()).min(1).max(10).parse(removeIds),
+    );
+    revalidatePath("/", "layout");
+    return out;
+  });
+}
+
+/** Delete an entry: leaves the user's library; archived too when the user created it. */
+export async function deleteResourceAction(resourceId: string) {
+  return run(async ({ ctx, db }) => {
+    const id = z.string().uuid().parse(resourceId);
+    await removeLearningRecord(db, ctx, id).catch(() => {});
+    const out = await submitArchive(db, ctx, "resource", id, true, "Removed by its owner");
+    revalidatePath("/", "layout");
+    return { archived: out.mode === "applied" };
   });
 }

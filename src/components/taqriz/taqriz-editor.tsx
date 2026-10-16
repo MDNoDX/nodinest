@@ -10,11 +10,14 @@ import {
   CloudOff,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   List,
   ListOrdered,
   ListTree,
   Loader2,
+  Mic,
+  Paperclip,
   Pilcrow,
   Quote,
   Redo2,
@@ -30,6 +33,9 @@ import { toast } from "sonner";
 import { saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Cover } from "@/components/library/cover";
+import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
+import { uploadMedia } from "@/lib/upload-media";
+import { AudioNode, FileNode, ImageNode } from "./media-nodes";
 import { cn } from "@/lib/cn";
 import { countWords, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
 
@@ -106,18 +112,29 @@ export function TaqrizEditor({
   resource,
   initial,
   focusQuery,
+  userId,
 }: {
   resource: { id: string; title: string; type: string; cover: string | null; authors: string };
   initial: { doc: WriteupDoc | null; updatedAt: string | null };
   focusQuery?: string | null;
+  userId: string;
 }) {
   const t = useTranslations("taqriz");
   const [state, setState] = useState<SaveState>("idle");
   const base = useRef<string | null>(initial.updatedAt);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
+  const conflicted = useRef(false);
   const [activePos, setActivePos] = useState<number | null>(null);
   const [outlineOpen, setOutlineOpen] = useState(false);
+  const pickImage = useRef<HTMLInputElement>(null);
+  const pickFile = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<Editor | null>(null);
+  const rec = useRecorder();
+  const stopRecording = async () => {
+    const r = await rec.stop();
+    if (r) await insertFiles([r.blob], [r.name]);
+  };
   /** "Keep mine" after a conflict re-runs save with force (set below). */
   const retry = useRef<((e: Editor, force: boolean) => Promise<void>) | null>(null);
 
@@ -126,6 +143,8 @@ export function TaqrizEditor({
       if (saving.current) return;
       const doc = sanitizeDoc(editor.getJSON());
       writeDraft(resource.id, { doc, base: base.current, at: Date.now() });
+      // Waiting for the user's choice: keep the draft locally, don't retry.
+      if (conflicted.current && !force) return;
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         setState("offline");
         return;
@@ -138,12 +157,16 @@ export function TaqrizEditor({
           force,
         });
         if (r.ok) {
+          conflicted.current = false;
+          toast.dismiss("taqriz-conflict");
           base.current = r.data.updatedAt;
           writeDraft(resource.id, null);
           setState("saved");
         } else if (r.code === "CONFLICT") {
           setState("conflict");
+          conflicted.current = true;
           toast.warning(t("conflict"), {
+            id: "taqriz-conflict",
             duration: Infinity,
             action: { label: t("keepMine"), onClick: () => void retry.current?.(editor, true) },
             cancel: { label: t("loadTheirs"), onClick: () => location.reload() },
@@ -182,6 +205,9 @@ export function TaqrizEditor({
         code: false,
         link: { openOnClick: false, autolink: true, protocols: ["http", "https"] },
       }),
+      ImageNode,
+      AudioNode,
+      FileNode,
       Placeholder.configure({
         placeholder: ({ node }) =>
           node.type.name === "heading" ? t("chapterPlaceholder") : t("placeholder"),
@@ -190,6 +216,22 @@ export function TaqrizEditor({
     content: startDoc ?? undefined,
     editorProps: {
       attributes: { class: "taqriz-doc", "aria-label": t("title"), spellcheck: "true" },
+      // Drop or paste files straight into the document.
+      handleDrop: (_view, event) => {
+        const list = (event as DragEvent).dataTransfer?.files;
+        if (!list?.length) return false;
+        event.preventDefault();
+        void insertFiles([...list]);
+        return true;
+      },
+      handlePaste: (_view, event) => {
+        const imgs = [...(event.clipboardData?.files ?? [])].filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (!imgs.length) return false;
+        void insertFiles(imgs);
+        return true;
+      },
     },
     // Nudge useEditorState once so the outline / word count show immediately
     // (a meta-only transaction: no doc change, so no save).
@@ -200,6 +242,10 @@ export function TaqrizEditor({
       timer.current = setTimeout(() => void save(editor), 1100);
     },
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   // Unsynced draft from an earlier offline session → push it now.
   useEffect(() => {
@@ -337,6 +383,40 @@ export function TaqrizEditor({
       .scrollIntoView()
       .run();
   };
+
+  /** Upload → insert as image / audio / file block at the cursor. */
+  async function insertFiles(list: (File | Blob)[], names?: string[]) {
+    for (const [i, f] of list.entries()) {
+      const name = names?.[i] ?? (f instanceof File ? f.name : "file");
+      const id = toast.loading(t("uploading", { name }));
+      try {
+        const up = await uploadMedia(f, { userId, name, resourceId: resource.id });
+        const type = up.mime.startsWith("image/")
+          ? "image"
+          : up.mime.startsWith("audio/")
+            ? "audio"
+            : "file";
+        editorRef.current
+          ?.chain()
+          .focus()
+          .insertContent([
+            {
+              type,
+              attrs: {
+                fileId: up.fileId,
+                name: up.name,
+                ...(type === "file" ? { mime: up.mime } : {}),
+              },
+            },
+            { type: "paragraph" },
+          ])
+          .run();
+        toast.success(t("added", { name }), { id });
+      } catch {
+        toast.error(t("uploadFailed"), { id });
+      }
+    }
+  }
 
   /** Saves pending edits before an export so the file has the latest text. */
   const flush = async () => {
@@ -540,6 +620,42 @@ export function TaqrizEditor({
             >
               <Redo2 className="size-4" />
             </Tool>
+            <span className="bg-border mx-1 h-5 w-px shrink-0" />
+            <input
+              ref={pickImage}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) void insertFiles([...e.target.files]);
+                e.target.value = "";
+              }}
+            />
+            <input
+              ref={pickFile}
+              type="file"
+              accept="application/pdf,audio/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) void insertFiles([...e.target.files]);
+                e.target.value = "";
+              }}
+            />
+            <Tool label={t("addImage")} onClick={() => pickImage.current?.click()}>
+              <ImagePlus className="size-4" />
+            </Tool>
+            <Tool
+              label={rec.state === "denied" ? t("micDenied") : t("recordAudio")}
+              on={rec.state === "recording"}
+              onClick={() => (rec.state === "recording" ? void stopRecording() : void rec.start())}
+            >
+              <Mic className="size-4" />
+            </Tool>
+            <Tool label={t("addFile")} onClick={() => pickFile.current?.click()}>
+              <Paperclip className="size-4" />
+            </Tool>
             <span className="text-muted ml-auto flex shrink-0 items-center gap-3 pl-3 text-xs">
               <ExportMenu
                 resourceId={resource.id}
@@ -555,6 +671,32 @@ export function TaqrizEditor({
               </span>
             </span>
           </div>
+          {rec.state === "recording" && (
+            <div className="border-border mx-auto flex max-w-3xl items-center gap-3 border-t px-4 py-2 sm:px-6">
+              <span className="bg-danger size-2.5 animate-pulse rounded-full" />
+              <span className="text-sm font-medium tabular-nums">{fmtSeconds(rec.seconds)}</span>
+              <span className="bg-surface-2 h-1.5 flex-1 overflow-hidden rounded-full">
+                <span
+                  className="bg-danger block h-full rounded-full"
+                  style={{ width: `${Math.round(rec.level * 100)}%` }}
+                />
+              </span>
+              <button
+                type="button"
+                className="text-muted text-sm hover:underline"
+                onClick={rec.cancel}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className="bg-danger rounded-lg px-3 py-1 text-sm font-medium text-white"
+                onClick={() => void stopRecording()}
+              >
+                {t("stop")}
+              </button>
+            </div>
+          )}
           {outlineOpen && (
             <div className="border-border mx-auto max-w-3xl border-t px-3 py-2 lg:hidden">
               {outline}

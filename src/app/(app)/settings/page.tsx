@@ -26,11 +26,7 @@ export default async function SettingsPage() {
   const used = storage ? await storageUsage(ctx) : 0;
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        section="settings"
-        title={t("settings.title")}
-        subtitle={t("settings.subtitle")}
-      />
+      <PageHeader section="settings" title={t("settings.title")} />
       <div className="flex flex-col gap-6">
         <Card id="install">
           <CardHeader title={t("install.title")} icon={<AppWindow />} hue="blue" />

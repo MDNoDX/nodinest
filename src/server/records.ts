@@ -153,3 +153,36 @@ export async function listMyRecords(database: Database, ctx: AppContext, status?
       .limit(500),
   );
 }
+
+/**
+ * Sets only the rating (1–10). A missing record is created as "completed"
+ * (you rate what you finished); an existing one keeps all its other fields.
+ */
+export async function setRating(
+  database: Database,
+  ctx: AppContext,
+  resourceId: string,
+  rating: number,
+) {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 10)
+    throw new AppError("VALIDATION", "rating");
+  await withUser(database, ctx, async (tx) => {
+    await assertResourceExists(tx, resourceId);
+    const now = new Date();
+    await tx
+      .insert(learningRecords)
+      .values({
+        userId: ctx.userId,
+        resourceId,
+        status: "completed",
+        rating,
+        startedAt: now,
+        completedAt: now,
+        lastAccessedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [learningRecords.userId, learningRecords.resourceId],
+        set: { rating, updatedAt: now },
+      });
+  });
+}

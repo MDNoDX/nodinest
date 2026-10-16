@@ -258,7 +258,7 @@ export function RecordForm({
         </Select>
       </div>
 
-      <Field label={t("record.review")} optional hint={t("record.reviewHint")}>
+      <Field label={t("record.review")} optional>
         {(p) => (
           <Textarea
             {...p}

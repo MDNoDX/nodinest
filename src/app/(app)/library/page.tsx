@@ -1,4 +1,5 @@
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, Copy, Plus, Search } from "lucide-react";
+import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { coverSrc } from "@/components/library/cover";
@@ -11,6 +12,7 @@ import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/vali
 import { shortYear } from "@/lib/dates";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { listCategories, listResources } from "@/server/catalog";
+import { findLibraryDuplicates } from "@/server/merge";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
       ? sp(p.sort)
       : "updated") as "updated",
     archived: sp(p.archived) === "1",
+    scope: (sp(p.scope) === "all" ? "all" : "mine") as "mine" | "all",
     page: spInt(p.page),
   };
   const uuidRe = /^[0-9a-f-]{36}$/i;
@@ -47,9 +50,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
   )
     filters.status = null;
 
-  const [data, cats] = await Promise.all([
+  const [data, cats, dups] = await Promise.all([
     listResources(db, ctx, filters),
     listCategories(db, ctx),
+    findLibraryDuplicates(ctx),
   ]);
   const qs = (page: number) => {
     const u = new URLSearchParams();
@@ -61,6 +65,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
       person: filters.personId,
       sort: filters.sort,
       archived: filters.archived ? "1" : null,
+      scope: filters.scope === "all" ? "all" : null,
     }))
       if (v) u.set(k, String(v));
     u.set("page", String(page));
@@ -80,7 +85,6 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
       <PageHeader
         section="library"
         title={t("library.title")}
-        subtitle={t("library.subtitle")}
         actions={
           <Button asChild>
             <Link href="/library/new">
@@ -89,6 +93,31 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           </Button>
         }
       />
+      <nav className="mb-4 flex flex-wrap items-center gap-2" aria-label={t("library.scope")}>
+        {(["mine", "all"] as const).map((sc) => (
+          <Link
+            key={sc}
+            href={sc === "all" ? "/library?scope=all" : "/library"}
+            aria-current={filters.scope === sc ? "page" : undefined}
+            className={cn(
+              "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+              filters.scope === sc
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border bg-surface text-muted hover:text-foreground",
+            )}
+          >
+            {sc === "mine" ? t("library.scopeMine") : t("library.scopeAll")}
+          </Link>
+        ))}
+        {dups.length > 0 && (
+          <Link
+            href="/library/duplicates"
+            className="bg-warning-soft text-warning ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium hover:underline"
+          >
+            <Copy className="size-4" /> {t("library.duplicatesFound", { count: dups.length })}
+          </Link>
+        )}
+      </nav>
       <AutoSubmitForm className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
         <div className="relative">
           <Search
@@ -143,6 +172,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           <option value="date">{t("library.sortDate")}</option>
         </Select>
         {filters.personId && <input type="hidden" name="person" value={filters.personId} />}
+        {filters.scope === "all" && <input type="hidden" name="scope" value="all" />}
         <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-5">
           {user.role === "superadmin" && (
             <label className="text-muted flex items-center gap-2 text-sm">
