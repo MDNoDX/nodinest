@@ -25,7 +25,15 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
-import { setDockPrefs, useAltLabel, useDockPrefs } from "./dock-prefs";
+import {
+  comboLabel,
+  getShortcuts,
+  matches,
+  useIsApple,
+  useShortcuts,
+  type ShortcutId,
+} from "@/lib/shortcuts";
+import { setDockPrefs, useDockPrefs } from "./dock-prefs";
 
 /**
  * A player that lives in the app shell, so a YouTube video or an audio /
@@ -53,6 +61,11 @@ type DockApi = DockState & {
   seekTo: (t: number) => void;
   close: () => void;
   keyOf: (s: DockSource) => string;
+  /**
+   * Live audio of the playing file (not YouTube) for "listen and write";
+   * null when the source cannot be captured (cross-origin file, YouTube).
+   */
+  captureStream: () => MediaStream | null;
 };
 
 const Ctx = createContext<DockApi | null>(null);
@@ -62,6 +75,19 @@ const YT_ORIGIN = "https://www.youtube-nocookie.com";
 const STORE = "nn:dock";
 const RATES = [1, 1.25, 1.5, 1.75, 2, 0.75];
 const keyOf = (s: DockSource) => (s.kind === "youtube" ? `yt:${s.id}` : `f:${s.src}`);
+
+type MacBridge = { postMessage: (m: unknown) => void };
+/** The NodiNest Mac app's native bridge (absent in browsers). */
+const macBridge = (): MacBridge | null =>
+  (typeof window !== "undefined" &&
+    (window as unknown as { webkit?: { messageHandlers?: { nodinest?: MacBridge } } }).webkit
+      ?.messageHandlers?.nodinest) ||
+  null;
+/** System media key via the Mac app, or null (then the key is left alone). */
+const macMedia = (action: "playpause") => {
+  const b = macBridge();
+  return b ? () => b.postMessage({ type: "media", action }) : null;
+};
 
 export function fmtClock(sec: number) {
   const s = Math.max(0, Math.floor(sec));
@@ -231,14 +257,18 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
     }
   }, [t]);
 
-  // Shortcuts work everywhere, also inside the editor (Alt + physical key).
+  // Shortcuts (changeable in Settings) work everywhere, also inside the editor.
+  // With nothing playing here, the Mac app forwards play/pause to macOS, so
+  // the same key controls YouTube in another window, Spotify, etc.
   useEffect(() => {
-    if (!st.source) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!e.altKey || e.ctrlKey || e.metaKey) return;
-      const act = { KeyK: toggle, KeyJ: () => seekBy(-5), KeyL: () => seekBy(5), KeyT: stamp }[
-        e.code
-      ];
+      const k = getShortcuts();
+      const has = !!live.current.source;
+      let act: (() => void) | null = null;
+      if (matches(e, k.playPause)) act = has ? toggle : macMedia("playpause");
+      else if (has && matches(e, k.back5)) act = () => seekBy(-5);
+      else if (has && matches(e, k.fwd5)) act = () => seekBy(5);
+      else if (has && matches(e, k.stamp)) act = stamp;
       if (!act) return;
       e.preventDefault();
       e.stopPropagation();
@@ -246,15 +276,41 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [st.source, toggle, seekBy, stamp]);
+  }, [toggle, seekBy, stamp]);
+
+  // Web Audio taps the element once; the sound still goes to the speakers.
+  const audioCtx = useRef<AudioContext | null>(null);
+  const taps = useRef(new WeakMap<HTMLMediaElement, MediaStream>());
+  const captureStream = useCallback(() => {
+    const el = media.current;
+    const src = live.current.source;
+    if (!el || src?.kind !== "file" || !src.src.startsWith("/")) return null;
+    const known = taps.current.get(el);
+    if (known) return known;
+    try {
+      audioCtx.current ??= new AudioContext();
+      const ac = audioCtx.current;
+      void ac.resume();
+      const node = ac.createMediaElementSource(el);
+      const dest = ac.createMediaStreamDestination();
+      node.connect(ac.destination);
+      node.connect(dest);
+      taps.current.set(el, dest.stream);
+      return dest.stream;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const api = useMemo<DockApi>(
-    () => ({ ...st, open, toggle, seekBy, seekTo, close, keyOf }),
-    [st, open, toggle, seekBy, seekTo, close],
+    () => ({ ...st, open, toggle, seekBy, seekTo, close, keyOf, captureStream }),
+    [st, open, toggle, seekBy, seekTo, close, captureStream],
   );
 
   const s = st.source;
-  const mod = useAltLabel();
+  const keys = useShortcuts();
+  const apple = useIsApple();
+  const kl = (id: ShortcutId) => comboLabel(keys[id], apple);
 
   // Drag the dock anywhere by its grip; the spot is remembered on this device.
   const clamp = (x: number, y: number, w = 380, h = 140) => ({
@@ -410,14 +466,14 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               disabled={!st.duration}
             />
             <div className="flex items-center gap-1">
-              <IconBtn label={`${t("back5")} ({mod}J)`} onClick={() => seekBy(-5)}>
+              <IconBtn label={`${t("back5")} (${kl("back5")})`} onClick={() => seekBy(-5)}>
                 <RotateCcw className="size-4" />
               </IconBtn>
               <button
                 type="button"
                 onClick={toggle}
-                aria-label={`${st.playing ? t("pause") : t("play")} ({mod}K)`}
-                title={`${st.playing ? t("pause") : t("play")} ({mod}K)`}
+                aria-label={`${st.playing ? t("pause") : t("play")} (${kl("playPause")})`}
+                title={`${st.playing ? t("pause") : t("play")} (${kl("playPause")})`}
                 className="bg-primary text-primary-foreground grid size-9 shrink-0 place-items-center rounded-full"
               >
                 {st.playing ? (
@@ -426,7 +482,7 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
                   <Play className="size-4 translate-x-px" />
                 )}
               </button>
-              <IconBtn label={`${t("fwd5")} ({mod}L)`} onClick={() => seekBy(5)}>
+              <IconBtn label={`${t("fwd5")} (${kl("fwd5")})`} onClick={() => seekBy(5)}>
                 <RotateCw className="size-4" />
               </IconBtn>
               <span className="text-muted ml-1 text-xs tabular-nums">
@@ -442,7 +498,7 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               >
                 {st.rate}×
               </button>
-              <IconBtn label={`${t("stamp")} ({mod}T)`} onClick={stamp}>
+              <IconBtn label={`${t("stamp")} (${kl("stamp")})`} onClick={stamp}>
                 <Clock className="size-4" />
               </IconBtn>
             </div>
@@ -465,7 +521,12 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
             </div>
             {prefs.showKeys && (
               <p className="text-muted text-[11px] leading-tight">
-                {t("keys", { k: `${mod}K`, j: `${mod}J`, l: `${mod}L`, t: `${mod}T` })}
+                {t("keys", {
+                  k: kl("playPause"),
+                  j: kl("back5"),
+                  l: kl("fwd5"),
+                  t: kl("stamp"),
+                })}
               </p>
             )}
           </div>

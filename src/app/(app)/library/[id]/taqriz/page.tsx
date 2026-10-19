@@ -7,6 +7,8 @@ import { getResourceHeader } from "@/server/catalog";
 import { getWriteup } from "@/server/writeups";
 
 export const dynamic = "force-dynamic";
+// AI listening / explaining runs as server actions from this page.
+export const maxDuration = 120;
 
 export async function generateMetadata() {
   return { title: (await getTranslations("taqriz"))("title") };

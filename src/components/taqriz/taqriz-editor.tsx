@@ -1,4 +1,6 @@
 "use client";
+import { getShortcuts, matches } from "@/lib/shortcuts";
+import { AiPanel, type AskRequest, type PanelTab } from "./ai-panel";
 import { useMediaDock, type DockSource, type StampEvent } from "@/components/media/media-dock";
 import { Placeholder } from "@tiptap/extensions";
 import type { Node as PMNode } from "@tiptap/pm/model";
@@ -140,7 +142,19 @@ export function TaqrizEditor({
   const pickFile = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const rec = useRecorder();
-  const keyActions = useRef<{ quote: () => void; chapter: (l: 2 | 3) => void } | null>(null);
+  const keyActions = useRef<{
+    quote: () => void;
+    chapter: (l: 2 | 3) => void;
+    ask: () => void;
+  } | null>(null);
+  // AI side panel: stays mounted once opened, so listening goes on when hidden.
+  const [ai, setAi] = useState<{ open: boolean; mounted: boolean; tab: PanelTab }>({
+    open: false,
+    mounted: false,
+    tab: "ask",
+  });
+  const [askReq, setAskReq] = useState<AskRequest | null>(null);
+  const openAi = (tab: PanelTab) => setAi({ open: true, mounted: true, tab });
   const dock = useMediaDock();
   const dockActive = !!(media && dock?.source && dock.keyOf(dock.source) === dock.keyOf(media));
   const stopRecording = async () => {
@@ -228,18 +242,21 @@ export function TaqrizEditor({
     content: startDoc ?? undefined,
     editorProps: {
       attributes: { class: "taqriz-doc", "aria-label": t("title"), spellcheck: "true" },
-      // ⌘⇧B / ⌘⌥2 / ⌘⌥3 act on exactly the selected text, like the buttons.
+      // Quote / chapter shortcuts (Settings) act on exactly the selected text, like the buttons.
       handleKeyDown: (_view, e) => {
-        const mod = e.metaKey || e.ctrlKey;
-        if (mod && e.shiftKey && !e.altKey && e.code === "KeyB") {
-          keyActions.current?.quote();
-          return true;
-        }
-        if (mod && e.altKey && !e.shiftKey && (e.code === "Digit2" || e.code === "Digit3")) {
-          keyActions.current?.chapter(e.code === "Digit2" ? 2 : 3);
-          return true;
-        }
-        return false;
+        const k = getShortcuts();
+        const act = matches(e, k.quote)
+          ? () => keyActions.current?.quote()
+          : matches(e, k.askAi)
+            ? () => keyActions.current?.ask()
+            : matches(e, k.chapter)
+              ? () => keyActions.current?.chapter(2)
+              : matches(e, k.subchapter)
+                ? () => keyActions.current?.chapter(3)
+                : null;
+        if (!act) return false;
+        act();
+        return true;
       },
       // Drop or paste files straight into the document.
       handleDrop: (_view, event) => {
@@ -468,11 +485,22 @@ export function TaqrizEditor({
     editor.commands.focus();
   };
 
-  /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
+  /** Selected text (+ its paragraph as context) → the AI panel. */
+  const askAi = () => {
+    if (!editor) return;
+    const { from, to, $from, $to } = editor.state.selection;
+    const selection = editor.state.doc.textBetween(from, to, "\n").trim();
+    if (!selection) return openAi("ask");
+    const context = editor.state.doc.textBetween($from.start(), $to.end(), "\n").slice(0, 3000);
+    setAskReq({ selection: selection.slice(0, 4000), context, n: Date.now() });
+    openAi("ask");
+  };
+
   useEffect(() => {
-    keyActions.current = { quote: makeQuote, chapter: makeChapter };
+    keyActions.current = { quote: makeQuote, chapter: makeChapter, ask: askAi };
   });
 
+  /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
   const saveAsQuote = async () => {
     if (!editor) return;
     const { from, to } = editor.state.selection;
@@ -609,7 +637,12 @@ export function TaqrizEditor({
   );
 
   return (
-    <div className="-mx-4 -my-6 grid min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8 lg:grid-cols-[17rem_1fr]">
+    <div
+      className={cn(
+        "-mx-4 -my-6 grid min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8 lg:grid-cols-[17rem_1fr]",
+        ai.open && "lg:grid-cols-[15rem_1fr_22rem] xl:grid-cols-[17rem_1fr_24rem]",
+      )}
+    >
       <aside className="border-border bg-surface/60 hidden flex-col border-r lg:sticky lg:top-14 lg:flex lg:h-[calc(100dvh-3.5rem)]">
         <div className="flex items-start gap-3 p-4">
           <Cover
@@ -805,6 +838,13 @@ export function TaqrizEditor({
             <Tool label={t("addFile")} onClick={() => pickFile.current?.click()}>
               <Paperclip className="size-4" />
             </Tool>
+            <Tool
+              label={t("aiPanel")}
+              on={ai.open}
+              onClick={() => (ai.open ? setAi((a) => ({ ...a, open: false })) : openAi(ai.tab))}
+            >
+              <Sparkles className="size-4" />
+            </Tool>
             <span className="text-muted ml-auto flex shrink-0 items-center gap-3 pl-3 text-xs">
               <ExportMenu
                 resourceId={resource.id}
@@ -898,6 +938,15 @@ export function TaqrizEditor({
               >
                 <BookmarkPlus className="size-4 text-[var(--c-violet)]" /> {t("saveQuote")}
               </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={askAi}
+                className="text-foreground/80 hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm"
+                title={t("askSelectionHint")}
+              >
+                <Sparkles className="text-primary size-4" /> {t("askSelection")}
+              </button>
             </BubbleMenu>
           )}
           {editor ? (
@@ -917,6 +966,26 @@ export function TaqrizEditor({
           </Link>
         </div>
       </section>
+      {editor && ai.mounted && (
+        <aside
+          aria-label={t("aiPanel")}
+          className={cn(
+            "border-border bg-surface fixed inset-x-0 top-14 bottom-0 z-30 border-l shadow-xl sm:left-auto sm:w-[24rem]",
+            "lg:sticky lg:z-10 lg:h-[calc(100dvh-3.5rem)] lg:w-auto lg:shadow-none",
+            !ai.open && "hidden",
+          )}
+        >
+          <AiPanel
+            editor={editor}
+            resourceId={resource.id}
+            media={media ?? null}
+            tab={ai.tab}
+            setTab={(tab) => setAi((a) => ({ ...a, tab }))}
+            ask={askReq}
+            onClose={() => setAi((a) => ({ ...a, open: false }))}
+          />
+        </aside>
+      )}
     </div>
   );
 }

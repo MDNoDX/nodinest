@@ -58,20 +58,3 @@ function subscribe(cb: () => void) {
 export function useDockPrefs(): DockPrefs {
   return useSyncExternalStore(subscribe, read, () => DEFAULTS);
 }
-
-/** "⌥" on Apple keyboards, "Alt+" elsewhere. */
-export function useAltLabel() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌥" : "Alt+"),
-    () => "Alt+",
-  );
-}
-
-export function useModLabel() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl+"),
-    () => "Ctrl+",
-  );
-}

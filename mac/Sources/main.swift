@@ -7,6 +7,10 @@
 // • Downloads (PDF / Word exports) go to ~/Downloads; file pickers work.
 // • Links to other sites open in the default browser.
 // • Remembers the last page and window size; offline screen with retry.
+// • Media shortcuts: when nothing plays inside NodiNest, the page asks this app
+//   (window.webkit.messageHandlers.nodinest) to press the system Play/Pause key,
+//   so the same shortcut controls YouTube in a browser, Spotify, Music, …
+//   macOS asks once for Accessibility permission (needed to send that key).
 import AppKit
 import AuthenticationServices
 import WebKit
@@ -26,7 +30,8 @@ func isOurs(_ url: URL?) -> Bool {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate,
-  WKDownloadDelegate, ASWebAuthenticationPresentationContextProviding, NSWindowDelegate
+  WKDownloadDelegate, ASWebAuthenticationPresentationContextProviding, NSWindowDelegate,
+  WKScriptMessageHandler
 {
   var window: NSWindow!
   var web: WKWebView!
@@ -42,6 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     cfg.preferences.javaScriptCanOpenWindowsAutomatically = true
     cfg.preferences.isElementFullscreenEnabled = true
     cfg.mediaTypesRequiringUserActionForPlayback = []
+    cfg.userContentController.add(self, name: "nodinest")
 
     web = WKWebView(frame: .zero, configuration: cfg)
     web.navigationDelegate = self
@@ -293,6 +299,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   }
 
   // MARK: menu
+  // MARK: page → app bridge
+  func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
+    // Only our own site's top frame may ask (never an embedded YouTube frame).
+    guard message.frameInfo.isMainFrame, isOurs(message.frameInfo.request.url),
+      let body = message.body as? [String: Any], body["type"] as? String == "media"
+    else { return }
+    switch body["action"] as? String {
+    case "playpause": pressMediaKey(16)  // NX_KEYTYPE_PLAY
+    case "next": pressMediaKey(17)  // NX_KEYTYPE_NEXT
+    case "previous": pressMediaKey(18)  // NX_KEYTYPE_PREVIOUS
+    default: return
+    }
+  }
+
+  /// Posts a hardware media key so macOS routes it to the app that is playing.
+  func pressMediaKey(_ key: Int32) {
+    let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+    guard AXIsProcessTrustedWithOptions(opts) else {
+      dbg("media key: waiting for Accessibility permission")
+      return
+    }
+    for down in [true, false] {
+      let flags = NSEvent.ModifierFlags(rawValue: down ? 0xA00 : 0xB00)
+      let data1 = Int((key << 16) | ((down ? 0xA : 0xB) << 8))
+      NSEvent.otherEvent(
+        with: .systemDefined, location: .zero, modifierFlags: flags, timestamp: 0,
+        windowNumber: 0, context: nil, subtype: 8, data1: data1, data2: -1
+      )?.cgEvent?.post(tap: .cghidEventTap)
+    }
+    dbg("media key \(key) sent")
+  }
+
   @objc func goHome() { web.load(URLRequest(url: BASE)) }
   @objc func goPath(_ sender: NSMenuItem) {
     if let p = sender.representedObject as? String { web.load(URLRequest(url: BASE.appendingPathComponent(p))) }

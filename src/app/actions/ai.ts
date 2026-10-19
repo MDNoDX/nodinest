@@ -5,6 +5,7 @@ import { z } from "zod";
 import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { deleteConversation, runAssistant } from "@/server/ai/assistant";
 import { transcribeAudio } from "@/server/ai/media";
+import { askAboutSelection, transcribeSegment } from "@/server/ai/study";
 import { run } from "./_run";
 
 export async function askAssistantAction(input: {
@@ -58,4 +59,18 @@ export async function transcribeAudioAction(fileId: string) {
   return run(async ({ ctx }) => ({
     text: await transcribeAudio(ctx, z.string().uuid().parse(fileId)),
   }));
+}
+
+/** Taqriz: explain the selected word / passage (side panel). */
+export async function askAboutSelectionAction(input: unknown) {
+  return run(async ({ ctx }) =>
+    askAboutSelection(ctx, { ...(input as object), locale: await getLocale() }),
+  );
+}
+
+/** Taqriz: write out one stretch of the video / audio being played. */
+export async function transcribeSegmentAction(input: unknown) {
+  return run(async ({ ctx }) =>
+    transcribeSegment(ctx, { ...(input as object), locale: await getLocale() }),
+  );
 }

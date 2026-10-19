@@ -1,4 +1,5 @@
 "use client";
+import { comboLabel, getShortcuts, matches, useIsApple, useShortcuts } from "@/lib/shortcuts";
 import { BookOpen, FileText, Hash, Quote, Search, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -28,6 +29,8 @@ export function CommandPalette() {
   const t = useTranslations();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const keys = useShortcuts();
+  const apple = useIsApple();
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Hit[]>([]);
   const [loadedFor, setLoadedFor] = useState("");
@@ -37,7 +40,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if (matches(e, getShortcuts().search)) {
         e.preventDefault();
         setOpen((o) => !o);
       }
@@ -88,7 +91,7 @@ export function CommandPalette() {
           <Search className="size-4 shrink-0" />
           <span className="truncate">{t("nav.commandHint")}</span>
           <kbd className="border-border ml-auto hidden rounded border px-1.5 text-[10px] font-medium sm:inline">
-            ⌘K
+            {comboLabel(keys.search, apple)}
           </kbd>
         </button>
       </D.Trigger>

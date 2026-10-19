@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Gemini understands MP4/AAC best; Firefox falls back to Ogg/Opus, then WebM. */
-const PREFERRED = [
+export const PREFERRED = [
   "audio/mp4;codecs=mp4a.40.2", // AAC: Chrome, Safari
   "audio/mp4",
   "audio/ogg;codecs=opus", // Firefox

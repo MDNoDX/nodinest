@@ -52,7 +52,12 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   helpers: `lib/reading-date.ts`. Stats that need days (fastest reads) use only day/time precision.
 - Media dock (`components/media/media-dock.tsx`, mounted in AppShell): YouTube (postMessage API,
   no external script) or audio/video files keep playing across pages. Alt+K/J/L/T shortcuts;
-  Alt+T sends `nn:media-stamp`, which the taqriz editor inserts at the cursor.
+  Alt+T sends `nn:media-stamp`, which the taqriz editor inserts at the cursor. Shortcuts are
+  user-changeable (`lib/shortcuts.ts`, per device). With nothing playing, play/pause goes to the
+  Mac app bridge (`webkit.messageHandlers.nodinest`, main frame + our origin only) → system key.
+- Taqriz AI panel (`components/taqriz/ai-panel.tsx`, `server/ai/study.ts`): explain the selection
+  (book text + facts, no web search on the free tier) and "listen & write": YouTube segments go to
+  Gemini as URL + offsets; same-origin files are recorded from the dock via Web Audio.
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.
