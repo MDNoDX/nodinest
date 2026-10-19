@@ -37,6 +37,19 @@ export default async function TaqrizPage({
         cover: coverSrc(r),
         authors: r.authors ?? "",
       }}
+      media={
+        r.youtubeId
+          ? { kind: "youtube", id: r.youtubeId, title: r.title, resourceId: id }
+          : r.mediaUrl
+            ? {
+                kind: "file",
+                src: r.mediaUrl,
+                video: /\.(mp4|webm|mov|m4v)([?#]|$)/i.test(r.mediaUrl),
+                title: r.title,
+                resourceId: id,
+              }
+            : null
+      }
       initial={{ doc: w?.doc ?? null, updatedAt: w?.updatedAt.toISOString() ?? null }}
       focusQuery={q}
       userId={user.id}

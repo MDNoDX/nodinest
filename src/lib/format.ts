@@ -1,4 +1,5 @@
 import { formatDuration } from "./durations";
+import { readingFormat } from "./reading-date";
 
 export type Loc = "uz" | "en";
 const intlLocale = (l: Loc) => (l === "uz" ? "uz-Latn-UZ" : "en-GB");
@@ -11,6 +12,20 @@ export function fmtDate(
 ) {
   if (!d) return "";
   return new Intl.DateTimeFormat(intlLocale(locale), { ...opts, timeZone }).format(new Date(d));
+}
+
+/** Start / finish date at the precision the user entered (see lib/reading-date). */
+export function fmtReading(
+  d: Date | string | null | undefined,
+  precision: string | null | undefined,
+  locale: Loc,
+  timeZone: string,
+) {
+  if (!d) return "";
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    timeZone,
+    ...readingFormat(precision ?? null),
+  }).format(new Date(d));
 }
 
 export function fmtDateTime(d: Date | string | null | undefined, locale: Loc, timeZone: string) {

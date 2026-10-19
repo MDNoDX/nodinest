@@ -660,7 +660,28 @@ export type ResourceListItem = {
   myStatus: string | null;
   myRating: number | null;
   updatedAt: Date;
+  readYear: number | null;
+  writtenYear: number | null;
 };
+
+/** Years in which the user finished something (newest first), for the library filter. */
+export async function listReadYears(database: Database, ctx: AppContext, timeZone: string) {
+  const rows = await withUser(database, ctx, (tx) =>
+    tx.execute<{ y: number }>(sql`
+      select distinct extract(year from lr.completed_at at time zone ${timeZone})::int as y
+      from nodinest.learning_records lr
+      join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+      where lr.user_id = ${ctx.userId} and lr.status = 'completed' and lr.completed_at is not null
+      order by 1 desc`),
+  );
+  return rows.map((r) => r.y);
+}
+
+export const LIBRARY_SORTS = ["updated", "added", "title", "read", "year", "date"] as const;
+export type LibrarySort = (typeof LIBRARY_SORTS)[number];
+
+/** First year of a flexible date text ("1150~" → 1150, "1101/1200" → 1101, "-300" → -300). */
+const yearOf = (col: SQL) => sql`nullif(substring(${col} from '^-?[0-9]+'), '')::int`;
 
 export type LibraryFilters = {
   q?: string;
@@ -670,7 +691,10 @@ export type LibraryFilters = {
   scope?: "mine" | "all";
   categoryId?: string | null;
   personId?: string | null;
-  sort?: "updated" | "title" | "date" | "added";
+  sort?: LibrarySort;
+  /** Finished in this calendar year (user's time zone). */
+  readYear?: number | null;
+  timeZone?: string;
   archived?: boolean;
   page?: number;
   pageSize?: number;
@@ -706,15 +730,23 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
         or exists (select 1 from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
                    where c.resource_id = r.id and nodinest.nn_norm(p.full_name) like ${like}))`);
     }
+    const tz = f.timeZone ?? "UTC";
+    const readYear = sql`extract(year from lr.completed_at at time zone ${tz})::int`;
+    if (f.readYear) conds.push(sql`lr.status = 'completed' and ${readYear} = ${f.readYear}`);
     const where = sql.join(conds, sql` and `);
+    const writtenYear = yearOf(sql`coalesce(r.original_date, r.publication_date)`);
     const order =
       f.sort === "title"
         ? sql`r.title asc`
         : f.sort === "date"
-          ? sql`r.publication_date desc nulls last, r.title`
-          : f.sort === "added"
-            ? sql`r.created_at desc`
-            : sql`r.updated_at desc`;
+          ? sql`${yearOf(sql`r.publication_date`)} desc nulls last, r.publication_date desc, r.title`
+          : f.sort === "year"
+            ? sql`${writtenYear} asc nulls last, r.title`
+            : f.sort === "read"
+              ? sql`(lr.status = 'completed') desc nulls last, lr.completed_at desc nulls last, r.title`
+              : f.sort === "added"
+                ? sql`r.created_at desc`
+                : sql`r.updated_at desc`;
     const rows = await tx.execute<{
       id: string;
       type: ResourceType;
@@ -726,9 +758,13 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
       my_status: string | null;
       my_rating: number | null;
       updated_at: Date;
+      read_year: number | null;
+      written_year: number | null;
       total: number;
     }>(sql`
       select r.id, r.type, r.title, r.cover_url, r.cover_file_id, r.publication_date, r.updated_at,
+        case when lr.status = 'completed' then ${readYear} end as read_year,
+        ${writtenYear} as written_year,
         lr.status as my_status, lr.rating as my_rating,
         (select string_agg(p.full_name, ', ' order by c.position)
            from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
@@ -752,6 +788,8 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
         myStatus: r.my_status === "abandoned" ? "paused" : r.my_status,
         myRating: r.my_rating,
         updatedAt: new Date(r.updated_at),
+        readYear: r.read_year,
+        writtenYear: r.written_year,
       })),
       total: Number(rows[0]?.total ?? 0),
       page,
@@ -1111,11 +1149,18 @@ export async function getResourceHeader(database: Database, ctx: AppContext, id:
       cover_url: string | null;
       cover_file_id: string | null;
       authors: string | null;
+      youtube_id: string | null;
+      media_url: string | null;
     }>(sql`
       select r.title, r.type, r.cover_url, r.cover_file_id,
         (select string_agg(p.full_name, ', ' order by c.position)
            from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
-          where c.resource_id = r.id) as authors
+          where c.resource_id = r.id) as authors,
+        (select i.value from nodinest.resource_identifiers i
+          where i.resource_id = r.id and i.scheme = 'youtube' limit 1) as youtube_id,
+        (select l.url from nodinest.resource_links l
+          where l.resource_id = r.id
+            and l.url ~* '\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|mp4|webm|mov|m4v)([?#]|$)' limit 1) as media_url
       from nodinest.resources r where r.id = ${id} and r.deleted_at is null`);
     return r
       ? {
@@ -1124,6 +1169,8 @@ export async function getResourceHeader(database: Database, ctx: AppContext, id:
           coverUrl: r.cover_url,
           coverFileId: r.cover_file_id,
           authors: r.authors,
+          youtubeId: r.youtube_id,
+          mediaUrl: r.media_url,
         }
       : null;
   });

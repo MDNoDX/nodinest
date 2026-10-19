@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm";
 import { Field } from "@/components/ui/field";
 import { Input, Select, Textarea } from "@/components/ui/input";
+import { ReadingDateInput, todayValue } from "@/components/ui/reading-date-input";
 import { cn } from "@/lib/cn";
 import type { FieldErrors } from "@/lib/errors";
 import { hueStyle, type Hue } from "@/lib/hues";
@@ -23,14 +24,6 @@ type Rec = {
   progressTotal: number | null;
   progressUnit: string;
 } | null;
-
-/** datetime-local value in the browser's local time. */
-function toLocal(iso: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 const STATUSES: { key: LearningStatus; icon: typeof Bookmark; hue: Hue }[] = [
   { key: "planned", icon: Bookmark, hue: "sky" },
@@ -58,8 +51,8 @@ export function RecordForm({
   const [hover, setHover] = useState(0);
   const [v, setV] = useState({
     status: (record?.status === "abandoned" ? "paused" : record?.status) ?? "planned",
-    startedAt: toLocal(record?.startedAt ?? null),
-    completedAt: toLocal(record?.completedAt ?? null),
+    startedAt: record?.startedAt ?? "",
+    completedAt: record?.completedAt ?? "",
     rating: record?.rating ?? 0,
     review: record?.review ?? "",
     progressCurrent: record?.progressCurrent?.toString() ?? "",
@@ -67,7 +60,6 @@ export function RecordForm({
     progressUnit: record?.progressUnit ?? defaultUnit ?? "pages",
   });
   const set = (k: keyof typeof v, val: string | number) => setV((s) => ({ ...s, [k]: val }));
-  const nowLocal = () => toLocal(new Date().toISOString());
   const statusLabel = (k: string) => (isMedia ? t(`statusMedia.${k}`) : t(`status.${k}`));
 
   const save = () =>
@@ -76,8 +68,8 @@ export function RecordForm({
         saveRecordAction({
           resourceId,
           status: v.status,
-          startedAt: v.startedAt ? new Date(v.startedAt).toISOString() : null,
-          completedAt: v.completedAt ? new Date(v.completedAt).toISOString() : null,
+          startedAt: v.startedAt || null,
+          completedAt: v.completedAt || null,
           rating: v.rating || null,
           review: v.review,
           progressCurrent: v.progressCurrent,
@@ -121,8 +113,8 @@ export function RecordForm({
                 setV((s) => ({
                   ...s,
                   status: key,
-                  startedAt: key !== "planned" && !s.startedAt ? nowLocal() : s.startedAt,
-                  completedAt: key === "completed" && !s.completedAt ? nowLocal() : s.completedAt,
+                  startedAt: key === "in_progress" && !s.startedAt ? todayValue() : s.startedAt,
+                  completedAt: key === "completed" && !s.completedAt ? todayValue() : s.completedAt,
                 }))
               }
               className={cn(
@@ -175,48 +167,24 @@ export function RecordForm({
       </fieldset>
 
       <div className="grid gap-3">
-        <Field label={t("record.startedAt")} optional>
+        <Field label={t("record.startedAt")} optional error={errors.startedAt}>
           {(p) => (
-            <div className="flex gap-2">
-              <Input
-                {...p}
-                type="datetime-local"
-                className="min-w-0 flex-1 px-2"
-                value={v.startedAt}
-                onChange={(e) => set("startedAt", e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-10 shrink-0 px-2.5"
-                onClick={() => set("startedAt", nowLocal())}
-              >
-                {t("record.now")}
-              </Button>
-            </div>
+            <ReadingDateInput
+              id={p.id}
+              value={v.startedAt}
+              invalid={Boolean(errors.startedAt)}
+              onChange={(x) => set("startedAt", x)}
+            />
           )}
         </Field>
         <Field label={t("record.completedAt")} optional error={errors.completedAt}>
           {(p) => (
-            <div className="flex gap-2">
-              <Input
-                {...p}
-                type="datetime-local"
-                className="min-w-0 flex-1 px-2"
-                value={v.completedAt}
-                onChange={(e) => set("completedAt", e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="h-10 shrink-0 px-2.5"
-                onClick={() => set("completedAt", nowLocal())}
-              >
-                {t("record.now")}
-              </Button>
-            </div>
+            <ReadingDateInput
+              id={p.id}
+              value={v.completedAt}
+              invalid={Boolean(errors.completedAt)}
+              onChange={(x) => set("completedAt", x)}
+            />
           )}
         </Field>
       </div>

@@ -804,7 +804,17 @@ export function Chat({
                 size="icon"
                 variant="ghost"
                 aria-label={t("record")}
-                title={rec.state === "denied" ? t("micDenied") : t("record")}
+                title={
+                  rec.state === "denied" || rec.state === "nomic" || rec.state === "error"
+                    ? t(
+                        rec.state === "denied"
+                          ? "micDenied"
+                          : rec.state === "nomic"
+                            ? "noMic"
+                            : "micError",
+                      )
+                    : t("record")
+                }
                 disabled={!available}
                 onClick={() => void rec.start()}
               >
@@ -823,7 +833,11 @@ export function Chat({
             )}
           </div>
         )}
-        {rec.state === "denied" && <p className="text-danger mt-1.5 text-xs">{t("micDenied")}</p>}
+        {(rec.state === "denied" || rec.state === "nomic" || rec.state === "error") && (
+          <p className="text-danger mt-1.5 text-xs">
+            {t(rec.state === "denied" ? "micDenied" : rec.state === "nomic" ? "noMic" : "micError")}
+          </p>
+        )}
         {dailyLimit !== null && (
           <p className="text-muted mt-1.5 text-center text-[11px]">
             {t("limitNote", { limit: dailyLimit })}

@@ -286,7 +286,14 @@
     "scope": "View",
     "scopeMine": "My library",
     "scopeAll": "Whole catalog",
-    "duplicatesFound": "{count, plural, one {# duplicate} other {# duplicates}}"
+    "duplicatesFound": "{count, plural, one {# duplicate} other {# duplicates}}",
+    "sortRead": "By year read",
+    "sortYear": "By year written",
+    "readYear": "Year read",
+    "anyReadYear": "Any year",
+    "readIn": "Read in {year}",
+    "notFinished": "Not finished yet",
+    "unknownYear": "Year unknown"
   },
   "resource": {
     "newTitle": "Add a resource",
@@ -443,7 +450,8 @@
     "reviewHint": "Your impression in a sentence or two. Details go in the write-up.",
     "saved": "Saved.",
     "now": "Now",
-    "quickStatus": "Status"
+    "quickStatus": "Status",
+    "today": "Today"
   },
   "people": {
     "title": "People",
@@ -750,7 +758,9 @@
       "editionDate": "Edition",
       "pageCount": "Pages",
       "publisher": "Publisher"
-    }
+    },
+    "noMic": "No microphone found. Check that one is connected.",
+    "micError": "Couldn’t start recording. Reload the page and try again."
   },
   "stats": {
     "title": "Metrics",
@@ -793,7 +803,12 @@
     "longest": "Longest book",
     "best": "Top rated",
     "booksCount": "{count} books",
-    "items": "{count}"
+    "items": "{count}",
+    "fastest": "Fastest reads",
+    "byDays": "By days",
+    "byPace": "Pages per day",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "perDay": "{n} p/day"
   },
   "suggestions": {
     "title": "Suggestions",
@@ -1032,7 +1047,16 @@
     "transcribed": "Text added below the audio",
     "transcribing": "Transcribing…",
     "toText": "To text",
-    "removeAudio": "Remove audio"
+    "removeAudio": "Remove audio",
+    "noMic": "No microphone found. Check that one is connected.",
+    "micError": "Couldn’t start recording. Reload the page and try again.",
+    "saveQuote": "To quotes",
+    "saveQuoteHint": "Quote it and keep it in Notes & quotes",
+    "quoteSaved": "Quote saved",
+    "quoteSaveFailed": "Couldn’t save the quote",
+    "mediaListen": "Listen and write",
+    "mediaPlay": "Resume",
+    "mediaPause": "Pause"
   },
   "dates": {
     "kind": "Date kind",
@@ -1043,7 +1067,13 @@
     "approxPrefix": "c.",
     "from": "from",
     "to": "to",
-    "centurySuffix": "century"
+    "centurySuffix": "century",
+    "year": "Year",
+    "month": "Month",
+    "day": "Day",
+    "time": "Time",
+    "addTime": "Add time",
+    "noTime": "No time"
   },
   "card": {
     "pages": "{count} pages",
@@ -1116,5 +1146,22 @@
     "merge": "Merge",
     "merged": "Merged",
     "different": "These are different"
+  },
+  "dock": {
+    "label": "Player",
+    "writeTaqriz": "Write taqriz",
+    "expand": "Expand",
+    "minimise": "Minimise",
+    "close": "Close",
+    "position": "Position",
+    "back5": "Back 5 seconds",
+    "fwd5": "Forward 5 seconds",
+    "play": "Play",
+    "pause": "Pause",
+    "speed": "Speed",
+    "stamp": "Insert time stamp",
+    "stampCopied": "[{label}] copied",
+    "playingBelow": "Playing in the player below",
+    "listenAndWrite": "Listen and write"
   }
 }

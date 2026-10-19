@@ -286,7 +286,14 @@
     "scope": "Ko‘rinish",
     "scopeMine": "Mening kutubxonam",
     "scopeAll": "Butun katalog",
-    "duplicatesFound": "{count, plural, other {# ta dublikat}}"
+    "duplicatesFound": "{count, plural, other {# ta dublikat}}",
+    "sortRead": "O‘qilgan yili bo‘yicha",
+    "sortYear": "Yozilgan yili bo‘yicha",
+    "readYear": "O‘qilgan yil",
+    "anyReadYear": "Har qanday yil",
+    "readIn": "{year}-yilda o‘qilgan",
+    "notFinished": "Hali tugatilmagan",
+    "unknownYear": "Yili noma’lum"
   },
   "resource": {
     "newTitle": "Manba qo‘shish",
@@ -443,7 +450,8 @@
     "reviewHint": "Bir-ikki jumlada umumiy taassurot. Batafsil — Taqrizda.",
     "saved": "Saqlandi.",
     "now": "Hozir",
-    "quickStatus": "Holat"
+    "quickStatus": "Holat",
+    "today": "Bugun"
   },
   "people": {
     "title": "Shaxslar",
@@ -750,7 +758,9 @@
       "editionDate": "Nashr",
       "pageCount": "Sahifalar",
       "publisher": "Nashriyot"
-    }
+    },
+    "noMic": "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
+    "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring."
   },
   "stats": {
     "title": "Ko‘rsatkichlar",
@@ -793,7 +803,12 @@
     "longest": "Eng katta kitob",
     "best": "Eng yuqori baho",
     "booksCount": "{count} ta kitob",
-    "items": "{count} ta"
+    "items": "{count} ta",
+    "fastest": "Eng tez o‘qilgan kitoblar",
+    "byDays": "Kun bo‘yicha",
+    "byPace": "Kuniga bet",
+    "days": "{count, plural, other {# kun}}",
+    "perDay": "{n} bet/kun"
   },
   "suggestions": {
     "title": "Takliflar",
@@ -1032,7 +1047,16 @@
     "transcribed": "Matn audio ostiga qo‘shildi",
     "transcribing": "Matnga aylantirilmoqda…",
     "toText": "Matnga aylantirish",
-    "removeAudio": "Audioni o‘chirish"
+    "removeAudio": "Audioni o‘chirish",
+    "noMic": "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
+    "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring.",
+    "saveQuote": "Iqtiboslarga",
+    "saveQuoteHint": "Iqtibos qilib, «Qaydlar va iqtiboslar»ga saqlash",
+    "quoteSaved": "Iqtibos saqlandi",
+    "quoteSaveFailed": "Iqtibos saqlanmadi",
+    "mediaListen": "Tinglab yozish",
+    "mediaPlay": "Davom ettirish",
+    "mediaPause": "To‘xtatish"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1043,7 +1067,13 @@
     "approxPrefix": "taxm.",
     "from": "dan",
     "to": "gacha",
-    "centurySuffix": "-asr"
+    "centurySuffix": "-asr",
+    "year": "Yil",
+    "month": "Oy",
+    "day": "Kun",
+    "time": "Vaqt",
+    "addTime": "Vaqtini ham qo‘shish",
+    "noTime": "Vaqtsiz"
   },
   "card": {
     "pages": "{count} bet",
@@ -1116,5 +1146,22 @@
     "merge": "Birlashtirish",
     "merged": "Birlashtirildi",
     "different": "Bular har xil"
+  },
+  "dock": {
+    "label": "Pleer",
+    "writeTaqriz": "Taqriz yozish",
+    "expand": "Kattalashtirish",
+    "minimise": "Kichraytirish",
+    "close": "Yopish",
+    "position": "Joriy vaqt",
+    "back5": "5 soniya orqaga",
+    "fwd5": "5 soniya oldinga",
+    "play": "Ijro etish",
+    "pause": "To‘xtatish",
+    "speed": "Tezlik",
+    "stamp": "Vaqt belgisini qo‘yish",
+    "stampCopied": "[{label}] nusxa olindi",
+    "playingBelow": "Pastdagi pleerda ijro etilmoqda",
+    "listenAndWrite": "Tinglab yozish"
   }
 }

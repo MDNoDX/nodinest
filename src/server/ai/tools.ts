@@ -13,6 +13,7 @@
  *             run only after the user presses Confirm (see actions.ts)
  * No SQL, shell or arbitrary code is exposed.
  */
+import { parseReadingDate, readingValue } from "@/lib/reading-date";
 import "server-only";
 import { and, desc, eq, ilike, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -70,7 +71,7 @@ const dateTime = z
   .string()
   .trim()
   .max(40)
-  .refine((v) => !Number.isNaN(new Date(v).getTime()), "INVALID_DATE");
+  .refine((v) => parseReadingDate(v) !== null, "INVALID_DATE");
 
 export type ToolEnv = { timeZone: string; locale: string };
 type Mode = "read" | "act" | "confirm";
@@ -285,8 +286,8 @@ export const TOOLS = {
         my: d.record && {
           status: d.record.status,
           rating10: d.record.rating,
-          startedAt: d.record.startedAt,
-          completedAt: d.record.completedAt,
+          startedAt: readingValue(d.record.startedAt, d.record.startedPrecision) || null,
+          completedAt: readingValue(d.record.completedAt, d.record.completedPrecision) || null,
           review: d.record.review?.slice(0, 800),
           progress:
             d.record.progressCurrent != null
@@ -925,13 +926,13 @@ export const TOOLS = {
     perm: "write_personal",
     mode: "confirm",
     description:
-      "Update the user's own record of a resource: status, rating OUT OF 10, exact start / finish date-times (ISO, e.g. 2026-05-01T21:30), short review, progress. Adds it to the library if needed.",
+      "Update the user's own record of a resource: status, rating OUT OF 10, start / finish dates at the precision the user gave: 2024, 2024-05, 2024-05-12 or ISO date-time 2026-05-01T21:30 (never invent a day or time the user did not say), short review, progress. Adds it to the library if needed.",
     parameters: obj({
       ...resourceRef,
       status: str("", { enum: [...LEARNING_STATUSES] }),
       rating: int("1-10"),
-      startedAt: str("ISO date-time"),
-      completedAt: str("ISO date-time"),
+      startedAt: str("YYYY | YYYY-MM | YYYY-MM-DD | ISO date-time"),
+      completedAt: str("YYYY | YYYY-MM | YYYY-MM-DD | ISO date-time"),
       review: str("Short review"),
       progressCurrent: int(""),
       progressTotal: int(""),
@@ -960,8 +961,10 @@ export const TOOLS = {
       await upsertLearningRecord(db, ctx, {
         resourceId: id,
         status: a.status ?? prevStatus ?? (a.completedAt ? "completed" : "planned"),
-        startedAt: a.startedAt ?? rec?.startedAt?.toISOString() ?? null,
-        completedAt: a.completedAt ?? rec?.completedAt?.toISOString() ?? null,
+        startedAt:
+          a.startedAt ?? readingValue(rec?.startedAt ?? null, rec?.startedPrecision ?? null),
+        completedAt:
+          a.completedAt ?? readingValue(rec?.completedAt ?? null, rec?.completedPrecision ?? null),
         rating: a.rating ?? rec?.rating ?? null,
         review: a.review ?? rec?.review ?? null,
         progressCurrent: a.progressCurrent ?? rec?.progressCurrent ?? null,

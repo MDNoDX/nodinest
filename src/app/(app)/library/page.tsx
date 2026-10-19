@@ -11,7 +11,13 @@ import { EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/m
 import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
 import { shortYear } from "@/lib/dates";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
-import { listCategories, listResources } from "@/server/catalog";
+import {
+  LIBRARY_SORTS,
+  listCategories,
+  listReadYears,
+  listResources,
+  type LibrarySort,
+} from "@/server/catalog";
 import { findLibraryDuplicates } from "@/server/merge";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +27,7 @@ export async function generateMetadata() {
 }
 
 export default async function LibraryPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db, locale, user } = await pageContext();
+  const { ctx, db, locale, user, tz } = await pageContext();
   const t = await getTranslations();
   const p = await searchParams;
   const typeParam = sp(p.type);
@@ -33,9 +39,11 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
     status: sp(p.status) ?? null,
     categoryId: sp(p.category) ?? null,
     personId: sp(p.person) ?? null,
-    sort: (["updated", "title", "date", "added"].includes(sp(p.sort) ?? "")
+    sort: ((LIBRARY_SORTS as readonly string[]).includes(sp(p.sort) ?? "")
       ? sp(p.sort)
-      : "updated") as "updated",
+      : "updated") as LibrarySort,
+    readYear: spInt(p.ryear, 0) || null,
+    timeZone: tz,
     archived: sp(p.archived) === "1",
     scope: (sp(p.scope) === "all" ? "all" : "mine") as "mine" | "all",
     page: spInt(p.page),
@@ -50,11 +58,31 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
   )
     filters.status = null;
 
-  const [data, cats, dups] = await Promise.all([
+  const [data, cats, dups, readYears] = await Promise.all([
     listResources(db, ctx, filters),
     listCategories(db, ctx),
     findLibraryDuplicates(ctx),
+    listReadYears(db, ctx, tz),
   ]);
+  // Year headings when sorted by the year read or written.
+  const groupKey = (r: (typeof data.items)[number]) =>
+    filters.sort === "read"
+      ? (r.readYear?.toString() ?? t("library.notFinished"))
+      : filters.sort === "year"
+        ? r.writtenYear == null
+          ? t("library.unknownYear")
+          : r.writtenYear < 0
+            ? locale === "uz"
+              ? `mil. avv. ${-r.writtenYear}`
+              : `${-r.writtenYear} BC`
+            : String(r.writtenYear)
+        : "";
+  const groups: { key: string; items: typeof data.items }[] = [];
+  for (const r of data.items) {
+    const k = groupKey(r);
+    if (groups.at(-1)?.key === k) groups.at(-1)!.items.push(r);
+    else groups.push({ key: k, items: [r] });
+  }
   const qs = (page: number) => {
     const u = new URLSearchParams();
     for (const [k, v] of Object.entries({
@@ -64,6 +92,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
       category: filters.categoryId,
       person: filters.personId,
       sort: filters.sort,
+      ryear: filters.readYear,
       archived: filters.archived ? "1" : null,
       scope: filters.scope === "all" ? "all" : null,
     }))
@@ -77,6 +106,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
     filters.status ||
     filters.categoryId ||
     filters.personId ||
+    filters.readYear ||
     filters.archived
   );
 
@@ -118,7 +148,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           </Link>
         )}
       </nav>
-      <AutoSubmitForm className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
+      <AutoSubmitForm className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto_auto]">
         <div className="relative">
           <Search
             className="text-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
@@ -169,11 +199,25 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           <option value="updated">{t("library.sortUpdated")}</option>
           <option value="added">{t("library.sortAdded")}</option>
           <option value="title">{t("library.sortTitle")}</option>
+          <option value="read">{t("library.sortRead")}</option>
+          <option value="year">{t("library.sortYear")}</option>
           <option value="date">{t("library.sortDate")}</option>
+        </Select>
+        <Select
+          name="ryear"
+          defaultValue={filters.readYear?.toString() ?? ""}
+          aria-label={t("library.readYear")}
+        >
+          <option value="">{t("library.anyReadYear")}</option>
+          {readYears.map((y) => (
+            <option key={y} value={y}>
+              {t("library.readIn", { year: y })}
+            </option>
+          ))}
         </Select>
         {filters.personId && <input type="hidden" name="person" value={filters.personId} />}
         {filters.scope === "all" && <input type="hidden" name="scope" value="all" />}
-        <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-5">
+        <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-6">
           {user.role === "superadmin" && (
             <label className="text-muted flex items-center gap-2 text-sm">
               <input
@@ -218,27 +262,39 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           />
         )
       ) : (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {data.items.map((r) => (
-            <li key={r.id}>
-              <CoverTile
-                id={r.id}
-                type={r.type}
-                title={r.title}
-                cover={coverSrc(r)}
-                line={r.contributors}
-                status={r.myStatus}
-                rating={r.myRating}
-                meta={
-                  <>
-                    <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
-                    {r.publicationDate && <span>{shortYear(r.publicationDate)}</span>}
-                  </>
-                }
-              />
-            </li>
+        <div className="flex flex-col gap-8">
+          {groups.map((g) => (
+            <section key={g.key || "all"}>
+              {g.key && (
+                <h2 className="border-border mb-3 flex items-baseline gap-2 border-b pb-1.5 text-lg font-semibold tabular-nums">
+                  {g.key}
+                  <span className="text-muted text-sm font-normal">{g.items.length}</span>
+                </h2>
+              )}
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {g.items.map((r) => (
+                  <li key={r.id}>
+                    <CoverTile
+                      id={r.id}
+                      type={r.type}
+                      title={r.title}
+                      cover={coverSrc(r)}
+                      line={r.contributors}
+                      status={r.myStatus}
+                      rating={r.myRating}
+                      meta={
+                        <>
+                          <TypeBadge type={r.type} label={t(`types.${r.type}`)} />
+                          {r.publicationDate && <span>{shortYear(r.publicationDate)}</span>}
+                        </>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
       <Pagination
         page={data.page}

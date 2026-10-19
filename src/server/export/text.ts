@@ -86,8 +86,8 @@ export function renderText(
           ? `- **${t.rating}:** ${"★".repeat(it.rating)}${"☆".repeat(10 - it.rating)} ${it.rating}/10`
           : `${t.rating}: ${it.rating}/10`,
       );
-    const started = fmtWhen(it.startedAt, opts.loc, opts.timeZone);
-    const finished = fmtWhen(it.completedAt, opts.loc, opts.timeZone);
+    const started = fmtWhen(it.startedAt, it.startedPrecision, opts.loc, opts.timeZone);
+    const finished = fmtWhen(it.completedAt, it.completedPrecision, opts.loc, opts.timeZone);
     if (started) parts.push(md ? `- **${t.started}:** ${started}` : `${t.started}: ${started}`);
     if (finished)
       parts.push(md ? `- **${t.finished}:** ${finished}` : `${t.finished}: ${finished}`);

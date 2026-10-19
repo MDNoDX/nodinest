@@ -2,13 +2,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Gemini understands MP4/AAC best; Firefox falls back to Ogg/Opus, then WebM. */
-const PREFERRED = ["audio/mp4", "audio/ogg;codecs=opus", "audio/webm;codecs=opus", "audio/webm"];
+const PREFERRED = [
+  "audio/mp4;codecs=mp4a.40.2", // AAC: Chrome, Safari
+  "audio/mp4",
+  "audio/ogg;codecs=opus", // Firefox
+  "audio/webm;codecs=opus",
+  "audio/webm",
+];
 
 export type Recording = { blob: Blob; seconds: number; mime: string; name: string };
 
 /** Microphone recording with a live level meter. */
 export function useRecorder(maxSeconds = 15 * 60) {
-  const [state, setState] = useState<"idle" | "recording" | "denied">("idle");
+  const [state, setState] = useState<"idle" | "recording" | "denied" | "nomic" | "error">("idle");
   const [seconds, setSeconds] = useState(0);
   const [level, setLevel] = useState(0);
   const rec = useRef<MediaRecorder | null>(null);
@@ -33,10 +39,15 @@ export function useRecorder(maxSeconds = 15 * 60) {
         audio: { echoCancellation: true, noiseSuppression: true },
       });
       const mime = PREFERRED.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
-      const r = new MediaRecorder(
-        stream,
-        mime ? { mimeType: mime, audioBitsPerSecond: 64_000 } : undefined,
-      );
+      let r: MediaRecorder;
+      try {
+        r = new MediaRecorder(
+          stream,
+          mime ? { mimeType: mime, audioBitsPerSecond: 64_000 } : undefined,
+        );
+      } catch {
+        r = new MediaRecorder(stream); // the browser's own default format
+      }
       chunks.current = [];
       r.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
       // Level meter + timer.
@@ -84,8 +95,15 @@ export function useRecorder(maxSeconds = 15 * 60) {
       r.start(1000);
       setState("recording");
       raf = requestAnimationFrame(tick);
-    } catch {
-      setState("denied");
+    } catch (e) {
+      const name = (e as DOMException)?.name;
+      setState(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "denied"
+          : name === "NotFoundError" || name === "OverconstrainedError"
+            ? "nomic"
+            : "error",
+      );
     }
   }, [maxSeconds, stop]);
 

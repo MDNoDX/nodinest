@@ -17,13 +17,21 @@ export async function generateMetadata() {
 export default async function StatsPage({ searchParams }: { searchParams: SP }) {
   const { ctx, db, locale, tz } = await pageContext();
   const t = await getTranslations();
-  const y = Number(sp((await searchParams).year));
+  const params = await searchParams;
+  const y = Number(sp(params.year));
+  const pace = sp(params.fast) === "pace";
   const year = Number.isInteger(y) && y > 1900 && y < 2200 ? y : null;
   const [s, all] = await Promise.all([
     getCollectionStats(db, ctx, { timeZone: tz, year }),
     year ? getCollectionStats(db, ctx, { timeZone: tz }) : Promise.resolve(null),
   ]);
   const years = (all ?? s).years;
+  const fastest = [...s.fastest]
+    .filter((f) => !pace || f.per_day != null)
+    .sort((a, b) => (pace ? (b.per_day ?? 0) - (a.per_day ?? 0) : a.days - b.days))
+    .slice(0, 10);
+  const fastHref = (mode: "days" | "pace") =>
+    `/stats?${new URLSearchParams({ ...(year ? { year: String(year) } : {}), ...(mode === "pace" ? { fast: "pace" } : {}) })}`;
   const tot = s.totals;
   const nf = new Intl.NumberFormat(locale === "uz" ? "uz-UZ" : "en-US");
   const monthNames = Array.from({ length: 12 }, (_, i) =>
@@ -172,6 +180,65 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
                 </div>
               </Card>
             )
+          )}
+          {s.fastest.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader
+                title={t("stats.fastest")}
+                action={
+                  <div className="bg-surface-2 flex rounded-lg p-0.5 text-xs">
+                    {(["days", "pace"] as const).map((m) => (
+                      <Link
+                        key={m}
+                        href={fastHref(m)}
+                        scroll={false}
+                        aria-current={(m === "pace") === pace ? "true" : undefined}
+                        className={cn(
+                          "rounded-md px-2.5 py-1 font-medium",
+                          (m === "pace") === pace
+                            ? "bg-surface text-foreground shadow-sm"
+                            : "text-muted hover:text-foreground",
+                        )}
+                      >
+                        {t(m === "pace" ? "stats.byPace" : "stats.byDays")}
+                      </Link>
+                    ))}
+                  </div>
+                }
+              />
+              <ol className="divide-border divide-y px-5 pb-3">
+                {fastest.map((f, i) => (
+                  <li key={f.id} className="flex items-center gap-3 py-2.5 text-sm">
+                    <span className="text-muted w-5 shrink-0 text-right tabular-nums">{i + 1}</span>
+                    <Link
+                      href={`/library/${f.id}`}
+                      className="min-w-0 flex-1 truncate font-medium hover:underline"
+                    >
+                      {f.title}
+                    </Link>
+                    <span className="text-muted shrink-0 text-xs tabular-nums">
+                      {f.pages ? t("card.pages", { count: f.pages }) : ""}
+                    </span>
+                    <span
+                      className={cn(
+                        "w-20 shrink-0 text-right tabular-nums",
+                        !pace && "font-semibold",
+                      )}
+                    >
+                      {t("stats.days", { count: f.days })}
+                    </span>
+                    <span
+                      className={cn(
+                        "w-24 shrink-0 text-right tabular-nums",
+                        pace ? "font-semibold" : "text-muted",
+                      )}
+                    >
+                      {f.per_day != null ? t("stats.perDay", { n: nf.format(f.per_day) }) : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </Card>
           )}
           <Card>
             <CardHeader title={t("stats.byType")} />

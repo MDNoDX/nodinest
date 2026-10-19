@@ -203,8 +203,8 @@ function bookSection(it: ExportItem, loc: Loc, tz: string, first: boolean): Para
         ],
       }),
     );
-  const started = fmtWhen(it.startedAt, loc, tz);
-  const finished = fmtWhen(it.completedAt, loc, tz);
+  const started = fmtWhen(it.startedAt, it.startedPrecision, loc, tz);
+  const finished = fmtWhen(it.completedAt, it.completedPrecision, loc, tz);
   const line = [
     it.status ? t.status[it.status] : null,
     started && `${t.started}: ${started}`,

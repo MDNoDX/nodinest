@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { centuryOf, parseFlexDate } from "@/lib/dates";
+import { DateParts } from "./date-parts";
 import { Input } from "./input";
 
 type Mode = "exact" | "approx" | "range" | "century";
@@ -90,39 +91,35 @@ export function FlexDateInput({
       {mode === "exact" || mode === "approx" ? (
         <div className="flex items-center gap-2">
           {mode === "approx" && <span className="text-muted text-sm">{t("approxPrefix")}</span>}
-          <Input
+          <DateParts
             id={id}
+            className="flex-1"
             value={exact}
-            aria-invalid={invalid || undefined}
-            inputMode="numeric"
-            placeholder={placeholder ?? "1499 / 1499-05-12"}
-            onChange={(e) => {
-              const v = e.target.value.trim();
-              onChange(v ? (mode === "approx" ? `${v}~` : v) : "");
-            }}
+            invalid={invalid}
+            allowNegative
+            yearPlaceholder={placeholder ?? "1499"}
+            onChange={(v) => onChange(v ? (mode === "approx" ? `${v}~` : v) : "")}
           />
         </div>
       ) : mode === "range" ? (
-        <div className="flex items-center gap-2">
-          <Input
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+          <DateParts
             id={id}
+            className="sm:flex-1"
             value={from}
-            aria-label={t("from")}
-            aria-invalid={invalid || undefined}
-            inputMode="numeric"
-            placeholder="1100"
-            onChange={(e) => onChange(e.target.value || to ? `${e.target.value.trim()}/${to}` : "")}
+            invalid={invalid}
+            allowNegative
+            yearPlaceholder="1100"
+            onChange={(v) => onChange(v || to ? `${v}/${to}` : "")}
           />
-          <span className="text-muted">–</span>
-          <Input
+          <span className="text-muted hidden sm:inline">–</span>
+          <DateParts
+            className="sm:flex-1"
             value={to}
-            aria-label={t("to")}
-            aria-invalid={invalid || undefined}
-            inputMode="numeric"
-            placeholder="1200"
-            onChange={(e) =>
-              onChange(from || e.target.value ? `${from}/${e.target.value.trim()}` : "")
-            }
+            invalid={invalid}
+            allowNegative
+            yearPlaceholder="1200"
+            onChange={(v) => onChange(from || v ? `${from}/${v}` : "")}
           />
         </div>
       ) : (

@@ -551,6 +551,9 @@ export const learningRecords = nodinest.table(
     status: learningStatus("status").notNull().default("planned"),
     startedAt: ts("started_at"),
     completedAt: ts("completed_at"),
+    /** year | month | day | time (NULL = time); see lib/reading-date. */
+    startedPrecision: text("started_precision"),
+    completedPrecision: text("completed_precision"),
     rating: smallint("rating"),
     review: text("review"),
     progressCurrent: integer("progress_current"),
@@ -563,6 +566,10 @@ export const learningRecords = nodinest.table(
   (t) => [
     uniqueIndex("learning_records_user_resource_uq").on(t.userId, t.resourceId),
     index("learning_records_user_status_idx").on(t.userId, t.status),
+    check(
+      "learning_records_precision_chk",
+      sql`coalesce(${t.startedPrecision}, 'time') IN ('year','month','day','time') AND coalesce(${t.completedPrecision}, 'time') IN ('year','month','day','time')`,
+    ),
     check("learning_records_rating_chk", sql`${t.rating} IS NULL OR ${t.rating} BETWEEN 1 AND 10`),
     check(
       "learning_records_progress_chk",

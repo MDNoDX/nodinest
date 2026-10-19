@@ -1,0 +1,3 @@
+ALTER TABLE "nodinest"."learning_records" ADD COLUMN "started_precision" text;--> statement-breakpoint
+ALTER TABLE "nodinest"."learning_records" ADD COLUMN "completed_precision" text;--> statement-breakpoint
+ALTER TABLE "nodinest"."learning_records" ADD CONSTRAINT "learning_records_precision_chk" CHECK (coalesce("nodinest"."learning_records"."started_precision", 'time') IN ('year','month','day','time') AND coalesce("nodinest"."learning_records"."completed_precision", 'time') IN ('year','month','day','time'));

@@ -312,8 +312,8 @@ function BookPages({
     .map((n, i) => ({ n, i }))
     .filter(({ n }) => n.type === "heading" && n.attrs?.level !== 3);
   const f = facts(it, loc);
-  const started = fmtWhen(it.startedAt, loc, tz);
-  const finished = fmtWhen(it.completedAt, loc, tz);
+  const started = fmtWhen(it.startedAt, it.startedPrecision, loc, tz);
+  const finished = fmtWhen(it.completedAt, it.completedPrecision, loc, tz);
   const hasText = (it.doc?.content ?? []).some((n) => n.content?.length || n.attrs?.fileId);
   return (
     <>

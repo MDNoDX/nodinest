@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { dateBounds, isValidPartialDate } from "./dates";
+import { parseReadingDate, readingOrderOk } from "./reading-date";
 
 const trimmed = (max: number) => z.string().trim().max(max);
 const optText = (max: number) =>
@@ -200,14 +201,14 @@ const isoDay = z
   .optional()
   .transform((v) => (v ? v : null));
 
-/** ISO timestamp or datetime-local string; "" → null. */
-const optDateTime = z
+/** "2024" | "2024-05" | "2024-05-12" | ISO date-time; "" → null (lib/reading-date). */
+const readingDate = z
   .union([z.string().trim().max(40), z.null(), z.date()])
   .optional()
   .transform((v, ctx) => {
     if (v == null || v === "") return null;
-    const d = v instanceof Date ? v : new Date(v);
-    if (Number.isNaN(d.getTime())) {
+    const d = parseReadingDate(v);
+    if (!d) {
       ctx.addIssue({ code: "custom", message: "INVALID_DATE" });
       return z.NEVER;
     }
@@ -218,8 +219,8 @@ export const learningRecordInput = z
   .object({
     resourceId: uuid,
     status: z.enum(LEARNING_STATUSES),
-    startedAt: optDateTime,
-    completedAt: optDateTime,
+    startedAt: readingDate,
+    completedAt: readingDate,
     /** 10-point scale for every kind of resource. */
     rating: optInt(1, 10),
     review: optText(20_000),
@@ -227,7 +228,7 @@ export const learningRecordInput = z
     progressTotal: optInt(1, 1_000_000),
     progressUnit: z.enum(["pages", "chapters", "minutes", "percent", "lessons"]).default("pages"),
   })
-  .refine((r) => !r.startedAt || !r.completedAt || r.startedAt <= r.completedAt, {
+  .refine((r) => readingOrderOk(r.startedAt, r.completedAt), {
     message: "completed_before_started",
     path: ["completedAt"],
   })

@@ -36,7 +36,9 @@ export type ExportItem = {
   status: string | null;
   rating: number | null;
   startedAt: Date | null;
+  startedPrecision: string | null;
   completedAt: Date | null;
+  completedPrecision: string | null;
   opinion: string | null;
   doc: WriteupDoc | null;
   words: number;
@@ -64,7 +66,9 @@ type Row = {
   status: string | null;
   rating: number | null;
   started_at: Date | null;
+  started_precision: string | null;
   completed_at: Date | null;
+  completed_precision: string | null;
   review: string | null;
   doc: unknown;
   words: number | null;
@@ -126,7 +130,8 @@ export async function loadExport(
           where c.resource_id = r.id) as authors,
         pub.name as publisher, r.original_date, r.publication_date, b.page_count,
         m.duration_seconds, m.channel, r.cover_url, r.cover_file_id,
-        lr.status::text as status, lr.rating, lr.started_at, lr.completed_at, lr.review,
+        lr.status::text as status, lr.rating, lr.started_at, lr.completed_at, lr.started_precision,
+        lr.completed_precision, lr.review,
         w.doc, w.words, w.updated_at
       from nodinest.resources r
       left join nodinest.writeups w on w.resource_id = r.id and w.user_id = ${ctx.userId}
@@ -221,6 +226,8 @@ export async function loadExport(
     rating: r.rating,
     startedAt: r.started_at ? new Date(r.started_at) : null,
     completedAt: r.completed_at ? new Date(r.completed_at) : null,
+    startedPrecision: r.started_precision,
+    completedPrecision: r.completed_precision,
     opinion: r.review,
     doc: docs[i],
     words: r.words ?? 0,

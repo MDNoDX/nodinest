@@ -9,6 +9,8 @@ import {
   StickyNote,
   Star,
 } from "lucide-react";
+import type { DockSource } from "@/components/media/media-dock";
+import { PlayInDock } from "@/components/media/play-in-dock";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -21,7 +23,8 @@ import { RecordForm } from "@/components/library/record-form";
 import { Button } from "@/components/ui/button";
 import { Badge, Card, CardHeader, TypeBadge } from "@/components/ui/misc";
 import { formatPartialDate } from "@/lib/dates";
-import { fmtDate, fmtMinutes } from "@/lib/format";
+import { fmtDate, fmtMinutes, fmtReading } from "@/lib/format";
+import { readingValue } from "@/lib/reading-date";
 import { hueFor, hueStyle } from "@/lib/hues";
 import { pageContext } from "@/lib/page";
 import { MEDIA_LIKE } from "@/lib/validation";
@@ -40,6 +43,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: r?.title };
 }
 
+const MEDIA_URL_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|mp4|webm|mov|m4v)(\?|#|$)/i;
+
 export default async function ResourcePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -57,6 +62,29 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
   const r = d.resource;
   const isMedia = MEDIA_LIKE.includes(r.type);
   const youtube = d.identifiers.find((i) => i.scheme === "youtube")?.value;
+  // Something to listen to / watch while writing: YouTube, a direct media link
+  // or the user's own audio / video attachment.
+  const mediaLink = d.links.find((l) => MEDIA_URL_RE.test(l.url))?.url;
+  const mediaFile = files.find((f) => /^(audio|video)\//.test(f.mimeType ?? ""));
+  const playable: DockSource | null = youtube
+    ? { kind: "youtube", id: youtube, title: r.title, resourceId: id }
+    : mediaLink
+      ? {
+          kind: "file",
+          src: mediaLink,
+          video: /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(mediaLink),
+          title: r.title,
+          resourceId: id,
+        }
+      : mediaFile
+        ? {
+            kind: "file",
+            src: `/api/files/${mediaFile.id}`,
+            video: mediaFile.mimeType?.startsWith("video/") ?? false,
+            title: r.title,
+            resourceId: id,
+          }
+        : null;
   const facts = (
     isMedia
       ? [
@@ -212,10 +240,10 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
             {d.record && (d.record.startedAt || d.record.completedAt) && (
               <p className="text-muted mt-3 text-sm">
                 {d.record.startedAt &&
-                  `${t("record.startedAt")}: ${fmtDate(d.record.startedAt, locale, tz, { dateStyle: "medium", timeStyle: "short" })}`}
+                  `${t("record.startedAt")}: ${fmtReading(d.record.startedAt, d.record.startedPrecision, locale, tz)}`}
                 {d.record.startedAt && d.record.completedAt && " · "}
                 {d.record.completedAt &&
-                  `${t("record.completedAt")}: ${fmtDate(d.record.completedAt, locale, tz, { dateStyle: "medium", timeStyle: "short" })}`}
+                  `${t("record.completedAt")}: ${fmtReading(d.record.completedAt, d.record.completedPrecision, locale, tz)}`}
               </p>
             )}
             <div className="mt-5 flex flex-wrap gap-2">
@@ -262,19 +290,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
-          {youtube && (
-            <div className="border-border overflow-hidden rounded-2xl border bg-black">
-              <iframe
-                className="aspect-video w-full"
-                src={`https://www.youtube-nocookie.com/embed/${youtube}`}
-                title={r.title}
-                loading="lazy"
-                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            </div>
-          )}
+          {playable && <PlayInDock source={playable} />}
 
           {r.description && (
             <Card className="p-5 sm:p-6">
@@ -531,8 +547,8 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                 record={
                   d.record && {
                     status: d.record.status,
-                    startedAt: d.record.startedAt?.toISOString() ?? null,
-                    completedAt: d.record.completedAt?.toISOString() ?? null,
+                    startedAt: readingValue(d.record.startedAt, d.record.startedPrecision),
+                    completedAt: readingValue(d.record.completedAt, d.record.completedPrecision),
                     rating: d.record.rating,
                     review: d.record.review,
                     progressCurrent: d.record.progressCurrent,

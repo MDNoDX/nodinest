@@ -10,6 +10,7 @@ export async function clearOfflineData() {
     const keys = await caches.keys();
     await Promise.all(keys.filter((k) => k.startsWith("nn-")).map((k) => caches.delete(k)));
     for (const k of Object.keys(localStorage)) if (k.startsWith("nn:")) localStorage.removeItem(k);
+    sessionStorage.removeItem("nn:dock");
   } catch {
     /* nothing cached */
   }

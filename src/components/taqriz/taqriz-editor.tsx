@@ -1,11 +1,16 @@
 "use client";
+import { useMediaDock, type DockSource, type StampEvent } from "@/components/media/media-dock";
 import { Placeholder } from "@tiptap/extensions";
+import type { Node as PMNode } from "@tiptap/pm/model";
+import type { Transaction } from "@tiptap/pm/state";
+import { findWrapping } from "@tiptap/pm/transform";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import {
   ArrowLeft,
   Bold,
+  BookmarkPlus,
   Check,
   CloudOff,
   Heading2,
@@ -25,12 +30,14 @@ import {
   Strikethrough,
   Underline as UnderlineIcon,
   Undo2,
+  Pause,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { saveWriteupAction } from "@/app/actions/personal";
+import { saveNoteAction, saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Cover } from "@/components/library/cover";
 import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
@@ -113,7 +120,9 @@ export function TaqrizEditor({
   initial,
   focusQuery,
   userId,
+  media,
 }: {
+  media?: DockSource | null;
   resource: { id: string; title: string; type: string; cover: string | null; authors: string };
   initial: { doc: WriteupDoc | null; updatedAt: string | null };
   focusQuery?: string | null;
@@ -131,6 +140,8 @@ export function TaqrizEditor({
   const pickFile = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const rec = useRecorder();
+  const dock = useMediaDock();
+  const dockActive = !!(media && dock?.source && dock.keyOf(dock.source) === dock.keyOf(media));
   const stopRecording = async () => {
     const r = await rec.stop();
     if (r) await insertFiles([r.blob], [r.name]);
@@ -279,6 +290,18 @@ export function TaqrizEditor({
   }, [editor, resource.id, save, start.draft]);
 
   // Jump to a search hit (?q=…).
+  // Time stamp from the media dock (button or Alt+T) goes in at the cursor.
+  useEffect(() => {
+    if (!editor) return;
+    const onStamp = (e: Event) => {
+      const ev = e as StampEvent;
+      editor.chain().focus().insertContent(`[${ev.detail.label}] `).run();
+      ev.detail.handled = true;
+    };
+    window.addEventListener("nn:media-stamp", onStamp);
+    return () => window.removeEventListener("nn:media-stamp", onStamp);
+  }, [editor]);
+
   useEffect(() => {
     if (!editor || !focusQuery) return;
     const needle = focusQuery.toLowerCase().split(/\s+/)[0];
@@ -352,25 +375,99 @@ export function TaqrizEditor({
   };
 
   /** Selected words → their own chapter; no selection → the current line. */
+  /**
+   * Cuts the document exactly at the selection's start and end (also across
+   * paragraphs and inside text pasted as one block with line breaks), removes
+   * the line breaks left at the cut, and returns the range of whole blocks that
+   * now hold exactly the selected text.
+   */
+  const isolateSelection = (tr: Transaction) => {
+    const sel = tr.selection;
+    let from = sel.from;
+    let to = sel.to;
+    const brk = (n: PMNode | null | undefined) => n?.type.name === "hardBreak";
+    // Trim line breaks / spaces selected at the edges.
+    while (from < to && brk(tr.doc.resolve(from).nodeAfter)) from++;
+    while (to > from && brk(tr.doc.resolve(to).nodeBefore)) to--;
+    if (from >= to) return null;
+    // End side first so earlier positions stay valid.
+    let $to = tr.doc.resolve(to);
+    if ($to.parent.isTextblock) {
+      let b = to;
+      while (b < $to.end() && brk(tr.doc.resolve(b).nodeAfter)) b++;
+      if (b > to) tr.delete(to, b);
+      $to = tr.doc.resolve(to);
+      if (to < $to.end()) tr.split(to);
+    }
+    let $from = tr.doc.resolve(from);
+    if ($from.parent.isTextblock) {
+      let a = from;
+      while (a > $from.start() && brk(tr.doc.resolve(a).nodeBefore)) a--;
+      if (a < from) {
+        tr.delete(a, from);
+        to -= from - a;
+        from = a;
+      }
+      $from = tr.doc.resolve(from);
+      if (from > $from.start()) {
+        tr.split(from);
+        from += 2;
+        to += 2;
+      }
+    }
+    return tr.doc.resolve(from).blockRange(tr.doc.resolve(to));
+  };
+
+  /** Selected words → their own chapter; no selection → the current line. */
   const makeChapter = (level: 2 | 3) => {
     if (!editor) return;
-    const { from, to, empty, $from, $to } = editor.state.selection;
-    const sameBlock = $from.sameParent($to);
-    const whole = sameBlock && from === $from.start() && to === $to.end();
-    if (empty || whole || !sameBlock) {
+    if (editor.state.selection.empty) {
       editor.chain().focus().toggleHeading({ level }).run();
       return;
     }
-    const text = editor.state.doc.textBetween(from, to, " ").trim();
+    const tr = editor.state.tr;
+    const range = isolateSelection(tr);
+    if (!range) return;
+    tr.setBlockType(range.start, range.end, editor.schema.nodes.heading, { level });
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  };
+
+  /** Exactly the selected words become a quote (or leave it, if already quoted). */
+  const makeQuote = () => {
+    if (!editor) return;
+    if (editor.isActive("blockquote")) {
+      editor.chain().focus().lift("blockquote").run();
+      return;
+    }
+    if (editor.state.selection.empty) {
+      editor.chain().focus().toggleBlockquote().run();
+      return;
+    }
+    const tr = editor.state.tr;
+    const range = isolateSelection(tr);
+    if (!range) return;
+    const wrapping = findWrapping(range, editor.schema.nodes.blockquote);
+    if (!wrapping) return;
+    tr.wrap(range, wrapping);
+    editor.view.dispatch(tr.scrollIntoView());
+    editor.commands.focus();
+  };
+
+  /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
+  const saveAsQuote = async () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, "\n").trim();
     if (!text) return;
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(
-        { from, to },
-        { type: "heading", attrs: { level }, content: [{ type: "text", text }] },
-      )
-      .run();
+    const r = await saveNoteAction({
+      kind: "quote",
+      quoteText: text.slice(0, 10_000),
+      resourceId: resource.id,
+    });
+    if (!r.ok) return toast.error(t("quoteSaveFailed"));
+    if (!editor.isActive("blockquote")) makeQuote();
+    toast.success(t("quoteSaved"));
   };
 
   const addChapter = () => {
@@ -514,6 +611,20 @@ export function TaqrizEditor({
             {resource.authors && (
               <div className="text-muted truncate text-xs">{resource.authors}</div>
             )}
+            {media && (
+              <button
+                type="button"
+                onClick={() => (dockActive ? dock?.toggle() : dock?.open(media))}
+                className="text-primary hover:bg-primary-soft mt-1.5 -ml-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium"
+              >
+                {dockActive && dock?.playing ? (
+                  <Pause className="size-3.5" />
+                ) : (
+                  <Play className="size-3.5" />
+                )}
+                {dockActive ? (dock?.playing ? t("mediaPause") : t("mediaPlay")) : t("mediaListen")}
+              </button>
+            )}
           </div>
         </div>
         <div className="text-muted px-4 pb-2 text-[11px] font-semibold tracking-wide uppercase">
@@ -533,6 +644,20 @@ export function TaqrizEditor({
             >
               <ArrowLeft className="size-4" />
             </Link>
+            {media && (
+              <button
+                type="button"
+                onClick={() => (dockActive ? dock?.toggle() : dock?.open(media))}
+                className="text-primary hover:bg-primary-soft mr-1 grid size-8 shrink-0 place-items-center rounded-md lg:hidden"
+                aria-label={t("mediaListen")}
+              >
+                {dockActive && dock?.playing ? (
+                  <Pause className="size-4" />
+                ) : (
+                  <Play className="size-4" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setOutlineOpen((o) => !o)}
@@ -598,11 +723,7 @@ export function TaqrizEditor({
             >
               <ListOrdered className="size-4" />
             </Tool>
-            <Tool
-              label={t("quote")}
-              on={info?.quote}
-              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-            >
+            <Tool label={t("quote")} on={info?.quote} onClick={makeQuote}>
               <Quote className="size-4" />
             </Tool>
             <span className="bg-border mx-1 h-5 w-px shrink-0" />
@@ -647,7 +768,17 @@ export function TaqrizEditor({
               <ImagePlus className="size-4" />
             </Tool>
             <Tool
-              label={rec.state === "denied" ? t("micDenied") : t("recordAudio")}
+              label={
+                rec.state === "denied" || rec.state === "nomic" || rec.state === "error"
+                  ? t(
+                      rec.state === "denied"
+                        ? "micDenied"
+                        : rec.state === "nomic"
+                          ? "noMic"
+                          : "micError",
+                    )
+                  : t("recordAudio")
+              }
               on={rec.state === "recording"}
               onClick={() => (rec.state === "recording" ? void stopRecording() : void rec.start())}
             >
@@ -737,13 +868,18 @@ export function TaqrizEditor({
               >
                 <Italic className="size-4" />
               </Tool>
-              <Tool
-                label={t("quote")}
-                on={info?.quote}
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              >
+              <Tool label={t("quote")} on={info?.quote} onClick={makeQuote}>
                 <Quote className="size-4" />
               </Tool>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => void saveAsQuote()}
+                className="text-foreground/80 hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm"
+                title={t("saveQuoteHint")}
+              >
+                <BookmarkPlus className="size-4 text-[var(--c-violet)]" /> {t("saveQuote")}
+              </button>
             </BubbleMenu>
           )}
           {editor ? (

@@ -1,6 +1,6 @@
 /**
- * Personal learning records ("my library"): status, exact start/finish
- * date-times, 10-point rating, short review and progress. One row per
+ * Personal learning records ("my library"): status, start/finish dates
+ * (year, month, day or exact time), 10-point rating, short review and progress. One row per
  * (user, resource). Every query is owner-scoped AND runs under RLS.
  */
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
@@ -31,9 +31,12 @@ export async function upsertLearningRecord(database: Database, ctx: AppContext, 
       userId: ctx.userId,
       resourceId: d.resourceId,
       status: d.status,
-      // Status implies a timestamp when the user left it empty.
-      startedAt: d.startedAt ?? (d.status !== "planned" ? now : null),
-      completedAt: d.completedAt ?? (d.status === "completed" ? now : null),
+      // Status implies today's date when the user left it empty.
+      // A finished item's start stays unknown unless the user gave it.
+      startedAt: d.startedAt?.at ?? (d.status === "in_progress" ? now : null),
+      startedPrecision: d.startedAt?.precision ?? (d.status === "in_progress" ? "day" : null),
+      completedAt: d.completedAt?.at ?? (d.status === "completed" ? now : null),
+      completedPrecision: d.completedAt?.precision ?? (d.status === "completed" ? "day" : null),
       rating: d.rating,
       review: d.review,
       progressCurrent: d.progressCurrent,
@@ -41,8 +44,10 @@ export async function upsertLearningRecord(database: Database, ctx: AppContext, 
       progressUnit: d.progressUnit,
       lastAccessedAt: now,
     };
-    if (values.startedAt && values.completedAt && values.startedAt > values.completedAt)
+    if (values.startedAt && values.completedAt && values.startedAt > values.completedAt) {
       values.startedAt = values.completedAt;
+      values.startedPrecision = values.completedPrecision;
+    }
     const [row] = await tx
       .insert(learningRecords)
       .values(values)
@@ -72,8 +77,10 @@ export async function setLearningStatus(
         resourceId,
         status,
         lastAccessedAt: now,
-        startedAt: status === "planned" ? null : now,
+        startedAt: status === "in_progress" ? now : null,
+        startedPrecision: status === "in_progress" ? "day" : null,
         completedAt: status === "completed" ? now : null,
+        completedPrecision: status === "completed" ? "day" : null,
       })
       .onConflictDoUpdate({
         target: [learningRecords.userId, learningRecords.resourceId],
@@ -81,13 +88,21 @@ export async function setLearningStatus(
           status,
           lastAccessedAt: now,
           startedAt:
-            status === "planned"
+            status !== "in_progress"
               ? sql`${learningRecords.startedAt}`
               : sql`coalesce(${learningRecords.startedAt}, now())`,
+          startedPrecision:
+            status !== "in_progress"
+              ? sql`${learningRecords.startedPrecision}`
+              : sql`case when ${learningRecords.startedAt} is null then 'day' else ${learningRecords.startedPrecision} end`,
           completedAt:
             status === "completed"
               ? sql`coalesce(${learningRecords.completedAt}, now())`
               : sql`${learningRecords.completedAt}`,
+          completedPrecision:
+            status === "completed"
+              ? sql`case when ${learningRecords.completedAt} is null then 'day' else ${learningRecords.completedPrecision} end`
+              : sql`${learningRecords.completedPrecision}`,
         },
       });
   });
@@ -115,7 +130,9 @@ export async function listMyRecords(database: Database, ctx: AppContext, status?
         resourceId: learningRecords.resourceId,
         status: learningRecords.status,
         startedAt: learningRecords.startedAt,
+        startedPrecision: learningRecords.startedPrecision,
         completedAt: learningRecords.completedAt,
+        completedPrecision: learningRecords.completedPrecision,
         rating: learningRecords.rating,
         progressCurrent: learningRecords.progressCurrent,
         progressTotal: learningRecords.progressTotal,
@@ -176,8 +193,8 @@ export async function setRating(
         resourceId,
         status: "completed",
         rating,
-        startedAt: now,
         completedAt: now,
+        completedPrecision: "day",
         lastAccessedAt: now,
       })
       .onConflictDoUpdate({

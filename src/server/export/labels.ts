@@ -1,4 +1,5 @@
 /** Strings and formatting for exported files (uz / en). */
+import { readingFormat } from "@/lib/reading-date";
 import { formatPartialDate } from "@/lib/dates";
 import type { ExportItem } from "./data";
 
@@ -93,12 +94,13 @@ const L = {
 export const labels = (loc: Loc) => L[loc];
 export type Labels = (typeof L)["uz"];
 
-export function fmtWhen(d: Date | null, loc: Loc, timeZone: string) {
+export function fmtWhen(d: Date | null, precision: string | null, loc: Loc, timeZone: string) {
   if (!d) return null;
+  const o = readingFormat(precision);
   return new Intl.DateTimeFormat(loc === "uz" ? "uz-Latn-UZ" : "en-GB", {
-    dateStyle: "long",
-    timeStyle: "short",
     timeZone,
+    ...o,
+    ...(o.dateStyle ? { dateStyle: "long" as const } : {}),
   }).format(d);
 }
 

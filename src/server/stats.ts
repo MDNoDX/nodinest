@@ -77,6 +77,7 @@ export async function getCollectionStats(
       ? await tx.execute<{ month: number; completed: number }>(sql`
           select extract(month from lr.completed_at at time zone ${tz})::int as month, count(*)::int as completed
           ${base} and lr.status = 'completed' ${yearFilter}
+            and coalesce(lr.completed_precision, 'time') <> 'year'
           group by 1 order by 1`)
       : [];
 
@@ -117,6 +118,30 @@ export async function getCollectionStats(
       select r.id, r.title, lr.rating ${base} and lr.rating is not null ${yearFilter}
       order by lr.rating desc, lr.completed_at desc nulls last limit 1`);
 
+    // Fastest finished books: whole calendar days from start to finish (both
+    // known to the day), and pages per day where the page count is known.
+    const fastest = await tx.execute<{
+      id: string;
+      title: string;
+      days: number;
+      pages: number | null;
+      per_day: number | null;
+    }>(sql`
+      with f as (
+        select r.id, r.title,
+          ((lr.completed_at at time zone ${tz})::date - (lr.started_at at time zone ${tz})::date + 1)::int as days,
+          coalesce(b.page_count, case when lr.progress_unit = 'pages' then lr.progress_total end) as pages
+        ${base} and lr.status = 'completed' and r.type = 'book'
+          and lr.started_at is not null and lr.completed_at is not null
+          and coalesce(lr.started_precision, 'time') in ('day', 'time')
+          and coalesce(lr.completed_precision, 'time') in ('day', 'time') ${yearFilter}
+          -- identical instants were auto-filled by older versions, not read in a day
+          and not (lr.started_at = lr.completed_at and coalesce(lr.started_precision, 'time') = 'time')
+      )
+      select id, title, days, pages, round(pages::numeric / days, 1)::float as per_day
+      from f where days >= 1
+      order by days, per_day desc nulls last limit 50`);
+
     const years = byYear.map((y) => y.year);
     return {
       totals: totals ?? {
@@ -140,6 +165,7 @@ export async function getCollectionStats(
       ratings,
       authors,
       topics,
+      fastest,
       longest: longest ?? null,
       best: best ?? null,
       years,

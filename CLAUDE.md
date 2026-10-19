@@ -47,6 +47,12 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   passed to Gemini inline by `server/ai/media.ts`; `transcribeAudio` turns speech into text.
 - Never invent data (dates, ISBNs, quotes). Unknown → NULL. Dates are flexible text (EDTF subset,
   `lib/dates.ts` + DB CHECK): `YYYY[-MM[-DD]]`, approx `1150~`, range/century `1101/1200`.
+- Reading start/finish (`learning_records.started_at/completed_at`) carry a precision column
+  (year | month | day | time, NULL = time); partial dates are stored as noon UTC. Wire format and
+  helpers: `lib/reading-date.ts`. Stats that need days (fastest reads) use only day/time precision.
+- Media dock (`components/media/media-dock.tsx`, mounted in AppShell): YouTube (postMessage API,
+  no external script) or audio/video files keep playing across pages. Alt+K/J/L/T shortcuts;
+  Alt+T sends `nn:media-stamp`, which the taqriz editor inserts at the cursor.
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.

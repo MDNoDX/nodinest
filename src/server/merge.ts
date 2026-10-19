@@ -41,8 +41,11 @@ export async function mergeResources(
         review: string | null;
         started_at: Date | null;
         completed_at: Date | null;
+        started_precision: string | null;
+        completed_precision: string | null;
       }>(sql`
-        select id, resource_id, status::text, rating, review, started_at, completed_at
+        select id, resource_id, status::text, rating, review, started_at, completed_at,
+          started_precision, completed_precision
         from nodinest.learning_records where user_id = ${uid} and resource_id in (${keepId}, ${rid})`);
       const kRec = recs.find((r) => r.resource_id === keepId);
       const dRec = recs.find((r) => r.resource_id === rid);
@@ -59,6 +62,12 @@ export async function mergeResources(
             status = ${best}::nodinest.learning_status,
             rating = coalesce(rating, ${dRec.rating}),
             review = coalesce(review, ${dRec.review}),
+            started_precision = case when ${dRec.started_at}::timestamptz is not null
+              and (started_at is null or ${dRec.started_at}::timestamptz < started_at)
+              then ${dRec.started_precision} else started_precision end,
+            completed_precision = case when ${dRec.completed_at}::timestamptz is not null
+              and (completed_at is null or ${dRec.completed_at}::timestamptz > completed_at)
+              then ${dRec.completed_precision} else completed_precision end,
             started_at = least(coalesce(started_at, ${dRec.started_at}), coalesce(${dRec.started_at}, started_at)),
             completed_at = greatest(coalesce(completed_at, ${dRec.completed_at}), coalesce(${dRec.completed_at}, completed_at)),
             updated_at = now()
