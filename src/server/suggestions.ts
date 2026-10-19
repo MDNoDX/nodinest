@@ -8,6 +8,7 @@
  * Approval re-validates the payload, re-checks duplicates, verifies the
  * reviewer's role and applies everything in a single transaction.
  */
+import { ensureInLibrary } from "./records";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
 import { people, resources, suggestions, user } from "@/db/schema";
@@ -121,7 +122,9 @@ export async function submitResource(
         await applyUpdateResource(tx, ctx, opts.id, data, meta);
         return { mode: "applied", id: opts.id } as const;
       }
-      return { mode: "applied", id: await applyCreateResource(tx, ctx, data, meta) } as const;
+      const id = await applyCreateResource(tx, ctx, data, meta);
+      await ensureInLibrary(tx, ctx.userId, id);
+      return { mode: "applied", id } as const;
     }
     const baseSnapshot = opts.id ? await getResourceSnapshot(tx, opts.id) : null;
     const [s] = await tx

@@ -192,8 +192,19 @@ describe("search by genres and status (IMDb-style ribbons)", () => {
       status: "completed",
       cover: "https://e.org/c.jpg",
     });
-    const notMine = await universalSearch(db, u, { q: "", categoryIds: [c1.id], status: "none" });
-    expect(notMine.groups.resources?.hits.map((h) => h.title)).toEqual([`Only one ${tag}`]);
+    // What you add lands on your "planned" shelf at once.
+    const planned = await universalSearch(db, u, {
+      q: "",
+      categoryIds: [c1.id],
+      status: "planned",
+    });
+    expect(planned.groups.resources?.hits.map((h) => h.title)).toEqual([`Only one ${tag}`]);
+    const notMine = await universalSearch(db, other, {
+      q: "",
+      categoryIds: [c1.id],
+      status: "none",
+    });
+    expect(notMine.groups.resources?.total).toBe(2);
     // Another user sees the catalog entry but not u's status.
     const theirs = await universalSearch(db, other, { q: "", categoryIds: [c1.id, c2.id] });
     expect(theirs.groups.resources?.hits[0].status).toBeNull();

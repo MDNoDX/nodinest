@@ -27,7 +27,7 @@ import { cn } from "@/lib/cn";
 /**
  * A player that lives in the app shell, so a YouTube video or an audio /
  * video file keeps playing while the user moves to the taqriz, notes or
- * anywhere else. Keyboard (works while typing): Alt+K play/pause,
+ * anywhere else. Keyboard (works while typing; Alt = ⌥ Option on a Mac): Alt+K play/pause,
  * Alt+J / Alt+L −5 s / +5 s, Alt+T insert a time stamp into the taqriz.
  * Resuming after a pause rewinds 2 s so no word is lost.
  */
@@ -250,6 +250,9 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
   );
 
   const s = st.source;
+  // The dock renders only on the client (after a click or a restore), so this is safe.
+  const mod =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌥" : "Alt+";
   const video = s && (s.kind === "youtube" || s.video);
   const ytSrc =
     s?.kind === "youtube"
@@ -352,14 +355,14 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               disabled={!st.duration}
             />
             <div className="flex items-center gap-1">
-              <IconBtn label={`${t("back5")} (Alt+J)`} onClick={() => seekBy(-5)}>
+              <IconBtn label={`${t("back5")} ({mod}J)`} onClick={() => seekBy(-5)}>
                 <RotateCcw className="size-4" />
               </IconBtn>
               <button
                 type="button"
                 onClick={toggle}
-                aria-label={`${st.playing ? t("pause") : t("play")} (Alt+K)`}
-                title={`${st.playing ? t("pause") : t("play")} (Alt+K)`}
+                aria-label={`${st.playing ? t("pause") : t("play")} ({mod}K)`}
+                title={`${st.playing ? t("pause") : t("play")} ({mod}K)`}
                 className="bg-primary text-primary-foreground grid size-9 shrink-0 place-items-center rounded-full"
               >
                 {st.playing ? (
@@ -368,7 +371,7 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
                   <Play className="size-4 translate-x-px" />
                 )}
               </button>
-              <IconBtn label={`${t("fwd5")} (Alt+L)`} onClick={() => seekBy(5)}>
+              <IconBtn label={`${t("fwd5")} ({mod}L)`} onClick={() => seekBy(5)}>
                 <RotateCw className="size-4" />
               </IconBtn>
               <span className="text-muted ml-1 text-xs tabular-nums">
@@ -384,10 +387,13 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               >
                 {st.rate}×
               </button>
-              <IconBtn label={`${t("stamp")} (Alt+T)`} onClick={stamp}>
+              <IconBtn label={`${t("stamp")} ({mod}T)`} onClick={stamp}>
                 <Clock className="size-4" />
               </IconBtn>
             </div>
+            <p className="text-muted text-[11px] leading-tight">
+              {t("keys", { k: `${mod}K`, j: `${mod}J`, l: `${mod}L`, t: `${mod}T` })}
+            </p>
           </div>
         </aside>
       )}

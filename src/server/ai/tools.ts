@@ -54,6 +54,7 @@ import {
 } from "../notes";
 import { findLibraryDuplicates, mergeResources } from "../merge";
 import {
+  ensureInLibrary,
   removeLearningRecord,
   setLearningStatus,
   setRating,
@@ -678,6 +679,7 @@ export const TOOLS = {
     run: async (ctx, a) => {
       const mark = async (id: string) => {
         if (a.status) await setLearningStatus(db, ctx, id, a.status);
+        else await withUser(db, ctx, (tx) => ensureInLibrary(tx, ctx.userId, id));
         if (a.rating) await setRating(db, ctx, id, a.rating);
       };
       if (a.useExistingId) {

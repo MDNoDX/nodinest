@@ -1162,6 +1162,7 @@
     "stamp": "Vaqt belgisini qo‘yish",
     "stampCopied": "[{label}] nusxa olindi",
     "playingBelow": "Pastdagi pleerda ijro etilmoqda",
-    "listenAndWrite": "Tinglab yozish"
+    "listenAndWrite": "Tinglab yozish",
+    "keys": "{k} to‘xtatish/davom · {j} {l} ±5 soniya · {t} vaqt belgisi"
   }
 }

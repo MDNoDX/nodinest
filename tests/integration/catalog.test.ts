@@ -25,6 +25,22 @@ afterAll(async () => {
   await db.$client.end();
 });
 
+describe("my library", () => {
+  it("every type a user adds shows up in My library at once", async () => {
+    for (const type of ["lecture", "book", "video", "course", "podcast"] as const) {
+      const r = await submitResource(db, user, { type, title: `Mine ${type} ${Date.now()}` });
+      expect(r.mode).toBe("applied");
+      const id = (r as { id: string }).id;
+      const mine = await listResources(db, user, { scope: "mine", type });
+      expect(mine.items.map((i) => i.id)).toContain(id);
+      expect(mine.items.find((i) => i.id === id)?.myStatus).toBe("planned");
+      // Another user does not get it on their shelf.
+      const theirs = await listResources(db, admin, { scope: "mine", type });
+      expect(theirs.items.map((i) => i.id)).not.toContain(id);
+    }
+  });
+});
+
 describe("people & resources", () => {
   let navoiyId: string;
   let bookId: string;

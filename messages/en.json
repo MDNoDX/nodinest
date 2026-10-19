@@ -1162,6 +1162,7 @@
     "stamp": "Insert time stamp",
     "stampCopied": "[{label}] copied",
     "playingBelow": "Playing in the player below",
-    "listenAndWrite": "Listen and write"
+    "listenAndWrite": "Listen and write",
+    "keys": "{k} pause/resume · {j} {l} ±5 s · {t} time stamp"
   }
 }

@@ -60,6 +60,18 @@ export async function upsertLearningRecord(database: Database, ctx: AppContext, 
   });
 }
 
+/**
+ * Puts a resource on the user's shelf ("planned") unless it is there already.
+ * Called when the user creates an entry or picks an existing one, so whatever
+ * they add shows up in "My library" at once.
+ */
+export async function ensureInLibrary(tx: Tx, userId: string, resourceId: string) {
+  await tx
+    .insert(learningRecords)
+    .values({ userId, resourceId, status: "planned", lastAccessedAt: new Date() })
+    .onConflictDoNothing({ target: [learningRecords.userId, learningRecords.resourceId] });
+}
+
 /** Quick status change (shelf buttons, AI). Fills missing timestamps with "now". */
 export async function setLearningStatus(
   database: Database,
