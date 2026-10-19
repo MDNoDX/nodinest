@@ -1,7 +1,9 @@
 "use client";
 import {
-  ChevronDown,
-  ChevronUp,
+  GripHorizontal,
+  Headphones,
+  Keyboard,
+  Video,
   Clock,
   FilePenLine,
   Pause,
@@ -23,6 +25,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
+import { setDockPrefs, useAltLabel, useDockPrefs } from "./dock-prefs";
 
 /**
  * A player that lives in the app shell, so a YouTube video or an audio /
@@ -81,7 +84,10 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
     rate: 1,
   });
   const [start, setStart] = useState({ at: 0, autoplay: true, n: 0 });
-  const [mini, setMini] = useState(false);
+  const prefs = useDockPrefs();
+  const mini = prefs.audioOnly;
+  const box = useRef<HTMLElement>(null);
+  const [dragging, setDragging] = useState(false);
   const frame = useRef<HTMLIFrameElement>(null);
   const media = useRef<HTMLMediaElement>(null);
   const live = useRef(st);
@@ -165,7 +171,6 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
     (source: DockSource, opts?: { at?: number; autoplay?: boolean }) => {
       const same = live.current.source && keyOf(live.current.source) === keyOf(source);
       if (same) {
-        setMini(false);
         if (!live.current.playing) {
           if (live.current.source?.kind === "youtube") yt("playVideo");
           else void media.current?.play().catch(() => {});
@@ -178,7 +183,6 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
         autoplay: opts?.autoplay ?? true,
         n: p.n + 1,
       }));
-      setMini(false);
     },
     [yt],
   );
@@ -250,9 +254,53 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
   );
 
   const s = st.source;
-  // The dock renders only on the client (after a click or a restore), so this is safe.
-  const mod =
-    typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌥" : "Alt+";
+  const mod = useAltLabel();
+
+  // Drag the dock anywhere by its grip; the spot is remembered on this device.
+  const clamp = (x: number, y: number, w = 380, h = 140) => ({
+    x: Math.round(Math.max(8, Math.min(x, window.innerWidth - w - 8))),
+    y: Math.round(Math.max(64, Math.min(y, window.innerHeight - h - 8))),
+  });
+  const startDrag = (e: React.PointerEvent) => {
+    const el = box.current;
+    if (!el || e.button !== 0) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect();
+    const dx = e.clientX - r.left;
+    const dy = e.clientY - r.top;
+    let last = { x: r.left, y: r.top };
+    setDragging(true);
+    const move = (ev: PointerEvent) => {
+      last = clamp(ev.clientX - dx, ev.clientY - dy, r.width, r.height);
+      el.style.left = `${last.x}px`;
+      el.style.top = `${last.y}px`;
+      el.style.right = "auto";
+      el.style.bottom = "auto";
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      setDragging(false);
+      setDockPrefs({ pos: last });
+      el.style.right = "";
+      el.style.bottom = "";
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+  // Keep a remembered spot on screen after the window shrinks.
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const onResize = () => bump((n) => n + 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const pos =
+    prefs.pos && typeof window !== "undefined"
+      ? clamp(prefs.pos.x, prefs.pos.y, Math.min(380, window.innerWidth - 24))
+      : null;
   const video = s && (s.kind === "youtube" || s.video);
   const ytSrc =
     s?.kind === "youtube"
@@ -268,9 +316,27 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
       {children}
       {s && (
         <aside
+          ref={box}
           aria-label={t("label")}
-          className="border-border bg-surface fixed right-3 bottom-3 z-40 w-[min(380px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-xl sm:right-5 sm:bottom-5"
+          style={pos ? { left: pos.x, top: pos.y } : undefined}
+          className={cn(
+            "border-border bg-surface fixed z-40 w-[min(380px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-xl",
+            !pos && "right-3 bottom-3 sm:right-5 sm:bottom-5",
+            dragging && "shadow-2xl select-none",
+          )}
         >
+          <div
+            onPointerDown={startDrag}
+            onDoubleClick={() => setDockPrefs({ pos: null })}
+            title={t("drag")}
+            aria-hidden
+            className={cn(
+              "bg-surface-2/70 text-muted flex h-5 touch-none items-center justify-center",
+              dragging ? "cursor-grabbing" : "cursor-grab",
+            )}
+          >
+            <GripHorizontal className="size-4" />
+          </div>
           {/* The element stays mounted when minimised, so playback never stops. */}
           <div className={cn("relative bg-black", video ? (mini ? "h-0" : "aspect-video") : "h-0")}>
             {s.kind === "youtube" ? (
@@ -280,7 +346,7 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
                 src={ytSrc}
                 title={s.title}
                 onLoad={ytListen}
-                className="absolute inset-0 size-full"
+                className={cn("absolute inset-0 size-full", dragging && "pointer-events-none")}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -322,17 +388,6 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               >
                 <FilePenLine className="size-4" />
               </Link>
-              {video && (
-                <button
-                  type="button"
-                  onClick={() => setMini((m) => !m)}
-                  className="text-muted hover:text-foreground shrink-0 rounded-md p-1"
-                  aria-label={mini ? t("expand") : t("minimise")}
-                  title={mini ? t("expand") : t("minimise")}
-                >
-                  {mini ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                </button>
-              )}
               <button
                 type="button"
                 onClick={close}
@@ -391,9 +446,28 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
                 <Clock className="size-4" />
               </IconBtn>
             </div>
-            <p className="text-muted text-[11px] leading-tight">
-              {t("keys", { k: `${mod}K`, j: `${mod}J`, l: `${mod}L`, t: `${mod}T` })}
-            </p>
+            <div className="flex flex-wrap items-center gap-1">
+              {video && (
+                <Chip
+                  onClick={() => setDockPrefs({ audioOnly: !mini })}
+                  icon={mini ? <Video className="size-3.5" /> : <Headphones className="size-3.5" />}
+                >
+                  {mini ? t("showVideo") : t("audioOnly")}
+                </Chip>
+              )}
+              <Chip
+                onClick={() => setDockPrefs({ showKeys: !prefs.showKeys })}
+                icon={<Keyboard className="size-3.5" />}
+                pressed={prefs.showKeys}
+              >
+                {t("keysToggle")}
+              </Chip>
+            </div>
+            {prefs.showKeys && (
+              <p className="text-muted text-[11px] leading-tight">
+                {t("keys", { k: `${mod}K`, j: `${mod}J`, l: `${mod}L`, t: `${mod}T` })}
+              </p>
+            )}
           </div>
         </aside>
       )}
@@ -423,6 +497,33 @@ function mediaHandlers(setSt: React.Dispatch<React.SetStateAction<DockState>>, a
     onRateChange: sync,
     onDurationChange: sync,
   };
+}
+
+function Chip({
+  onClick,
+  icon,
+  pressed,
+  children,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  pressed?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={pressed}
+      className={cn(
+        "border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        pressed ? "text-foreground" : "text-muted",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
 }
 
 function IconBtn({

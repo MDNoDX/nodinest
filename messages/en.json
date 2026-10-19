@@ -1150,8 +1150,6 @@
   "dock": {
     "label": "Player",
     "writeTaqriz": "Write taqriz",
-    "expand": "Expand",
-    "minimise": "Minimise",
     "close": "Close",
     "position": "Position",
     "back5": "Back 5 seconds",
@@ -1163,6 +1161,38 @@
     "stampCopied": "[{label}] copied",
     "playingBelow": "Playing in the player below",
     "listenAndWrite": "Listen and write",
-    "keys": "{k} pause/resume · {j} {l} ±5 s · {t} time stamp"
+    "keys": "{k} pause/resume · {j} {l} ±5 s · {t} time stamp",
+    "drag": "Drag to move (double-click to reset)",
+    "audioOnly": "Audio only",
+    "showVideo": "Show video",
+    "keysToggle": "Shortcuts"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "macNote": "On a Mac ⌘ is Command, ⌥ is Option, ⇧ is Shift.",
+    "general": "General",
+    "search": "Quick search",
+    "closeDialog": "Close a dialog",
+    "player": "Player (works while typing)",
+    "playPause": "Pause / resume",
+    "back5": "Back 5 seconds",
+    "fwd5": "Forward 5 seconds",
+    "stamp": "Time stamp into taqriz",
+    "taqriz": "Taqriz",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "quote": "Quote the selection",
+    "chapter": "Chapter",
+    "subchapter": "Sub-chapter",
+    "bullets": "Bullet list",
+    "numbers": "Numbered list",
+    "undo": "Undo",
+    "redo": "Redo",
+    "playerSettings": "Player",
+    "showKeys": "Show shortcuts in the player",
+    "audioOnly": "Hide the video (audio only)",
+    "resetPosition": "Put the player back",
+    "dragHint": "Drag the player by its top handle to any place."
   }
 }

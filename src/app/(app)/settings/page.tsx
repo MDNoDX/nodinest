@@ -1,4 +1,5 @@
-import { AppWindow, Lock } from "lucide-react";
+import { AppWindow, Keyboard, Lock } from "lucide-react";
+import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
 import { ProfileForm, AppearanceForm } from "@/components/settings/settings-forms";
@@ -62,6 +63,12 @@ export default async function SettingsPage() {
           <CardHeader title={t("settings.appearance")} />
           <div className="px-5 pb-5">
             <AppearanceForm />
+          </div>
+        </Card>
+        <Card id="shortcuts">
+          <CardHeader title={t("shortcuts.title")} icon={<Keyboard />} hue="violet" />
+          <div className="px-5 pb-5">
+            <ShortcutsSettings />
           </div>
         </Card>
         <Card>

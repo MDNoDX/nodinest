@@ -1150,8 +1150,6 @@
   "dock": {
     "label": "Pleer",
     "writeTaqriz": "Taqriz yozish",
-    "expand": "Kattalashtirish",
-    "minimise": "Kichraytirish",
     "close": "Yopish",
     "position": "Joriy vaqt",
     "back5": "5 soniya orqaga",
@@ -1163,6 +1161,38 @@
     "stampCopied": "[{label}] nusxa olindi",
     "playingBelow": "Pastdagi pleerda ijro etilmoqda",
     "listenAndWrite": "Tinglab yozish",
-    "keys": "{k} to‘xtatish/davom · {j} {l} ±5 soniya · {t} vaqt belgisi"
+    "keys": "{k} to‘xtatish/davom · {j} {l} ±5 soniya · {t} vaqt belgisi",
+    "drag": "Siljitish uchun torting (ikki marta bosish — joyiga qaytarish)",
+    "audioOnly": "Faqat audio",
+    "showVideo": "Videoni yoqish",
+    "keysToggle": "Tugmalar"
+  },
+  "shortcuts": {
+    "title": "Klaviatura tugmalari",
+    "macNote": "Mac’da ⌘ — Command, ⌥ — Option, ⇧ — Shift tugmasi.",
+    "general": "Umumiy",
+    "search": "Tezkor qidiruv",
+    "closeDialog": "Oynani yopish",
+    "player": "Pleer (yozayotganda ham ishlaydi)",
+    "playPause": "To‘xtatish / davom ettirish",
+    "back5": "5 soniya orqaga",
+    "fwd5": "5 soniya oldinga",
+    "stamp": "Taqrizga vaqt belgisi",
+    "taqriz": "Taqriz",
+    "bold": "Qalin",
+    "italic": "Kursiv",
+    "strike": "Ustidan chizish",
+    "quote": "Belgilanganni iqtibos qilish",
+    "chapter": "Bob",
+    "subchapter": "Kichik bob",
+    "bullets": "Ro‘yxat",
+    "numbers": "Raqamli ro‘yxat",
+    "undo": "Bekor qilish",
+    "redo": "Qaytarish",
+    "playerSettings": "Pleer",
+    "showKeys": "Pleerda tugmalarni ko‘rsatish",
+    "audioOnly": "Videoni yashirish (faqat audio)",
+    "resetPosition": "Pleerni joyiga qaytarish",
+    "dragHint": "Pleerni yuqoridagi tutqichidan sudrab istalgan joyga qo‘yish mumkin."
   }
 }

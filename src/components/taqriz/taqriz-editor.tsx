@@ -140,6 +140,7 @@ export function TaqrizEditor({
   const pickFile = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const rec = useRecorder();
+  const keyActions = useRef<{ quote: () => void; chapter: (l: 2 | 3) => void } | null>(null);
   const dock = useMediaDock();
   const dockActive = !!(media && dock?.source && dock.keyOf(dock.source) === dock.keyOf(media));
   const stopRecording = async () => {
@@ -227,6 +228,19 @@ export function TaqrizEditor({
     content: startDoc ?? undefined,
     editorProps: {
       attributes: { class: "taqriz-doc", "aria-label": t("title"), spellcheck: "true" },
+      // ⌘⇧B / ⌘⌥2 / ⌘⌥3 act on exactly the selected text, like the buttons.
+      handleKeyDown: (_view, e) => {
+        const mod = e.metaKey || e.ctrlKey;
+        if (mod && e.shiftKey && !e.altKey && e.code === "KeyB") {
+          keyActions.current?.quote();
+          return true;
+        }
+        if (mod && e.altKey && !e.shiftKey && (e.code === "Digit2" || e.code === "Digit3")) {
+          keyActions.current?.chapter(e.code === "Digit2" ? 2 : 3);
+          return true;
+        }
+        return false;
+      },
       // Drop or paste files straight into the document.
       handleDrop: (_view, event) => {
         const list = (event as DragEvent).dataTransfer?.files;
@@ -455,6 +469,10 @@ export function TaqrizEditor({
   };
 
   /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
+  useEffect(() => {
+    keyActions.current = { quote: makeQuote, chapter: makeChapter };
+  });
+
   const saveAsQuote = async () => {
     if (!editor) return;
     const { from, to } = editor.state.selection;
