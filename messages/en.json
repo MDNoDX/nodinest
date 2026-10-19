@@ -1059,7 +1059,9 @@
     "mediaPause": "Pause",
     "askSelection": "Ask AI",
     "askSelectionHint": "Ask the AI about the selected word or passage",
-    "aiPanel": "AI panel"
+    "aiPanel": "AI panel",
+    "hideOutline": "Hide contents",
+    "showOutline": "Show contents"
   },
   "dates": {
     "kind": "Date kind",
@@ -1168,7 +1170,9 @@
     "drag": "Drag to move (double-click to reset)",
     "audioOnly": "Audio only",
     "showVideo": "Show video",
-    "keysToggle": "Shortcuts"
+    "keysToggle": "Shortcuts",
+    "typePause": "Pause while typing",
+    "typePauseHint": "Pauses when you type and resumes {s} s after you stop (2 s back)."
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -1217,7 +1221,12 @@
       "quote": "Quote the selection",
       "chapter": "Chapter",
       "subchapter": "Sub-chapter"
-    }
+    },
+    "typePause": "Pause automatically while typing",
+    "resumeAfter": "Resume after",
+    "resumeAfterN": "Resume after {n} s",
+    "typePauseWeb": "Typing pauses the NodiNest player; it resumes 2 s back once you stop typing.",
+    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNest knows it is playing."
   },
   "taqrizAi": {
     "tabAsk": "Ask",

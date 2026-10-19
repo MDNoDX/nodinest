@@ -37,6 +37,8 @@ function subscribeSidebar(cb: () => void) {
   };
 }
 
+const WIDE_RE = /^\/library\/[^/]+\/taqriz/;
+
 type ShellUser = { name: string; email: string; image: string | null; role: "user" | "superadmin" };
 
 function isActive(pathname: string, href: string) {
@@ -228,7 +230,8 @@ export function AppShell({
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        {/* --ai-panel: width of a side panel docked at the right edge (taqriz AI). */}
+        <div className="flex min-w-0 flex-1 flex-col lg:pr-[var(--ai-panel,0px)]">
           <header className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">
             <button
               className="text-muted hover:bg-surface-2 rounded-md p-2 lg:hidden"
@@ -249,7 +252,11 @@ export function AppShell({
           </header>
           <main
             id="main"
-            className="page-enter mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8"
+            className={cn(
+              "page-enter mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
+              // Writing pages use the whole width (their panels hug the edges).
+              WIDE_RE.test(pathname) ? "max-w-none" : "max-w-6xl",
+            )}
           >
             {children}
           </main>

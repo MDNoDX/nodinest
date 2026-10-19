@@ -1059,7 +1059,9 @@
     "mediaPause": "To‘xtatish",
     "askSelection": "AI’dan so‘rash",
     "askSelectionHint": "Belgilangan so‘z yoki matn haqida AI’dan ma’lumot",
-    "aiPanel": "AI paneli"
+    "aiPanel": "AI paneli",
+    "hideOutline": "Mundarijani yig‘ish",
+    "showOutline": "Mundarijani ochish"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1168,7 +1170,9 @@
     "drag": "Siljitish uchun torting (ikki marta bosish — joyiga qaytarish)",
     "audioOnly": "Faqat audio",
     "showVideo": "Videoni yoqish",
-    "keysToggle": "Tugmalar"
+    "keysToggle": "Tugmalar",
+    "typePause": "Yozganda to‘xtasin",
+    "typePauseHint": "Yoza boshlasangiz to‘xtaydi, {s} soniya yozmasangiz o‘zi davom etadi (2 soniya orqadan)."
   },
   "shortcuts": {
     "title": "Klaviatura tugmalari",
@@ -1217,7 +1221,12 @@
       "quote": "Belgilanganni iqtibos qilish",
       "chapter": "Bob",
       "subchapter": "Kichik bob"
-    }
+    },
+    "typePause": "Yozayotganda avtomatik to‘xtatish",
+    "resumeAfter": "Qachon davom etsin",
+    "resumeAfterN": "{n} soniyadan keyin davom etsin",
+    "typePauseWeb": "Yoza boshlasangiz NodiNest pleeri to‘xtaydi va yozishdan to‘xtaganingizdan keyin 2 soniya orqadan davom etadi.",
+    "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNest uning holatini biladi."
   },
   "taqrizAi": {
     "tabAsk": "So‘rash",

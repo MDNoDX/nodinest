@@ -170,6 +170,31 @@ export function ShortcutsSettings() {
           />
           {t("showKeys")}
         </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--primary)]"
+              checked={prefs.typePause}
+              onChange={(e) => setDockPrefs({ typePause: e.target.checked })}
+            />
+            {t("typePause")}
+          </label>
+          <select
+            aria-label={t("resumeAfter")}
+            value={prefs.resumeAfter}
+            disabled={!prefs.typePause}
+            onChange={(e) => setDockPrefs({ resumeAfter: Number(e.target.value) })}
+            className="border-border-strong bg-surface h-8 rounded-md border px-2 text-sm disabled:opacity-50"
+          >
+            {[1, 1.5, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {t("resumeAfterN", { n })}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="text-muted -mt-1 text-xs">{t(macApp ? "typePauseMacApp" : "typePauseWeb")}</p>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"

@@ -33,7 +33,7 @@ import {
   useShortcuts,
   type ShortcutId,
 } from "@/lib/shortcuts";
-import { setDockPrefs, useDockPrefs } from "./dock-prefs";
+import { getDockPrefs, setDockPrefs, useDockPrefs } from "./dock-prefs";
 
 /**
  * A player that lives in the app shell, so a YouTube video or an audio /
@@ -259,24 +259,80 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
 
   // Shortcuts (changeable in Settings) work everywhere, also inside the editor.
   // With nothing playing here, the Mac app forwards play/pause to macOS, so
-  // the same key controls YouTube in another window, Spotify, etc.
+  // the same key controls YouTube in another window, Mutolaa, Spotify, etc.
+  // macOS has only a play/pause *toggle* key, so the state of that outside
+  // player is tracked from the presses made here.
+  const extPlaying = useRef(false);
+  const sendExt = useCallback(() => {
+    const send = macMedia("playpause");
+    if (!send) return false;
+    send();
+    extPlaying.current = !extPlaying.current;
+    return true;
+  }, []);
+
+  // "Pause while typing": the first key pauses, a short silence resumes
+  // (the dock rewinds 2 s on resume, so no word is missed).
+  const typePaused = useRef<"dock" | "ext" | null>(null);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelTypePause = () => {
+    typePaused.current = null;
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = getShortcuts();
       const has = !!live.current.source;
       let act: (() => void) | null = null;
-      if (matches(e, k.playPause)) act = has ? toggle : macMedia("playpause");
+      if (matches(e, k.playPause))
+        act = () => {
+          cancelTypePause();
+          if (has) toggle();
+          else sendExt();
+        };
       else if (has && matches(e, k.back5)) act = () => seekBy(-5);
       else if (has && matches(e, k.fwd5)) act = () => seekBy(5);
       else if (has && matches(e, k.stamp)) act = stamp;
-      if (!act) return;
-      e.preventDefault();
-      e.stopPropagation();
-      act();
+      if (act) {
+        e.preventDefault();
+        e.stopPropagation();
+        act();
+        return;
+      }
+      const prefs = getDockPrefs();
+      if (!prefs.typePause || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!(e.key.length === 1 || e.key === "Backspace" || e.key === "Enter" || e.key === "Delete"))
+        return;
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el &&
+        (el.isContentEditable ||
+          el.tagName === "TEXTAREA" ||
+          (el.tagName === "INPUT" && /^(text|search|)$/.test((el as HTMLInputElement).type)));
+      if (!typing) return;
+      if (!typePaused.current) {
+        if (has && live.current.playing) {
+          pause();
+          typePaused.current = "dock";
+        } else if (!has && extPlaying.current && sendExt()) {
+          typePaused.current = "ext";
+        } else return;
+      }
+      if (resumeTimer.current) clearTimeout(resumeTimer.current);
+      resumeTimer.current = setTimeout(
+        () => {
+          const was = typePaused.current;
+          typePaused.current = null;
+          if (was === "dock" && live.current.source && !live.current.playing) toggle();
+          else if (was === "ext" && !extPlaying.current) sendExt();
+        },
+        Math.max(0.5, prefs.resumeAfter) * 1000,
+      );
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [toggle, seekBy, stamp]);
+  }, [toggle, pause, seekBy, stamp, sendExt]);
 
   // Web Audio taps the element once; the sound still goes to the speakers.
   const audioCtx = useRef<AudioContext | null>(null);
@@ -377,7 +433,8 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
           style={pos ? { left: pos.x, top: pos.y } : undefined}
           className={cn(
             "border-border bg-surface fixed z-40 w-[min(380px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-xl",
-            !pos && "right-3 bottom-3 sm:right-5 sm:bottom-5",
+            !pos &&
+              "right-3 bottom-3 sm:right-5 sm:bottom-5 lg:right-[calc(var(--ai-panel,0px)+1.25rem)]",
             dragging && "shadow-2xl select-none",
           )}
         >
@@ -518,6 +575,14 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               >
                 {t("keysToggle")}
               </Chip>
+              <Chip
+                onClick={() => setDockPrefs({ typePause: !prefs.typePause })}
+                icon={<Keyboard className="size-3.5" />}
+                pressed={prefs.typePause}
+                title={t("typePauseHint", { s: prefs.resumeAfter })}
+              >
+                {t("typePause")}
+              </Chip>
             </div>
             {prefs.showKeys && (
               <p className="text-muted text-[11px] leading-tight">
@@ -564,17 +629,20 @@ function Chip({
   onClick,
   icon,
   pressed,
+  title,
   children,
 }: {
   onClick: () => void;
   icon: React.ReactNode;
   pressed?: boolean;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       aria-pressed={pressed}
       className={cn(
         "border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",

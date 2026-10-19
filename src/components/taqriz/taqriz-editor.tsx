@@ -32,12 +32,14 @@ import {
   Strikethrough,
   Underline as UnderlineIcon,
   Undo2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pause,
   Play,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { saveNoteAction, saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
@@ -117,6 +119,23 @@ function Tool({
  * line / selected sentence into a chapter — chapters build the outline on the
  * left. Autosaves; works offline (draft kept on the device, synced later).
  */
+const OUTLINE_KEY = "nn:taqriz-outline";
+function readOutline() {
+  try {
+    return localStorage.getItem(OUTLINE_KEY) === "hidden";
+  } catch {
+    return false;
+  }
+}
+function subscribeOutline(cb: () => void) {
+  window.addEventListener(OUTLINE_KEY, cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    window.removeEventListener(OUTLINE_KEY, cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
 export function TaqrizEditor({
   resource,
   initial,
@@ -155,6 +174,28 @@ export function TaqrizEditor({
   });
   const [askReq, setAskReq] = useState<AskRequest | null>(null);
   const openAi = (tab: PanelTab) => setAi({ open: true, mounted: true, tab });
+  // The outline column can be folded away for a wider page (remembered on this device).
+  const outlineHidden = useSyncExternalStore(
+    subscribeOutline,
+    () => readOutline(),
+    () => false,
+  );
+  const setOutlineHidden = (v: boolean) => {
+    try {
+      localStorage.setItem(OUTLINE_KEY, v ? "hidden" : "shown");
+    } catch {
+      /* storage unavailable */
+    }
+    window.dispatchEvent(new Event(OUTLINE_KEY));
+  };
+  useEffect(() => {
+    const root = document.documentElement.style;
+    if (ai.open) root.setProperty("--ai-panel", "24rem");
+    else root.removeProperty("--ai-panel");
+    return () => {
+      root.removeProperty("--ai-panel");
+    };
+  }, [ai.open]);
   const dock = useMediaDock();
   const dockActive = !!(media && dock?.source && dock.keyOf(dock.source) === dock.keyOf(media));
   const stopRecording = async () => {
@@ -639,12 +680,47 @@ export function TaqrizEditor({
   return (
     <div
       className={cn(
-        "-mx-4 -my-6 grid min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8 lg:grid-cols-[17rem_1fr]",
-        ai.open && "lg:grid-cols-[15rem_1fr_22rem] xl:grid-cols-[17rem_1fr_24rem]",
+        "-mx-4 -my-6 grid min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8",
+        outlineHidden ? "lg:grid-cols-[3rem_1fr]" : "lg:grid-cols-[17rem_1fr]",
       )}
     >
-      <aside className="border-border bg-surface/60 hidden flex-col border-r lg:sticky lg:top-14 lg:flex lg:h-[calc(100dvh-3.5rem)]">
-        <div className="flex items-start gap-3 p-4">
+      {outlineHidden && (
+        <aside className="border-border bg-surface/60 hidden flex-col items-center gap-1 border-r py-3 lg:sticky lg:top-14 lg:flex lg:h-[calc(100dvh-3.5rem)]">
+          <button
+            type="button"
+            onClick={() => setOutlineHidden(false)}
+            className="text-muted hover:text-foreground hover:bg-surface-2 grid size-8 place-items-center rounded-md"
+            aria-label={t("showOutline")}
+            title={t("showOutline")}
+          >
+            <PanelLeftOpen className="size-4" />
+          </button>
+          <Link
+            href={`/library/${resource.id}`}
+            className="text-muted hover:text-foreground hover:bg-surface-2 grid size-8 place-items-center rounded-md"
+            aria-label={t("back")}
+            title={t("back")}
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+        </aside>
+      )}
+      <aside
+        className={cn(
+          "border-border bg-surface/60 hidden flex-col border-r lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)]",
+          !outlineHidden && "lg:flex",
+        )}
+      >
+        <div className="relative flex items-start gap-3 p-4 pr-9">
+          <button
+            type="button"
+            onClick={() => setOutlineHidden(true)}
+            className="text-muted hover:text-foreground hover:bg-surface-2 absolute top-3 right-2 grid size-7 place-items-center rounded-md"
+            aria-label={t("hideOutline")}
+            title={t("hideOutline")}
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
           <Cover
             type={resource.type as "book"}
             title={resource.title}
@@ -687,7 +763,7 @@ export function TaqrizEditor({
       <section className="min-w-0">
         {/* Toolbar */}
         <div className="border-border bg-background/90 sticky top-14 z-20 border-b backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center gap-0.5 overflow-x-auto px-3 py-1.5 sm:px-6">
+          <div className="mx-auto flex max-w-3xl items-center gap-0.5 overflow-x-auto px-3 py-1.5 sm:px-6 xl:max-w-4xl">
             <Link
               href={`/library/${resource.id}`}
               className="text-muted hover:text-foreground mr-1 grid size-8 shrink-0 place-items-center rounded-md lg:hidden"
@@ -893,7 +969,7 @@ export function TaqrizEditor({
           )}
         </div>
 
-        <div className="mx-auto max-w-3xl px-4 pt-8 pb-32 sm:px-10">
+        <div className="mx-auto max-w-3xl px-4 pt-8 pb-32 sm:px-10 xl:max-w-4xl">
           <p className="text-muted mb-1 text-xs font-semibold tracking-wide uppercase">
             {t("title")}
           </p>
@@ -970,8 +1046,10 @@ export function TaqrizEditor({
         <aside
           aria-label={t("aiPanel")}
           className={cn(
+            // Phones: overlay under the header. Desktop: docked to the window's right
+            // edge; the shell makes room for it via --ai-panel.
             "border-border bg-surface fixed inset-x-0 top-14 bottom-0 z-30 border-l shadow-xl sm:left-auto sm:w-[24rem]",
-            "lg:sticky lg:z-10 lg:h-[calc(100dvh-3.5rem)] lg:w-auto lg:shadow-none",
+            "lg:top-0 lg:z-40 lg:w-[var(--ai-panel)] lg:shadow-none",
             !ai.open && "hidden",
           )}
         >
