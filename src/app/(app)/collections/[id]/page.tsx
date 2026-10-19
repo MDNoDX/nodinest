@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { CollectionAdder } from "@/components/collections/collection-adder";
 import { CollectionDialog } from "@/components/collections/collection-dialog";
 import {
   DeleteCollectionButton,
@@ -45,6 +46,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
           </>
         }
       />
+      <CollectionAdder collectionId={id} empty={d.items.length === 0} />
       {d.items.length === 0 ? (
         <EmptyState title={t("collections.empty")} />
       ) : (

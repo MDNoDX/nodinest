@@ -1,6 +1,7 @@
 "use client";
 import { Pencil, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { saveCollectionAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function CollectionDialog({
   const [description, setDescription] = useState(collection?.description ?? "");
   const [ranked, setRanked] = useState(collection?.ranked ?? false);
   const { pending, exec } = useAction();
+  const router = useRouter();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -42,8 +44,13 @@ export function CollectionDialog({
           onSubmit={(e) => {
             e.preventDefault();
             exec(() => saveCollectionAction({ name, description, ranked }, collection?.id), {
-              success: t("common.saved"),
-              onSuccess: () => setOpen(false),
+              success: collection ? t("common.saved") : t("collections.created"),
+              onSuccess: (newId) => {
+                setOpen(false);
+                // A new collection opens right away, ready to be filled.
+                if (!collection && newId) router.push(`/collections/${newId}`);
+              },
+              refresh: !!collection,
             });
           }}
         >

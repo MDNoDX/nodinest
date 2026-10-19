@@ -27,6 +27,7 @@ import {
   restoreNote,
   saveCollection,
   saveNote,
+  searchCollectionCandidates,
   toggleCollectionItem,
 } from "@/server/notes";
 import { removeLearningRecord, setLearningStatus, upsertLearningRecord } from "@/server/records";
@@ -141,6 +142,19 @@ export async function toggleCollectionItemAction(
     await toggleCollectionItem(db, ctx, id.parse(collectionId), t, !!add);
     revalidatePath("/collections", "layout");
   });
+}
+/** Search box inside a collection: resources or notes to add. */
+export async function searchCollectionCandidatesAction(
+  collectionId: string,
+  q: string,
+  kind: "resource" | "note",
+) {
+  return run(async ({ ctx, db }) =>
+    searchCollectionCandidates(db, ctx, id.parse(collectionId), {
+      q: z.string().max(200).parse(q),
+      kind: z.enum(["resource", "note"]).parse(kind),
+    }),
+  );
 }
 export async function reorderCollectionAction(collectionId: string, itemIds: string[]) {
   return run(async ({ ctx, db }) => {

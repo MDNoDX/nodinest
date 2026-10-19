@@ -14,7 +14,7 @@ import {
   tags,
 } from "@/db/schema";
 import { AppError } from "@/lib/errors";
-import { normalizeTag } from "@/lib/normalize";
+import { escapeLike, normalizeTag, normalizeText } from "@/lib/normalize";
 import { collectionInput, noteInput, zodFieldErrors } from "@/lib/validation";
 
 async function ensurePersonalTags(tx: Tx, ctx: AppContext, names: string[]) {
@@ -445,4 +445,123 @@ export async function notesByIds(database: Database, ctx: AppContext, ids: strin
       .from(notes)
       .where(and(inArray(notes.id, ids), eq(notes.userId, ctx.userId))),
   );
+}
+
+export type CollectionCandidate =
+  | {
+      kind: "resource";
+      id: string;
+      title: string;
+      type: string;
+      authors: string | null;
+      coverUrl: string | null;
+      coverFileId: string | null;
+      mine: boolean;
+      added: boolean;
+    }
+  | {
+      kind: "note";
+      id: string;
+      noteKind: string;
+      text: string;
+      resourceTitle: string | null;
+      added: boolean;
+    };
+
+/**
+ * What can be added to a collection from inside it: resources (the user's
+ * library first, then the shared catalog) or the user's own notes / quotes.
+ * An empty query lists recent items from the user's library / notes.
+ */
+export async function searchCollectionCandidates(
+  database: Database,
+  ctx: AppContext,
+  collectionId: string,
+  opts: { q: string; kind: "resource" | "note" },
+): Promise<CollectionCandidate[]> {
+  const q = normalizeText(opts.q.slice(0, 200));
+  const like = `%${escapeLike(q)}%`;
+  return withUser(database, ctx, async (tx) => {
+    const [c] = await tx
+      .select({ id: collections.id })
+      .from(collections)
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, ctx.userId)));
+    if (!c) throw new AppError("NOT_FOUND");
+    if (opts.kind === "resource") {
+      const rows = await tx.execute<{
+        id: string;
+        title: string;
+        type: string;
+        authors: string | null;
+        cover_url: string | null;
+        cover_file_id: string | null;
+        mine: boolean;
+        added: boolean;
+      }>(sql`
+        select r.id, r.title, r.type::text as type, r.cover_url, r.cover_file_id,
+          (select string_agg(p.full_name, ', ' order by c.position)
+             from nodinest.resource_contributors c join nodinest.people p on p.id = c.person_id
+            where c.resource_id = r.id) as authors,
+          (lr.id is not null) as mine,
+          exists (select 1 from nodinest.collection_items ci
+                  where ci.collection_id = ${collectionId} and ci.resource_id = r.id) as added
+        from nodinest.resources r
+        left join nodinest.learning_records lr on lr.resource_id = r.id and lr.user_id = ${ctx.userId}
+        where r.deleted_at is null
+          and ${
+            q
+              ? sql`(nodinest.nn_norm(r.title) like ${like}
+                  or nodinest.nn_norm(coalesce(r.original_title, '')) like ${like}
+                  or exists (select 1 from nodinest.resource_contributors c
+                             join nodinest.people p on p.id = c.person_id
+                             where c.resource_id = r.id and nodinest.nn_norm(p.full_name) like ${like}))`
+              : sql`lr.id is not null`
+          }
+        order by (lr.id is not null) desc,
+          coalesce(lr.last_accessed_at, lr.updated_at, r.updated_at) desc
+        limit 30`);
+      return rows.map((r) => ({
+        kind: "resource" as const,
+        id: r.id,
+        title: r.title,
+        type: r.type,
+        authors: r.authors,
+        coverUrl: r.cover_url,
+        coverFileId: r.cover_file_id,
+        mine: r.mine,
+        added: r.added,
+      }));
+    }
+    const rows = await tx.execute<{
+      id: string;
+      kind: string;
+      text: string;
+      resource_title: string | null;
+      added: boolean;
+    }>(sql`
+      select n.id, n.kind::text as kind,
+        coalesce(nullif(n.quote_text, ''), nullif(n.title, ''), left(n.body, 300), '') as text,
+        r.title as resource_title,
+        exists (select 1 from nodinest.collection_items ci
+                where ci.collection_id = ${collectionId} and ci.note_id = n.id) as added
+      from nodinest.notes n
+      left join nodinest.resources r on r.id = n.resource_id
+      where n.user_id = ${ctx.userId} and n.deleted_at is null
+        ${
+          q
+            ? sql`and (nodinest.nn_norm(coalesce(n.quote_text, '') || ' ' || coalesce(n.title, '') || ' ' || coalesce(n.body, '')) like ${like}
+                  or nodinest.nn_norm(coalesce(r.title, '')) like ${like})`
+            : sql``
+        }
+      order by n.created_at desc
+      limit 30`);
+    return rows.map((r) => ({
+      kind: "note" as const,
+      id: r.id,
+      noteKind: r.kind,
+      text: r.text.slice(0, 300),
+      resourceTitle: r.resource_title,
+      added: r.added,
+    }));
+  });
 }

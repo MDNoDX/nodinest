@@ -1,8 +1,9 @@
 "use client";
-import { Check, FolderPlus } from "lucide-react";
+import { Check, FolderPlus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { DropdownMenu as M } from "radix-ui";
-import { toggleCollectionItemAction } from "@/app/actions/personal";
+import { useState } from "react";
+import { saveCollectionAction, toggleCollectionItemAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/lib/use-action";
 
@@ -17,6 +18,7 @@ export function CollectionPicker({
 }) {
   const t = useTranslations();
   const { pending, exec } = useAction();
+  const [newName, setNewName] = useState("");
   return (
     <M.Root>
       <M.Trigger asChild>
@@ -52,6 +54,35 @@ export function CollectionPicker({
               </M.CheckboxItem>
             );
           })}
+          <M.Separator className="bg-border my-1 h-px" />
+          {/* Create a collection here and put this item in it at once. */}
+          <form
+            className="flex items-center gap-1 px-1 py-0.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const n = newName.trim();
+              if (!n) return;
+              exec(
+                async () => {
+                  const c = await saveCollectionAction({ name: n, description: "", ranked: false });
+                  if (!c.ok) return c;
+                  return toggleCollectionItemAction(c.data, target, true);
+                },
+                { success: t("collections.createdWith", { name: n }) },
+              );
+              setNewName("");
+            }}
+          >
+            <Plus className="text-muted size-4 shrink-0" />
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              placeholder={t("collections.newHere")}
+              aria-label={t("collections.newHere")}
+              className="placeholder:text-muted h-8 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none"
+            />
+          </form>
         </M.Content>
       </M.Portal>
     </M.Root>

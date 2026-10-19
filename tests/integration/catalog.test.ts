@@ -41,6 +41,41 @@ describe("my library", () => {
   });
 });
 
+describe("adding to a collection from inside it", () => {
+  it("finds library items, marks what is already in, and never shows other users' notes", async () => {
+    const { saveCollection, toggleCollectionItem, searchCollectionCandidates, saveNote } =
+      await import("@/server/notes");
+    const r = (await submitResource(db, user, {
+      type: "lecture",
+      title: `Cand lecture ${Date.now()}`,
+    })) as {
+      id: string;
+    };
+    const cid = await saveCollection(db, user, {
+      name: "Cand test",
+      description: "",
+      ranked: false,
+    });
+    const empty = await searchCollectionCandidates(db, user, cid, { q: "", kind: "resource" });
+    expect(empty.map((c) => c.id)).toContain(r.id);
+    await toggleCollectionItem(db, user, cid, { resourceId: r.id }, true);
+    const hit = await searchCollectionCandidates(db, user, cid, {
+      q: "cand lecture",
+      kind: "resource",
+    });
+    expect(hit.find((c) => c.id === r.id)?.added).toBe(true);
+    await saveNote(db, admin, { kind: "quote", quoteText: "Admin only quote cand" });
+    const notes = await searchCollectionCandidates(db, user, cid, {
+      q: "admin only",
+      kind: "note",
+    });
+    expect(notes).toHaveLength(0);
+    await expect(
+      searchCollectionCandidates(db, admin, cid, { q: "", kind: "resource" }),
+    ).rejects.toThrow();
+  });
+});
+
 describe("people & resources", () => {
   let navoiyId: string;
   let bookId: string;
