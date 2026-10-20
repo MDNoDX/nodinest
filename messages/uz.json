@@ -400,7 +400,7 @@
     "readOnline": "Onlayn o‘qish",
     "myPdf": "Mening PDF faylim",
     "uploadPdf": "PDF yuklash",
-    "fullText": "To‘liq matn",
+    "fullText": "To‘liq matn / konspekt tayyorlash",
     "indexText": "Matnni o‘qib olish",
     "reindex": "Qayta o‘qish",
     "indexing": "O‘qilmoqda…",
@@ -422,7 +422,8 @@
     "notesCount": "{count, plural, other {# ta qayd}}",
     "allNotes": "Barcha {count} ta qaydni ochish",
     "deleteConfirm": "Bu yozuv kutubxonangizdan va katalogdan o‘chirilsinmi? Qaydlaringiz saqlanib qoladi.",
-    "deleted": "O‘chirildi"
+    "deleted": "O‘chirildi",
+    "liveWrite": "Tinglab yozish"
   },
   "record": {
     "status": "Holati",
@@ -1044,7 +1045,7 @@
     "placeholder": "Fikrlaringizni yozing… Xohlasangiz, jumlani belgilab «Bob qilish»ni bosing.",
     "chapterPlaceholder": "Bob nomi",
     "makeChapter": "Bob qilish",
-    "askAi": "AI yordamchidan taqriz yozishni so‘rash",
+    "askAi": "AI yordamida taqriz yozish",
     "summary": "{words, plural, other {# so‘z}} · {chapters, plural, =0 {boblarsiz} other {# bob}}",
     "hint": "Kitob haqidagi fikr, xulosa va mazmun — erkin yozing yoki boblarga ajrating.",
     "start": "Yozishni boshlash",
@@ -1300,6 +1301,27 @@
     "fullResume": "Davom ettirish",
     "fullReady": "To‘liq matn tayyor — yuklab olishingiz mumkin",
     "fullNote": "Sahifa ochiq turganda ishlaydi; yopilsa, keyin «Davom ettirish» bilan qolgan joyidan davom etadi. Har 1,5 daqiqa nutq — bitta AI so‘rovi (konspektda 5 daqiqa).",
-    "delete": "O‘chirish"
+    "delete": "O‘chirish",
+    "tabWrite": "Yozish",
+    "writeHint": "AI qaydlaringiz, iqtiboslaringiz, videoning to‘liq matni/konspekti va hozirgacha yozganingiz asosida taqrizingizni sizning ovozingizda yozib beradi. Qo‘shishdan oldin ko‘rasiz.",
+    "wOutline": "Reja tuzish",
+    "wIntro": "Kirish",
+    "wContinue": "Davom ettirish",
+    "wConclusion": "Xulosa",
+    "wImprove": "Belgilanganni yaxshilash",
+    "selectFirst": "Avval taqrizda matnni belgilang.",
+    "writePlaceholder": "Nima yozay? Masalan: bosh qahramon haqida bir bob (⌘↩ — yuborish)",
+    "writeSend": "Yozib ber",
+    "writing": "Yozmoqda…",
+    "insertCursor": "Kursorga qo‘shish",
+    "insertEnd": "Oxiriga qo‘shish",
+    "replaceSelection": "Belgilanganni almashtirish",
+    "replaced": "Almashtirildi",
+    "selectionChanged": "Belgilangan matn o‘zgargan — qaytadan belgilang.",
+    "again": "Qayta yozish",
+    "usedMaterial": "Asos: {notes} ta qayd/iqtibos · {rec}",
+    "usedKonspekt": "video konspekti",
+    "usedTranscript": "videoning to‘liq matni",
+    "usedNone": "video matni yo‘q"
   }
 }

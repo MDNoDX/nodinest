@@ -246,3 +246,92 @@ export async function transcribeSegment(ctx: AppContext, raw: unknown) {
     to: a.to,
   };
 }
+
+// ── Help writing the taqriz ───────────────────────────────────────────────
+
+export const writeInput = z.object({
+  resourceId: z.string().uuid(),
+  action: z.enum(["outline", "intro", "continue", "conclusion", "improve", "custom"]),
+  instruction: z.string().trim().max(2000).default(""),
+  /** The taqriz so far (plain text, Markdown headings). */
+  doc: z.string().max(20_000).default(""),
+  selection: z.string().max(4000).default(""),
+  locale: z.enum(["uz", "en"]).default("uz"),
+});
+
+/**
+ * Drafts part of the taqriz in the user's voice from what the user has:
+ * the work's facts, their notes and quotes, a finished transcript / konspekt
+ * of the video and their text so far. The draft is shown first; the user
+ * decides whether it goes in.
+ */
+export async function writeHelp(ctx: AppContext, raw: unknown) {
+  const a = writeInput.parse(raw);
+  await gate(ctx, "ask");
+  const facts = await resourceFacts(ctx, a.resourceId);
+  const [notes, tr] = await withUser(db, ctx, (tx) =>
+    Promise.all([
+      tx.execute<{
+        kind: string;
+        quote_text: string | null;
+        title: string | null;
+        body: string | null;
+        page_from: number | null;
+      }>(sql`
+        select n.kind::text as kind, n.quote_text, n.title, n.body, n.page_from
+        from nodinest.notes n
+        where n.user_id = ${ctx.userId} and n.resource_id = ${a.resourceId} and n.deleted_at is null
+        order by n.page_from asc nulls last, n.created_at asc limit 40`),
+      tx.execute<{ mode: string; text: string }>(sql`
+        select mode, text from nodinest.transcripts
+        where user_id = ${ctx.userId} and resource_id = ${a.resourceId} and status = 'done' and text is not null
+        order by (mode = 'notes') desc, updated_at desc limit 1`),
+    ]),
+  );
+  const notesText = notes
+    .map((n) =>
+      n.kind === "quote"
+        ? `- QUOTE${n.page_from ? ` (p. ${n.page_from})` : ""}: «${n.quote_text}»${n.body ? ` — my comment: ${n.body}` : ""}`
+        : `- NOTE: ${[n.title, n.body].filter(Boolean).join(": ").slice(0, 800)}`,
+    )
+    .join("\n")
+    .slice(0, 12_000);
+  const task = {
+    outline:
+      "Propose an outline for this taqriz: 4–7 chapter headings ('## ') each with 1–2 bullets of what to write there, based on the material.",
+    intro:
+      "Write an introduction (1–2 paragraphs): what the work is, who made it, why it matters and what this taqriz will discuss.",
+    continue:
+      "Continue the taqriz from where it ends (1–3 paragraphs), in the same voice and structure, developing the next point.",
+    conclusion:
+      "Write a conclusion (1–2 paragraphs): the main takeaways and the author's personal assessment, consistent with the text so far.",
+    improve:
+      "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
+    custom: a.instruction || "Help with the taqriz.",
+  }[a.action];
+  const system = [
+    "You help the user write their own taqriz (a review / study essay) about a work. Write in their voice, first person where natural, as part of their essay — not as an assistant talking to them.",
+    "Base everything on the MATERIAL: the work's facts, the user's notes and quotes, the transcript or konspekt of the recording and their text so far. Quote only from the quotes / transcript given, exactly, in «…». General knowledge is fine for well-known context, but never invent quotes, page numbers, dates or facts; leave out what you are not sure of.",
+    "Format: Markdown — '## ' for chapter headings only when the task asks for structure, short paragraphs, '- ' bullets when useful, **bold** sparingly. No preamble, no comments about the task.",
+    langRule(a.locale),
+  ].join("\n");
+  const material = [
+    `WORK\n${factsText(facts)}`,
+    notesText ? `MY NOTES AND QUOTES\n${notesText}` : "",
+    tr[0]
+      ? `${tr[0].mode === "notes" ? "KONSPEKT" : "TRANSCRIPT"} OF THE RECORDING\n${tr[0].text.slice(0, 30_000)}`
+      : "",
+    a.doc ? `MY TAQRIZ SO FAR\n${a.doc.slice(-15_000)}` : "MY TAQRIZ SO FAR\n(empty)",
+    a.selection ? `SELECTED\n${a.selection}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const res = await generate(
+    [{ role: "user", parts: [{ text: material }, { text: `TASK\n${task}` }] }],
+    { systemInstruction: system, temperature: 0.6, thinkingConfig: { thinkingBudget: 2048 } },
+    { timeoutMs: 80_000 },
+  );
+  const text = (res.text ?? "").trim();
+  if (!text) throw new AppError("AI_UNAVAILABLE", "empty");
+  return { text, used: { notes: notes.length, transcript: tr[0]?.mode ?? null } };
+}

@@ -142,8 +142,14 @@ export function TaqrizEditor({
   focusQuery,
   userId,
   media,
+  initialAi,
+  initialFull,
 }: {
+  /** Open "Listen" on "Prepare full text". */
+  initialFull?: boolean;
   media?: DockSource | null;
+  /** Open the AI panel on this tab (e.g. from "Write the taqriz with AI"). */
+  initialAi?: PanelTab | null;
   resource: { id: string; title: string; type: string; cover: string | null; authors: string };
   initial: { doc: WriteupDoc | null; updatedAt: string | null };
   focusQuery?: string | null;
@@ -168,9 +174,9 @@ export function TaqrizEditor({
   } | null>(null);
   // AI side panel: stays mounted once opened, so listening goes on when hidden.
   const [ai, setAi] = useState<{ open: boolean; mounted: boolean; tab: PanelTab }>({
-    open: false,
-    mounted: false,
-    tab: "ask",
+    open: !!initialAi,
+    mounted: !!initialAi,
+    tab: initialAi ?? "write",
   });
   const [askReq, setAskReq] = useState<AskRequest | null>(null);
   const openAi = (tab: PanelTab) => setAi({ open: true, mounted: true, tab });
@@ -1034,12 +1040,13 @@ export function TaqrizEditor({
               <div className="bg-surface-2 h-4 w-5/6 animate-pulse rounded" />
             </div>
           )}
-          <Link
-            href={`/assistant`}
+          <button
+            type="button"
+            onClick={() => openAi("write")}
             className="text-muted hover:text-primary mt-10 inline-flex items-center gap-1.5 text-xs"
           >
             <Sparkles className="size-3.5" /> {t("askAi")}
-          </Link>
+          </button>
         </div>
       </section>
       {editor && ai.mounted && (
@@ -1060,6 +1067,7 @@ export function TaqrizEditor({
             tab={ai.tab}
             setTab={(tab) => setAi((a) => ({ ...a, tab }))}
             ask={askReq}
+            startFull={initialFull}
             onClose={() => setAi((a) => ({ ...a, open: false }))}
           />
         </aside>

@@ -30,7 +30,7 @@ import { clock, factsText, gate, langRule, resourceFacts } from "./study";
 const SEGMENT = { transcript: 90, notes: 300 } as const;
 const MAX_DURATION = 6 * 3600;
 /** The study pass hears at most this much (free-tier token limits). */
-const BRIEF_SPAN = 90 * 60;
+const BRIEF_SPAN = 45 * 60;
 
 type Source = { kind: "youtube"; id: string } | { kind: "file"; fileId: string };
 type Segment = { from: number; to: number; text: string };
@@ -201,7 +201,7 @@ const briefText = (b: Brief | null) =>
 async function study(ctx: AppContext, r: typeof transcripts.$inferSelect, locale: string) {
   const facts = await resourceFacts(ctx, r.resourceId);
   const span = Math.min(r.durationSeconds, BRIEF_SPAN);
-  const { part } = await mediaPart(ctx, r, 0, span, 0.1);
+  const { part } = await mediaPart(ctx, r, 0, span, 0.05);
   const res = await generate(
     [
       {
@@ -472,8 +472,19 @@ export async function stepTranscript(ctx: AppContext, id: string, locale: string
   if (r.status === "done") return info(r);
   await gate(ctx, "listen");
   try {
-    if (!r.brief) await study(ctx, r, locale);
-    else {
+    if (!r.brief) {
+      try {
+        await study(ctx, r, locale);
+      } catch (err) {
+        // Limits stop the job; any other failure only costs the extra context:
+        // carry on writing without a brief rather than getting stuck here.
+        if (err instanceof AppError && (err.code === "AI_QUOTA" || err.code === "RATE_LIMITED"))
+          throw err;
+        await save(ctx, id, {
+          brief: { language: "", topic: "", speakers: [], glossary: [], outline: [] },
+        });
+      }
+    } else {
       const segs = r.segments as Segment[];
       const from = segs.at(-1)?.to ?? 0;
       if (from >= r.durationSeconds - 1) await finish(ctx, r, locale);

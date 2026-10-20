@@ -2,12 +2,14 @@
 import type { Editor, JSONContent } from "@tiptap/react";
 import {
   AudioLines,
+  Check,
   Copy,
   CornerDownLeft,
   Download,
   FileText,
   Loader2,
   MessageSquareText,
+  PenLine,
   Play,
   RotateCcw,
   Sparkles,
@@ -27,6 +29,7 @@ import {
   stepTranscriptAction,
   transcribeSegmentAction,
   transcriptTextAction,
+  writeHelpAction,
 } from "@/app/actions/ai";
 import { fmtClock, useMediaDock, type DockSource } from "@/components/media/media-dock";
 import { PREFERRED } from "@/components/media/use-recorder";
@@ -35,7 +38,7 @@ import { markdownToNodes, type DocNode } from "@/lib/writeup-doc";
 import type { TranscriptInfo } from "@/server/ai/transcripts";
 
 export type AskRequest = { selection: string; context: string; n: number };
-export type PanelTab = "ask" | "listen";
+export type PanelTab = "write" | "ask" | "listen";
 
 /** Length of one listening segment (one AI request per segment). */
 const SEGMENT = 60;
@@ -56,7 +59,9 @@ export function AiPanel({
   setTab,
   ask,
   onClose,
+  startFull,
 }: {
+  startFull?: boolean;
   editor: Editor;
   resourceId: string;
   media: DockSource | null;
@@ -71,7 +76,7 @@ export function AiPanel({
       <div className="border-border flex items-center gap-1 border-b px-3 py-2">
         <Sparkles className="text-primary size-4" />
         <div role="tablist" className="bg-surface-2 ml-1 flex rounded-lg p-0.5 text-xs">
-          {(["ask", "listen"] as const).map((k) => (
+          {(["write", "ask", "listen"] as const).map((k) => (
             <button
               key={k}
               type="button"
@@ -79,18 +84,20 @@ export function AiPanel({
               aria-selected={tab === k}
               onClick={() => setTab(k)}
               className={cn(
-                "flex items-center gap-1 rounded-md px-2.5 py-1 font-medium",
+                "flex items-center gap-1 rounded-md px-2 py-1 font-medium whitespace-nowrap",
                 tab === k
                   ? "bg-surface text-foreground shadow-sm"
                   : "text-muted hover:text-foreground",
               )}
             >
-              {k === "ask" ? (
+              {k === "write" ? (
+                <PenLine className="size-3.5" />
+              ) : k === "ask" ? (
                 <MessageSquareText className="size-3.5" />
               ) : (
                 <AudioLines className="size-3.5" />
               )}
-              {t(k === "ask" ? "tabAsk" : "tabListen")}
+              {t(k === "write" ? "tabWrite" : k === "ask" ? "tabAsk" : "tabListen")}
             </button>
           ))}
         </div>
@@ -103,13 +110,204 @@ export function AiPanel({
           <X className="size-4" />
         </button>
       </div>
-      {/* Both stay mounted: switching tabs never stops listening. */}
+      {/* All stay mounted: switching tabs never stops listening or loses a draft. */}
+      <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "write" && "hidden")}>
+        <WriteTab editor={editor} resourceId={resourceId} />
+      </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "ask" && "hidden")}>
         <AskTab key={ask?.n ?? 0} editor={editor} resourceId={resourceId} ask={ask} />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "listen" && "hidden")}>
-        <ListenModes editor={editor} resourceId={resourceId} media={media} />
+        <ListenModes editor={editor} resourceId={resourceId} media={media} startFull={startFull} />
       </div>
+    </div>
+  );
+}
+
+// ── Write ──────────────────────────────────────────────────────────────────
+
+type WriteAction = "outline" | "intro" | "continue" | "conclusion" | "improve" | "custom";
+
+/** The taqriz as plain text with "## " chapter headings (context for the AI). */
+function docText(editor: Editor) {
+  const out: string[] = [];
+  editor.state.doc.forEach((n) => {
+    const text = n.textContent.trim();
+    if (!text) return;
+    out.push(n.type.name === "heading" ? `${"#".repeat(n.attrs.level ?? 2)} ${text}` : text);
+  });
+  return out.join("\n\n");
+}
+
+function WriteTab({ editor, resourceId }: { editor: Editor; resourceId: string }) {
+  const t = useTranslations("taqrizAi");
+  const te = useTranslations("errors");
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState<WriteAction | null>(null);
+  const [res, setRes] = useState<{
+    action: WriteAction;
+    label: string;
+    text: string;
+    used: { notes: number; transcript: string | null };
+    sel: { from: number; to: number; text: string } | null;
+  } | null>(null);
+
+  const go = async (action: WriteAction, label: string, instruction = "") => {
+    const { from, to } = editor.state.selection;
+    const selected = from !== to ? editor.state.doc.textBetween(from, to, "\n").trim() : "";
+    if (action === "improve" && !selected) return toast(t("selectFirst"));
+    setBusy(action);
+    const r = await writeHelpAction({
+      resourceId,
+      action,
+      instruction,
+      doc: docText(editor),
+      selection: selected.slice(0, 4000),
+    }).catch(() => null);
+    setBusy(null);
+    if (!r || !r.ok) return toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+    setRes({
+      action,
+      label,
+      text: r.data.text,
+      used: r.data.used,
+      sel: selected ? { from, to, text: selected } : null,
+    });
+  };
+
+  const nodes = (text: string) => markdownToNodes(text) as JSONContent[];
+  const atCursor = () => {
+    if (!res) return;
+    editor.chain().focus().insertContent(nodes(res.text)).run();
+    toast.success(t("inserted"));
+  };
+  const atEnd = () => {
+    if (!res) return;
+    editor
+      .chain()
+      .insertContentAt(editor.state.doc.content.size, nodes(res.text), { updateSelection: false })
+      .run();
+    toast.success(t("inserted"));
+  };
+  const replace = () => {
+    if (!res?.sel) return;
+    const { from, to, text } = res.sel;
+    if (editor.state.doc.textBetween(from, to, "\n").trim() !== text)
+      return toast.error(t("selectionChanged"));
+    editor.chain().focus().insertContentAt({ from, to }, nodes(res.text)).run();
+    toast.success(t("replaced"));
+  };
+
+  const chips: [WriteAction, string][] = [
+    ["outline", t("wOutline")],
+    ["intro", t("wIntro")],
+    ["continue", t("wContinue")],
+    ["conclusion", t("wConclusion")],
+    ["improve", t("wImprove")],
+  ];
+  return (
+    <div className="flex flex-col gap-3 p-3 text-sm">
+      <p className="text-muted text-xs">{t("writeHint")}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {chips.map(([a, label]) => (
+          <button
+            key={a}
+            type="button"
+            disabled={!!busy}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void go(a, label)}
+            className="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium disabled:opacity-50"
+          >
+            {busy === a && <Loader2 className="size-3 animate-spin" />}
+            {label}
+          </button>
+        ))}
+      </div>
+      <form
+        className="flex flex-col gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = draft.trim();
+          if (!q || busy) return;
+          void go("custom", q, q);
+        }}
+      >
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey))
+              e.currentTarget.form?.requestSubmit();
+          }}
+          rows={3}
+          placeholder={t("writePlaceholder")}
+          className="border-border-strong bg-surface focus-visible:outline-ring/40 min-h-20 rounded-lg border px-2.5 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={!!busy || !draft.trim()}
+          className="bg-primary text-primary-foreground flex items-center justify-center gap-2 self-end rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+        >
+          {busy === "custom" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <PenLine className="size-3.5" />
+          )}
+          {t("writeSend")}
+        </button>
+      </form>
+      {busy && (
+        <p className="text-muted flex items-center gap-2 text-xs">
+          <Loader2 className="size-3.5 animate-spin" /> {t("writing")}
+        </p>
+      )}
+      {res && !busy && (
+        <div className="border-border flex flex-col gap-2 rounded-lg border p-3">
+          <div className="text-primary text-xs font-medium">{res.label}</div>
+          <MdView text={res.text} />
+          <div className="flex flex-wrap gap-1">
+            {res.action === "improve" && res.sel ? (
+              <SmallBtn onClick={replace} icon={<Check />}>
+                {t("replaceSelection")}
+              </SmallBtn>
+            ) : (
+              <>
+                <SmallBtn onClick={atCursor} icon={<CornerDownLeft />}>
+                  {t("insertCursor")}
+                </SmallBtn>
+                <SmallBtn onClick={atEnd} icon={<CornerDownLeft />}>
+                  {t("insertEnd")}
+                </SmallBtn>
+              </>
+            )}
+            <SmallBtn
+              onClick={() =>
+                void go(res.action, res.label, res.action === "custom" ? res.label : "")
+              }
+              icon={<RotateCcw />}
+            >
+              {t("again")}
+            </SmallBtn>
+            <SmallBtn
+              onClick={() => {
+                void navigator.clipboard?.writeText(res.text);
+                toast(t("copied"));
+              }}
+              icon={<Copy />}
+            >
+              {t("copy")}
+            </SmallBtn>
+          </div>
+          <p className="text-muted text-[11px]">
+            {t("usedMaterial", {
+              notes: res.used.notes,
+              rec: res.used.transcript
+                ? t(res.used.transcript === "notes" ? "usedKonspekt" : "usedTranscript")
+                : t("usedNone"),
+            })}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -300,9 +498,17 @@ const toB64 = (blob: Blob) =>
   });
 
 /** Live writing while listening, or a full transcript prepared ahead of time. */
-function ListenModes(props: { editor: Editor; resourceId: string; media: DockSource | null }) {
+function ListenModes({
+  startFull,
+  ...props
+}: {
+  editor: Editor;
+  resourceId: string;
+  media: DockSource | null;
+  startFull?: boolean;
+}) {
   const t = useTranslations("taqrizAi");
-  const [mode, setMode] = useState<"live" | "full">("live");
+  const [mode, setMode] = useState<"live" | "full">(startFull ? "full" : "live");
   return (
     <>
       <div className="border-border flex gap-1 border-b px-3 pt-3 pb-2">
@@ -769,13 +975,22 @@ function FullTranscript({
       setRunning(id);
       stop.current = false;
       try {
+        let failures = 0;
         for (;;) {
           if (stop.current) break;
           const r = await stepTranscriptAction(id).catch(() => null);
           if (!r || !r.ok) {
-            toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+            const code = r && !r.ok ? r.code : "INTERNAL";
+            // Network hiccups and slow answers: wait and try the same step again.
+            const transient = code === "INTERNAL" || code === "AI_UNAVAILABLE";
+            if (transient && ++failures <= 3) {
+              await new Promise((ok) => setTimeout(ok, 5000 * failures));
+              continue;
+            }
+            toast.error(te(code));
             break;
           }
+          failures = 0;
           setList((cur) => (cur ?? []).map((x) => (x.id === id ? r.data : x)));
           if (r.data.status === "done") {
             toast.success(t("fullReady"));

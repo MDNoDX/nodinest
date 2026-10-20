@@ -400,7 +400,7 @@
     "readOnline": "Read online",
     "myPdf": "My PDF",
     "uploadPdf": "Upload PDF",
-    "fullText": "Full text",
+    "fullText": "Prepare transcript / konspekt",
     "indexText": "Extract text",
     "reindex": "Re-extract",
     "indexing": "Extracting…",
@@ -422,7 +422,8 @@
     "notesCount": "{count, plural, one {# note} other {# notes}}",
     "allNotes": "Open all {count} notes",
     "deleteConfirm": "Delete this entry from your library and the catalog? Your notes are kept.",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "liveWrite": "Listen and write"
   },
   "record": {
     "status": "Status",
@@ -1044,7 +1045,7 @@
     "placeholder": "Write your thoughts… Select a sentence and press “Make chapter” if you like.",
     "chapterPlaceholder": "Chapter title",
     "makeChapter": "Make chapter",
-    "askAi": "Ask the AI to help write it",
+    "askAi": "Write the taqriz with AI",
     "summary": "{words, plural, one {# word} other {# words}} · {chapters, plural, =0 {no chapters} one {# chapter} other {# chapters}}",
     "hint": "Your thoughts, takeaways and summary — write freely or split into chapters.",
     "start": "Start writing",
@@ -1300,6 +1301,27 @@
     "fullResume": "Resume",
     "fullReady": "Full text ready — you can download it",
     "fullNote": "Runs while this page is open; if you leave, “Resume” continues where it stopped. One AI request per 1.5 minutes of speech (5 minutes for a konspekt).",
-    "delete": "Delete"
+    "delete": "Delete",
+    "tabWrite": "Write",
+    "writeHint": "The AI writes parts of your taqriz in your voice from your notes, quotes, the video's transcript / konspekt and what you have written so far. You see it before it goes in.",
+    "wOutline": "Outline",
+    "wIntro": "Introduction",
+    "wContinue": "Continue",
+    "wConclusion": "Conclusion",
+    "wImprove": "Improve selection",
+    "selectFirst": "Select some text in the taqriz first.",
+    "writePlaceholder": "What should I write? e.g. a chapter about the main character (⌘↩ to send)",
+    "writeSend": "Write it",
+    "writing": "Writing…",
+    "insertCursor": "Insert at cursor",
+    "insertEnd": "Add at the end",
+    "replaceSelection": "Replace selection",
+    "replaced": "Replaced",
+    "selectionChanged": "The selected text changed — select it again.",
+    "again": "Rewrite",
+    "usedMaterial": "Based on: {notes} notes/quotes · {rec}",
+    "usedKonspekt": "video konspekt",
+    "usedTranscript": "video transcript",
+    "usedNone": "no video text"
   }
 }

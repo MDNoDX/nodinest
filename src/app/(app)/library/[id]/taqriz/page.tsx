@@ -24,10 +24,14 @@ export default async function TaqrizPage({
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { ctx, db, user } = await pageContext();
-  const [r, w, q] = await Promise.all([
+  const [r, w, q, aiTab] = await Promise.all([
     getResourceHeader(db, ctx, id),
     getWriteup(db, ctx, id),
     searchParams.then((p) => sp(p.q)?.slice(0, 100) ?? null),
+    searchParams.then((p) => {
+      const v = sp(p.ai);
+      return v === "write" || v === "ask" || v === "listen" || v === "full" ? v : null;
+    }),
   ]);
   if (!r) notFound();
   return (
@@ -54,6 +58,8 @@ export default async function TaqrizPage({
       }
       initial={{ doc: w?.doc ?? null, updatedAt: w?.updatedAt.toISOString() ?? null }}
       focusQuery={q}
+      initialAi={aiTab === "full" ? "listen" : aiTab}
+      initialFull={aiTab === "full"}
       userId={user.id}
     />
   );

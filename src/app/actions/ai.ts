@@ -5,7 +5,7 @@ import { z } from "zod";
 import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { deleteConversation, runAssistant } from "@/server/ai/assistant";
 import { transcribeAudio } from "@/server/ai/media";
-import { askAboutSelection, transcribeSegment } from "@/server/ai/study";
+import { askAboutSelection, transcribeSegment, writeHelp } from "@/server/ai/study";
 import {
   deleteTranscript,
   listTranscripts,
@@ -99,4 +99,11 @@ export async function deleteTranscriptAction(id: string) {
 }
 export async function transcriptTextAction(id: string) {
   return run(async ({ ctx }) => transcriptText(ctx, z.string().uuid().parse(id)));
+}
+
+/** Taqriz: AI drafts a part (outline, intro, continue, conclusion, improve, custom). */
+export async function writeHelpAction(input: unknown) {
+  return run(async ({ ctx }) =>
+    writeHelp(ctx, { ...(input as object), locale: await getLocale() }),
+  );
 }

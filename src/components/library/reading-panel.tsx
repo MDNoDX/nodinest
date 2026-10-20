@@ -170,7 +170,10 @@ export function ReadingPanel({
           </form>
         )}
       </div>
-      <Link href="/assistant" className="text-primary text-xs font-medium hover:underline">
+      <Link
+        href={`/library/${resourceId}/taqriz?ai=write`}
+        className="text-primary text-xs font-medium hover:underline"
+      >
         {t("taqriz.askAi")} →
       </Link>
     </div>

@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   BookOpenText,
   ExternalLink,
   FileText,
@@ -290,7 +291,25 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
-          {playable && <PlayInDock source={playable} />}
+          {playable && (
+            <div className="flex flex-col gap-2">
+              <PlayInDock source={playable} />
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/library/${id}/taqriz?ai=full`}
+                  className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                >
+                  <FileText className="text-primary size-4" /> {t("resource.fullText")}
+                </Link>
+                <Link
+                  href={`/library/${id}/taqriz?ai=listen`}
+                  className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                >
+                  <AudioLines className="text-primary size-4" /> {t("resource.liveWrite")}
+                </Link>
+              </div>
+            </div>
+          )}
 
           {r.description && (
             <Card className="p-5 sm:p-6">
