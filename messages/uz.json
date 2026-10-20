@@ -184,7 +184,8 @@
     "emptyReading": "Hozir hech narsa o‘qilmayapti.",
     "emptyFinished": "O‘qib tugatgan kitoblaringiz shu yerda chiroyli ko‘rinadi.",
     "avgRating": "O‘rtacha baho",
-    "rated": "{count} ta baholangan"
+    "rated": "{count} ta baholangan",
+    "continue": "Davom ettirish: {title}"
   },
   "types": {
     "book": "Kitob",
@@ -1079,7 +1080,15 @@
     "askSelectionHint": "Belgilangan so‘z yoki matn haqida AI’dan ma’lumot",
     "aiPanel": "AI paneli",
     "hideOutline": "Mundarijani yig‘ish",
-    "showOutline": "Mundarijani ochish"
+    "showOutline": "Mundarijani ochish",
+    "find": "Taqrizdan qidirish (⌘F)",
+    "findPlaceholder": "Shu taqrizdan qidirish…",
+    "findPrev": "Oldingisi (⇧↩)",
+    "findNext": "Keyingisi (↩)",
+    "replaceWith": "Almashtirish…",
+    "replace": "Almashtirish",
+    "replaceAll": "Hammasini",
+    "closeFind": "Qidiruvni yopish"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1190,7 +1199,8 @@
     "showVideo": "Videoni yoqish",
     "keysToggle": "Tugmalar",
     "typePause": "Yozganda to‘xtasin",
-    "typePauseHint": "Yoza boshlasangiz to‘xtaydi, {s} soniya yozmasangiz o‘zi davom etadi (2 soniya orqadan)."
+    "typePauseHint": "Yoza boshlasangiz to‘xtaydi, {s} soniya yozmasangiz o‘zi davom etadi (2 soniya orqadan).",
+    "continueFrom": "{time} dan davom ettirish"
   },
   "shortcuts": {
     "title": "Klaviatura tugmalari",

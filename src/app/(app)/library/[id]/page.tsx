@@ -10,6 +10,8 @@ import {
   StickyNote,
   Star,
 } from "lucide-react";
+import { ResumeMark } from "@/components/media/resume-mark";
+import { getResume } from "@/server/resume";
 import type { DockSource } from "@/components/media/media-dock";
 import { PlayInDock } from "@/components/media/play-in-dock";
 import Link from "next/link";
@@ -52,12 +54,13 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
   const { ctx, db, user, locale, tz } = await pageContext();
   const t = await getTranslations();
   const storage = isStorageConfigured();
-  const [d, cols, inCols, files, sources] = await Promise.all([
+  const [d, cols, inCols, files, sources, resume] = await Promise.all([
     getResourceDetail(db, ctx, id),
     listCollections(db, ctx),
     collectionsContaining(db, ctx, { resourceId: id }),
     storage ? listAttachments(ctx, id) : Promise.resolve([]),
     listTextSources(ctx, id),
+    getResume(db, ctx, id),
   ]);
   if (!d) notFound();
   const r = d.resource;
@@ -291,9 +294,20 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
+          <ResumeMark resourceId={id} />
           {playable && (
             <div className="flex flex-col gap-2">
-              <PlayInDock source={playable} />
+              <PlayInDock
+                source={playable}
+                at={
+                  resume?.media &&
+                  (resume.media.kind === "youtube"
+                    ? playable.kind === "youtube" && resume.media.id === playable.id
+                    : playable.kind === "file" && resume.media.src === playable.src)
+                    ? resume.mediaSeconds
+                    : null
+                }
+              />
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/library/${id}/taqriz?ai=full`}

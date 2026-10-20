@@ -4,6 +4,7 @@ import { coverSrc } from "@/components/library/cover";
 import { TaqrizEditor } from "@/components/taqriz/taqriz-editor";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { getResourceHeader } from "@/server/catalog";
+import { getResume } from "@/server/resume";
 import { getWriteup } from "@/server/writeups";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function TaqrizPage({
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { ctx, db, user } = await pageContext();
-  const [r, w, q, aiTab] = await Promise.all([
+  const [r, w, q, aiTab, resume] = await Promise.all([
     getResourceHeader(db, ctx, id),
     getWriteup(db, ctx, id),
     searchParams.then((p) => sp(p.q)?.slice(0, 100) ?? null),
@@ -32,6 +33,7 @@ export default async function TaqrizPage({
       const v = sp(p.ai);
       return v === "write" || v === "ask" || v === "listen" || v === "full" ? v : null;
     }),
+    getResume(db, ctx, id),
   ]);
   if (!r) notFound();
   return (
@@ -60,6 +62,14 @@ export default async function TaqrizPage({
       focusQuery={q}
       initialAi={aiTab === "full" ? "listen" : aiTab}
       initialFull={aiTab === "full"}
+      resume={
+        resume && {
+          docPos: resume.docPos,
+          docAnchor: resume.docAnchor,
+          media: resume.media,
+          mediaSeconds: resume.mediaSeconds,
+        }
+      }
       userId={user.id}
     />
   );

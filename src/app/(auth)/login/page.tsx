@@ -17,7 +17,8 @@ export async function generateMetadata() {
 /** Only same-site paths are allowed as a return address (no open redirects). */
 function safeNext(v: string | string[] | undefined): string {
   const n = Array.isArray(v) ? v[0] : v;
-  return n && /^\/(?![/\\])/.test(n) ? n.slice(0, 200) : "/";
+  // No explicit target: continue where the user stopped last time (/resume).
+  return n && /^\/(?![/\\])/.test(n) ? n.slice(0, 200) : "/resume";
 }
 
 export default async function LoginPage({

@@ -25,6 +25,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
+import { fmtClock } from "@/lib/clock";
+import { postResume } from "@/lib/resume-client";
 import {
   comboLabel,
   getShortcuts,
@@ -89,13 +91,7 @@ const macMedia = (action: "playpause") => {
   return b ? () => b.postMessage({ type: "media", action }) : null;
 };
 
-export function fmtClock(sec: number) {
-  const s = Math.max(0, Math.floor(sec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const ss = String(s % 60).padStart(2, "0");
-  return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
-}
+export { fmtClock };
 
 /** Event the taqriz editor listens to; `handled` is set when it inserted the stamp. */
 export type StampEvent = CustomEvent<{ label: string; seconds: number; handled: boolean }>;
@@ -333,6 +329,33 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [toggle, pause, seekBy, stamp, sendExt]);
+
+  // Remember the second on the account (every 15 s while playing, on pause and
+  // when the page closes), so any device continues from there.
+  const savedRemote = useRef<{ key: string; t: number; playing: boolean } | null>(null);
+  useEffect(() => {
+    const src = st.source;
+    if (!src || st.time < 1) return;
+    const key = keyOf(src);
+    const prev = savedRemote.current;
+    const due =
+      !prev ||
+      prev.key !== key ||
+      (st.playing && Math.abs(st.time - prev.t) >= 15) ||
+      (prev.playing && !st.playing);
+    if (!due) return;
+    savedRemote.current = { key, t: st.time, playing: st.playing };
+    postResume({ resourceId: src.resourceId, media: { source: src, seconds: st.time } });
+  }, [st.source, st.time, st.playing]);
+  useEffect(() => {
+    const onHide = () => {
+      const { source, time } = live.current;
+      if (source && time >= 1)
+        postResume({ resourceId: source.resourceId, media: { source, seconds: time } });
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, []);
 
   // Web Audio taps the element once; the sound still goes to the speakers.
   const audioCtx = useRef<AudioContext | null>(null);

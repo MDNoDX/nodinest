@@ -3,6 +3,7 @@ import {
   BookOpen,
   FileStack,
   GraduationCap,
+  History,
   MonitorPlay,
   Plus,
   Quote,
@@ -18,12 +19,14 @@ import { Cover, coverSrc } from "@/components/library/cover";
 import { ResourceCard } from "@/components/library/resource-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { fmtClock } from "@/lib/clock";
 import { Card, CardHeader, EmptyState, IconChip } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { hueStyle, type Hue } from "@/lib/hues";
 import { listGoalsWithProgress } from "@/server/goals";
 import { getCollection, listCollections, listNotes } from "@/server/notes";
 import { listMyRecords } from "@/server/records";
+import { lastResume } from "@/server/resume";
 import { getCollectionStats } from "@/server/stats";
 
 export const dynamic = "force-dynamic";
@@ -64,12 +67,13 @@ export default async function DashboardPage() {
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const year = Number(today.slice(0, 4));
-  const [records, stats, goals, notes, cols] = await Promise.all([
+  const [records, stats, goals, notes, cols, last] = await Promise.all([
     listMyRecords(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
     listGoalsWithProgress(db, ctx, today, tz),
     listNotes(db, ctx, {}),
     listCollections(db, ctx),
+    lastResume(db, ctx),
   ]);
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
@@ -107,6 +111,24 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {last && (
+              <Button variant="secondary" asChild className="max-w-xs">
+                <Link
+                  href={
+                    last.place === "resource"
+                      ? `/library/${last.resourceId}`
+                      : `/library/${last.resourceId}/taqriz`
+                  }
+                  title={last.title}
+                >
+                  <History />
+                  <span className="truncate">
+                    {t("dashboard.continue", { title: last.title })}
+                    {last.mediaSeconds ? ` · ${fmtClock(last.mediaSeconds)}` : ""}
+                  </span>
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" asChild>
               <Link href="/assistant">
                 <Sparkles /> AI

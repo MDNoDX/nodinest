@@ -371,3 +371,13 @@
   color: var(--foreground);
   background: var(--surface);
 }
+
+/* Find in taqriz */
+.taqriz-doc .nn-find {
+  background: color-mix(in oklab, var(--c-amber) 30%, transparent);
+  border-radius: 2px;
+}
+.taqriz-doc .nn-find-current {
+  background: color-mix(in oklab, var(--c-amber) 70%, transparent);
+  outline: 1px solid var(--c-amber);
+}

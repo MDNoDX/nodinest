@@ -184,7 +184,8 @@
     "emptyReading": "Nothing in progress.",
     "emptyFinished": "Books you finish will be shown here.",
     "avgRating": "Average rating",
-    "rated": "{count} rated"
+    "rated": "{count} rated",
+    "continue": "Continue: {title}"
   },
   "types": {
     "book": "Book",
@@ -1079,7 +1080,15 @@
     "askSelectionHint": "Ask the AI about the selected word or passage",
     "aiPanel": "AI panel",
     "hideOutline": "Hide contents",
-    "showOutline": "Show contents"
+    "showOutline": "Show contents",
+    "find": "Find in taqriz (⌘F)",
+    "findPlaceholder": "Find in this taqriz…",
+    "findPrev": "Previous (⇧↩)",
+    "findNext": "Next (↩)",
+    "replaceWith": "Replace with…",
+    "replace": "Replace",
+    "replaceAll": "All",
+    "closeFind": "Close find"
   },
   "dates": {
     "kind": "Date kind",
@@ -1190,7 +1199,8 @@
     "showVideo": "Show video",
     "keysToggle": "Shortcuts",
     "typePause": "Pause while typing",
-    "typePauseHint": "Pauses when you type and resumes {s} s after you stop (2 s back)."
+    "typePauseHint": "Pauses when you type and resumes {s} s after you stop (2 s back).",
+    "continueFrom": "Continue from {time}"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

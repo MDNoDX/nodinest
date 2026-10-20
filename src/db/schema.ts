@@ -745,6 +745,35 @@ export const writeups = nodinest.table(
 );
 
 /**
+ * Where the user stopped, per resource: the second of its video / audio and the
+ * place in the taqriz (position + a text anchor that survives edits). Synced
+ * to the account, so another device or a new sign-in continues from there.
+ */
+export const resumePoints = nodinest.table(
+  "resume_points",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    /** DockSource of what was playing (validated). */
+    media: jsonb("media"),
+    mediaSeconds: integer("media_seconds"),
+    docPos: integer("doc_pos"),
+    docAnchor: text("doc_anchor"),
+    /** Which page was open last: "taqriz" | "resource". */
+    place: text("place").notNull().default("taqriz"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.resourceId] }),
+    index("resume_points_user_updated_idx").on(t.userId, t.updatedAt),
+  ],
+);
+
+/**
  * A full transcript / konspekt of a resource's video or audio, made by the AI
  * segment by segment (resumable). `brief` is the AI's study of the whole
  * recording (topic, speakers, spelling of names and terms, outline) that every

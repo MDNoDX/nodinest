@@ -62,3 +62,46 @@ describe("full transcripts", () => {
     expect(await listTranscripts(u, rid)).toHaveLength(0);
   });
 });
+
+describe("resume points", () => {
+  it("are saved per account, merged field by field and private", async () => {
+    const { saveResume, getResume, lastResume } = await import("@/server/resume");
+    await saveResume(db, u, {
+      resourceId: rid,
+      place: "taqriz",
+      doc: { pos: 42, anchor: "b:hello" },
+    });
+    await saveResume(db, u, {
+      resourceId: rid,
+      media: {
+        source: { kind: "youtube", id: "M7lc1UVf-VE", title: "x", resourceId: rid },
+        seconds: 125.7,
+      },
+    });
+    const r = await getResume(db, u, rid);
+    expect(r).toMatchObject({
+      docPos: 42,
+      docAnchor: "b:hello",
+      mediaSeconds: 125,
+      place: "taqriz",
+    });
+    expect(r?.media).toMatchObject({ kind: "youtube", id: "M7lc1UVf-VE" });
+    expect((await lastResume(db, u))?.resourceId).toBe(rid);
+    expect(await getResume(db, other, rid)).toBeNull();
+    await expect(
+      saveResume(db, u, {
+        resourceId: rid,
+        media: {
+          source: {
+            kind: "file",
+            src: "javascript:alert(1)",
+            video: false,
+            title: "x",
+            resourceId: rid,
+          },
+          seconds: 1,
+        },
+      }),
+    ).rejects.toThrow();
+  });
+});

@@ -1,4 +1,6 @@
 "use client";
+import { Find, findAll, findKey } from "./find";
+import { postResume } from "@/lib/resume-client";
 import { getShortcuts, matches } from "@/lib/shortcuts";
 import { AiPanel, type AskRequest, type PanelTab } from "./ai-panel";
 import { useMediaDock, type DockSource, type StampEvent } from "@/components/media/media-dock";
@@ -13,6 +15,8 @@ import {
   ArrowLeft,
   Bold,
   BookmarkPlus,
+  ChevronDown,
+  ChevronUp,
   Check,
   CloudOff,
   Heading2,
@@ -28,10 +32,12 @@ import {
   Pilcrow,
   Quote,
   Redo2,
+  Search,
   Sparkles,
   Strikethrough,
   Underline as UnderlineIcon,
   Undo2,
+  X,
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
@@ -144,7 +150,15 @@ export function TaqrizEditor({
   media,
   initialAi,
   initialFull,
+  resume,
 }: {
+  /** Where the user stopped last time (account-wide). */
+  resume?: {
+    docPos: number | null;
+    docAnchor: string | null;
+    media: DockSource | null;
+    mediaSeconds: number | null;
+  } | null;
   /** Open "Listen" on "Prepare full text". */
   initialFull?: boolean;
   media?: DockSource | null;
@@ -171,7 +185,12 @@ export function TaqrizEditor({
     quote: () => void;
     chapter: (l: 2 | 3) => void;
     ask: () => void;
+    find: () => void;
   } | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQ, setFindQ] = useState("");
+  const [replaceQ, setReplaceQ] = useState("");
+  const findInput = useRef<HTMLInputElement>(null);
   // AI side panel: stays mounted once opened, so listening goes on when hidden.
   const [ai, setAi] = useState<{ open: boolean; mounted: boolean; tab: PanelTab }>({
     open: !!initialAi,
@@ -281,6 +300,7 @@ export function TaqrizEditor({
       ImageNode,
       AudioNode,
       FileNode,
+      Find,
       Placeholder.configure({
         placeholder: ({ node }) =>
           node.type.name === "heading" ? t("chapterPlaceholder") : t("placeholder"),
@@ -291,6 +311,10 @@ export function TaqrizEditor({
       attributes: { class: "taqriz-doc", "aria-label": t("title"), spellcheck: "true" },
       // Quote / chapter shortcuts (Settings) act on exactly the selected text, like the buttons.
       handleKeyDown: (_view, e) => {
+        if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyF") {
+          keyActions.current?.find();
+          return true;
+        }
         const k = getShortcuts();
         const act = matches(e, k.quote)
           ? () => keyActions.current?.quote()
@@ -335,6 +359,71 @@ export function TaqrizEditor({
   useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
+
+  // ── Continue where I stopped (saved to the account) ──
+  // Cursor: a text anchor (the words just before it) survives edits elsewhere.
+  useEffect(() => {
+    if (!editor) return;
+    postResume({ resourceId: resource.id, place: "taqriz" });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const anchorAt = (pos: number) => {
+      const $p = editor.state.doc.resolve(pos);
+      if (!$p.parent.isTextblock) return "";
+      const before = editor.state.doc.textBetween(Math.max($p.start(), pos - 48), pos);
+      if (before.trim().length >= 8) return `b:${before}`;
+      return `a:${editor.state.doc.textBetween(pos, Math.min($p.end(), pos + 48))}`;
+    };
+    const save = () => {
+      const pos = editor.state.selection.head;
+      postResume({ resourceId: resource.id, doc: { pos, anchor: anchorAt(pos) } });
+    };
+    const onSel = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(save, 2000);
+    };
+    editor.on("selectionUpdate", onSel);
+    window.addEventListener("pagehide", save);
+    return () => {
+      editor.off("selectionUpdate", onSel);
+      window.removeEventListener("pagehide", save);
+      if (timer) clearTimeout(timer);
+    };
+  }, [editor, resource.id]);
+
+  // Opening: put the cursor back (unless a search result was asked for) and
+  // load the video / audio at the saved second, paused.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!editor || !resume || restored.current) return;
+    restored.current = true;
+    if (!focusQuery && (resume.docAnchor || resume.docPos != null)) {
+      let pos: number | null = null;
+      const a = resume.docAnchor ?? "";
+      const text = a.slice(2);
+      if (text.trim()) {
+        const hits = findAll(editor.state.doc, text);
+        if (hits.length) {
+          const near = hits.reduce((x, y) =>
+            Math.abs(y.from - (resume.docPos ?? 0)) < Math.abs(x.from - (resume.docPos ?? 0))
+              ? y
+              : x,
+          );
+          pos = a.startsWith("b:") ? near.to : near.from;
+        }
+      }
+      if (pos == null && resume.docPos != null)
+        pos = Math.min(resume.docPos, editor.state.doc.content.size - 1);
+      if (pos != null && pos > 1)
+        setTimeout(() => {
+          editor.chain().focus().setTextSelection(pos).scrollIntoView().run();
+          // Keep the line in the middle of the screen, not under the toolbar.
+          const dom = editor.view.domAtPos(pos).node as HTMLElement;
+          (dom.nodeType === 1 ? dom : dom.parentElement)?.scrollIntoView({ block: "center" });
+        }, 50);
+    }
+    if (resume.media && resume.mediaSeconds && dock && !dock.source)
+      dock.open(resume.media, { at: resume.mediaSeconds, autoplay: false });
+  }, [editor, resume, focusQuery, dock]);
 
   // Unsynced draft from an earlier offline session → push it now.
   useEffect(() => {
@@ -420,6 +509,10 @@ export function TaqrizEditor({
             quote: e.isActive("blockquote"),
             canUndo: e.can().undo(),
             canRedo: e.can().redo(),
+            find: (() => {
+              const f = findKey.getState(e.state);
+              return { total: f?.matches.length ?? 0, index: f?.index ?? 0 };
+            })(),
           }
         : null,
   });
@@ -532,6 +625,25 @@ export function TaqrizEditor({
     editor.commands.focus();
   };
 
+  /** Find in this taqriz; a selected word becomes the query. */
+  const openFind = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const sel = from !== to ? editor.state.doc.textBetween(from, to, " ").slice(0, 100) : "";
+    const q = sel || findQ;
+    setFindQ(q);
+    setFindOpen(true);
+    editor.commands.setFind(q);
+    setTimeout(() => {
+      findInput.current?.focus();
+      findInput.current?.select();
+    }, 0);
+  };
+  const closeFind = () => {
+    setFindOpen(false);
+    editor?.chain().findFocusCurrent().setFind("").focus().scrollIntoView().run();
+  };
+
   /** Selected text (+ its paragraph as context) → the AI panel. */
   const askAi = () => {
     if (!editor) return;
@@ -544,7 +656,7 @@ export function TaqrizEditor({
   };
 
   useEffect(() => {
-    keyActions.current = { quote: makeQuote, chapter: makeChapter, ask: askAi };
+    keyActions.current = { quote: makeQuote, chapter: makeChapter, ask: askAi, find: openFind };
   });
 
   /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
@@ -921,6 +1033,13 @@ export function TaqrizEditor({
               <Paperclip className="size-4" />
             </Tool>
             <Tool
+              label={t("find")}
+              on={findOpen}
+              onClick={() => (findOpen ? closeFind() : openFind())}
+            >
+              <Search className="size-4" />
+            </Tool>
+            <Tool
               label={t("aiPanel")}
               on={ai.open}
               onClick={() => (ai.open ? setAi((a) => ({ ...a, open: false })) : openAi(ai.tab))}
@@ -967,6 +1086,79 @@ export function TaqrizEditor({
                 {t("stop")}
               </button>
             </div>
+          )}
+          {findOpen && editor && (
+            <form
+              className="border-border mx-auto flex max-w-3xl flex-wrap items-center gap-1.5 border-t px-3 py-1.5 sm:px-6 xl:max-w-4xl"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <Search className="text-muted size-4 shrink-0" />
+              <input
+                ref={findInput}
+                value={findQ}
+                placeholder={t("findPlaceholder")}
+                aria-label={t("find")}
+                onChange={(e) => {
+                  setFindQ(e.target.value);
+                  editor.commands.setFind(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    editor.commands.findStep(e.shiftKey ? -1 : 1);
+                  } else if (e.key === "Escape") closeFind();
+                }}
+                className="border-border-strong bg-surface h-8 w-44 min-w-0 flex-1 rounded-md border px-2 text-sm sm:flex-none"
+              />
+              <span className="text-muted w-14 text-center text-xs tabular-nums">
+                {findQ
+                  ? `${info?.find.total ? info.find.index + 1 : 0}/${info?.find.total ?? 0}`
+                  : ""}
+              </span>
+              <Tool label={t("findPrev")} onClick={() => editor.commands.findStep(-1)}>
+                <ChevronUp className="size-4" />
+              </Tool>
+              <Tool label={t("findNext")} onClick={() => editor.commands.findStep(1)}>
+                <ChevronDown className="size-4" />
+              </Tool>
+              <input
+                value={replaceQ}
+                placeholder={t("replaceWith")}
+                aria-label={t("replaceWith")}
+                onChange={(e) => setReplaceQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    editor.chain().replaceCurrent(replaceQ).findStep(1).run();
+                  } else if (e.key === "Escape") closeFind();
+                }}
+                className="border-border-strong bg-surface h-8 w-36 min-w-0 rounded-md border px-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={!info?.find.total}
+                onClick={() => editor.chain().replaceCurrent(replaceQ).run()}
+                className="hover:bg-surface-2 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-40"
+              >
+                {t("replace")}
+              </button>
+              <button
+                type="button"
+                disabled={!info?.find.total}
+                onClick={() => editor.chain().replaceAll(replaceQ).run()}
+                className="hover:bg-surface-2 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-40"
+              >
+                {t("replaceAll")}
+              </button>
+              <button
+                type="button"
+                onClick={closeFind}
+                className="text-muted hover:text-foreground ml-auto rounded-md p-1"
+                aria-label={t("closeFind")}
+              >
+                <X className="size-4" />
+              </button>
+            </form>
           )}
           {outlineOpen && (
             <div className="border-border mx-auto max-w-3xl border-t px-3 py-2 lg:hidden">

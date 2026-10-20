@@ -63,6 +63,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   90 s transcript / 300 s konspekt segments → finish (konspekt merge). Gemini blocks verbatim
   text matching published captions (finishReason RECITATION): halve, then smooth, then a gap
   marker. gemini-flash-lite rejects `thinkingBudget: 0` — use ≥ 512.
+- Resume points (`server/resume.ts`, table `resume_points`, POST `/api/resume` keepalive): media
+  second (from the dock) + taqriz cursor (text anchor `b:`/`a:`); sign-in lands on `/resume`.
+- Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.
