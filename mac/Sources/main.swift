@@ -1,4 +1,4 @@
-// NodiNest for macOS — a native window around https://nodinest.vercel.app.
+// NodiNote for macOS — a native window around https://nodinest.vercel.app.
 //
 // • Sign-in: Google blocks sign-in inside embedded web views, so Google
 //   requests open Apple's secure sign-in sheet (ASWebAuthenticationSession) on
@@ -7,7 +7,7 @@
 // • Downloads (PDF / Word exports) go to ~/Downloads; file pickers work.
 // • Links to other sites open in the default browser.
 // • Remembers the last page and window size; offline screen with retry.
-// • Media shortcuts: when nothing plays inside NodiNest, the page asks this app
+// • Media shortcuts: when nothing plays inside NodiNote, the page asks this app
 //   (window.webkit.messageHandlers.nodinest) to press the system Play/Pause key,
 //   so the same shortcut controls YouTube in a browser, Spotify, Music, …
 //   macOS asks once for Accessibility permission (needed to send that key).
@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       contentRect: NSRect(x: 0, y: 0, width: 1320, height: 860),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered, defer: false)
-    window.title = "NodiNest"
+    window.title = "NodiNote"
     window.minSize = NSSize(width: 820, height: 560)
     window.contentView = web
     window.delegate = self
@@ -174,7 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     if let u = webView.url, isOurs(u), !u.path.hasPrefix("/api/"), u.path != "/app-login" {
       defaults.set(u.absoluteString, forKey: "lastURL")
     }
-    window.title = webView.title?.isEmpty == false ? webView.title! : "NodiNest"
+    window.title = webView.title?.isEmpty == false ? webView.title! : "NodiNote"
   }
 
   func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -191,7 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       p{opacity:.7;line-height:1.5}a{display:inline-block;margin-top:14px;padding:9px 18px;border-radius:10px;
       background:#2459e0;color:#fff;text-decoration:none;font-weight:600}</style>
       <div class="b"><div style="font-size:40px">☁︎</div><h1>Internet yoʻq</h1>
-      <p>NodiNest serverga ulana olmadi. Internet qaytganda qayta urinib koʻring.</p>
+      <p>NodiNote serverga ulana olmadi. Internet qaytganda qayta urinib koʻring.</p>
       <a href="\(retry.absoluteString)">Qayta urinish</a></div>
       """
     web.loadHTMLString(html, baseURL: BASE)
@@ -267,7 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     NSApp.activate(ignoringOtherApps: true)
     window.makeKeyAndOrderFront(nil)
     let panel = NSSavePanel()
-    panel.nameFieldStringValue = suggestedFilename.isEmpty ? "NodiNest" : suggestedFilename
+    panel.nameFieldStringValue = suggestedFilename.isEmpty ? "NodiNote" : suggestedFilename
     panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
     panel.canCreateDirectories = true
     panel.isExtensionHidden = false
@@ -362,10 +362,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       i.representedObject = path
       return i
     }
-    sub("NodiNest", [
-      item("NodiNest haqida", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+    sub("NodiNote", [
+      item("NodiNote haqida", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
       .separator(),
-      item("NodiNest’ni yashirish", #selector(NSApplication.hide(_:)), "h"),
+      item("NodiNote’ni yashirish", #selector(NSApplication.hide(_:)), "h"),
       item("Boshqalarni yashirish", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
       .separator(),
       item("Chiqish", #selector(NSApplication.terminate(_:)), "q"),

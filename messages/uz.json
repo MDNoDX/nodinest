@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "NodiNest",
+    "name": "NodiNote",
     "tagline": "Bilimlar uchun shaxsiy makon."
   },
   "common": {
@@ -120,7 +120,7 @@
     "en": "English"
   },
   "auth": {
-    "signInTitle": "NodiNest’ga xush kelibsiz",
+    "signInTitle": "NodiNote’ga xush kelibsiz",
     "signInSubtitle": "Shaxsiy darsxonangiz va o‘quv jurnalingiz. Davom etish uchun kiring.",
     "withGoogle": "Google orqali kirish",
     "googleMissing": "Google orqali kirish hali sozlanmagan. GOOGLE_CLIENT_ID va GOOGLE_CLIENT_SECRET’ni o‘rnating (docs/DEPLOYMENT.md).",
@@ -705,7 +705,7 @@
     "suggestedReview": "Administrator ko‘rib chiqishiga yuborildi.",
     "usedTools": "Ishlatildi: {tools}",
     "you": "Siz",
-    "ai": "NodiNest AI",
+    "ai": "NodiNote AI",
     "unlimitedNote": "Bosh administrator: ilova cheklovi yo‘q (faqat Google bepul kvotasi amal qiladi).",
     "done": "Bajarildi",
     "notInLibrary": "Darsxonamda yo‘q",
@@ -1165,11 +1165,11 @@
   },
   "install": {
     "title": "Ilovani o‘rnatish (Mac va telefon)",
-    "why": "NodiNest’ni alohida ilova sifatida o‘rnating: Dock yoki bosh ekranda o‘z ikonkasi bilan ochiladi, tezroq yuklanadi va internet bo‘lmasa ham avval ochilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz ishlaydi. Bepul, do‘konsiz.",
+    "why": "NodiNote’ni alohida ilova sifatida o‘rnating: Dock yoki bosh ekranda o‘z ikonkasi bilan ochiladi, tezroq yuklanadi va internet bo‘lmasa ham avval ochilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz ishlaydi. Bepul, do‘konsiz.",
     "installNow": "Hozir o‘rnatish",
     "installed": "Ilova o‘rnatilgan — siz uni ilova oynasida ishlatyapsiz.",
     "mac": "Mac",
-    "macChrome": "Chrome yoki Edge: manzil satridagi «O‘rnatish» belgisini bosing (yoki ⋮ menyu → «NodiNest’ni o‘rnatish»). Ilova Launchpad va Dock’da paydo bo‘ladi.",
+    "macChrome": "Chrome yoki Edge: manzil satridagi «O‘rnatish» belgisini bosing (yoki ⋮ menyu → «NodiNote’ni o‘rnatish»). Ilova Launchpad va Dock’da paydo bo‘ladi.",
     "macSafari": "Safari: «Fayl» → «Dock’ga qo‘shish» (Add to Dock). Ilova Dock va Launchpad’da paydo bo‘ladi.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): «Ulashish» tugmasi → «Bosh ekranga qo‘shish» (Add to Home Screen).",
@@ -1274,8 +1274,8 @@
     "resetOne": "Asl holiga qaytarish",
     "resetAll": "Hammasini asl holiga qaytarish",
     "changeHint": "Esc — bekor qilish. Sozlamalar shu qurilmada saqlanadi.",
-    "systemMacApp": "NodiNest’da media ochiq bo‘lmasa, to‘xtatish tugmasi kompyuterdagi boshqa audio/videoni (boshqa oynadagi YouTube, Spotify…) boshqaradi.",
-    "systemWeb": "Brauzerda faqat NodiNest pleeri boshqariladi. Kompyuterdagi boshqa audio/videoni ham boshqarish uchun NodiNest Mac ilovasidan foydalaning.",
+    "systemMacApp": "NodiNote’da media ochiq bo‘lmasa, to‘xtatish tugmasi kompyuterdagi boshqa audio/videoni (boshqa oynadagi YouTube, Spotify…) boshqaradi.",
+    "systemWeb": "Brauzerda faqat NodiNote pleeri boshqariladi. Kompyuterdagi boshqa audio/videoni ham boshqarish uchun NodiNote Mac ilovasidan foydalaning.",
     "a": {
       "playPause": "To‘xtatish / davom ettirish",
       "back5": "5 soniya orqaga",
@@ -1290,8 +1290,8 @@
     "typePause": "Yozayotganda avtomatik to‘xtatish",
     "resumeAfter": "Qachon davom etsin",
     "resumeAfterN": "{n} soniyadan keyin davom etsin",
-    "typePauseWeb": "Yoza boshlasangiz NodiNest pleeri to‘xtaydi va yozishdan to‘xtaganingizdan keyin 2 soniya orqadan davom etadi.",
-    "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNest uning holatini biladi.",
+    "typePauseWeb": "Yoza boshlasangiz NodiNote pleeri to‘xtaydi va yozishdan to‘xtaganingizdan keyin 2 soniya orqadan davom etadi.",
+    "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNote uning holatini biladi.",
     "playerExplain": "Pleer — saytning pastki burchagidagi kichik oyna. Kitob sahifasida YouTube video yoki audio «Tinglab yozish» bilan ochilganda u sahifadan sahifaga o‘tsangiz ham to‘xtamay ijro etadi: taqriz yozayotganda eshitib turasiz. Uni sudrab istalgan joyga qo‘yasiz, videoni yashirib faqat ovozini qoldirasiz, yozayotganda o‘zi to‘xtab turadi, to‘xtagan joyingiz esa akkauntingizda saqlanadi.",
     "replayTour": "Qo‘llanmani qayta ko‘rish",
     "replayTourHint": "Asosiy tugmalar qisqacha tushuntiriladi"
@@ -1331,7 +1331,7 @@
     "listening": "Tinglayapti — har daqiqa yozib boradi",
     "waitingPlay": "Video to‘xtatilgan — davom ettirsangiz yozishda davom etadi",
     "noMedia": "Bu manbada tinglanadigan video yoki audio yo‘q. Kitob sahifasida YouTube identifikatori yoki audio havolasini qo‘shing.",
-    "cannotCapture": "Bu fayl boshqa saytdan ochilgani uchun AI eshita olmaydi. Faylni NodiNest’ga yuklang yoki YouTube identifikatorini qo‘shing.",
+    "cannotCapture": "Bu fayl boshqa saytdan ochilgani uchun AI eshita olmaydi. Faylni NodiNote’ga yuklang yoki YouTube identifikatorini qo‘shing.",
     "queued": "Navbatda",
     "working": "Yozilmoqda…",
     "noSpeech": "Nutq yo‘q",
@@ -1477,7 +1477,7 @@
     "next": "Keyingi",
     "start": "Boshlash",
     "done": "Tushunarli!",
-    "welcomeTitle": "NodiNest’ga xush kelibsiz",
+    "welcomeTitle": "NodiNote’ga xush kelibsiz",
     "welcomeBody": "Bu sizning shaxsiy darsxonangiz: o‘qigan kitoblaringiz, ko‘rgan video va ma’ruzalaringiz, qaydlar, taqrizlar va savollar bir joyda. Asosiy tugmalarni qisqacha ko‘rsatib o‘taman.",
     "libraryTitle": "Darsxona",
     "libraryBody": "Barcha kitob, video, ma’ruza va kurslaringiz. Ichida shaxslar (mualliflar, ma’ruzachilar) hamda nashriyot va kanallar ham bor.",

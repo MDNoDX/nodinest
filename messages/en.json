@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "NodiNest",
+    "name": "NodiNote",
     "tagline": "A home for everything you learn."
   },
   "common": {
@@ -120,7 +120,7 @@
     "en": "English"
   },
   "auth": {
-    "signInTitle": "Welcome to NodiNest",
+    "signInTitle": "Welcome to NodiNote",
     "signInSubtitle": "Your personal library and learning journal. Sign in to continue.",
     "withGoogle": "Continue with Google",
     "googleMissing": "Google sign-in is not configured yet. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (see docs/DEPLOYMENT.md).",
@@ -705,7 +705,7 @@
     "suggestedReview": "Sent to administrator review.",
     "usedTools": "Used: {tools}",
     "you": "You",
-    "ai": "NodiNest AI",
+    "ai": "NodiNote AI",
     "unlimitedNote": "Superadmin: no app limit (only Google’s free quota applies).",
     "done": "Done",
     "notInLibrary": "Not in my library",
@@ -1165,11 +1165,11 @@
   },
   "install": {
     "title": "Install the app (Mac and phone)",
-    "why": "Install NodiNest as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
+    "why": "Install NodiNote as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
     "installNow": "Install now",
     "installed": "Installed — you are using the app window.",
     "mac": "Mac",
-    "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install NodiNest”). It appears in Launchpad and the Dock.",
+    "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install NodiNote”). It appears in Launchpad and the Dock.",
     "macSafari": "Safari: File → Add to Dock. It appears in the Dock and Launchpad.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): Share → Add to Home Screen.",
@@ -1274,8 +1274,8 @@
     "resetOne": "Reset",
     "resetAll": "Reset all",
     "changeHint": "Esc cancels. Saved on this device.",
-    "systemMacApp": "When nothing plays in NodiNest, the play/pause key controls other audio/video on the computer (YouTube in another window, Spotify…).",
-    "systemWeb": "In a browser only the NodiNest player is controlled. Use the NodiNest Mac app to control other audio/video on the computer too.",
+    "systemMacApp": "When nothing plays in NodiNote, the play/pause key controls other audio/video on the computer (YouTube in another window, Spotify…).",
+    "systemWeb": "In a browser only the NodiNote player is controlled. Use the NodiNote Mac app to control other audio/video on the computer too.",
     "a": {
       "playPause": "Pause / resume",
       "back5": "Back 5 seconds",
@@ -1290,8 +1290,8 @@
     "typePause": "Pause automatically while typing",
     "resumeAfter": "Resume after",
     "resumeAfterN": "Resume after {n} s",
-    "typePauseWeb": "Typing pauses the NodiNest player; it resumes 2 s back once you stop typing.",
-    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNest knows it is playing.",
+    "typePauseWeb": "Typing pauses the NodiNote player; it resumes 2 s back once you stop typing.",
+    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNote knows it is playing.",
     "playerExplain": "The player is the small window in the corner. Opened from a resource with “Listen and write”, a YouTube video or audio keeps playing while you move between pages — listen while you write the taqriz. Drag it anywhere, hide the video to keep only the sound; it pauses while you type and remembers where you stopped on your account.",
     "replayTour": "Replay the guide",
     "replayTourHint": "A quick tour of the main buttons"
@@ -1331,7 +1331,7 @@
     "listening": "Listening — writes every minute",
     "waitingPlay": "Paused — writing continues when you resume",
     "noMedia": "This resource has no video or audio. Add a YouTube identifier or an audio link on its page.",
-    "cannotCapture": "This file comes from another site, so the AI cannot hear it. Upload it to NodiNest or add a YouTube identifier.",
+    "cannotCapture": "This file comes from another site, so the AI cannot hear it. Upload it to NodiNote or add a YouTube identifier.",
     "queued": "Queued",
     "working": "Writing…",
     "noSpeech": "No speech",
@@ -1477,7 +1477,7 @@
     "next": "Next",
     "start": "Start",
     "done": "Got it!",
-    "welcomeTitle": "Welcome to NodiNest",
+    "welcomeTitle": "Welcome to NodiNote",
     "welcomeBody": "Your personal study room: books you read, videos and lectures you watch, notes, write-ups and questions in one place. Here is a quick look at the main buttons.",
     "libraryTitle": "Darsxona",
     "libraryBody": "All your books, videos, lectures and courses — with people (authors, speakers) and publishers & channels inside.",

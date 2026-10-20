@@ -8,20 +8,20 @@ const db = testDb();
 let u: Awaited<ReturnType<typeof makeUser>>;
 
 beforeAll(async () => {
-  const admin = await makeUser(db, { role: "superadmin" });
+  // Personal catalogs: the user searches their own Darsxona.
   u = await makeUser(db);
-  const p = await submitPerson(db, admin, {
+  const p = await submitPerson(db, u, {
     fullName: "Yuval Noah Harari",
     shortDescription: "Historian",
   });
-  await submitResource(db, admin, {
+  await submitResource(db, u, {
     type: "book",
     title: "Sapiens: A Brief History of Humankind",
     description: "How Homo sapiens came to dominate the world.",
     publicationDate: "2011",
     contributors: [{ personId: (p as { id: string }).id, role: "author" }],
   });
-  await submitResource(db, admin, {
+  await submitResource(db, u, {
     type: "lecture",
     title: "O‘zbek adabiyoti tarixi",
     media: { transcript: "Bugungi ma’ruzada mumtoz she’riyat va aruz vazni haqida gaplashamiz." },
@@ -37,6 +37,12 @@ afterAll(async () => {
 });
 
 describe("universal search", () => {
+  it("never shows another user's entries", async () => {
+    const other = await makeUser(db);
+    const r = await universalSearch(db, other, { q: "sapi" });
+    expect(r.groups.resources?.hits ?? []).toHaveLength(0);
+  });
+
   it("finds resources by partial, case-insensitive title and by author", async () => {
     const r = await universalSearch(db, u, { q: "sapi" });
     expect(r.groups.resources?.hits[0].title).toMatch(/Sapiens/);

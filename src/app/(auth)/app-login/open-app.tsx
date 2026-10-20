@@ -13,7 +13,7 @@ export function OpenApp({ href, name }: { href: string; name: string }) {
         <CheckCircle2 className="text-success mx-auto size-10" />
         <p className="mt-3 text-lg font-semibold">{name}</p>
         <a href={href} className="text-primary mt-2 inline-block text-sm hover:underline">
-          NodiNest ilovasini ochish →
+          NodiNote ilovasini ochish →
         </a>
       </div>
     </main>

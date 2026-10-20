@@ -19,7 +19,7 @@ beforeAll(async () => {
   alice = await makeUser(db);
   bob = await makeUser(db);
   admin = await makeUser(db, { role: "superadmin" });
-  const r = await submitResource(db, admin, { type: "book", title: "Privacy Test Book" });
+  const r = await submitResource(db, alice, { type: "book", title: "Privacy Test Book" });
   if (r.mode !== "applied") throw new Error("expected applied");
   resourceId = r.id;
   aliceNoteId = await saveNote(db, alice, {
@@ -109,8 +109,10 @@ describe("cross-user privacy", () => {
       ],
     });
     expect(await getWriteup(db, bob, resourceId)).toBeNull();
-    // Bob saving "his" write-up of the same book never touches Alice's.
-    await saveWriteup(db, bob, resourceId, { type: "doc", content: [] });
+    // Bob cannot even reach Alice's book (personal catalogs).
+    await expect(
+      saveWriteup(db, bob, resourceId, { type: "doc", content: [] }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect((await getWriteup(db, alice, resourceId))?.words).toBe(3);
     const [src] = await withUser(db, alice, (tx) =>
       tx

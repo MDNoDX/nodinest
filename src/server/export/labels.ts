@@ -134,5 +134,5 @@ export function fileName(base: string, ext: string) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 120);
-  return `${clean || "NodiNest"}.${ext}`;
+  return `${clean || "NodiNote"}.${ext}`;
 }

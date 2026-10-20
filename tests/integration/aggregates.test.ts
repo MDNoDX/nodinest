@@ -31,7 +31,7 @@ beforeAll(async () => {
     .values({ slug: `agg-${Date.now()}`, nameUz: "A", nameEn: "A" })
     .returning({ id: categories.id });
   r1 = (
-    (await submitResource(db, admin, {
+    (await submitResource(db, u, {
       type: "book",
       title: "Aggregates One",
       categoryIds: [catId],
@@ -39,7 +39,7 @@ beforeAll(async () => {
     })) as { id: string }
   ).id;
   r2 = (
-    (await submitResource(db, admin, {
+    (await submitResource(db, u, {
       type: "book",
       title: "Aggregates Two Different",
       book: { pageCount: 180 },

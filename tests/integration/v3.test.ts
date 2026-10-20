@@ -30,7 +30,7 @@ describe("publishers work like people", () => {
       title: `Ufq trilogiyasi ${tag}`,
       book: { publisherName: `Sharq ${tag}`, pageCount: 300 },
     });
-    const b = await submitResource(db, other, {
+    const b = await submitResource(db, u, {
       type: "book",
       title: `Kecha va kunduz ${tag}`,
       book: { publisherName: `  sharq ${tag} `, pageCount: 120 },
@@ -43,12 +43,13 @@ describe("publishers work like people", () => {
       .where(eq(bookDetails.resourceId, (b as { id: string }).id));
     expect(pa.publisherId).toBeTruthy();
     expect(pb.publisherId).toBe(pa.publisherId);
-    const d = await getPublisherDetail(db, other, pa.publisherId!);
+    const d = await getPublisherDetail(db, u, pa.publisherId!);
     expect(d?.items.map((x) => x.title).sort()).toEqual(
       [`Ufq trilogiyasi ${tag}`, `Kecha va kunduz ${tag}`].sort(),
     );
-    // Created by u → u may edit, the other user may not; names stay unique.
-    expect(d?.canEdit).toBe(false);
+    // My own publisher: I edit it; another user does not even see it.
+    expect(d?.canEdit).toBe(true);
+    expect(await getPublisherDetail(db, other, pa.publisherId!)).toBeNull();
     await expect(
       savePublisher(db, other, { name: "Hijack" }, pa.publisherId!),
     ).rejects.toMatchObject({
@@ -199,15 +200,9 @@ describe("search by genres and status (IMDb-style ribbons)", () => {
       status: "planned",
     });
     expect(planned.groups.resources?.hits.map((h) => h.title)).toEqual([`Only one ${tag}`]);
-    const notMine = await universalSearch(db, other, {
-      q: "",
-      categoryIds: [c1.id],
-      status: "none",
-    });
-    expect(notMine.groups.resources?.total).toBe(2);
-    // Another user sees the catalog entry but not u's status.
-    const theirs = await universalSearch(db, other, { q: "", categoryIds: [c1.id, c2.id] });
-    expect(theirs.groups.resources?.hits[0].status).toBeNull();
+    // Another user does not see u's entries at all (personal catalogs).
+    const theirs = await universalSearch(db, other, { q: "", categoryIds: [c1.id] });
+    expect(theirs.groups.resources?.total ?? 0).toBe(0);
     const [{ n }] = await db.execute<{ n: number }>(
       sql`select count(*)::int as n from nodinest.resource_categories where category_id = ${c1.id}`,
     );

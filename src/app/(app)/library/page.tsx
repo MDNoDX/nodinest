@@ -1,6 +1,5 @@
 import { BookOpen, Copy, Plus, Search } from "lucide-react";
 import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
-import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { coverSrc } from "@/components/library/cover";
@@ -46,7 +45,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
     readYear: spInt(p.ryear, 0) || null,
     timeZone: tz,
     archived: sp(p.archived) === "1",
-    scope: (sp(p.scope) === "all" ? "all" : "mine") as "mine" | "all",
+    // Personal catalogs: the Darsxona is what the user added (admin mode: everything).
+    scope: (user.role === "superadmin" && sp(p.scope) === "all" ? "all" : "mine") as "mine" | "all",
     page: spInt(p.page),
   };
   const uuidRe = /^[0-9a-f-]{36}$/i;
@@ -125,31 +125,16 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
         }
       />
       <DarsxonaTabs current="library" />
-      <nav className="mb-4 flex flex-wrap items-center gap-2" aria-label={t("library.scope")}>
-        {(["mine", "all"] as const).map((sc) => (
-          <Link
-            key={sc}
-            href={sc === "all" ? "/library?scope=all" : "/library"}
-            aria-current={filters.scope === sc ? "page" : undefined}
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
-              filters.scope === sc
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border bg-surface text-muted hover:text-foreground",
-            )}
-          >
-            {sc === "mine" ? t("library.scopeMine") : t("library.scopeAll")}
-          </Link>
-        ))}
-        {dups.length > 0 && (
+      {dups.length > 0 && (
+        <div className="mb-4 flex">
           <Link
             href="/library/duplicates"
             className="bg-warning-soft text-warning ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium hover:underline"
           >
             <Copy className="size-4" /> {t("library.duplicatesFound", { count: dups.length })}
           </Link>
-        )}
-      </nav>
+        </div>
+      )}
       <AutoSubmitForm className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto_auto]">
         <div className="relative">
           <Search

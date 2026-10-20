@@ -1,15 +1,7 @@
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getPersonDetail, getResourceDetail, listResources, searchPeople } from "@/server/catalog";
-import {
-  listSuggestions,
-  reviewSuggestion,
-  submitPerson,
-  submitResource,
-  withdrawSuggestion,
-  submitArchive,
-  submitSuggestion,
-} from "@/server/suggestions";
+import { submitPerson, submitResource, submitArchive } from "@/server/suggestions";
 import { withUser } from "@/db/client";
 import { makeUser, testDb } from "../helpers/db";
 
@@ -80,8 +72,8 @@ describe("people & resources", () => {
   let navoiyId: string;
   let bookId: string;
 
-  it("superadmin creates people and resources directly; relations work both ways", async () => {
-    const p = await submitPerson(db, admin, {
+  it("a user creates people and resources directly; relations work both ways", async () => {
+    const p = await submitPerson(db, user, {
       fullName: "Alisher Navoiy",
       aliases: ["Nizomiddin Mir Alisher", "Navoi"],
       birthDate: "1441-02-09",
@@ -90,7 +82,7 @@ describe("people & resources", () => {
     });
     expect(p.mode).toBe("applied");
     navoiyId = (p as { id: string }).id;
-    const r = await submitResource(db, admin, {
+    const r = await submitResource(db, user, {
       type: "book",
       title: "Xamsa",
       contributors: [
@@ -114,23 +106,23 @@ describe("people & resources", () => {
 
   it("rejects invalid ISBN checksums and impossible dates", async () => {
     await expect(
-      submitResource(db, admin, {
+      submitResource(db, user, {
         type: "book",
         title: "Bad ISBN",
         identifiers: [{ scheme: "isbn13", value: "9780306406158" }],
       }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(
-      submitPerson(db, admin, { fullName: "Bad Date", birthDate: "1999-02-30" }),
+      submitPerson(db, user, { fullName: "Bad Date", birthDate: "1999-02-30" }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(
-      submitPerson(db, admin, { fullName: "Reverse Life", birthDate: "1990", deathDate: "1980" }),
+      submitPerson(db, user, { fullName: "Reverse Life", birthDate: "1990", deathDate: "1980" }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("autocomplete: prefix on name, word and alias, apostrophe-insensitive", async () => {
-    await submitPerson(db, admin, { fullName: "G‘afur G‘ulom" });
-    await submitPerson(db, admin, { fullName: "Mark Twain", aliases: ["Samuel Clemens"] });
+    await submitPerson(db, user, { fullName: "G‘afur G‘ulom" });
+    await submitPerson(db, user, { fullName: "Mark Twain", aliases: ["Samuel Clemens"] });
     const m = await withUser(db, user, (tx) => searchPeople(tx, "m"));
     expect(m.map((h) => h.fullName)).toContain("Mark Twain");
     const nav = await withUser(db, user, (tx) => searchPeople(tx, "nav"));
@@ -144,24 +136,24 @@ describe("people & resources", () => {
   });
 
   it("detects duplicate people and resources", async () => {
-    await expect(submitPerson(db, admin, { fullName: "Alisher Navoiy" })).rejects.toMatchObject({
+    await expect(submitPerson(db, user, { fullName: "Alisher Navoiy" })).rejects.toMatchObject({
       code: "DUPLICATE",
     });
-    await expect(submitPerson(db, admin, { fullName: "alisher  navoiy" })).rejects.toMatchObject({
+    await expect(submitPerson(db, user, { fullName: "alisher  navoiy" })).rejects.toMatchObject({
       code: "DUPLICATE",
     });
-    await expect(submitResource(db, admin, { type: "book", title: "Xamsa" })).rejects.toMatchObject(
-      { code: "DUPLICATE" },
-    );
+    await expect(submitResource(db, user, { type: "book", title: "Xamsa" })).rejects.toMatchObject({
+      code: "DUPLICATE",
+    });
     await expect(
-      submitResource(db, admin, {
+      submitResource(db, user, {
         type: "book",
         title: "Different title",
         identifiers: [{ scheme: "isbn10", value: "0-306-40615-2" }],
       }),
     ).resolves.toBeDefined();
     await expect(
-      submitResource(db, admin, {
+      submitResource(db, user, {
         type: "book",
         title: "Another",
         identifiers: [{ scheme: "isbn13", value: "9780306406157" }],
@@ -169,7 +161,7 @@ describe("people & resources", () => {
     ).rejects.toMatchObject({ code: "DUPLICATE" });
     // Explicit override is allowed (e.g. a different edition).
     await expect(
-      submitResource(db, admin, { type: "book", title: "Xamsa" }, { allowDuplicate: true }),
+      submitResource(db, user, { type: "book", title: "Xamsa" }, { allowDuplicate: true }),
     ).resolves.toMatchObject({ mode: "applied" });
   });
 
@@ -181,123 +173,50 @@ describe("people & resources", () => {
     expect(byPerson.items.map((i) => i.id)).toContain(bookId);
   });
 
-  describe("suggestions workflow", () => {
-    it("anyone can add a new entry; they own it and may edit it directly", async () => {
+  describe("personal catalogs", () => {
+    it("own entries are edited directly", async () => {
       const out = await submitPerson(db, user, { fullName: "Hamid Olimjon", birthDate: "1909" });
       expect(out.mode).toBe("applied");
       const id = (out as { id: string }).id;
-      const [row] = await db.execute<{ created_by: string }>(
-        sql`select created_by from nodinest.people where id = ${id}`,
-      );
-      expect(row.created_by).toBe(user.userId);
       const edit = await submitPerson(
         db,
         user,
         { fullName: "Hamid Olimjon", biography: "Shoir" },
         { id, allowDuplicate: true },
       );
-      expect(edit.mode).toBe("applied");
-      expect((await getPersonDetail(db, user, id))?.canEdit).toBe(true);
-      // Another regular user's edit of the same entry is only a suggestion.
-      const other = await makeUser(db);
-      const foreign = await submitPerson(
-        db,
-        other,
-        { fullName: "Hamid Olimjon", biography: "Changed" },
-        { id, allowDuplicate: true },
-      );
-      expect(foreign.mode).toBe("suggested");
+      expect(edit).toMatchObject({ mode: "applied", id });
       expect((await getPersonDetail(db, user, id))?.person.biography).toBe("Shoir");
     });
 
-    it("an explicit create suggestion stays pending until reviewed", async () => {
-      const before = await db.execute<{ n: number }>(
-        sql`select count(*)::int as n from nodinest.people`,
-      );
-      await submitSuggestion(db, user, {
-        operation: "create",
-        targetType: "person",
-        payload: { fullName: "Abdulla Qodiriy", birthDate: "1894" },
-      });
-      const after = await db.execute<{ n: number }>(
-        sql`select count(*)::int as n from nodinest.people`,
-      );
-      expect(after[0].n).toBe(before[0].n);
-      const mine = await listSuggestions(db, user, { scope: "mine" });
-      expect(mine[0].status).toBe("pending");
-    });
-
-    it("regular user cannot approve suggestions", async () => {
-      const mine = await listSuggestions(db, user, { scope: "mine" });
-      await expect(reviewSuggestion(db, user, mine[0].id, "approve")).rejects.toMatchObject({
-        code: "FORBIDDEN",
-      });
-    });
-
-    it("users cannot see others' suggestions", async () => {
+    it("nobody else sees my entries (the admin does in admin mode)", async () => {
       const other = await makeUser(db);
-      const list = await listSuggestions(db, other, { scope: "all" });
-      expect(list.length).toBe(0);
+      expect(await getResourceDetail(db, other, bookId)).toBeNull();
+      expect(await getPersonDetail(db, other, navoiyId)).toBeNull();
+      const list = await listResources(db, other, { q: "xams" });
+      expect(list.items).toHaveLength(0);
+      await expect(
+        submitResource(db, other, { type: "book", title: "Hack" }, { id: bookId }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(await getResourceDetail(db, admin, bookId)).not.toBeNull();
     });
 
-    it("superadmin approval applies the change transactionally and audits it", async () => {
-      const mine = await listSuggestions(db, user, { scope: "mine", status: "pending" });
-      const s = mine.find(
-        (x) => (x.payload as { fullName?: string }).fullName === "Abdulla Qodiriy",
-      )!;
-      const { appliedTargetId } = await reviewSuggestion(db, admin, s.id, "approve", "OK");
-      expect(appliedTargetId).toBeTruthy();
-      const p = await getPersonDetail(db, user, appliedTargetId!);
-      expect(p?.person.fullName).toBe("Abdulla Qodiriy");
-      expect(p?.person.birthDate).toBe("1894");
-      await expect(reviewSuggestion(db, admin, s.id, "approve")).rejects.toMatchObject({
-        code: "CONFLICT",
-      });
-      const audit = await db.execute<{ action: string }>(
-        sql`select action from nodinest.audit_logs where entity_id = ${s.id}`,
-      );
-      expect(audit.map((a) => a.action)).toContain("suggestion.approve");
-    });
-
-    it("update suggestions keep a base snapshot and do not change the record until approved", async () => {
-      const p = await submitPerson(
-        db,
-        user,
-        { fullName: "Alisher Navoiy", biography: "Edited bio" },
-        { id: navoiyId, allowDuplicate: true },
-      );
-      expect(p.mode).toBe("suggested");
-      const person = await getPersonDetail(db, user, navoiyId);
-      expect(person?.person.biography).toBeNull();
-      const s = (await listSuggestions(db, admin, { scope: "all", status: "pending" })).find(
-        (x) => x.targetId === navoiyId,
-      )!;
-      await reviewSuggestion(db, admin, s.id, "reject", "No source");
-      const again = await getPersonDetail(db, user, navoiyId);
-      expect(again?.person.biography).toBeNull();
-    });
-
-    it("withdraw only own pending suggestions", async () => {
-      const out = await submitArchive(db, user, "resource", bookId, true, "spam?");
-      expect(out.mode).toBe("suggested");
+    it("everyone can add the same book to their own Darsxona", async () => {
       const other = await makeUser(db);
-      const id = (out as { suggestionId: string }).suggestionId;
-      await expect(withdrawSuggestion(db, other, id)).rejects.toMatchObject({ code: "NOT_FOUND" });
-      await withdrawSuggestion(db, user, id);
-      const d = await getResourceDetail(db, user, bookId);
-      expect(d?.resource.deletedAt).toBeNull();
+      const out = await submitResource(db, other, { type: "book", title: "Xamsa" });
+      expect(out.mode).toBe("applied");
+      expect((out as { id: string }).id).not.toBe(bookId);
     });
 
-    it("approval re-checks duplicates", async () => {
-      const out = await submitSuggestion(db, user, {
-        operation: "create",
-        targetType: "person",
-        payload: { fullName: "Mark Twain" },
-      });
-      const id = (out as { suggestionId: string }).suggestionId;
-      await expect(reviewSuggestion(db, admin, id, "approve")).rejects.toMatchObject({
-        code: "DUPLICATE",
-      });
+    it("removing someone else's entry only takes it out of my Darsxona", async () => {
+      const r = await submitResource(db, admin, { type: "book", title: `Shared ${Math.random().toString(36).slice(2)}` });
+      const id = (r as { id: string }).id;
+      await db.execute(sql`insert into nodinest.learning_records (user_id, resource_id, status)
+        values (${user.userId}, ${id}, 'planned')`);
+      expect(await getResourceDetail(db, user, id)).not.toBeNull();
+      const out = await submitArchive(db, user, "resource", id, true);
+      expect(out.mode).toBe("applied");
+      expect(await getResourceDetail(db, user, id)).toBeNull();
+      expect((await getResourceDetail(db, admin, id))?.resource.deletedAt).toBeNull();
     });
   });
 });

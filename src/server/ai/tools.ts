@@ -1,5 +1,5 @@
 /**
- * NodiNest AI tool registry ("Jarvis"). The ONLY operations the model can
+ * NodiNote AI tool registry ("Jarvis"). The ONLY operations the model can
  * trigger. Every tool:
  *   - declares a JSON schema for Gemini,
  *   - re-validates its arguments with zod on the server,

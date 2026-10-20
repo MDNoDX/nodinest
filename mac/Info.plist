@@ -2,10 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>NodiNest</string>
-  <key>CFBundleDisplayName</key><string>NodiNest</string>
+  <key>CFBundleName</key><string>NodiNote</string>
+  <key>CFBundleDisplayName</key><string>NodiNote</string>
   <key>CFBundleIdentifier</key><string>app.nodinest.mac</string>
-  <key>CFBundleExecutable</key><string>NodiNest</string>
+  <key>CFBundleExecutable</key><string>NodiNote</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleShortVersionString</key><string>__VERSION__</string>
@@ -15,7 +15,7 @@
   <key>NSHighResolutionCapable</key><true/>
   <key>NSMicrophoneUsageDescription</key><string>Ovozli xabar va taqrizga audio yozish uchun mikrofon kerak.</string>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
-  <key>NSHumanReadableCopyright</key><string>NodiNest — bilimlar uchun shaxsiy makon</string>
+  <key>NSHumanReadableCopyright</key><string>NodiNote — bilimlar uchun shaxsiy makon</string>
   <key>CFBundleURLTypes</key>
   <array>
     <dict>

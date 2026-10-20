@@ -21,11 +21,11 @@ const serif = Source_Serif_4({
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("brand");
   return {
-    title: { default: "NodiNest", template: "%s · NodiNest" },
+    title: { default: "NodiNote", template: "%s · NodiNote" },
     description: t("tagline"),
-    applicationName: "NodiNest",
+    applicationName: "NodiNote",
     robots: { index: false, follow: false },
-    appleWebApp: { capable: true, title: "NodiNest", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "NodiNote", statusBarStyle: "default" },
     icons: {
       icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
       apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],

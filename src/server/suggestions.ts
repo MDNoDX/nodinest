@@ -10,7 +10,7 @@
  */
 import { ensureInLibrary } from "./records";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { withUser, type AppContext, type Database } from "@/db/client";
+import { withUser, type AppContext, type Database, type Tx } from "@/db/client";
 import { people, resources, suggestions, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { suggestionInput, zodFieldErrors } from "@/lib/validation";
@@ -75,6 +75,16 @@ export async function submitPerson(
       }
       return { mode: "applied", id: await applyCreatePerson(tx, ctx, data, meta) } as const;
     }
+    if (!opts.forceSuggestion && opts.id) {
+      // Someone else's entry: the user gets their own edited copy, used by
+      // their own resources from now on (the original stays untouched).
+      const copy = await applyCreatePerson(tx, ctx, data, { origin: opts.origin ?? "manual" });
+      await tx.execute(sql`
+        update nodinest.resource_contributors c set person_id = ${copy}
+        where c.person_id = ${opts.id} and exists (select 1 from nodinest.resources r
+          where r.id = c.resource_id and r.created_by = ${ctx.userId})`);
+      return { mode: "applied", id: copy } as const;
+    }
     const baseSnapshot = opts.id ? await getPersonSnapshot(tx, opts.id) : null;
     const [s] = await tx
       .insert(suggestions)
@@ -92,6 +102,29 @@ export async function submitPerson(
       .returning({ id: suggestions.id });
     return { mode: "suggested", suggestionId: s.id } as const;
   });
+}
+
+/** Moves the user's own data from one resource to another (personal copy). */
+async function moveMyThings(tx: Tx, userId: string, from: string, to: string) {
+  for (const table of [
+    "learning_records",
+    "notes",
+    "writeups",
+    "collection_items",
+    "plans",
+    "study_cards",
+    "resume_points",
+    "transcripts",
+    "book_text_sources",
+    "book_pages",
+  ])
+    await tx.execute(
+      sql`update ${sql.identifier("nodinest")}.${sql.identifier(table)}
+          set resource_id = ${to} where user_id = ${userId} and resource_id = ${from}`,
+    );
+  await tx.execute(
+    sql`update nodinest.files set resource_id = ${to} where owner_id = ${userId} and resource_id = ${from}`,
+  );
 }
 
 export async function submitResource(
@@ -126,6 +159,14 @@ export async function submitResource(
       await ensureInLibrary(tx, ctx.userId, id);
       return { mode: "applied", id } as const;
     }
+    if (!opts.forceSuggestion && opts.id) {
+      // Someone else's entry in my Darsxona: I get my own edited copy and all
+      // my things (record, notes, taqriz, questions…) move to it.
+      const copy = await applyCreateResource(tx, ctx, data, { origin: opts.origin ?? "manual" });
+      await moveMyThings(tx, ctx.userId, opts.id, copy);
+      await ensureInLibrary(tx, ctx.userId, copy);
+      return { mode: "applied", id: copy } as const;
+    }
     const baseSnapshot = opts.id ? await getResourceSnapshot(tx, opts.id) : null;
     const [s] = await tx
       .insert(suggestions)
@@ -159,6 +200,13 @@ export async function submitArchive(
       return { mode: "applied", id } as const;
     }
     if (!archived) throw new AppError("FORBIDDEN");
+    // Someone else's entry: it simply leaves my Darsxona.
+    if (type === "resource") {
+      await tx.execute(sql`delete from nodinest.learning_records
+        where user_id = ${ctx.userId} and resource_id = ${id}`);
+      return { mode: "applied", id } as const;
+    }
+    if (type === "person") throw new AppError("FORBIDDEN");
     const [s] = await tx
       .insert(suggestions)
       .values({

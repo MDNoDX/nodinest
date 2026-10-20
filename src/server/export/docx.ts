@@ -312,7 +312,7 @@ export async function renderDocx(
   items.forEach((it, i) => children.push(...bookSection(it, opts.loc, opts.timeZone, i === 0)));
 
   const doc = new Document({
-    creator: "NodiNest",
+    creator: "NodiNote",
     title: opts.combined
       ? t.myWriteups
       : `${items[0]?.docLabel ?? t.writeup} — ${items[0]?.title ?? ""}`,

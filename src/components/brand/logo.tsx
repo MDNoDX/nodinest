@@ -1,40 +1,37 @@
 import { cn } from "@/lib/cn";
 
 /**
- * NodiNest symbol for the Darsxona: a Central-Asian pointed arch (peshtoq, the
- * doorway of a madrasa) over an open book, with a gold eight-pointed star —
- * the light of knowledge. Inline SVG, themed through CSS variables.
+ * NodiNote symbol: a spiral notebook (cover, rings, ruled lines) with a gold
+ * bookmark ribbon and a pencil — "write anything down". Inline SVG, themed
+ * through CSS variables so it works in light and dark mode.
  */
 export function LogoSymbol({
   className,
-  title = "NodiNest",
+  title = "NodiNote",
 }: {
   className?: string;
   title?: string;
 }) {
   return (
     <svg viewBox="0 0 48 48" role="img" aria-label={title} className={cn("shrink-0", className)}>
-      <path
-        d="M14.5 36V21.8C14.5 15.6 19 11.6 24 8.6C29 11.6 33.5 15.6 33.5 21.8V36"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M24 33.6C21.6 32.1 19.4 31.7 17.8 32V26.9C19.4 26.6 21.6 27 24 28.5M24 28.5V33.6M24 33.6C26.4 32.1 28.6 31.7 30.2 32V26.9C28.6 26.6 26.4 27 24 28.5"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M11.5 37.6H36.5" stroke="#E2A93B" strokeWidth="2.6" strokeLinecap="round" />
-      <polygon
-        points="24.00,13.50 23.14,15.32 21.24,14.64 21.92,16.54 20.10,17.40 21.92,18.26 21.24,20.16 23.14,19.48 24.00,21.30 24.86,19.48 26.76,20.16 26.08,18.26 27.90,17.40 26.08,16.54 26.76,14.64 24.86,15.32"
-        fill="#E2A93B"
-      />
+      <rect x="12.5" y="9" width="20.5" height="30" rx="3.2" fill="var(--primary)" />
+      <path d="M27.2 9V17.2L29.2 15.6L31.2 17.2V9Z" fill="#E2A93B" />
+      <g fill="var(--foreground)">
+        <rect x="10.4" y="13.6" width="5" height="2.4" rx="1.2" />
+        <rect x="10.4" y="20.6" width="5" height="2.4" rx="1.2" />
+        <rect x="10.4" y="27.6" width="5" height="2.4" rx="1.2" />
+      </g>
+      <g stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="1.7" strokeLinecap="round">
+        <path d="M18 21.8H28.6" />
+        <path d="M18 26.4H28.6" />
+        <path d="M18 31H24.4" />
+      </g>
+      <g transform="rotate(45 34 31)">
+        <rect x="31.6" y="20.6" width="4.8" height="15" rx="1.2" fill="#E2A93B" />
+        <path d="M31.6 35.6H36.4L34 40.2Z" fill="#F3DDAA" />
+        <path d="M33.3 38.8H34.7L34 40.2Z" fill="var(--foreground)" />
+        <rect x="31.6" y="20.6" width="4.8" height="2.6" rx="1.2" fill="#EF8FA6" />
+      </g>
     </svg>
   );
 }
@@ -45,7 +42,7 @@ export function Logo({ className, compact }: { className?: string; compact?: boo
       <LogoSymbol className="size-8" />
       {!compact && (
         <span className="text-foreground text-[1.15rem] font-semibold tracking-tight">
-          Nodi<span className="text-primary">Nest</span>
+          Nodi<span className="text-primary">Note</span>
         </span>
       )}
     </span>

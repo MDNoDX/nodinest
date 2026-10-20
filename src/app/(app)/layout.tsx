@@ -1,8 +1,8 @@
-import { and, count, eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { AdminToggle } from "@/components/layout/admin-toggle";
 import { AppShell } from "@/components/layout/app-shell";
 import { db } from "@/db";
-import { suggestions } from "@/db/schema";
+import { feedback } from "@/db/schema";
 import { requireUser } from "@/lib/auth/session";
 import { getAiSettings } from "@/server/settings";
 
@@ -10,13 +10,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const pending =
-    user.role === "superadmin"
-      ? await db
-          .select({ n: count() })
-          .from(suggestions)
-          .where(and(eq(suggestions.status, "pending")))
-      : [{ n: 0 }];
+  // Badge on "Takliflar": new messages to the admin (superadmin account).
+  const pending = user.isSuperadmin
+    ? await db.select({ n: count() }).from(feedback).where(eq(feedback.status, "new"))
+    : [{ n: 0 }];
   const ai = await getAiSettings(db);
   return (
     <AppShell

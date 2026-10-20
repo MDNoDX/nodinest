@@ -1,13 +1,13 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db, withUser, type AppContext } from "@/db";
-import { aiActions, aiConversations, notes, people, suggestions } from "@/db/schema";
+import { aiActions, aiConversations, notes, people, resources } from "@/db/schema";
 import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { parseToolArgs, runTool, toolDef, type ToolName } from "@/server/ai/tools";
 import { saveNote } from "@/server/notes";
 import { hitRateLimit } from "@/server/rate-limit";
 import { getAiSettings, saveAiSettings } from "@/server/settings";
-import { submitPerson, submitResource } from "@/server/suggestions";
+import { submitResource } from "@/server/suggestions";
 import { makeUser } from "../helpers/db";
 
 const env = { timeZone: "Asia/Tashkent", locale: "uz" };
@@ -62,25 +62,29 @@ describe("AI tools once confirmed (run with the user's own permissions)", () => 
     expect(p.createdBy).toBe(user.userId);
   });
 
-  it("corrections to someone else's entry become a suggestion", async () => {
-    const r = await submitPerson(db, admin, { fullName: "Admin Owned Person" });
-    const id = (r as { id: string }).id;
-    const out = await runTool(
-      "suggest_correction",
-      {
-        targetType: "person",
-        targetId: id,
-        changes: { biography: "New bio", role: "superadmin" },
-        explanation: "fix",
-      },
+  it("editing someone else's entry gives the user a personal copy", async () => {
+    const r = await submitResource(db, admin, { type: "book", title: `Shared ${Math.random().toString(36).slice(2)}` });
+    const orig = (r as { id: string }).id;
+    // An older shared entry that sits in this user's Darsxona.
+    await db.execute(sql`insert into nodinest.learning_records (user_id, resource_id, status)
+      values (${user.userId}, ${orig}, 'in_progress')`);
+    await saveNote(db, user, { kind: "quote", quoteText: "Mine", resourceId: orig });
+    const out = await submitResource(
+      db,
       user,
-      env,
+      { type: "book", title: "My own edition" },
+      { id: orig, allowDuplicate: true },
     );
-    expect(out).toMatchObject({ suggested: true });
-    const [fresh] = await db.select().from(people).where(eq(people.id, id));
-    expect(fresh.biography).toBeNull();
-    const [s] = await db.select().from(suggestions).where(eq(suggestions.userId, user.userId));
-    expect(s).toMatchObject({ status: "pending", origin: "ai" });
+    expect(out.mode).toBe("applied");
+    const copy = (out as { id: string }).id;
+    expect(copy).not.toBe(orig);
+    const [o] = await db.select().from(resources).where(eq(resources.id, orig));
+    expect(o.title).not.toBe("My own edition");
+    const notes = await db.execute<{ resource_id: string }>(
+      sql`select resource_id from nodinest.notes where user_id = ${user.userId}`,
+    );
+    expect(notes.map((n) => n.resource_id)).toContain(copy);
+    expect(notes.map((n) => n.resource_id)).not.toContain(orig);
   });
 });
 

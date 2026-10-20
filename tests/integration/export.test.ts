@@ -84,14 +84,10 @@ describe("taqriz export", () => {
       status: "completed",
     });
     expect(it.notes).toHaveLength(1);
-    const [theirs] = await loadExport(other, {
-      resourceIds: [rid],
-      includeNotes: true,
-      covers: false,
-    });
-    expect(theirs.doc).toBeNull();
-    expect(theirs.notes).toHaveLength(0);
-    expect(theirs.rating).toBeNull();
+    // Someone else cannot even see the entry (personal catalogs).
+    expect(
+      await loadExport(other, { resourceIds: [rid], includeNotes: true, covers: false }),
+    ).toHaveLength(0);
     expect(await loadExport(other, { includeNotes: false, covers: false })).toHaveLength(0);
   });
 

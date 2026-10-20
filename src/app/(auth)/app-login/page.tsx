@@ -5,7 +5,7 @@ import { SESSION_COOKIES, createHandoff } from "@/server/app-handoff";
 import { OpenApp } from "./open-app";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "NodiNest — Mac" };
+export const metadata = { title: "NodiNote — Mac" };
 
 /** Opened by the Mac app in the system sign-in sheet. */
 export default async function AppLoginPage() {

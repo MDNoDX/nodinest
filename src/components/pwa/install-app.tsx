@@ -22,7 +22,7 @@ function platform(): "ios" | "mac-safari" | "android" | "desktop" | "server" {
 }
 
 /**
- * NodiNest as an app on Mac, iPhone/iPad and Android — installed from the
+ * NodiNote as an app on Mac, iPhone/iPad and Android — installed from the
  * browser (no store, no cost), works offline for everything already opened.
  */
 export function InstallApp() {

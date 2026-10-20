@@ -438,7 +438,7 @@ function BookPages({
           </View>
         )}
         <View fixed style={s.footer}>
-          <Text>NodiNest · {it.title.length > 70 ? `${it.title.slice(0, 70)}…` : it.title}</Text>
+          <Text>NodiNote · {it.title.length > 70 ? `${it.title.slice(0, 70)}…` : it.title}</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -465,13 +465,13 @@ export async function renderPdf(
           : `${items[0]?.docLabel ?? t.writeup} — ${items[0]?.title ?? ""}`
       }
       author={opts.owner}
-      creator="NodiNest"
-      producer="NodiNest"
+      creator="NodiNote"
+      producer="NodiNote"
       language={opts.loc}
     >
       {opts.combined && (
         <Page size="A4" style={[s.page, { justifyContent: "center" }]}>
-          <Text style={s.kicker}>NodiNest</Text>
+          <Text style={s.kicker}>NodiNote</Text>
           <Text style={[s.title, { fontSize: 34 }]}>{t.myWriteups}</Text>
           <Text style={[s.authors, { fontSize: 14 }]}>{opts.owner}</Text>
           <Text style={{ fontFamily: "Sans", fontSize: 10, color: MUTED, marginTop: 6 }}>

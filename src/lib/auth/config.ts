@@ -18,7 +18,7 @@ import { isDevLoginEnabled } from "./dev-login";
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
 export const auth = betterAuth({
-  appName: "NodiNest",
+  appName: "NodiNote",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {

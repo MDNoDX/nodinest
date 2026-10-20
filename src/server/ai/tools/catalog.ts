@@ -12,12 +12,10 @@ import {
 } from "@/lib/validation";
 import {
   findDuplicateResources,
-  getPersonSnapshot,
-  getResourceSnapshot,
   searchPeople,
 } from "../../catalog";
 import { ensureInLibrary, setLearningStatus, setRating } from "../../records";
-import { submitPerson, submitResource, submitSuggestion } from "../../suggestions";
+import { submitPerson, submitResource } from "../../suggestions";
 import {
   uuid,
   partialDate,
@@ -311,53 +309,6 @@ export const CATALOG_TOOLS = {
           };
         throw err;
       }
-    },
-  }),
-  suggest_correction: def({
-    perm: "write_catalog",
-    mode: "confirm",
-    description:
-      "Send a correction of someone else's catalog entry to admin review (e.g. biography, dates).",
-    parameters: obj(
-      {
-        targetType: str("person or resource", { enum: ["person", "resource"] }),
-        targetId: str("UUID"),
-        changes: { type: "object", description: "field → new value" },
-        explanation: str("Why"),
-        sourceUrls: arr({ type: "string" }),
-      },
-      ["targetType", "targetId", "changes", "explanation"],
-    ),
-    args: z.object({
-      targetType: z.enum(["person", "resource"]),
-      targetId: uuid,
-      changes: z.record(z.string(), z.unknown()),
-      explanation: z.string().trim().min(1).max(3000),
-      sourceUrls: z.array(httpUrl).max(5).optional(),
-    }),
-    run: async (ctx, a) => {
-      const current: Record<string, unknown> | null = await withUser(db, ctx, (tx) =>
-        a.targetType === "person"
-          ? (getPersonSnapshot(tx, a.targetId) as Promise<Record<string, unknown> | null>)
-          : (getResourceSnapshot(tx, a.targetId) as Promise<Record<string, unknown> | null>),
-      );
-      if (!current) throw new AppError("NOT_FOUND");
-      const changes = Object.fromEntries(Object.entries(a.changes).filter(([k]) => k in current));
-      if (!Object.keys(changes).length) throw new AppError("VALIDATION", "no_valid_changes");
-      await submitSuggestion(
-        db,
-        ctx,
-        {
-          operation: "update",
-          targetType: a.targetType,
-          targetId: a.targetId,
-          payload: { ...current, ...changes },
-          explanation: a.explanation,
-          sourceUrls: a.sourceUrls ?? [],
-        },
-        "ai",
-      );
-      return { suggested: true, href: "/suggestions" };
     },
   }),
 } as const;

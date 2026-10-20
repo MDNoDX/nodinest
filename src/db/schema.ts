@@ -438,7 +438,8 @@ export const resourceIdentifiers = nodinest.table(
     value: text("value").notNull(),
   },
   (t) => [
-    uniqueIndex("identifiers_scheme_value_uq").on(t.scheme, t.value),
+    // Not unique: each user keeps their own copy of a book (personal catalogs).
+    index("identifiers_scheme_value_idx").on(t.scheme, t.value),
     index("identifiers_resource_idx").on(t.resourceId),
   ],
 );
