@@ -9,6 +9,8 @@ const L = {
   uz: {
     myWriteups: "Taqrizlarim",
     writeup: "Taqriz",
+    transcript: "To‘liq matn",
+    konspekt: "Konspekt",
     contents: "Mundarija",
     books: (n: number) => `${n} ta manba`,
     words: (n: number) => `${n.toLocaleString("uz-UZ")} so‘z`,
@@ -51,6 +53,8 @@ const L = {
   en: {
     myWriteups: "My write-ups",
     writeup: "Write-up",
+    transcript: "Transcript",
+    konspekt: "Konspekt",
     contents: "Contents",
     books: (n: number) => `${n} ${n === 1 ? "title" : "titles"}`,
     words: (n: number) => `${n.toLocaleString("en-US")} words`,

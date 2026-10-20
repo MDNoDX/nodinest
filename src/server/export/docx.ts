@@ -161,7 +161,7 @@ function bookSection(it: ExportItem, loc: Loc, tz: string, first: boolean): Para
     new Paragraph({
       children: [
         new TextRun({
-          text: `${t.writeup} · ${t.types[it.type] ?? it.type}`.toUpperCase(),
+          text: `${it.docLabel ?? t.writeup} · ${t.types[it.type] ?? it.type}`.toUpperCase(),
           color: BLUE,
           size: 16,
           bold: true,
@@ -313,7 +313,9 @@ export async function renderDocx(
 
   const doc = new Document({
     creator: "NodiNest",
-    title: opts.combined ? t.myWriteups : `${t.writeup} — ${items[0]?.title ?? ""}`,
+    title: opts.combined
+      ? t.myWriteups
+      : `${items[0]?.docLabel ?? t.writeup} — ${items[0]?.title ?? ""}`,
     features: { updateFields: opts.combined },
     styles: {
       default: {

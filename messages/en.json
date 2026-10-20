@@ -1286,6 +1286,20 @@
     "noSpeech": "No speech",
     "insertedShort": "Written into taqriz",
     "retry": "Retry",
-    "listenNote": "Pause the video and correct the text in the taqriz any time. One AI request per minute."
+    "listenNote": "Pause the video and correct the text in the taqriz any time. One AI request per minute.",
+    "liveMode": "Live writing",
+    "fullMode": "Prepare full text",
+    "fullHint": "The AI first studies the whole video or audio (topic, speakers, correct spelling of names and terms, sections), then writes it out from start to end. When ready, download it as PDF, Word, Markdown or TXT.",
+    "fullDeepHint": "Writes every part with the whole talk's context in mind — slower but more accurate.",
+    "fullStart": "Prepare the full text",
+    "fullGettingLength": "Getting the length…",
+    "fullStudying": "Studying the whole recording…",
+    "fullNotStarted": "Not started",
+    "fullFinishing": "Final edit…",
+    "fullProgress": "Written: {done} / {total}",
+    "fullResume": "Resume",
+    "fullReady": "Full text ready — you can download it",
+    "fullNote": "Runs while this page is open; if you leave, “Resume” continues where it stopped. One AI request per 1.5 minutes of speech (5 minutes for a konspekt).",
+    "delete": "Delete"
   }
 }

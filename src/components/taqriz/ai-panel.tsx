@@ -4,6 +4,8 @@ import {
   AudioLines,
   Copy,
   CornerDownLeft,
+  Download,
+  FileText,
   Loader2,
   MessageSquareText,
   Play,
@@ -11,16 +13,26 @@ import {
   Sparkles,
   Square,
   TextCursorInput,
+  Trash2,
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { askAboutSelectionAction, transcribeSegmentAction } from "@/app/actions/ai";
+import {
+  askAboutSelectionAction,
+  deleteTranscriptAction,
+  listTranscriptsAction,
+  startTranscriptAction,
+  stepTranscriptAction,
+  transcribeSegmentAction,
+  transcriptTextAction,
+} from "@/app/actions/ai";
 import { fmtClock, useMediaDock, type DockSource } from "@/components/media/media-dock";
 import { PREFERRED } from "@/components/media/use-recorder";
 import { cn } from "@/lib/cn";
 import { markdownToNodes, type DocNode } from "@/lib/writeup-doc";
+import type { TranscriptInfo } from "@/server/ai/transcripts";
 
 export type AskRequest = { selection: string; context: string; n: number };
 export type PanelTab = "ask" | "listen";
@@ -96,7 +108,7 @@ export function AiPanel({
         <AskTab key={ask?.n ?? 0} editor={editor} resourceId={resourceId} ask={ask} />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "listen" && "hidden")}>
-        <ListenTab editor={editor} resourceId={resourceId} media={media} />
+        <ListenModes editor={editor} resourceId={resourceId} media={media} />
       </div>
     </div>
   );
@@ -286,6 +298,40 @@ const toB64 = (blob: Blob) =>
     r.onerror = () => reject(r.error);
     r.readAsDataURL(blob);
   });
+
+/** Live writing while listening, or a full transcript prepared ahead of time. */
+function ListenModes(props: { editor: Editor; resourceId: string; media: DockSource | null }) {
+  const t = useTranslations("taqrizAi");
+  const [mode, setMode] = useState<"live" | "full">("live");
+  return (
+    <>
+      <div className="border-border flex gap-1 border-b px-3 pt-3 pb-2">
+        {(["live", "full"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={cn(
+              "flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium",
+              mode === m
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-border text-muted hover:text-foreground",
+            )}
+          >
+            {t(m === "live" ? "liveMode" : "fullMode")}
+          </button>
+        ))}
+      </div>
+      {/* Both stay mounted so neither stops when you switch. */}
+      <div className={cn(mode !== "live" && "hidden")}>
+        <ListenTab {...props} />
+      </div>
+      <div className={cn(mode !== "full" && "hidden")}>
+        <FullTranscript {...props} />
+      </div>
+    </>
+  );
+}
 
 function ListenTab({
   editor,
@@ -668,6 +714,260 @@ function MdView({ text }: { text: string }) {
   return (
     <div className="flex flex-col gap-1.5 text-sm leading-relaxed">
       {markdownToNodes(text).map(render)}
+    </div>
+  );
+}
+
+// ── Full transcript, prepared ahead and downloadable ──────────────────────
+
+function FullTranscript({
+  editor,
+  resourceId,
+  media,
+}: {
+  editor: Editor;
+  resourceId: string;
+  media: DockSource | null;
+}) {
+  const t = useTranslations("taqrizAi");
+  const te = useTranslations("errors");
+  const dock = useMediaDock();
+  const [mode, setMode] = useState<"transcript" | "notes">("transcript");
+  const [deep, setDeep] = useState(true);
+  const [list, setList] = useState<TranscriptInfo[] | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const stop = useRef(false);
+
+  const fileId =
+    media?.kind === "file" ? /^\/api\/files\/([0-9a-f-]{36})$/i.exec(media.src)?.[1] : null;
+  const source =
+    media?.kind === "youtube"
+      ? { kind: "youtube" as const, id: media.id }
+      : fileId
+        ? { kind: "file" as const, fileId }
+        : null;
+  const ours = !!dock?.source && !!media && dock.keyOf(dock.source) === dock.keyOf(media);
+  const duration = ours ? Math.floor(dock?.duration ?? 0) : 0;
+
+  const refresh = useCallback(async () => {
+    const r = await listTranscriptsAction(resourceId).catch(() => null);
+    if (r?.ok) setList(r.data);
+  }, [resourceId]);
+  useEffect(() => {
+    let alive = true;
+    void listTranscriptsAction(resourceId).then((r) => {
+      if (alive && r.ok) setList(r.data);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [resourceId]);
+
+  const run = useCallback(
+    async (id: string) => {
+      setRunning(id);
+      stop.current = false;
+      try {
+        for (;;) {
+          if (stop.current) break;
+          const r = await stepTranscriptAction(id).catch(() => null);
+          if (!r || !r.ok) {
+            toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+            break;
+          }
+          setList((cur) => (cur ?? []).map((x) => (x.id === id ? r.data : x)));
+          if (r.data.status === "done") {
+            toast.success(t("fullReady"));
+            break;
+          }
+        }
+      } finally {
+        setRunning(null);
+        void refresh();
+      }
+    },
+    [refresh, t, te],
+  );
+
+  const begin = async (secs: number) => {
+    if (!source) return;
+    const r = await startTranscriptAction({
+      resourceId,
+      source,
+      mode,
+      deep,
+      durationSeconds: secs,
+    });
+    setWaiting(false);
+    if (!r.ok) return toast.error(te(r.code));
+    setList((cur) => [r.data, ...(cur ?? [])]);
+    void run(r.data.id);
+  };
+
+  // The length comes from the player: open it (paused) when needed.
+  useEffect(() => {
+    if (!waiting || !duration) return;
+    void Promise.resolve(duration).then(begin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, duration]);
+  const start = () => {
+    if (duration) return void begin(duration);
+    if (media) dock?.open(media, { autoplay: false });
+    setWaiting(true);
+  };
+
+  const insert = async (id: string) => {
+    const r = await transcriptTextAction(id);
+    if (!r.ok) return toast.error(te(r.code));
+    editor
+      .chain()
+      .insertContentAt(
+        editor.state.doc.content.size,
+        markdownToNodes(r.data.text) as JSONContent[],
+        {
+          updateSelection: false,
+        },
+      )
+      .run();
+    toast.success(t("inserted"));
+  };
+  const remove = async (id: string) => {
+    if (running === id) stop.current = true;
+    const r = await deleteTranscriptAction(id);
+    if (r.ok) setList((cur) => (cur ?? []).filter((x) => x.id !== id));
+  };
+
+  if (!media) return <p className="text-muted p-3 text-sm">{t("noMedia")}</p>;
+  if (!source) return <p className="text-warning p-3 text-xs">{t("cannotCapture")}</p>;
+
+  return (
+    <div className="flex flex-col gap-3 p-3 text-sm">
+      <p className="text-muted text-xs">{t("fullHint")}</p>
+      <div role="radiogroup" className="bg-surface-2 flex w-fit rounded-lg p-0.5 text-xs">
+        {(["transcript", "notes"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={mode === m}
+            onClick={() => setMode(m)}
+            className={cn(
+              "rounded-md px-2.5 py-1 font-medium",
+              mode === m
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            {t(m === "transcript" ? "modeTranscript" : "modeNotes")}
+          </button>
+        ))}
+      </div>
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 accent-[var(--primary)]"
+          checked={deep}
+          onChange={(e) => setDeep(e.target.checked)}
+        />
+        <span>
+          {t("deep")}
+          <span className="text-muted block text-xs">{t("fullDeepHint")}</span>
+        </span>
+      </label>
+      <button
+        type="button"
+        disabled={!!running || waiting}
+        onClick={start}
+        className="bg-primary text-primary-foreground flex items-center justify-center gap-2 rounded-lg px-3 py-2 font-medium disabled:opacity-60"
+      >
+        {waiting ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+        {waiting ? t("fullGettingLength") : t("fullStart")}
+      </button>
+
+      <ul className="flex flex-col gap-2">
+        {(list ?? []).map((x) => {
+          const pct = x.status === "done" ? 100 : Math.round((x.done / x.durationSeconds) * 100);
+          const busy = running === x.id;
+          return (
+            <li key={x.id} className="border-border rounded-lg border p-2.5">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-semibold">
+                  {t(x.mode === "notes" ? "modeNotes" : "modeTranscript")}
+                </span>
+                <span className="text-muted tabular-nums">{fmtClock(x.durationSeconds)}</span>
+                <button
+                  type="button"
+                  onClick={() => void remove(x.id)}
+                  className="text-muted hover:text-danger ml-auto rounded p-0.5"
+                  aria-label={t("delete")}
+                  title={t("delete")}
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+              {x.status !== "done" && (
+                <>
+                  <div className="bg-surface-2 mt-2 h-1.5 overflow-hidden rounded-full">
+                    <div
+                      className="bg-primary h-full rounded-full transition-[width]"
+                      style={{ width: `${Math.max(busy && !x.studied ? 3 : 0, pct)}%` }}
+                    />
+                  </div>
+                  <div className="text-muted mt-1 flex items-center gap-1.5 text-xs">
+                    {busy && <Loader2 className="size-3.5 animate-spin" />}
+                    {!x.studied
+                      ? t(busy ? "fullStudying" : "fullNotStarted")
+                      : x.done >= x.durationSeconds - 1
+                        ? t("fullFinishing")
+                        : t("fullProgress", {
+                            done: fmtClock(x.done),
+                            total: fmtClock(x.durationSeconds),
+                          })}
+                    {x.error && <span className="text-danger">· {te(x.error as "INTERNAL")}</span>}
+                    {!busy && !running && (
+                      <button
+                        type="button"
+                        onClick={() => void run(x.id)}
+                        className="text-primary ml-auto font-medium hover:underline"
+                      >
+                        {t("fullResume")}
+                      </button>
+                    )}
+                    {busy && (
+                      <button
+                        type="button"
+                        onClick={() => (stop.current = true)}
+                        className="text-muted hover:text-foreground ml-auto"
+                      >
+                        {t("stop")}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+              {x.status === "done" && (
+                <div className="mt-2 flex flex-wrap items-center gap-1">
+                  {(["pdf", "docx", "md", "txt"] as const).map((f) => (
+                    <a
+                      key={f}
+                      href={`/api/export/transcript/${x.id}?format=${f}`}
+                      className="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
+                    >
+                      <Download className="size-3" />
+                      {f === "docx" ? "Word" : f.toUpperCase()}
+                    </a>
+                  ))}
+                  <SmallBtn onClick={() => void insert(x.id)} icon={<CornerDownLeft />}>
+                    {t("insert")}
+                  </SmallBtn>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-muted text-[11px]">{t("fullNote")}</p>
     </div>
   );
 }

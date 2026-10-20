@@ -744,6 +744,45 @@ export const writeups = nodinest.table(
   (t) => [uniqueIndex("writeups_user_resource_uq").on(t.userId, t.resourceId)],
 );
 
+/**
+ * A full transcript / konspekt of a resource's video or audio, made by the AI
+ * segment by segment (resumable). `brief` is the AI's study of the whole
+ * recording (topic, speakers, spelling of names and terms, outline) that every
+ * segment is written with. Private to its owner (RLS).
+ */
+export const transcripts = nodinest.table(
+  "transcripts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    /** { kind: "youtube", id } | { kind: "file", fileId } */
+    source: jsonb("source").notNull(),
+    mode: text("mode").notNull(),
+    deep: boolean("deep").notNull().default(true),
+    durationSeconds: integer("duration_seconds").notNull(),
+    brief: jsonb("brief"),
+    /** [{ from, to, text }] in order. */
+    segments: jsonb("segments").notNull().default([]),
+    /** Final text (Markdown) once every segment is written. */
+    text: text("text"),
+    status: text("status").notNull().default("running"),
+    error: text("error"),
+    geminiFile: text("gemini_file"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("transcripts_user_resource_idx").on(t.userId, t.resourceId),
+    check("transcripts_mode_chk", sql`${t.mode} IN ('transcript', 'notes')`),
+    check("transcripts_status_chk", sql`${t.status} IN ('running', 'done', 'error')`),
+  ],
+);
+
 /** Where the full text of a resource comes from (the user's PDF or a reading link). */
 export const bookTextSources = nodinest.table(
   "book_text_sources",

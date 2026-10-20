@@ -144,3 +144,22 @@ async function generateWith(
     }
   }
 }
+
+/**
+ * Uploads media to the Gemini Files API (kept by Google for 48 h) and waits
+ * until it can be used; returns its URI. For long recordings that are too big
+ * to send inline with every request.
+ */
+export async function uploadToGemini(bytes: Uint8Array, mimeType: string): Promise<string> {
+  const ai = gemini();
+  let f = await ai.files.upload({
+    file: new Blob([new Uint8Array(bytes)], { type: mimeType }),
+    config: { mimeType },
+  });
+  for (let i = 0; i < 40 && f.state === "PROCESSING" && f.name; i++) {
+    await sleep(3000);
+    f = await ai.files.get({ name: f.name });
+  }
+  if (f.state === "FAILED" || !f.uri) throw new AppError("AI_UNAVAILABLE", "upload_failed");
+  return f.uri;
+}

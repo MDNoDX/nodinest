@@ -20,7 +20,7 @@ import { enforceRateLimit, hitRateLimit } from "../rate-limit";
 import { getAiSettings } from "../settings";
 import { generate, isAiConfigured } from "./gemini";
 
-async function gate(ctx: AppContext, bucket: "ask" | "listen") {
+export async function gate(ctx: AppContext, bucket: "ask" | "listen") {
   if (!isAiConfigured()) throw new AppError("AI_UNAVAILABLE", "not_configured");
   const s = await getAiSettings(db);
   if (!s.enabled) throw new AppError("AI_UNAVAILABLE", "disabled");
@@ -33,8 +33,9 @@ async function gate(ctx: AppContext, bucket: "ask" | "listen") {
       throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
   } else {
     // One request per minute of media: ~5 hours of listening a day.
-    await enforceRateLimit(db, `ailistenburst:${ctx.userId}`, 6, 60);
-    await enforceRateLimit(db, `ailisten:${ctx.userId}`, 300, 86_400);
+    // Short clips (90 s) for faithful transcripts: ~40 requests per hour of media.
+    await enforceRateLimit(db, `ailistenburst:${ctx.userId}`, 20, 60);
+    await enforceRateLimit(db, `ailisten:${ctx.userId}`, 600, 86_400);
   }
 }
 
@@ -46,7 +47,7 @@ type ResourceFacts = {
   original_date: string | null;
 };
 
-async function resourceFacts(ctx: AppContext, id: string): Promise<ResourceFacts> {
+export async function resourceFacts(ctx: AppContext, id: string): Promise<ResourceFacts> {
   const [r] = await withUser(db, ctx, (tx) =>
     tx.execute<ResourceFacts>(sql`
       select r.title, r.type::text as type, r.description, r.original_date,
@@ -59,7 +60,7 @@ async function resourceFacts(ctx: AppContext, id: string): Promise<ResourceFacts
   return r;
 }
 
-const factsText = (r: ResourceFacts) =>
+export const factsText = (r: ResourceFacts) =>
   [
     `Title: ${r.title}`,
     `Type: ${r.type}`,
@@ -70,7 +71,7 @@ const factsText = (r: ResourceFacts) =>
     .filter(Boolean)
     .join("\n");
 
-const langRule = (locale: string) =>
+export const langRule = (locale: string) =>
   locale === "en"
     ? "Answer in English."
     : "Answer in Uzbek, standard modern Latin orthography (o‘, g‘, sh, ch, ʼ).";
@@ -163,7 +164,7 @@ export const segmentInput = z
   })
   .refine((v) => v.to > v.from && v.to - v.from <= 180, { message: "segment_length" });
 
-const clock = (s: number) => {
+export const clock = (s: number) => {
   const t = Math.max(0, Math.round(s));
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
@@ -202,7 +203,7 @@ export async function transcribeSegment(ctx: AppContext, raw: unknown) {
     a.mode === "transcript"
       ? [
           ...common,
-          "Write a faithful transcript in the language spoken (Uzbek: standard modern Latin orthography — o‘, g‘, sh, ch, ʼ).",
+          "Write a faithful transcript in the language that is spoken — NEVER translate and never summarize; every sentence said must be there (Uzbek: standard modern Latin orthography — o‘, g‘, sh, ch, ʼ). On-screen text may only help to spell names; do not read it out.",
           "Keep the speaker's words, word order and style. Fix only spelling, punctuation, capitalization and sentence boundaries according to the language's grammar; drop filler sounds (eee, hmm), stutters and false starts.",
           "One paragraph per thought, separated by a blank line. Output only the transcript text: no timestamps, no headings, no comments.",
         ].join("\n")
@@ -220,15 +221,28 @@ export async function transcribeSegment(ctx: AppContext, raw: unknown) {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const res = await generate(
-    [{ role: "user", parts: [media, { text: material }] }],
-    {
-      systemInstruction: system,
-      temperature: 0,
-      mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
-      thinkingConfig: { thinkingBudget: a.deep ? 4096 : 0 },
-    },
-    { timeoutMs: 75_000 },
-  );
-  return { text: (res.text ?? "").trim(), from: a.from, to: a.to };
+  const ask = (extra: string) =>
+    generate(
+      [{ role: "user", parts: [media, { text: material }] }],
+      {
+        systemInstruction: system + extra,
+        temperature: 0,
+        mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
+        thinkingConfig: { thinkingBudget: a.deep ? 4096 : 512 },
+      },
+      { timeoutMs: 75_000 },
+    );
+  let res = await ask("");
+  // Verbatim text matching published captions is refused ("recitation"):
+  // retry once as a lightly smoothed text, else leave an honest gap marker.
+  if (res.candidates?.[0]?.finishReason === "RECITATION")
+    res = await ask(
+      "\nWrite it as a clean, readable text: keep the content and order of every sentence; you may lightly smooth the wording.",
+    );
+  const blocked = res.candidates?.[0]?.finishReason === "RECITATION";
+  return {
+    text: blocked ? `[${clock(a.from)}–${clock(a.to)}: …]` : (res.text ?? "").trim(),
+    from: a.from,
+    to: a.to,
+  };
 }

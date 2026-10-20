@@ -58,6 +58,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Taqriz AI panel (`components/taqriz/ai-panel.tsx`, `server/ai/study.ts`): explain the selection
   (book text + facts, no web search on the free tier) and "listen & write": YouTube segments go to
   Gemini as URL + offsets; same-origin files are recorded from the dock via Web Audio.
+- Full transcripts (`server/ai/transcripts.ts`, table `transcripts`, export
+  `/api/export/transcript/[id]`): study pass (brief: language, speakers, glossary, outline) →
+  90 s transcript / 300 s konspekt segments → finish (konspekt merge). Gemini blocks verbatim
+  text matching published captions (finishReason RECITATION): halve, then smooth, then a gap
+  marker. gemini-flash-lite rejects `thinkingBudget: 0` — use ≥ 512.
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.

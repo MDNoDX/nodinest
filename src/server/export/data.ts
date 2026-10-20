@@ -47,6 +47,8 @@ export type ExportItem = {
   cover: Uint8Array | null;
   /** JPEGs of images embedded in the taqriz, by file id. */
   images: Record<string, Uint8Array>;
+  /** What the document is ("Transcript", "Konspekt"); default: taqriz. */
+  docLabel?: string;
 };
 
 type Row = {

@@ -333,7 +333,7 @@ function BookPages({
           )}
           <View style={{ flex: 1 }}>
             <Text style={s.kicker}>
-              {t.writeup} · {t.types[it.type] ?? it.type}
+              {it.docLabel ?? t.writeup} · {t.types[it.type] ?? it.type}
             </Text>
             <Text style={s.title}>{it.title}</Text>
             {it.originalTitle && <Text style={s.subtitle}>{it.originalTitle}</Text>}
@@ -462,7 +462,7 @@ export async function renderPdf(
       title={
         opts.combined
           ? `${t.myWriteups} — ${opts.owner}`
-          : `${t.writeup} — ${items[0]?.title ?? ""}`
+          : `${items[0]?.docLabel ?? t.writeup} — ${items[0]?.title ?? ""}`
       }
       author={opts.owner}
       creator="NodiNest"

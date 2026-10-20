@@ -1286,6 +1286,20 @@
     "noSpeech": "Nutq yo‘q",
     "insertedShort": "Taqrizga yozildi",
     "retry": "Qayta",
-    "listenNote": "Video to‘xtatib, taqrizdagi matnni bemalol tuzatishingiz mumkin. Har daqiqa bitta AI so‘rovi."
+    "listenNote": "Video to‘xtatib, taqrizdagi matnni bemalol tuzatishingiz mumkin. Har daqiqa bitta AI so‘rovi.",
+    "liveMode": "Jonli yozish",
+    "fullMode": "To‘liq matn tayyorlash",
+    "fullHint": "AI avval butun videoni yoki audioni o‘rganadi (mavzu, ma’ruzachilar, ism va atamalarning to‘g‘ri yozilishi, bo‘limlar), so‘ng uni boshidan oxirigacha matnga aylantiradi. Tayyor bo‘lgach PDF, Word, Markdown yoki TXT qilib yuklab olasiz.",
+    "fullDeepHint": "Har bir bo‘lakni butun nutq konteksti bilan chuqur o‘ylab yozadi — sekinroq, lekin aniqroq.",
+    "fullStart": "To‘liq matnni tayyorlash",
+    "fullGettingLength": "Uzunligi aniqlanmoqda…",
+    "fullStudying": "Butun videoni o‘rganmoqda…",
+    "fullNotStarted": "Boshlanmagan",
+    "fullFinishing": "Yakuniy tahrir…",
+    "fullProgress": "Yozildi: {done} / {total}",
+    "fullResume": "Davom ettirish",
+    "fullReady": "To‘liq matn tayyor — yuklab olishingiz mumkin",
+    "fullNote": "Sahifa ochiq turganda ishlaydi; yopilsa, keyin «Davom ettirish» bilan qolgan joyidan davom etadi. Har 1,5 daqiqa nutq — bitta AI so‘rovi (konspektda 5 daqiqa).",
+    "delete": "O‘chirish"
   }
 }

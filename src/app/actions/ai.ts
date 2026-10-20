@@ -6,6 +6,13 @@ import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { deleteConversation, runAssistant } from "@/server/ai/assistant";
 import { transcribeAudio } from "@/server/ai/media";
 import { askAboutSelection, transcribeSegment } from "@/server/ai/study";
+import {
+  deleteTranscript,
+  listTranscripts,
+  startTranscript,
+  stepTranscript,
+  transcriptText,
+} from "@/server/ai/transcripts";
 import { run } from "./_run";
 
 export async function askAssistantAction(input: {
@@ -73,4 +80,23 @@ export async function transcribeSegmentAction(input: unknown) {
   return run(async ({ ctx }) =>
     transcribeSegment(ctx, { ...(input as object), locale: await getLocale() }),
   );
+}
+
+// ── Full transcripts / konspekts (prepared ahead, downloadable) ──
+export async function startTranscriptAction(input: unknown) {
+  return run(async ({ ctx }) => startTranscript(ctx, input));
+}
+export async function stepTranscriptAction(id: string) {
+  return run(async ({ ctx }) =>
+    stepTranscript(ctx, z.string().uuid().parse(id), await getLocale()),
+  );
+}
+export async function listTranscriptsAction(resourceId: string) {
+  return run(async ({ ctx }) => listTranscripts(ctx, z.string().uuid().parse(resourceId)));
+}
+export async function deleteTranscriptAction(id: string) {
+  return run(async ({ ctx }) => deleteTranscript(ctx, z.string().uuid().parse(id)));
+}
+export async function transcriptTextAction(id: string) {
+  return run(async ({ ctx }) => transcriptText(ctx, z.string().uuid().parse(id)));
 }
