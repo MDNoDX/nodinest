@@ -17,6 +17,7 @@ const STEPS: Step[] = [
   { id: "library", target: "nav-library" },
   { id: "add", target: "add" },
   { id: "search", target: "search" },
+  { id: "write", target: "nav-write" },
   { id: "notes", target: "nav-notes" },
   { id: "review", target: "nav-review" },
   { id: "assistant", target: "nav-assistant" },

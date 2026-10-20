@@ -169,6 +169,13 @@
       "when": 1792521864128,
       "tag": "0023_personal_uniques",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792522297488,
+      "tag": "0024_own_books",
+      "breakpoints": true
     }
   ]
 }

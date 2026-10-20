@@ -12,11 +12,12 @@ import {
   Star,
 } from "lucide-react";
 import { ResumeMark } from "@/components/media/resume-mark";
+import { getOwnBook } from "@/server/own-books";
 import { getResume } from "@/server/resume";
 import type { DockSource } from "@/components/media/media-dock";
 import { PlayInDock } from "@/components/media/play-in-dock";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ExportMenu } from "@/components/export/export-menu";
 import { CatalogActions } from "@/components/library/catalog-actions";
@@ -64,6 +65,8 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
     getResume(db, ctx, id),
   ]);
   if (!d) notFound();
+  // An own book opens in the writing studio.
+  if (await getOwnBook(ctx, id)) redirect(`/write/${id}`);
   const r = d.resource;
   const isMedia = MEDIA_LIKE.includes(r.type);
   const youtube = d.identifiers.find((i) => i.scheme === "youtube")?.value;

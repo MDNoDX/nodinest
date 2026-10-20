@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 test("unauthenticated users are sent to login", async ({ page }) => {
   await page.goto("/library");
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("heading", { name: /NodiNest/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /NodiNote/ })).toBeVisible();
 });
 
 test("sign up, Uzbek by default, switch to English, theme persists", async ({ page }) => {
@@ -95,6 +95,21 @@ test("takliflar: a message goes to the admin and shows as sent", async ({ page }
   await page.getByRole("button", { name: "Yuborish" }).click();
   await expect(page.getByText("Yuborildi — rahmat!")).toBeVisible();
   await expect(page.getByText("Test taklif")).toBeVisible();
+});
+
+test("Kitob yozish: a memoir starts from its template with chapters and a goal", async ({
+  page,
+}) => {
+  await signIn(page, DEV_USER);
+  await page.goto("/write");
+  await page.getByRole("button", { name: /Hayotim haqida yozishni boshlash/ }).click();
+  await page.getByLabel(/Maqsad/).fill("30000");
+  await page.getByRole("button", { name: /Yaratish va yozishni boshlash/ }).click();
+  await expect(page).toHaveURL(/\/write\/[0-9a-f-]{36}/);
+  await expect(page.getByText("Kitobim", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bolaligim" }).first()).toBeVisible();
+  // Guiding prompts don't count, only the author's text (here: chapter titles).
+  await expect(page.getByText(/^\d{1,2} \/ 30\s?000 so‘z$/)).toBeVisible();
 });
 
 test("privacy: another user cannot open a private note by URL", async ({ page, browser }) => {

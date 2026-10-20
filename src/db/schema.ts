@@ -756,6 +756,28 @@ export const writeups = nodinest.table(
   (t) => [uniqueIndex("writeups_user_resource_uq").on(t.userId, t.resourceId)],
 );
 
+/**
+ * The user's own books ("Kitob yozish"): a resource of type book whose text is
+ * the user's write-up document (chapters = headings), with a template and an
+ * optional word goal. Kept out of the Darsxona lists. Owner only (RLS).
+ */
+export const ownBooks = nodinest.table(
+  "own_books",
+  {
+    resourceId: uuid("resource_id")
+      .primaryKey()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    template: text("template").notNull().default("blank"),
+    goalWords: integer("goal_words"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("own_books_user_idx").on(t.userId, t.updatedAt)],
+);
+
 /** Messages to the admin ("Takliflar" → "Adminga yozish"). */
 export const feedback = nodinest.table(
   "feedback",

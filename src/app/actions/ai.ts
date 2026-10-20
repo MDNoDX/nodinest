@@ -5,7 +5,7 @@ import { z } from "zod";
 import { confirmAiAction, rejectAiAction } from "@/server/ai/actions";
 import { deleteConversation, runAssistant } from "@/server/ai/assistant";
 import { transcribeAudio } from "@/server/ai/media";
-import { askAboutSelection, transcribeSegment, writeHelp } from "@/server/ai/study";
+import { askAboutSelection, transcribeClip, transcribeSegment, writeHelp } from "@/server/ai/study";
 import {
   deleteTranscript,
   listTranscripts,
@@ -105,5 +105,12 @@ export async function transcriptTextAction(id: string) {
 export async function writeHelpAction(input: unknown) {
   return run(async ({ ctx }) =>
     writeHelp(ctx, { ...(input as object), locale: await getLocale() }),
+  );
+}
+
+/** Dictation (interview answers): a recorded clip → text. */
+export async function transcribeClipAction(input: unknown) {
+  return run(async ({ ctx }) =>
+    transcribeClip(ctx, { ...(input as object), locale: await getLocale() }),
   );
 }

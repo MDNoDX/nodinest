@@ -208,7 +208,10 @@ describe("people & resources", () => {
     });
 
     it("removing someone else's entry only takes it out of my Darsxona", async () => {
-      const r = await submitResource(db, admin, { type: "book", title: `Shared ${Math.random().toString(36).slice(2)}` });
+      const r = await submitResource(db, admin, {
+        type: "book",
+        title: `Shared ${Math.random().toString(36).slice(2)}`,
+      });
       const id = (r as { id: string }).id;
       await db.execute(sql`insert into nodinest.learning_records (user_id, resource_id, status)
         values (${user.userId}, ${id}, 'planned')`);

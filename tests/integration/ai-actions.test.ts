@@ -63,7 +63,10 @@ describe("AI tools once confirmed (run with the user's own permissions)", () => 
   });
 
   it("editing someone else's entry gives the user a personal copy", async () => {
-    const r = await submitResource(db, admin, { type: "book", title: `Shared ${Math.random().toString(36).slice(2)}` });
+    const r = await submitResource(db, admin, {
+      type: "book",
+      title: `Shared ${Math.random().toString(36).slice(2)}`,
+    });
     const orig = (r as { id: string }).id;
     // An older shared entry that sits in this user's Darsxona.
     await db.execute(sql`insert into nodinest.learning_records (user_id, resource_id, status)

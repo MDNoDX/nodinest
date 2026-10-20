@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { coverSrc } from "@/components/library/cover";
 import { TaqrizEditor } from "@/components/taqriz/taqriz-editor";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { getResourceHeader } from "@/server/catalog";
+import { getOwnBook } from "@/server/own-books";
 import { getResume } from "@/server/resume";
 import { getWriteup } from "@/server/writeups";
 
@@ -36,6 +37,7 @@ export default async function TaqrizPage({
     getResume(db, ctx, id),
   ]);
   if (!r) notFound();
+  if (await getOwnBook(ctx, id)) redirect(`/write/${id}`);
   return (
     <TaqrizEditor
       resource={{

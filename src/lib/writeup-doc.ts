@@ -158,6 +158,25 @@ export function docToPlain(doc: WriteupDoc, opts: { markHeadings?: boolean } = {
   return out.filter((l) => l.trim()).join("\n");
 }
 
+/**
+ * Words the author wrote: a book template's guiding prompts (top-level
+ * paragraphs that are entirely italic) do not count.
+ */
+export function authorWordCount(doc: WriteupDoc): number {
+  const kept = {
+    ...doc,
+    content: (doc.content ?? []).filter(
+      (n) =>
+        !(
+          n.type === "paragraph" &&
+          n.content?.length &&
+          n.content.every((c) => c.marks?.some((m) => m.type === "italic"))
+        ),
+    ),
+  };
+  return countWords(docToPlain(kept));
+}
+
 export function countWords(plain: string): number {
   const m = plain.match(/[\p{L}\p{N}'’‘ʻʼ-]+/gu);
   return m ? m.length : 0;

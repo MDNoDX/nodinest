@@ -5,7 +5,7 @@
  */
 import { and, eq, sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
-import { resources, writeups } from "@/db/schema";
+import { resources, writeups, ownBooks } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import {
   countWords,
@@ -14,6 +14,7 @@ import {
   sanitizeDoc,
   type DocNode,
   type WriteupDoc,
+  authorWordCount,
 } from "@/lib/writeup-doc";
 
 export async function getWriteup(database: Database, ctx: AppContext, resourceId: string) {
@@ -59,7 +60,13 @@ export async function saveWriteup(
       cur.updatedAt.getTime() > new Date(opts.baseUpdatedAt).getTime()
     )
       throw new AppError("CONFLICT", "edited_elsewhere");
-    const values = { doc, plain, words: countWords(plain), updatedAt: new Date() };
+    // Own books ("Kitob yozish") don't count their template's guiding prompts.
+    const [own] = await tx
+      .select({ id: ownBooks.resourceId })
+      .from(ownBooks)
+      .where(eq(ownBooks.resourceId, resourceId));
+    const words = own ? authorWordCount(doc) : countWords(plain);
+    const values = { doc, plain, words, updatedAt: new Date() };
     const [row] = await tx
       .insert(writeups)
       .values({ userId: ctx.userId, resourceId, ...values })

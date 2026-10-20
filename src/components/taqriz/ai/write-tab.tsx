@@ -7,10 +7,21 @@ import { toast } from "sonner";
 import { streamAi } from "@/lib/ai-stream";
 import { cn } from "@/lib/cn";
 import { markdownToNodes } from "@/lib/writeup-doc";
+import { Interview } from "./interview";
 import { MdView, SmallBtn } from "./shared";
 // ── Write ──────────────────────────────────────────────────────────────────
 
-type WriteAction = "outline" | "intro" | "continue" | "conclusion" | "improve" | "custom";
+type WriteAction =
+  | "outline"
+  | "intro"
+  | "continue"
+  | "conclusion"
+  | "improve"
+  | "custom"
+  | "nextChapter"
+  | "polish"
+  | "interviewQuestion"
+  | "interviewWrite";
 
 /** The taqriz as plain text with "## " chapter headings (context for the AI). */
 function docText(editor: Editor) {
@@ -23,7 +34,28 @@ function docText(editor: Editor) {
   return out.join("\n\n");
 }
 
-export function WriteTab({ editor, resourceId }: { editor: Editor; resourceId: string }) {
+/** The chapter (last heading before the cursor; the first one at the top). */
+function currentChapter(editor: Editor) {
+  const at = editor.state.selection.from;
+  let current = "";
+  let first = "";
+  editor.state.doc.forEach((n, pos) => {
+    if (n.type.name !== "heading") return;
+    first ||= n.textContent;
+    if (pos <= at) current = n.textContent;
+  });
+  return current || first;
+}
+
+export function WriteTab({
+  editor,
+  resourceId,
+  mode = "taqriz",
+}: {
+  editor: Editor;
+  resourceId: string;
+  mode?: "taqriz" | "book";
+}) {
   const t = useTranslations("taqrizAi");
   const te = useTranslations("errors");
   const [draft, setDraft] = useState("");
@@ -36,15 +68,28 @@ export function WriteTab({ editor, resourceId }: { editor: Editor; resourceId: s
     sel: { from: number; to: number; text: string } | null;
   } | null>(null);
 
-  const go = async (action: WriteAction, label: string, instruction = "") => {
+  const go = async (
+    action: WriteAction,
+    label: string,
+    instruction = "",
+    extra: { question?: string; answer?: string } = {},
+  ) => {
     const { from, to } = editor.state.selection;
     const selected = from !== to ? editor.state.doc.textBetween(from, to, "\n").trim() : "";
-    if (action === "improve" && !selected) return toast(t("selectFirst"));
+    if ((action === "improve" || action === "polish") && !selected) return toast(t("selectFirst"));
     setBusy(action);
     const sel = selected ? { from, to, text: selected } : null;
     const r = await streamAi<{ used: { notes: number; transcript: string | null } }>(
       "write",
-      { resourceId, action, instruction, doc: docText(editor), selection: selected.slice(0, 4000) },
+      {
+        resourceId,
+        action,
+        mode,
+        instruction,
+        doc: docText(editor),
+        selection: selected.slice(0, 4000),
+        ...extra,
+      },
       // Show the draft while it is being written.
       (text) => setRes({ action, label, text, used: { notes: 0, transcript: null }, sel }),
     );
@@ -76,16 +121,53 @@ export function WriteTab({ editor, resourceId }: { editor: Editor; resourceId: s
     toast.success(t("replaced"));
   };
 
-  const chips: [WriteAction, string][] = [
-    ["outline", t("wOutline")],
-    ["intro", t("wIntro")],
-    ["continue", t("wContinue")],
-    ["conclusion", t("wConclusion")],
-    ["improve", t("wImprove")],
-  ];
+  const chips: [WriteAction, string][] =
+    mode === "book"
+      ? [
+          ["outline", t("bOutline")],
+          ["intro", t("bIntro")],
+          ["nextChapter", t("bNextChapter")],
+          ["continue", t("wContinue")],
+          ["polish", t("bPolish")],
+          ["conclusion", t("bConclusion")],
+        ]
+      : [
+          ["outline", t("wOutline")],
+          ["intro", t("wIntro")],
+          ["continue", t("wContinue")],
+          ["conclusion", t("wConclusion")],
+          ["improve", t("wImprove")],
+        ];
   return (
     <div className="flex flex-col gap-3 p-3 text-sm">
-      <p className="text-muted text-xs">{t("writeHint")}</p>
+      <p className="text-muted text-xs">{t(mode === "book" ? "bookHint" : "writeHint")}</p>
+      {mode === "book" && (
+        <Interview
+          busy={!!busy}
+          ask={async () => {
+            const chapter = currentChapter(editor);
+            const r = await streamAi(
+              "write",
+              {
+                resourceId,
+                action: "interviewQuestion",
+                mode,
+                doc: docText(editor),
+                instruction: chapter ? `The chapter being written now: "${chapter}".` : "",
+              },
+              () => {},
+            );
+            if (!r.ok) {
+              toast.error(te(r.code as "INTERNAL"));
+              return null;
+            }
+            return r.text;
+          }}
+          write={(question, answer) =>
+            void go("interviewWrite", t("interviewDraft"), "", { question, answer })
+          }
+        />
+      )}
       <div className="flex flex-wrap gap-1.5">
         {chips.map(([a, label]) => (
           <button
@@ -144,7 +226,7 @@ export function WriteTab({ editor, resourceId }: { editor: Editor; resourceId: s
           <div className="text-primary text-xs font-medium">{res.label}</div>
           <MdView text={res.text} />
           <div className={cn("flex flex-wrap gap-1", busy && "hidden")}>
-            {res.action === "improve" && res.sel ? (
+            {(res.action === "improve" || res.action === "polish") && res.sel ? (
               <SmallBtn onClick={replace} icon={<Check />}>
                 {t("replaceSelection")}
               </SmallBtn>

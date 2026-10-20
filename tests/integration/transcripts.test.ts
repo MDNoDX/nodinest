@@ -161,3 +161,29 @@ describe("messages to the admin", () => {
     expect(all.find((x) => x.title === "Idea")?.contact).toBe("@me");
   });
 });
+
+describe("own books (Kitob yozish)", () => {
+  it("start from a template, stay private and out of the Darsxona", async () => {
+    const b = await import("@/server/own-books");
+    const { listResources } = await import("@/server/catalog");
+    const { getWriteup } = await import("@/server/writeups");
+    const id = await b.createOwnBook(u, {
+      title: "Mening hayotim",
+      template: "memoir",
+      goalWords: 30000,
+    });
+    const mine = await b.listOwnBooks(u);
+    const book = mine.find((x) => x.id === id);
+    expect(book).toMatchObject({ template: "memoir", goalWords: 30000, words: 0 });
+    expect(book!.chapters).toBeGreaterThanOrEqual(6);
+    const w = await getWriteup(db, u, id);
+    expect(JSON.stringify(w?.doc)).toContain("Bolaligim");
+    expect((await listResources(db, u, { q: "Mening hayotim" })).items).toHaveLength(0);
+    expect(await b.listOwnBooks(other)).toHaveLength(0);
+    expect(await b.getOwnBook(other, id)).toBeNull();
+    await b.setOwnBookGoal(u, id, 50000);
+    expect((await b.getOwnBook(u, id))?.goalWords).toBe(50000);
+    await b.deleteOwnBook(u, id);
+    expect((await b.listOwnBooks(u)).map((x) => x.id)).not.toContain(id);
+  });
+});

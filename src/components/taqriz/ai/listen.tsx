@@ -9,9 +9,11 @@ import {
   RotateCcw,
   Square,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { uploadMedia } from "@/lib/upload-media";
 import { toast } from "sonner";
 import {
   deleteTranscriptAction,
@@ -54,17 +56,35 @@ const toB64 = (blob: Blob) =>
 /** Live writing while listening, or a full transcript prepared ahead of time. */
 export function ListenModes({
   startFull,
-  ...props
+  userId,
+  title,
+  media: given,
+  ...rest
 }: {
   editor: Editor;
   resourceId: string;
   media: DockSource | null;
   startFull?: boolean;
+  userId: string;
+  title: string;
 }) {
   const t = useTranslations("taqrizAi");
   const [mode, setMode] = useState<"live" | "full">(startFull ? "full" : "live");
+  // No video / audio on the resource (e.g. an own book): pick one here.
+  const [picked, setPicked] = useState<DockSource | null>(null);
+  const media = given ?? picked;
+  const props = { ...rest, media };
   return (
     <>
+      {!given && (
+        <SourcePicker
+          picked={picked}
+          onPick={setPicked}
+          resourceId={rest.resourceId}
+          userId={userId}
+          title={title}
+        />
+      )}
       <div className="border-border flex gap-1 border-b px-3 pt-3 pb-2">
         {(["live", "full"] as const).map((m) => (
           <button
@@ -604,6 +624,108 @@ function FullTranscript({
         })}
       </ul>
       <p className="text-muted text-[11px]">{t("fullNote")}</p>
+    </div>
+  );
+}
+
+/** YouTube link or an audio file to listen to and write down. */
+function SourcePicker({
+  picked,
+  onPick,
+  resourceId,
+  userId,
+  title,
+}: {
+  picked: DockSource | null;
+  onPick: (s: DockSource | null) => void;
+  resourceId: string;
+  userId: string;
+  title: string;
+}) {
+  const t = useTranslations("taqrizAi");
+  const te = useTranslations("errors");
+  const [url, setUrl] = useState("");
+  const [pct, setPct] = useState<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const ytId = (v: string) =>
+    /(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([\w-]{11})/.exec(v)?.[1] ??
+    (/^[\w-]{11}$/.test(v.trim()) ? v.trim() : null);
+
+  if (picked)
+    return (
+      <div className="border-border flex items-center gap-2 border-b px-3 py-2 text-xs">
+        <span className="text-muted min-w-0 flex-1 truncate">
+          {picked.kind === "youtube" ? `YouTube · ${picked.id}` : t("audioFile")}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          className="text-muted hover:text-foreground"
+        >
+          {t("changeSource")}
+        </button>
+      </div>
+    );
+  return (
+    <div className="border-border flex flex-col gap-2 border-b px-3 py-3">
+      <p className="text-muted text-xs">{t("pickSourceHint")}</p>
+      <form
+        className="flex gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const id = ytId(url);
+          if (!id) return toast.error(t("badYoutube"));
+          onPick({ kind: "youtube", id, title, resourceId });
+        }}
+      >
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder={t("youtubePlaceholder")}
+          className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-lg border px-2.5 text-sm"
+        />
+        <button
+          type="submit"
+          className="bg-primary text-primary-foreground rounded-lg px-3 text-xs font-medium"
+        >
+          OK
+        </button>
+      </form>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm"
+        className="hidden"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          setPct(0);
+          try {
+            const up = await uploadMedia(f, { userId, resourceId, onProgress: setPct });
+            onPick({
+              kind: "file",
+              src: `/api/files/${up.fileId}`,
+              video: false,
+              title,
+              resourceId,
+            });
+          } catch {
+            toast.error(te("INTERNAL"));
+          } finally {
+            setPct(null);
+          }
+        }}
+      />
+      <button
+        type="button"
+        disabled={pct != null}
+        onClick={() => fileRef.current?.click()}
+        className="border-border hover:bg-surface-2 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-60"
+      >
+        <Upload className="size-3.5" />
+        {pct != null ? t("uploading", { pct }) : t("uploadAudio")}
+      </button>
     </div>
   );
 }

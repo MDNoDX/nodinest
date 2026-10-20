@@ -10,10 +10,7 @@ import {
   RESOURCE_TYPES,
   httpUrl,
 } from "@/lib/validation";
-import {
-  findDuplicateResources,
-  searchPeople,
-} from "../../catalog";
+import { findDuplicateResources, searchPeople } from "../../catalog";
 import { ensureInLibrary, setLearningStatus, setRating } from "../../records";
 import { submitPerson, submitResource } from "../../suggestions";
 import {

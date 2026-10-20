@@ -106,7 +106,8 @@
     "adminOff": "Normal mode",
     "publishers": "Publishers & channels",
     "review": "Review",
-    "libraryTab": "My resources"
+    "libraryTab": "My resources",
+    "write": "Write a book"
   },
   "theme": {
     "label": "Theme",
@@ -1105,7 +1106,13 @@
     "findSideLabel": "Find in this taqriz",
     "findSidePlaceholder": "Word or phrase…",
     "findCount": "{n} of {total}",
-    "findNone": "Not found"
+    "findNone": "Not found",
+    "bookEyebrow": "My book",
+    "goal": "Goal",
+    "goalProgress": "{words} / {goal} words",
+    "chapters": "Chapters",
+    "askAiBook": "Write together with the AI",
+    "backToBooks": "My books"
   },
   "dates": {
     "kind": "Date kind",
@@ -1372,7 +1379,30 @@
     "usedMaterial": "Based on: {notes} notes/quotes · {rec}",
     "usedKonspekt": "video konspekt",
     "usedTranscript": "video transcript",
-    "usedNone": "no video text"
+    "usedNone": "no video text",
+    "bOutline": "Book plan",
+    "bIntro": "Preface",
+    "bNextChapter": "Next chapter",
+    "bPolish": "Polish the style",
+    "bConclusion": "Final chapter",
+    "bookHint": "The AI writes in your voice, only from facts you gave; unknown details become [ … ].",
+    "interview": "Interview",
+    "interviewHint": "Like a biographer, the AI asks one question. Answer by speaking or typing and it becomes book prose.",
+    "interviewStart": "Start the interview",
+    "interviewAnswer": "Your answer… (or speak with the microphone)",
+    "speak": "Speak",
+    "stopRecording": "Stop",
+    "hearing": "Turning it into text…",
+    "interviewWrite": "Turn into book prose",
+    "interviewNext": "Next question",
+    "interviewDraft": "From the interview",
+    "pickSourceHint": "To listen and write, paste a YouTube link or upload an audio file (for example a memory you recorded).",
+    "youtubePlaceholder": "YouTube link",
+    "badYoutube": "Not a YouTube link",
+    "uploadAudio": "Upload an audio file",
+    "uploading": "Uploading… {pct}%",
+    "audioFile": "Audio file",
+    "changeSource": "Change"
   },
   "review": {
     "title": "Review",
@@ -1494,6 +1524,63 @@
     "unlimited": "unlimited",
     "limitN": "{n} requests a day",
     "settingsTitle": "Settings",
-    "settingsBody": "Shortcuts, the player and appearance. You can replay this guide from here."
+    "settingsBody": "Shortcuts, the player and appearance. You can replay this guide from here.",
+    "writeTitle": "Write a book",
+    "writeBody": "Write your own book — your life or your family's story. The AI asks questions and turns what you say into book prose."
+  },
+  "write": {
+    "title": "Write a book",
+    "subtitle": "Write your own book — about your life, your family's history or what you know.",
+    "heroTitle": "Every life is a book worth reading",
+    "heroBody": "Your childhood, family, teachers, trials and lessons… Written down now, they become the most precious legacy for your children and grandchildren. Starting is easy: the AI asks you questions, you answer by speaking or typing — it shapes the text into book prose.",
+    "tipVoice": "Speak — your voice becomes text",
+    "tipInterview": "The AI asks like a biographer and opens memories",
+    "tipExport": "Export the finished book as PDF or Word",
+    "startMemoir": "Start writing about my life",
+    "newBook": "New book",
+    "myBooks": "My books",
+    "noBooks": "No books yet — pick a template above to start.",
+    "bookStats": "{words} words · {chapters} chapters",
+    "deleteConfirm": "Delete the book “{title}”?",
+    "delete": "Delete",
+    "createTitle": "New book",
+    "close": "Close",
+    "bookTitle": "Book title",
+    "bookSubtitle": "Short description or who it is for",
+    "goal": "Goal (words)",
+    "cancel": "Cancel",
+    "create": "Create and start writing",
+    "tpl": {
+      "memoir": {
+        "name": "My life (memoir)",
+        "title": "My life",
+        "desc": "Childhood, family, school, work, trials and lessons — with guiding questions in every chapter."
+      },
+      "family": {
+        "name": "Family history",
+        "title": "Our family's story",
+        "desc": "Ancestors, grandparents, traditions and a legacy for the next generations."
+      },
+      "knowledge": {
+        "name": "Book of knowledge",
+        "title": "What I know",
+        "desc": "A guide to your field: ideas, practice, mistakes, conclusions."
+      },
+      "stories": {
+        "name": "Collection of stories",
+        "title": "Stories",
+        "desc": "Short stories or tales — each in its own chapter."
+      },
+      "travel": {
+        "name": "Travel journal",
+        "title": "Travel notebook",
+        "desc": "The road, impressions, people and lessons of a journey."
+      },
+      "blank": {
+        "name": "Blank book",
+        "title": "My book",
+        "desc": "No template — start your own way."
+      }
+    }
   }
 }

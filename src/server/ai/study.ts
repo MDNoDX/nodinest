@@ -276,8 +276,25 @@ export async function transcribeSegment(ctx: AppContext, raw: unknown) {
 
 export const writeInput = z.object({
   resourceId: z.string().uuid(),
-  action: z.enum(["outline", "intro", "continue", "conclusion", "improve", "custom"]),
+  action: z.enum([
+    "outline",
+    "intro",
+    "continue",
+    "conclusion",
+    "improve",
+    "custom",
+    // Own books ("Kitob yozish"):
+    "nextChapter",
+    "polish",
+    "interviewQuestion",
+    "interviewWrite",
+  ]),
+  /** "book" = the user's own book (memoir, family history…), not a review. */
+  mode: z.enum(["taqriz", "book"]).default("taqriz"),
   instruction: z.string().trim().max(2000).default(""),
+  /** Interview: the question asked and the author's spoken / typed answer. */
+  question: z.string().trim().max(1000).default(""),
+  answer: z.string().trim().max(12_000).default(""),
   /** The taqriz so far (plain text, Markdown headings). */
   doc: z.string().max(20_000).default(""),
   selection: z.string().max(4000).default(""),
@@ -329,21 +346,49 @@ export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepa
     )
     .join("\n")
     .slice(0, 12_000);
-  const task = {
-    outline:
-      "Propose an outline for this taqriz: 4–7 chapter headings ('## ') each with 1–2 bullets of what to write there, based on the material.",
-    intro:
-      "Write an introduction (1–2 paragraphs): what the work is, who made it, why it matters and what this taqriz will discuss.",
-    continue:
-      "Continue the taqriz from where it ends (1–3 paragraphs), in the same voice and structure, developing the next point.",
-    conclusion:
-      "Write a conclusion (1–2 paragraphs): the main takeaways and the author's personal assessment, consistent with the text so far.",
-    improve:
-      "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
-    custom: a.instruction || "Help with the taqriz.",
-  }[a.action];
+  const book = a.mode === "book";
+  const task = book
+    ? {
+        outline:
+          "Propose a plan for this book: 6–12 chapter headings ('## ') in a natural order, each with one line on what it will tell, based on the title, the description and what is written.",
+        intro:
+          "Write the opening of the book (a preface of 2–3 paragraphs): why the author writes it and for whom, in their warm personal voice.",
+        continue:
+          "Continue the book from where the text ends (2–4 paragraphs), in the same voice, tense and style.",
+        conclusion:
+          "Write a closing chapter / afterword (2–3 paragraphs) that gathers the book's thread and the author's message.",
+        nextChapter:
+          "Suggest the next chapter: its heading ('## ') and a first draft of 3–5 paragraphs that follows naturally from the book so far. Where facts about the author's life are needed and unknown, write [ … ] placeholders instead of inventing them.",
+        polish:
+          "Rewrite the SELECTED passage as good book prose: vivid, clear, grammatically correct, in the author's own voice; keep every fact and meaning, add nothing invented. Output only the new passage.",
+        improve:
+          "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
+        interviewQuestion: `You are a gentle, curious biographer interviewing the author for this book. Ask ONE warm, specific question that brings out a concrete memory, scene, person or feeling for the chapter being written (${a.instruction || "the first chapter that is still empty"}); build on what is already told there and never repeat what is answered. Lines in the book that are questions are only guiding prompts, not the author's answers. Output only the question.`,
+        interviewWrite: `Turn the author's ANSWER into book prose for the current chapter: first person, their own words and voice kept, ordered and readable, with natural paragraphs; keep every fact, add no invented facts, names or dates. The QUESTION is only context: do not repeat or paraphrase it, add no heading — output only the paragraphs that go into the chapter.\nQUESTION: ${a.question}\nANSWER: ${a.answer}`,
+        custom: a.instruction || "Help write the book.",
+      }[a.action]
+    : {
+        outline:
+          "Propose an outline for this taqriz: 4–7 chapter headings ('## ') each with 1–2 bullets of what to write there, based on the material.",
+        intro:
+          "Write an introduction (1–2 paragraphs): what the work is, who made it, why it matters and what this taqriz will discuss.",
+        continue:
+          "Continue the taqriz from where it ends (1–3 paragraphs), in the same voice and structure, developing the next point.",
+        conclusion:
+          "Write a conclusion (1–2 paragraphs): the main takeaways and the author's personal assessment, consistent with the text so far.",
+        improve:
+          "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
+        custom: a.instruction || "Help with the taqriz.",
+        nextChapter: "Continue the taqriz with its next chapter.",
+        polish:
+          "Rewrite the SELECTED passage so it reads better without changing its meaning. Output only the new passage.",
+        interviewQuestion: "Ask one question that helps the user think about the work.",
+        interviewWrite: `Turn this answer into a taqriz paragraph: ${a.answer}`,
+      }[a.action];
   const system = [
-    "You help the user write their own taqriz (a review / study essay) about a work. Write in their voice, first person where natural, as part of their essay — not as an assistant talking to them.",
+    book
+      ? "You help the user write THEIR OWN BOOK (often a memoir, a family history or a book of what they know). Write as the author, in their voice and language, as part of the book itself — never as an assistant talking to them. Their life facts come only from what they wrote or said: never invent events, people, places or dates; use [ … ] where a fact is missing."
+      : "You help the user write their own taqriz (a review / study essay) about a work. Write in their voice, first person where natural, as part of their essay — not as an assistant talking to them.",
     "Base everything on the MATERIAL: the work's facts, the user's notes and quotes, the transcript or konspekt of the recording and their text so far. Quote only from the quotes / transcript given, exactly, in «…». General knowledge is fine for well-known context, but never invent quotes, page numbers, dates or facts; leave out what you are not sure of.",
     "Format: Markdown — '## ' for chapter headings only when the task asks for structure, short paragraphs, '- ' bullets when useful, **bold** sparingly. No preamble, no comments about the task.",
     langRule(a.locale),
@@ -354,7 +399,9 @@ export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepa
     tr[0]
       ? `${tr[0].mode === "notes" ? "KONSPEKT" : "TRANSCRIPT"} OF THE RECORDING\n${tr[0].text.slice(0, 30_000)}`
       : "",
-    a.doc ? `MY TAQRIZ SO FAR\n${a.doc.slice(-15_000)}` : "MY TAQRIZ SO FAR\n(empty)",
+    a.doc
+      ? `${book ? "MY BOOK SO FAR" : "MY TAQRIZ SO FAR"}\n${a.doc.slice(-15_000)}`
+      : `${book ? "MY BOOK SO FAR" : "MY TAQRIZ SO FAR"}\n(empty)`,
     a.selection ? `SELECTED\n${a.selection}` : "",
   ]
     .filter(Boolean)
@@ -369,4 +416,35 @@ export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepa
     timeoutMs: 80_000,
     meta: { used: { notes: notes.length, transcript: tr[0]?.mode ?? null } },
   };
+}
+
+// ── Dictation: a short spoken answer → text ───────────────────────────────
+
+export const clipInput = z.object({
+  mime: z.string().regex(/^audio\/(webm|ogg|mp4|mpeg|wav)(;.*)?$/),
+  // ≈ 4 minutes of speech at 48 kbit/s; server actions accept 2 MB.
+  data: z.string().max(1_900_000),
+  locale: z.enum(["uz", "en"]).default("uz"),
+});
+
+/** Writes down what the user said (interview answers, dictation). */
+export async function transcribeClip(ctx: AppContext, raw: unknown) {
+  const a = clipInput.parse(raw);
+  await gate(ctx, "listen");
+  const res = await generate(
+    [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { mimeType: a.mime.split(";")[0], data: a.data } },
+          {
+            text: "Write down exactly what is said, in the language spoken (Uzbek: standard modern Latin orthography — o‘, g‘, sh, ch, ʼ). Fix only punctuation and obvious slips; drop filler sounds. Output only the text.",
+          },
+        ],
+      },
+    ],
+    { temperature: 0, thinkingConfig: { thinkingBudget: 512 } },
+    { timeoutMs: 60_000 },
+  );
+  return { text: (res.text ?? "").trim() };
 }

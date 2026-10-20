@@ -125,6 +125,25 @@ function Tool({
  * line / selected sentence into a chapter — chapters build the outline on the
  * left. Autosaves; works offline (draft kept on the device, synced later).
  */
+/**
+ * The author's own text: a book template's guiding prompts (paragraphs that
+ * are entirely italic) are not counted towards words or goals.
+ */
+function authorText(doc: PMNode) {
+  const parts: string[] = [];
+  doc.forEach((n) => {
+    if (n.type.name === "paragraph" && n.childCount > 0) {
+      let allItalic = true;
+      n.forEach((c) => {
+        if (!c.marks.some((m) => m.type.name === "italic")) allItalic = false;
+      });
+      if (allItalic) return;
+    }
+    parts.push(n.textContent);
+  });
+  return parts.join(" ");
+}
+
 const OUTLINE_KEY = "nn:taqriz-outline";
 function readOutline() {
   try {
@@ -151,7 +170,12 @@ export function TaqrizEditor({
   initialAi,
   initialFull,
   resume,
+  mode = "taqriz",
+  goalWords,
 }: {
+  /** "book" = the user's own book ("Kitob yozish"). */
+  mode?: "taqriz" | "book";
+  goalWords?: number | null;
   /** Where the user stopped last time (account-wide). */
   resume?: {
     docPos: number | null;
@@ -181,6 +205,8 @@ export function TaqrizEditor({
   const pickFile = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const rec = useRecorder();
+  const book = mode === "book";
+  const backHref = book ? "/write" : `/library/${resource.id}`;
   const keyActions = useRef<{
     quote: () => void;
     chapter: (l: 2 | 3) => void;
@@ -497,7 +523,11 @@ export function TaqrizEditor({
       e
         ? {
             chapters: chaptersOf(e),
-            words: countWords(e.state.doc.textBetween(0, e.state.doc.content.size, " ")),
+            words: countWords(
+              book
+                ? authorText(e.state.doc)
+                : e.state.doc.textBetween(0, e.state.doc.content.size, " "),
+            ),
             h2: e.isActive("heading", { level: 2 }),
             h3: e.isActive("heading", { level: 3 }),
             bold: e.isActive("bold"),
@@ -823,7 +853,7 @@ export function TaqrizEditor({
             <Search className="size-4" />
           </button>
           <Link
-            href={`/library/${resource.id}`}
+            href={backHref}
             className="text-muted hover:text-foreground hover:bg-surface-2 grid size-8 place-items-center rounded-md"
             aria-label={t("back")}
             title={t("back")}
@@ -856,10 +886,10 @@ export function TaqrizEditor({
           />
           <div className="min-w-0">
             <Link
-              href={`/library/${resource.id}`}
+              href={backHref}
               className="text-muted hover:text-foreground inline-flex items-center gap-1 text-xs"
             >
-              <ArrowLeft className="size-3" /> {t("back")}
+              <ArrowLeft className="size-3" /> {book ? t("backToBooks") : t("back")}
             </Link>
             <div className="line-clamp-2 text-sm leading-snug font-semibold">{resource.title}</div>
             {resource.authors && (
@@ -942,8 +972,27 @@ export function TaqrizEditor({
             </div>
           )}
         </div>
+        {book && goalWords ? (
+          <div className="px-4 pb-3">
+            <div className="text-muted mb-1 flex justify-between text-[11px] font-semibold tracking-wide uppercase">
+              <span>{t("goal")}</span>
+              <span className="tabular-nums">
+                {Math.min(100, Math.round(((info?.words ?? 0) / goalWords) * 100))}%
+              </span>
+            </div>
+            <div className="bg-surface-2 h-1.5 overflow-hidden rounded-full">
+              <div
+                className="bg-primary h-full rounded-full transition-[width]"
+                style={{ width: `${Math.min(100, ((info?.words ?? 0) / goalWords) * 100)}%` }}
+              />
+            </div>
+            <div className="text-muted mt-1 text-xs tabular-nums">
+              {t("goalProgress", { words: info?.words ?? 0, goal: goalWords })}
+            </div>
+          </div>
+        ) : null}
         <div className="text-muted px-4 pb-2 text-[11px] font-semibold tracking-wide uppercase">
-          {t("contents")}
+          {book ? t("chapters") : t("contents")}
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-4">{outline}</div>
       </aside>
@@ -953,7 +1002,7 @@ export function TaqrizEditor({
         <div className="border-border bg-background/90 sticky top-14 z-20 border-b backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center gap-0.5 overflow-x-auto px-3 py-1.5 sm:px-6 xl:max-w-4xl">
             <Link
-              href={`/library/${resource.id}`}
+              href={backHref}
               className="text-muted hover:text-foreground mr-1 grid size-8 shrink-0 place-items-center rounded-md lg:hidden"
               aria-label={t("back")}
             >
@@ -1239,7 +1288,7 @@ export function TaqrizEditor({
 
         <div className="mx-auto max-w-3xl px-4 pt-8 pb-32 sm:px-10 xl:max-w-4xl">
           <p className="text-muted mb-1 text-xs font-semibold tracking-wide uppercase">
-            {t("title")}
+            {book ? t("bookEyebrow") : t("title")}
           </p>
           <h1 className="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">{resource.title}</h1>
           {editor && (
@@ -1307,7 +1356,7 @@ export function TaqrizEditor({
             onClick={() => openAi("write")}
             className="text-muted hover:text-primary mt-10 inline-flex items-center gap-1.5 text-xs"
           >
-            <Sparkles className="size-3.5" /> {t("askAi")}
+            <Sparkles className="size-3.5" /> {book ? t("askAiBook") : t("askAi")}
           </button>
         </div>
       </section>
@@ -1330,6 +1379,9 @@ export function TaqrizEditor({
             setTab={(tab) => setAi((a) => ({ ...a, tab }))}
             ask={askReq}
             startFull={initialFull}
+            mode={book ? "book" : "taqriz"}
+            userId={userId}
+            title={resource.title}
             onClose={() => setAi((a) => ({ ...a, open: false }))}
           />
         </aside>

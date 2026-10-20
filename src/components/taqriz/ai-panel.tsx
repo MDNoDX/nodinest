@@ -27,8 +27,14 @@ export function AiPanel({
   ask,
   onClose,
   startFull,
+  mode = "taqriz",
+  userId,
+  title,
 }: {
+  userId: string;
+  title: string;
   startFull?: boolean;
+  mode?: "taqriz" | "book";
   editor: Editor;
   resourceId: string;
   media: DockSource | null;
@@ -79,13 +85,20 @@ export function AiPanel({
       </div>
       {/* All stay mounted: switching tabs never stops listening or loses a draft. */}
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "write" && "hidden")}>
-        <WriteTab editor={editor} resourceId={resourceId} />
+        <WriteTab editor={editor} resourceId={resourceId} mode={mode} />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "ask" && "hidden")}>
         <AskTab key={ask?.n ?? 0} editor={editor} resourceId={resourceId} ask={ask} />
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", tab !== "listen" && "hidden")}>
-        <ListenModes editor={editor} resourceId={resourceId} media={media} startFull={startFull} />
+        <ListenModes
+          editor={editor}
+          resourceId={resourceId}
+          media={media}
+          startFull={startFull}
+          userId={userId}
+          title={title}
+        />
       </div>
     </div>
   );

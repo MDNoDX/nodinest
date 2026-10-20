@@ -106,7 +106,8 @@
     "adminOff": "Oddiy rejim",
     "publishers": "Nashriyot va kanallar",
     "review": "Takrorlash",
-    "libraryTab": "Manbalarim"
+    "libraryTab": "Manbalarim",
+    "write": "Kitob yozish"
   },
   "theme": {
     "label": "Mavzu",
@@ -1105,7 +1106,13 @@
     "findSideLabel": "Taqrizdan qidirish",
     "findSidePlaceholder": "So‘z yoki ibora…",
     "findCount": "{n} / {total} topildi",
-    "findNone": "Topilmadi"
+    "findNone": "Topilmadi",
+    "bookEyebrow": "Kitobim",
+    "goal": "Maqsad",
+    "goalProgress": "{words} / {goal} so‘z",
+    "chapters": "Boblar",
+    "askAiBook": "AI bilan birga yozish",
+    "backToBooks": "Kitoblarimga"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1372,7 +1379,30 @@
     "usedMaterial": "Asos: {notes} ta qayd/iqtibos · {rec}",
     "usedKonspekt": "video konspekti",
     "usedTranscript": "videoning to‘liq matni",
-    "usedNone": "video matni yo‘q"
+    "usedNone": "video matni yo‘q",
+    "bOutline": "Kitob rejasi",
+    "bIntro": "So‘zboshi",
+    "bNextChapter": "Keyingi bob",
+    "bPolish": "Uslubni silliqlash",
+    "bConclusion": "Yakuniy bob",
+    "bookHint": "AI sizning ovozingizda, faqat siz aytgan faktlar asosida yozadi; noma’lum joylarga [ … ] qo‘yadi.",
+    "interview": "Intervyu",
+    "interviewHint": "AI biograf kabi bitta savol beradi. Siz gapirib yoki yozib javob berasiz, javobingiz kitob matniga aylanadi.",
+    "interviewStart": "Savol berishni boshlash",
+    "interviewAnswer": "Javobingiz… (yoki mikrofon bilan gapiring)",
+    "speak": "Gapirish",
+    "stopRecording": "To‘xtatish",
+    "hearing": "Matnga aylantirilmoqda…",
+    "interviewWrite": "Kitob matniga aylantirish",
+    "interviewNext": "Keyingi savol",
+    "interviewDraft": "Intervyudan",
+    "pickSourceHint": "Tinglab yozish uchun YouTube havolasini qo‘ying yoki audio fayl yuklang (masalan, o‘zingiz yozib olgan xotira).",
+    "youtubePlaceholder": "YouTube havolasi",
+    "badYoutube": "Bu YouTube havolasi emas",
+    "uploadAudio": "Audio fayl yuklash",
+    "uploading": "Yuklanmoqda… {pct}%",
+    "audioFile": "Audio fayl",
+    "changeSource": "Almashtirish"
   },
   "review": {
     "title": "Takrorlash",
@@ -1494,6 +1524,63 @@
     "unlimited": "cheklanmagan",
     "limitN": "kuniga {n} ta so‘rov",
     "settingsTitle": "Sozlamalar",
-    "settingsBody": "Klaviatura tugmalari, pleer va ko‘rinish. Bu qo‘llanmani shu yerdan qayta ko‘rishingiz mumkin."
+    "settingsBody": "Klaviatura tugmalari, pleer va ko‘rinish. Bu qo‘llanmani shu yerdan qayta ko‘rishingiz mumkin.",
+    "writeTitle": "Kitob yozish",
+    "writeBody": "O‘z kitobingizni yozing — masalan, hayotingiz yoki oilangiz tarixi haqida. AI savol berib, gapirganlaringizni kitob matniga aylantiradi."
+  },
+  "write": {
+    "title": "Kitob yozish",
+    "subtitle": "O‘z kitobingizni yozing — hayotingiz, oilangiz tarixi yoki bilganlaringiz haqida.",
+    "heroTitle": "Har bir insonning hayoti — o‘qishga arziydigan kitob",
+    "heroBody": "Bolaligingiz, oilangiz, ustozlaringiz, sinovlar va saboqlar… Bularni hozir yozib qo‘ysangiz, farzand va nevaralaringiz uchun eng qimmatli meros bo‘ladi. Boshlash oson: AI sizga savol beradi, siz gapirib yoki yozib javob berasiz — u matnni kitob uslubida tartiblab beradi.",
+    "tipVoice": "Gapiring — ovozingiz matnga aylanadi",
+    "tipInterview": "AI biograf kabi savol berib, xotiralarni ochadi",
+    "tipExport": "Tayyor kitobni PDF yoki Word qilib chiqaring",
+    "startMemoir": "Hayotim haqida yozishni boshlash",
+    "newBook": "Yangi kitob",
+    "myBooks": "Kitoblarim",
+    "noBooks": "Hali kitob yo‘q — yuqoridan shablon tanlab boshlang.",
+    "bookStats": "{words} so‘z · {chapters} bob",
+    "deleteConfirm": "«{title}» kitobi o‘chirilsinmi?",
+    "delete": "O‘chirish",
+    "createTitle": "Yangi kitob",
+    "close": "Yopish",
+    "bookTitle": "Kitob nomi",
+    "bookSubtitle": "Qisqacha mazmuni yoki kim uchun",
+    "goal": "Maqsad (so‘z soni)",
+    "cancel": "Bekor qilish",
+    "create": "Yaratish va yozishni boshlash",
+    "tpl": {
+      "memoir": {
+        "name": "Hayotim (xotiralar)",
+        "title": "Mening hayotim",
+        "desc": "Bolalik, oila, o‘qish, ish, sinovlar va saboqlar — har bobda yo‘naltiruvchi savollar bilan."
+      },
+      "family": {
+        "name": "Oila tarixi",
+        "title": "Oilamiz tarixi",
+        "desc": "Ajdodlar, bobo-buvilar, an’analar va avlodlarga meros."
+      },
+      "knowledge": {
+        "name": "Bilim kitobi",
+        "title": "Bilganlarim",
+        "desc": "O‘z sohangiz bo‘yicha qo‘llanma: tushunchalar, amaliyot, xatolar, xulosa."
+      },
+      "stories": {
+        "name": "Hikoyalar to‘plami",
+        "title": "Hikoyalar",
+        "desc": "Qisqa hikoyalar yoki ertaklar — har biri alohida bob."
+      },
+      "travel": {
+        "name": "Sayohat kundaligi",
+        "title": "Safar daftari",
+        "desc": "Yo‘l, taassurotlar, odamlar va safar saboqlari."
+      },
+      "blank": {
+        "name": "Bo‘sh kitob",
+        "title": "Mening kitobim",
+        "desc": "Hech qanday shablonsiz — o‘zingiz boshlaysiz."
+      }
+    }
   }
 }
