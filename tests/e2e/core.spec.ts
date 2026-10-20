@@ -15,7 +15,7 @@ test("sign up, Uzbek by default, switch to English, theme persists", async ({ pa
   await expect(
     page
       .getByRole("navigation", { name: "Asosiy navigatsiya" })
-      .getByRole("link", { name: "Kutubxona" }),
+      .getByRole("link", { name: "Darsxona" }),
   ).toBeVisible();
   await page.goto("/settings");
   await page.getByRole("radio", { name: "English" }).click();
@@ -36,7 +36,8 @@ test("catalog: person + resource with author autocomplete, quote, search", async
 
   await page.goto("/people/new");
   await page.getByLabel("To‘liq ism").fill("Alisher Navoiy");
-  await page.getByLabel(/Tug‘ilgan sana/).fill("1441-02-09");
+  // Dates are year + optional month / day pickers.
+  await page.getByRole("textbox", { name: "Yil" }).first().fill("1441");
   await page.getByRole("button", { name: "Saqlash" }).click();
   await expect(page.getByRole("heading", { name: "Alisher Navoiy" })).toBeVisible();
 
@@ -51,7 +52,7 @@ test("catalog: person + resource with author autocomplete, quote, search", async
   await expect(page.getByRole("heading", { name: "Xamsa", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Alisher Navoiy" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Iqtibos qo‘shish" }).click();
+  await page.getByRole("link", { name: "Iqtibos qo‘shish" }).first().click();
   await page.getByLabel("Aynan iqtibos").fill("Ilm — nur, jaholat — zulmat.");
   await page.getByRole("button", { name: "Saqlash" }).click();
   await expect(page.getByText("“Ilm — nur, jaholat — zulmat.”")).toBeVisible();
@@ -62,17 +63,38 @@ test("catalog: person + resource with author autocomplete, quote, search", async
   await expect(page.getByRole("link", { name: /Xamsa/ }).first()).toBeVisible();
 });
 
-test("study timer: start, pause, resume, finish", async ({ page }) => {
+test("taqriz: write and find inside it from the side panel", async ({ page }) => {
   await signIn(page, DEV_USER);
-  await page.goto("/journal");
-  await page.getByRole("button", { name: "Boshlash" }).click();
-  await expect(page.getByRole("timer")).toBeVisible();
-  await page.getByRole("button", { name: "To‘xtatish" }).first().click();
-  await expect(page.getByRole("button", { name: "Davom ettirish" }).first()).toBeVisible();
-  await page.getByRole("button", { name: "Davom ettirish" }).first().click();
-  await page.getByRole("button", { name: "Yakunlash" }).last().click();
-  await expect(page.getByText(/Sessiya yakunlandi/)).toBeVisible();
-  await expect(page.getByText("Faol sessiya yo‘q.")).toBeVisible();
+  await page.goto("/library?scope=all&q=Xamsa");
+  await page.getByRole("link", { name: /Xamsa/ }).first().click();
+  await page.getByRole("link", { name: "Taqriz" }).first().click();
+  const doc = page.locator("main .ProseMirror");
+  await doc.click();
+  await page.keyboard.type("Ilm nur. Ilm yo‘l ko‘rsatadi.");
+  await page.getByLabel("Taqrizdan qidirish", { exact: true }).fill("ilm");
+  await expect(page.getByText("1 / 2 topildi")).toBeVisible();
+  await expect(page.locator(".nn-find")).toHaveCount(2);
+});
+
+test("Darsxona tabs and publishers & channels explain themselves", async ({ page }) => {
+  await signIn(page, DEV_USER);
+  await page.goto("/library");
+  await page.getByRole("link", { name: "Nashriyot va kanallar" }).click();
+  await expect(page).toHaveURL(/\/publishers/);
+  await expect(page.getByText(/YouTube kanallari/)).toBeVisible();
+  await page.getByRole("link", { name: "Shaxslar" }).click();
+  await expect(page).toHaveURL(/\/people/);
+});
+
+test("takliflar: a message goes to the admin and shows as sent", async ({ page }) => {
+  await signIn(page, DEV_USER);
+  await page.goto("/suggestions");
+  await expect(page.getByRole("link", { name: /t\.me\/mdnodx/ })).toBeVisible();
+  await page.getByLabel("Sarlavha").fill("Test taklif");
+  await page.getByLabel("Matn").fill("Video uchun yangi imkoniyat");
+  await page.getByRole("button", { name: "Yuborish" }).click();
+  await expect(page.getByText("Yuborildi — rahmat!")).toBeVisible();
+  await expect(page.getByText("Test taklif")).toBeVisible();
 });
 
 test("privacy: another user cannot open a private note by URL", async ({ page, browser }) => {

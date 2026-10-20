@@ -163,3 +163,66 @@ export async function uploadToGemini(bytes: Uint8Array, mimeType: string): Promi
   if (f.state === "FAILED" || !f.uri) throw new AppError("AI_UNAVAILABLE", "upload_failed");
   return f.uri;
 }
+
+/**
+ * Streaming variant of `generate`: yields text as the model writes it. Models
+ * are tried in order until one starts answering (quota / overload → next).
+ */
+export async function* generateStream(
+  contents: Content[],
+  config: GenerateContentConfig,
+  opts: { timeoutMs?: number } = {},
+): AsyncGenerator<string> {
+  const timeoutMs = opts.timeoutMs ?? 90_000;
+  let sawQuota = false;
+  const now = Date.now();
+  const models = aiModels();
+  const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
+  // Each model gets a second try after a short pause when it is overloaded (503).
+  const attempts = (ready.length ? ready : models).flatMap((m) => [m, m]);
+  for (let n = 0; n < attempts.length; n++) {
+    const model = attempts[n];
+    if (n % 2 === 1) await sleep(1200);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let started = false;
+    try {
+      const stream = await gemini().models.generateContentStream({
+        model,
+        contents,
+        config: {
+          ...config,
+          abortSignal: controller.signal,
+          httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
+        },
+      });
+      for await (const chunk of stream) {
+        const text = chunk.text;
+        if (text) {
+          started = true;
+          yield text;
+        }
+      }
+      if (started) return;
+    } catch (err) {
+      if (started) throw err; // mid-answer: nothing sensible to retry
+      if (err instanceof ApiError && err.status === 429) {
+        sawQuota = true;
+        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+        continue;
+      }
+      if (
+        err instanceof ApiError &&
+        (err.status === 400 || err.status === 401 || err.status === 403)
+      )
+        throw new AppError("AI_UNAVAILABLE", `status_${err.status}`);
+      console.error(
+        "[nodinest] gemini stream failed:",
+        err instanceof Error ? err.message.slice(0, 200) : "unknown",
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw new AppError(sawQuota ? "AI_QUOTA" : "AI_UNAVAILABLE", sawQuota ? undefined : "upstream");
+}

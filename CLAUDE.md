@@ -35,7 +35,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   directly when `canEditCatalog` (admin mode or creator), otherwise they become suggestions.
   RLS mirrors this (drizzle/0007). Approval re-validates + re-checks duplicates and audits.
 - All writes validate with zod schemas in `src/lib/validation.ts` (shared by forms, AI, approval).
-- AI tools live in the `TOOLS` registry in `server/ai/tools.ts`. Read tools run at once; EVERY
+- AI tools live in the `TOOLS` registry in `server/ai/tools.ts` (split by area under
+  `server/ai/tools/`: read, catalog, personal, destructive + helpers). Read tools run at once; EVERY
   write tool is `mode: "confirm"`: it becomes an `ai_actions` proposal card (optional `preview`,
   e.g. duplicates for add_resource) and runs only after the user confirms in the chat (single or
   "confirm all", in creation order). Cards may pass only whitelisted choices (`useExistingId`,
@@ -68,6 +69,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Study cards (`server/study-cards.ts`, table `study_cards`, page `/review`, AI tools
   make_study_cards / improve_study_cards / list_study_decks): questions from the user's notes,
   quotes, transcripts, taqriz and book text; SM-2 scheduling in `lib/srs.ts` (pure, shared).
+- Publishers & channels: `publishers.kind` (publisher | channel | podcast | website |
+  organization); a media item's `channel` text auto-links via `media_details.publisher_id`.
+- Messages to the admin: `server/feedback.ts` (table `feedback`), Takliflar → "Adminga yozish";
+  the superadmin account sees the inbox even outside admin mode.
+- First-visit guide: `components/onboarding/tour.tsx` (targets `data-tour="…"`; key
+  `nodinest-tour-v1`, replay from Settings). E2E marks it seen in `tests/e2e/helpers.ts`.
+- Taqriz AI panel answers stream from `POST /api/ai/stream` (`generateStream` in gemini.ts).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

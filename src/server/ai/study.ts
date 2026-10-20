@@ -9,7 +9,12 @@
  * Both are owner-scoped, rate limited and never invent facts or quotes.
  */
 import "server-only";
-import { MediaResolution, type Part } from "@google/genai";
+import {
+  MediaResolution,
+  type Content,
+  type GenerateContentConfig,
+  type Part,
+} from "@google/genai";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
@@ -92,7 +97,23 @@ export const askInput = z.object({
   locale: z.enum(["uz", "en"]).default("uz"),
 });
 
+/** Everything a request needs (also used by the streaming route). */
+export type Prepared = {
+  contents: Content[];
+  config: GenerateContentConfig;
+  timeoutMs: number;
+  meta: Record<string, unknown>;
+};
+
 export async function askAboutSelection(ctx: AppContext, raw: unknown) {
+  const p = await prepareAsk(ctx, raw);
+  const res = await generate(p.contents, p.config, { timeoutMs: p.timeoutMs });
+  const answer = (res.text ?? "").trim();
+  if (!answer) throw new AppError("AI_UNAVAILABLE", "empty");
+  return { answer, ...(p.meta as { pages: { page: number; snippet: string }[] }) };
+}
+
+export async function prepareAsk(ctx: AppContext, raw: unknown): Promise<Prepared> {
   const a = askInput.parse(raw);
   await gate(ctx, "ask");
   const facts = await resourceFacts(ctx, a.resourceId);
@@ -130,14 +151,16 @@ export async function askAboutSelection(ctx: AppContext, raw: unknown) {
       parts: [{ text: a.question || "Explain the selected text." }],
     },
   ];
-  const res = await generate(
+  return {
     contents,
-    { systemInstruction: system, temperature: 0.3, thinkingConfig: { thinkingBudget: 1024 } },
-    { timeoutMs: 50_000 },
-  );
-  const answer = (res.text ?? "").trim();
-  if (!answer) throw new AppError("AI_UNAVAILABLE", "empty");
-  return { answer, pages: pages.map((p) => ({ page: p.page, snippet: p.snippet })) };
+    config: {
+      systemInstruction: system,
+      temperature: 0.3,
+      thinkingConfig: { thinkingBudget: 1024 },
+    },
+    timeoutMs: 50_000,
+    meta: { pages: pages.map((p) => ({ page: p.page, snippet: p.snippet })) },
+  };
 }
 
 // ── Listen and write ──────────────────────────────────────────────────────
@@ -268,6 +291,14 @@ export const writeInput = z.object({
  * decides whether it goes in.
  */
 export async function writeHelp(ctx: AppContext, raw: unknown) {
+  const p = await prepareWrite(ctx, raw);
+  const res = await generate(p.contents, p.config, { timeoutMs: p.timeoutMs });
+  const text = (res.text ?? "").trim();
+  if (!text) throw new AppError("AI_UNAVAILABLE", "empty");
+  return { text, used: p.meta.used as { notes: number; transcript: string | null } };
+}
+
+export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepared> {
   const a = writeInput.parse(raw);
   await gate(ctx, "ask");
   const facts = await resourceFacts(ctx, a.resourceId);
@@ -328,12 +359,14 @@ export async function writeHelp(ctx: AppContext, raw: unknown) {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const res = await generate(
-    [{ role: "user", parts: [{ text: material }, { text: `TASK\n${task}` }] }],
-    { systemInstruction: system, temperature: 0.6, thinkingConfig: { thinkingBudget: 2048 } },
-    { timeoutMs: 80_000 },
-  );
-  const text = (res.text ?? "").trim();
-  if (!text) throw new AppError("AI_UNAVAILABLE", "empty");
-  return { text, used: { notes: notes.length, transcript: tr[0]?.mode ?? null } };
+  return {
+    contents: [{ role: "user", parts: [{ text: material }, { text: `TASK\n${task}` }] }],
+    config: {
+      systemInstruction: system,
+      temperature: 0.6,
+      thinkingConfig: { thinkingBudget: 2048 },
+    },
+    timeoutMs: 80_000,
+    meta: { used: { notes: notes.length, transcript: tr[0]?.mode ?? null } },
+  };
 }
