@@ -104,7 +104,8 @@
     "adminMode": "Admin rejimi",
     "adminOn": "Admin rejimi yoqilgan",
     "adminOff": "Oddiy rejim",
-    "publishers": "Nashriyotlar"
+    "publishers": "Nashriyotlar",
+    "review": "Takrorlash"
   },
   "theme": {
     "label": "Mavzu",
@@ -424,7 +425,8 @@
     "allNotes": "Barcha {count} ta qaydni ochish",
     "deleteConfirm": "Bu yozuv kutubxonangizdan va katalogdan o‘chirilsinmi? Qaydlaringiz saqlanib qoladi.",
     "deleted": "O‘chirildi",
-    "liveWrite": "Tinglab yozish"
+    "liveWrite": "Tinglab yozish",
+    "makeQuestions": "Savollar tuzish"
   },
   "record": {
     "status": "Holati",
@@ -750,7 +752,9 @@
       "delete_collection": "To‘plamni o‘chirish",
       "archive_resource": "Manbani arxivlash",
       "merge_resources": "Dublikatlarni birlashtirish",
-      "delete_resource": "Yozuvni o‘chirish"
+      "delete_resource": "Yozuvni o‘chirish",
+      "make_study_cards": "Savollar tuzish (yodlash uchun)",
+      "improve_study_cards": "Savollarni yaxshilash"
     },
     "fields": {
       "title": "Nomi",
@@ -776,10 +780,16 @@
       "originalDate": "Yozilgan",
       "editionDate": "Nashr",
       "pageCount": "Sahifalar",
-      "publisher": "Nashriyot"
+      "publisher": "Nashriyot",
+      "deck": "Savollar to‘plami",
+      "instruction": "Ko‘rsatma"
     },
     "noMic": "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
-    "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring."
+    "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring.",
+    "cardsCount": "{n} ta savol",
+    "cardsFocus": "E’tibor: {focus}",
+    "cardsDeck": "To‘plam: {deck}",
+    "cardsHint": "Qaydlar, iqtiboslar, video matni/konspekti, taqriz va kitob matnidan eng muhim savollar tuziladi va «Takrorlash» bo‘limiga saqlanadi."
   },
   "stats": {
     "title": "Ko‘rsatkichlar",
@@ -1333,5 +1343,67 @@
     "usedKonspekt": "video konspekti",
     "usedTranscript": "videoning to‘liq matni",
     "usedNone": "video matni yo‘q"
+  },
+  "review": {
+    "title": "Takrorlash",
+    "subtitle": "Muhim savollar va ularni yodda saqlash.",
+    "nothingDue": "Hozircha takrorlash kerak bo‘lgan savol yo‘q.",
+    "allDecks": "Barcha to‘plamlar",
+    "dueToday": "Bugun takrorlash: {n} ta savol",
+    "allCaughtUp": "Bugungi takrorlash tugadi 🎉",
+    "srsHint": "Har bir savol unutishingizdan sal oldin qayta chiqadi: qanchalik yaxshi eslasangiz, shunchalik kech qaytadi.",
+    "startReview": "Takrorlashni boshlash",
+    "decks": "Savollar to‘plamlari",
+    "noDecks": "Hali savollar yo‘q. Yuqorida manbalarni tanlab, AI’ga savol tuzdiring yoki AI yordamchiga «… dan savol tuzib ber» deng.",
+    "makeTitle": "AI bilan savol tuzish",
+    "makeHint": "Manbalarni tanlang: AI ularning qaydlaringiz, iqtiboslaringiz, video matni/konspekti, taqrizingiz va kitob matnidan eng muhim savollarni javoblari bilan tuzadi.",
+    "pickPlaceholder": "Kitob, video yoki ma’ruza nomi…",
+    "unpick": "Olib tashlash",
+    "count": "Savollar soni",
+    "nQuestions": "{n} ta savol",
+    "focusPlaceholder": "E’tibor (ixtiyoriy): masalan, faqat 3-bob, asosiy tushunchalar, imtihonga",
+    "make": "Savollar tuzish",
+    "making": "Tuzilmoqda…",
+    "made": "«{deck}»: {n} ta savol tayyor",
+    "thinMaterial": "Ba’zi manbalarda qayd, video matni yoki kitob matni yo‘q — ularning savollari faqat umumiy ma’lumotga tayanadi.",
+    "deckStats": "{total} ta savol · bugun {due} ta · {learned}% o‘zlashtirilgan",
+    "reviewN": "Takrorlash ({n})",
+    "practice": "Mashq",
+    "improvePlaceholder": "Yaxshilash uchun ko‘rsatma (ixtiyoriy): masalan, qisqaroq javoblar, ko‘proq «nega?» savollari",
+    "improve": "AI bilan yaxshilash",
+    "improving": "Yaxshilanmoqda…",
+    "improved": "{n} ta savol yaxshilandi",
+    "download": "Yuklab olish",
+    "deleteDeck": "To‘plamni o‘chirish",
+    "deleteDeckConfirm": "«{deck}» to‘plamidagi barcha savollar o‘chirilsinmi?",
+    "edit": "Tahrirlash",
+    "delete": "O‘chirish",
+    "addCard": "Savol qo‘shish",
+    "question": "Savol",
+    "answer": "Javob",
+    "explanation": "Izoh / eslab qolish usuli (ixtiyoriy)",
+    "source": "Manba: bet, vaqt… (ixtiyoriy)",
+    "cancel": "Bekor qilish",
+    "save": "Saqlash",
+    "practiceMode": "Mashq — jadval o‘zgarmaydi",
+    "exit": "Chiqish",
+    "sessionDone": "Barakalla! {n} ta savol takrorlandi.",
+    "backToDecks": "To‘plamlarga qaytish",
+    "tryAnswer": "Avval o‘zingiz javob berib ko‘ring (ixtiyoriy) — shunda yaxshiroq eslab qolasiz.",
+    "showAnswer": "Javobni ko‘rsatish",
+    "yourAnswer": "Sizning javobingiz",
+    "keysHint": "Bo‘sh joy — javob · 1–4 — baho · Esc — chiqish",
+    "kind": {
+      "recall": "Eslash",
+      "understanding": "Tushunish",
+      "application": "Qo‘llash",
+      "quote": "Iqtibos"
+    },
+    "grade": {
+      "again": "Qayta",
+      "hard": "Qiyin",
+      "good": "Yaxshi",
+      "easy": "Oson"
+    }
   }
 }

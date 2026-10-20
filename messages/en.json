@@ -104,7 +104,8 @@
     "adminMode": "Admin mode",
     "adminOn": "Admin mode is on",
     "adminOff": "Normal mode",
-    "publishers": "Publishers"
+    "publishers": "Publishers",
+    "review": "Review"
   },
   "theme": {
     "label": "Theme",
@@ -424,7 +425,8 @@
     "allNotes": "Open all {count} notes",
     "deleteConfirm": "Delete this entry from your library and the catalog? Your notes are kept.",
     "deleted": "Deleted",
-    "liveWrite": "Listen and write"
+    "liveWrite": "Listen and write",
+    "makeQuestions": "Make questions"
   },
   "record": {
     "status": "Status",
@@ -750,7 +752,9 @@
       "delete_collection": "Delete collection",
       "archive_resource": "Archive item",
       "merge_resources": "Merge duplicates",
-      "delete_resource": "Delete entry"
+      "delete_resource": "Delete entry",
+      "make_study_cards": "Make study questions",
+      "improve_study_cards": "Improve study questions"
     },
     "fields": {
       "title": "Title",
@@ -776,10 +780,16 @@
       "originalDate": "Written",
       "editionDate": "Edition",
       "pageCount": "Pages",
-      "publisher": "Publisher"
+      "publisher": "Publisher",
+      "deck": "Deck",
+      "instruction": "Instruction"
     },
     "noMic": "No microphone found. Check that one is connected.",
-    "micError": "Couldn’t start recording. Reload the page and try again."
+    "micError": "Couldn’t start recording. Reload the page and try again.",
+    "cardsCount": "{n} questions",
+    "cardsFocus": "Focus: {focus}",
+    "cardsDeck": "Deck: {deck}",
+    "cardsHint": "The most important questions are made from your notes, quotes, video transcript / konspekt, taqriz and book text and saved to Review."
   },
   "stats": {
     "title": "Metrics",
@@ -1333,5 +1343,67 @@
     "usedKonspekt": "video konspekt",
     "usedTranscript": "video transcript",
     "usedNone": "no video text"
+  },
+  "review": {
+    "title": "Review",
+    "subtitle": "Important questions and remembering them.",
+    "nothingDue": "Nothing to review right now.",
+    "allDecks": "All decks",
+    "dueToday": "Due today: {n} questions",
+    "allCaughtUp": "All caught up for today 🎉",
+    "srsHint": "Each question comes back just before you would forget it: the better you know it, the later it returns.",
+    "startReview": "Start review",
+    "decks": "Question decks",
+    "noDecks": "No questions yet. Pick resources above and let the AI make questions, or ask the assistant “make questions from …”.",
+    "makeTitle": "Make questions with AI",
+    "makeHint": "Pick resources: the AI makes the most important questions with answers from your notes, quotes, video transcript / konspekt, taqriz and book text.",
+    "pickPlaceholder": "Book, video or lecture title…",
+    "unpick": "Remove",
+    "count": "Number of questions",
+    "nQuestions": "{n} questions",
+    "focusPlaceholder": "Focus (optional): e.g. only chapter 3, key concepts, for the exam",
+    "make": "Make questions",
+    "making": "Making…",
+    "made": "“{deck}”: {n} questions ready",
+    "thinMaterial": "Some resources have no notes, video text or book text — their questions rely on general facts only.",
+    "deckStats": "{total} questions · {due} due today · {learned}% learned",
+    "reviewN": "Review ({n})",
+    "practice": "Practice",
+    "improvePlaceholder": "How to improve (optional): e.g. shorter answers, more “why?” questions",
+    "improve": "Improve with AI",
+    "improving": "Improving…",
+    "improved": "{n} questions improved",
+    "download": "Download",
+    "deleteDeck": "Delete deck",
+    "deleteDeckConfirm": "Delete all questions in “{deck}”?",
+    "edit": "Edit",
+    "delete": "Delete",
+    "addCard": "Add a question",
+    "question": "Question",
+    "answer": "Answer",
+    "explanation": "Note / memory aid (optional)",
+    "source": "Source: page, time… (optional)",
+    "cancel": "Cancel",
+    "save": "Save",
+    "practiceMode": "Practice — schedule unchanged",
+    "exit": "Exit",
+    "sessionDone": "Well done! {n} questions reviewed.",
+    "backToDecks": "Back to decks",
+    "tryAnswer": "Try answering first (optional) — it helps you remember.",
+    "showAnswer": "Show answer",
+    "yourAnswer": "Your answer",
+    "keysHint": "Space — answer · 1–4 — grade · Esc — exit",
+    "kind": {
+      "recall": "Recall",
+      "understanding": "Understanding",
+      "application": "Application",
+      "quote": "Quote"
+    },
+    "grade": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy"
+    }
   }
 }

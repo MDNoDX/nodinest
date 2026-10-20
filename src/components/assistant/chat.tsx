@@ -63,6 +63,7 @@ export type ChatAction = {
     keep?: Candidate;
     remove?: Candidate[];
     target?: Candidate;
+    sources?: Candidate[];
   } | null;
   outcome?: { href?: string; suggested?: boolean; linked?: boolean };
   error?: string | null;
@@ -104,6 +105,8 @@ function RichText({ text }: { text: string }) {
 /** Fields shown on a generic proposal card, in this order. */
 const FIELDS = [
   "title",
+  "deck",
+  "instruction",
   "fullName",
   "resourceTitle",
   "noteTitle",
@@ -375,6 +378,18 @@ function ProposalCard({
             <CandidateRow key={c.id} c={c} />
           ))}
           <p className="text-muted text-xs">{t("mergeHint")}</p>
+        </div>
+      ) : action.tool === "make_study_cards" && action.preview?.sources ? (
+        <div className="flex flex-col gap-2 text-sm">
+          {action.preview.sources.map((c) => (
+            <CandidateRow key={c.id} c={c} />
+          ))}
+          <dl className="text-muted flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <span>{t("cardsCount", { n: Number(a.count ?? 15) })}</span>
+            {a.focus ? <span>{t("cardsFocus", { focus: String(a.focus) })}</span> : null}
+            {a.deck ? <span>{t("cardsDeck", { deck: String(a.deck) })}</span> : null}
+          </dl>
+          <p className="text-muted text-xs">{t("cardsHint")}</p>
         </div>
       ) : action.tool === "delete_resource" && action.preview?.target ? (
         <div className="flex flex-col gap-2 text-sm">

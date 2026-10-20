@@ -65,6 +65,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   marker. gemini-flash-lite rejects `thinkingBudget: 0` — use ≥ 512.
 - Resume points (`server/resume.ts`, table `resume_points`, POST `/api/resume` keepalive): media
   second (from the dock) + taqriz cursor (text anchor `b:`/`a:`); sign-in lands on `/resume`.
+- Study cards (`server/study-cards.ts`, table `study_cards`, page `/review`, AI tools
+  make_study_cards / improve_study_cards / list_study_decks): questions from the user's notes,
+  quotes, transcripts, taqriz and book text; SM-2 scheduling in `lib/srs.ts` (pure, shared).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

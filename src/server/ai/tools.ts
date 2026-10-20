@@ -13,6 +13,7 @@
  *             run only after the user presses Confirm (see actions.ts)
  * No SQL, shell or arbitrary code is exposed.
  */
+import { generateCards, improveCards, listDecks } from "../study-cards";
 import { parseReadingDate, readingValue } from "@/lib/reading-date";
 import "server-only";
 import { and, desc, eq, ilike, isNull, sql } from "drizzle-orm";
@@ -1031,6 +1032,95 @@ export const TOOLS = {
       await toggleCollectionItem(db, ctx, cid, { resourceId: rid }, true);
       if (a.rank) await moveToRank(ctx, cid, rid, a.rank);
       return { added: true, href: `/collections/${cid}` };
+    },
+  }),
+  list_study_decks: def({
+    perm: "read_library",
+    mode: "read",
+    description:
+      "List the user's study-card decks (questions for memorising) with how many cards are due today.",
+    parameters: obj({}),
+    args: z.object({}),
+    run: async (ctx) =>
+      (await listDecks(ctx)).map((d) => ({
+        deck: d.deck,
+        total: d.total,
+        due: d.due,
+        learned: d.learned,
+        href: `/review?deck=${encodeURIComponent(d.deck)}`,
+      })),
+  }),
+  make_study_cards: def({
+    perm: "write_personal",
+    mode: "confirm",
+    description:
+      "Prepare the most important study questions (with answers) from one or more of the user's resources — using their notes, quotes, the video transcript / konspekt, their taqriz and the book text — and save them as a deck for spaced-repetition review (memorising). Use when the user asks for questions, a test, flashcards or help remembering. Give resources by title as the user said them.",
+    parameters: obj(
+      {
+        resources: arr(obj(resourceRef), "The resources to make questions from (1–8)"),
+        count: int("How many questions (default 15, max 50)"),
+        focus: str("Optional focus, e.g. 'faqat 3-bob', 'asosiy tushunchalar', 'imtihonga'"),
+        deck: str("Optional deck name; default: the resource title(s)"),
+      },
+      ["resources"],
+    ),
+    args: z.object({
+      resources: z.array(z.object(resourceRefSchema)).min(1).max(8),
+      count: z.number().int().min(3).max(50).optional(),
+      focus: z.string().trim().max(500).optional(),
+      deck: z.string().trim().max(120).optional(),
+    }),
+    preview: async (ctx, a) => {
+      const ids = await Promise.all(
+        a.resources.map((r) => resolveResource(ctx, r).catch(() => null)),
+      );
+      return {
+        sources: await describeResources(
+          ctx,
+          ids.filter((x): x is string => !!x).map((id) => ({ id, score: 1, reason: "source" })),
+        ),
+      };
+    },
+    run: async (ctx, a, env) => {
+      const ids = [...new Set(await Promise.all(a.resources.map((r) => resolveResource(ctx, r))))];
+      const out = await generateCards(ctx, {
+        resourceIds: ids,
+        count: a.count ?? 15,
+        focus: a.focus ?? "",
+        deck: a.deck,
+        locale: env.locale === "en" ? "en" : "uz",
+      });
+      return {
+        created: out.created,
+        deck: out.deck,
+        note: out.thinMaterial
+          ? "Some resources had no notes / transcript / book text: their questions rely on the catalog facts only."
+          : undefined,
+        questions: out.sample.map((x) => x.q),
+        href: `/review?deck=${encodeURIComponent(out.deck)}`,
+      };
+    },
+  }),
+  improve_study_cards: def({
+    perm: "write_personal",
+    mode: "confirm",
+    description:
+      "Improve an existing study-card deck: sharper, more important questions and complete, correct answers (review progress is kept). Optional instruction from the user.",
+    parameters: obj(
+      { deck: str("Deck name (see list_study_decks)"), instruction: str("What to improve") },
+      ["deck"],
+    ),
+    args: z.object({
+      deck: z.string().trim().min(1).max(120),
+      instruction: z.string().trim().max(800).optional(),
+    }),
+    run: async (ctx, a, env) => {
+      const out = await improveCards(ctx, {
+        deck: a.deck,
+        instruction: a.instruction ?? "",
+        locale: env.locale === "en" ? "en" : "uz",
+      });
+      return { ...out, href: `/review?deck=${encodeURIComponent(a.deck)}` };
     },
   }),
   set_rank: def({

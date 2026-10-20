@@ -27,6 +27,7 @@ import {
   jsonb,
   pgSchema,
   primaryKey,
+  real,
   smallint,
   text,
   timestamp,
@@ -742,6 +743,43 @@ export const writeups = nodinest.table(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("writeups_user_resource_uq").on(t.userId, t.resourceId)],
+);
+
+/**
+ * Study cards (question → answer) for memorising, scheduled by spaced
+ * repetition (SM-2 style: ease, interval, due date). Made by the AI from the
+ * user's material or by hand; private to the owner (RLS).
+ */
+export const studyCards = nodinest.table(
+  "study_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
+    deck: text("deck").notNull(),
+    question: text("question").notNull(),
+    answer: text("answer").notNull(),
+    explanation: text("explanation"),
+    /** Where the answer is found: "p. 12", "12:30", "taqriz", a quote… */
+    source: text("source"),
+    /** recall | understanding | application | quote */
+    kind: text("kind").notNull().default("recall"),
+    ease: real("ease").notNull().default(2.5),
+    intervalDays: real("interval_days").notNull().default(0),
+    reps: integer("reps").notNull().default(0),
+    lapses: integer("lapses").notNull().default(0),
+    dueAt: ts("due_at").notNull().defaultNow(),
+    lastReviewedAt: ts("last_reviewed_at"),
+    suspended: boolean("suspended").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("study_cards_user_due_idx").on(t.userId, t.dueAt),
+    index("study_cards_user_deck_idx").on(t.userId, t.deck),
+  ],
 );
 
 /**

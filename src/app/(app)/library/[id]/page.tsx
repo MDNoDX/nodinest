@@ -1,6 +1,7 @@
 import {
   AudioLines,
   BookOpenText,
+  Brain,
   ExternalLink,
   FileText,
   Lock,
@@ -271,6 +272,11 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
               <Button variant="outline" asChild>
                 <Link href={`/notes/new?resource=${r.id}`}>
                   <StickyNote /> {t("resource.addNote")}
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/review?resource=${r.id}`}>
+                  <Brain /> {t("resource.makeQuestions")}
                 </Link>
               </Button>
               <CollectionPicker

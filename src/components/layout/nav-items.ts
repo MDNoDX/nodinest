@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpen,
+  Brain,
   Building2,
   CalendarCheck,
   FolderHeart,
@@ -24,6 +25,7 @@ export const NAV_PRIMARY: NavItem[] = [
   { href: "/publishers", key: "publishers", icon: Building2 },
   { href: "/collections", key: "collections", icon: FolderHeart },
   { href: "/notes", key: "notes", icon: NotebookPen },
+  { href: "/review", key: "review", icon: Brain },
   { href: "/plans", key: "plans", icon: CalendarCheck },
 ];
 

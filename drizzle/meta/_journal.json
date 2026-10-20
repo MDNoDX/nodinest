@@ -113,6 +113,13 @@
       "when": 1792506455896,
       "tag": "0015_resume_points",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792506849826,
+      "tag": "0016_study_cards",
+      "breakpoints": true
     }
   ]
 }

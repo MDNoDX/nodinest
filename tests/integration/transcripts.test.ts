@@ -105,3 +105,25 @@ describe("resume points", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("study cards", () => {
+  it("are private, reviewed on schedule and editable", async () => {
+    const m = await import("@/server/study-cards");
+    await m.addCard(u, "Test deck", { question: "Q1?", answer: "A1" });
+    await m.addCard(u, "Test deck", { question: "Q2?", answer: "A2" });
+    const decks = await m.listDecks(u);
+    expect(decks.find((d) => d.deck === "Test deck")).toMatchObject({ total: 2, due: 2 });
+    expect((await m.listDecks(other)).find((d) => d.deck === "Test deck")).toBeUndefined();
+    const due = await m.dueCards(u, { deck: "Test deck" });
+    expect(due).toHaveLength(2);
+    await m.reviewCard(u, due[0].id, 3);
+    expect(await m.dueCards(u, { deck: "Test deck" })).toHaveLength(1);
+    await expect(m.reviewCard(other, due[1].id, 3)).rejects.toThrow();
+    await m.updateCard(u, due[1].id, { question: "Q2 better?", answer: "A2" });
+    expect((await m.listCards(u, "Test deck")).map((c) => c.question)).toContain("Q2 better?");
+    await m.deleteDeck(other, "Test deck");
+    expect(await m.listCards(u, "Test deck")).toHaveLength(2);
+    await m.deleteDeck(u, "Test deck");
+    expect(await m.listCards(u, "Test deck")).toHaveLength(0);
+  });
+});
