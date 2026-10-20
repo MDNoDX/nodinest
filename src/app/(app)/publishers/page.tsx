@@ -1,4 +1,5 @@
-import { Building2 } from "lucide-react";
+import { Building2, Globe, Landmark, Mic, MonitorPlay } from "lucide-react";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PublisherDialog } from "@/components/publishers/publisher-dialog";
@@ -12,6 +13,20 @@ export async function generateMetadata() {
   return { title: (await getTranslations("publishers"))("title") };
 }
 
+function KindIcon({ kind }: { kind: string }) {
+  const Icon =
+    kind === "channel"
+      ? MonitorPlay
+      : kind === "podcast"
+        ? Mic
+        : kind === "website"
+          ? Globe
+          : kind === "organization"
+            ? Landmark
+            : Building2;
+  return <Icon className="size-5" />;
+}
+
 export default async function PublishersPage() {
   const { ctx, db } = await pageContext();
   const t = await getTranslations();
@@ -23,6 +38,8 @@ export default async function PublishersPage() {
         title={t("publishers.title")}
         actions={<PublisherDialog />}
       />
+      <DarsxonaTabs current="publishers" />
+      <p className="text-muted -mt-2 mb-5 text-sm">{t("publishers.explain")}</p>
       {list.length === 0 ? (
         <EmptyState
           icon={<Building2 />}
@@ -42,12 +59,17 @@ export default async function PublishersPage() {
                   style={hueStyle(hueFor(p.id))}
                   aria-hidden
                 >
-                  {p.name.trim().charAt(0).toUpperCase()}
+                  <KindIcon kind={p.kind} />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate font-semibold">{p.name}</span>
                   <span className="text-muted block text-xs">
-                    {[p.city, t("publishers.books", { count: p.books })]
+                    {[
+                      t(`publishers.kinds.${p.kind}` as "publishers.kinds.publisher"),
+                      p.city,
+                      t("publishers.items", { count: p.books }),
+                      p.learned ? t("publishers.learnedN", { count: p.learned }) : null,
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>

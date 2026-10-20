@@ -121,7 +121,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
             icon={<Trophy />}
             hue="violet"
             label={t("stats.longest")}
-            value={nf.format(s.longest.pages)}
+            value={t("card.pages", { count: nf.format(s.longest.pages) })}
             hint={s.longest.title}
           />
         )}

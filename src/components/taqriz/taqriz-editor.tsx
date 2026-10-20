@@ -813,6 +813,15 @@ export function TaqrizEditor({
           >
             <PanelLeftOpen className="size-4" />
           </button>
+          <button
+            type="button"
+            onClick={openFind}
+            className="text-muted hover:text-foreground hover:bg-surface-2 grid size-8 place-items-center rounded-md"
+            aria-label={t("find")}
+            title={t("find")}
+          >
+            <Search className="size-4" />
+          </button>
           <Link
             href={`/library/${resource.id}`}
             className="text-muted hover:text-foreground hover:bg-surface-2 grid size-8 place-items-center rounded-md"
@@ -871,6 +880,67 @@ export function TaqrizEditor({
               </button>
             )}
           </div>
+        </div>
+        {/* Find in this taqriz — always visible here (⌘F opens the bar with replace). */}
+        <div className="px-3 pb-3">
+          <label
+            htmlFor="taqriz-find-side"
+            className="text-muted mb-1 block px-1 text-[11px] font-semibold tracking-wide uppercase"
+          >
+            {t("findSideLabel")}
+          </label>
+          <div className="relative">
+            <Search className="text-muted pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+            <input
+              id="taqriz-find-side"
+              value={findQ}
+              placeholder={t("findSidePlaceholder")}
+              onChange={(e) => {
+                setFindQ(e.target.value);
+                editor?.commands.setFind(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  editor?.commands.findStep(e.shiftKey ? -1 : 1);
+                } else if (e.key === "Escape") closeFind();
+              }}
+              className="border-border-strong bg-surface focus-visible:outline-ring/40 h-9 w-full rounded-lg border pr-2 pl-8 text-sm"
+            />
+          </div>
+          {findQ && editor && (
+            <div className="text-muted mt-1 flex items-center gap-1 px-1 text-xs">
+              <span className="tabular-nums">
+                {info?.find.total
+                  ? t("findCount", { n: info.find.index + 1, total: info.find.total })
+                  : t("findNone")}
+              </span>
+              <button
+                type="button"
+                onClick={() => editor.commands.findStep(-1)}
+                className="hover:text-foreground hover:bg-surface-2 ml-auto rounded p-0.5"
+                aria-label={t("findPrev")}
+              >
+                <ChevronUp className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => editor.commands.findStep(1)}
+                className="hover:text-foreground hover:bg-surface-2 rounded p-0.5"
+                aria-label={t("findNext")}
+              >
+                <ChevronDown className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={openFind}
+                className="hover:text-foreground hover:bg-surface-2 rounded px-1 py-0.5"
+                title={t("find")}
+              >
+                {t("replace")}
+              </button>
+            </div>
+          )}
         </div>
         <div className="text-muted px-4 pb-2 text-[11px] font-semibold tracking-wide uppercase">
           {t("contents")}

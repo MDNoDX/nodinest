@@ -1,5 +1,5 @@
 "use client";
-import { BookCheck, BookOpen, Bookmark, PauseCircle, Star } from "lucide-react";
+import { BookCheck, BookOpen, Bookmark, Star } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { removeRecordAction, saveRecordAction } from "@/app/actions/personal";
@@ -29,7 +29,6 @@ const STATUSES: { key: LearningStatus; icon: typeof Bookmark; hue: Hue }[] = [
   { key: "planned", icon: Bookmark, hue: "sky" },
   { key: "in_progress", icon: BookOpen, hue: "blue" },
   { key: "completed", icon: BookCheck, hue: "emerald" },
-  { key: "paused", icon: PauseCircle, hue: "amber" },
 ];
 
 export function RecordForm({
@@ -50,7 +49,10 @@ export function RecordForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [hover, setHover] = useState(0);
   const [v, setV] = useState({
-    status: (record?.status === "abandoned" ? "paused" : record?.status) ?? "planned",
+    status:
+      (record?.status === "abandoned" || record?.status === "paused"
+        ? "in_progress"
+        : record?.status) ?? "planned",
     startedAt: record?.startedAt ?? "",
     completedAt: record?.completedAt ?? "",
     rating: record?.rating ?? 0,
@@ -98,7 +100,7 @@ export function RecordForm({
       <div
         role="radiogroup"
         aria-label={t("record.quickStatus")}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-3 gap-2"
       >
         {STATUSES.map(({ key, icon: Icon, hue }) => {
           const on = v.status === key;

@@ -224,7 +224,7 @@ export async function loadExport(
     pageCount: r.page_count,
     durationSeconds: r.duration_seconds,
     where: r.channel,
-    status: r.status === "abandoned" ? "paused" : r.status,
+    status: r.status === "abandoned" || r.status === "paused" ? "in_progress" : r.status,
     rating: r.rating,
     startedAt: r.started_at ? new Date(r.started_at) : null,
     completedAt: r.completed_at ? new Date(r.completed_at) : null,

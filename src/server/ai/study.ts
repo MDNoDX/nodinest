@@ -33,9 +33,11 @@ export async function gate(ctx: AppContext, bucket: "ask" | "listen") {
       throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
   } else {
     // One request per minute of media: ~5 hours of listening a day.
-    // Short clips (90 s) for faithful transcripts: ~40 requests per hour of media.
+    // Short clips (90 s) for faithful transcripts: ~40 requests per hour of
+    // media. Other users share the free quota, so about 1.5 hours a day each
+    // (the superadmin account returns above and is never limited here).
     await enforceRateLimit(db, `ailistenburst:${ctx.userId}`, 20, 60);
-    await enforceRateLimit(db, `ailisten:${ctx.userId}`, 600, 86_400);
+    await enforceRateLimit(db, `ailisten:${ctx.userId}`, 60, 86_400);
   }
 }
 

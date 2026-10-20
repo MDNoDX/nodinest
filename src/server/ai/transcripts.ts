@@ -365,7 +365,8 @@ async function writeSegment(
         systemInstruction: system,
         temperature: 0,
         mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
-        thinkingConfig: { thinkingBudget: r.deep ? 2048 : 512 },
+        // Most care for transcripts: hard words are worked out from context.
+        thinkingConfig: { thinkingBudget: r.deep ? (r.mode === "transcript" ? 4096 : 2048) : 512 },
       },
       { timeoutMs: 100_000 },
     );

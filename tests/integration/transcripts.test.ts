@@ -127,3 +127,37 @@ describe("study cards", () => {
     expect(await m.listCards(u, "Test deck")).toHaveLength(0);
   });
 });
+
+describe("publishers & channels", () => {
+  it("links a video's channel to an entry and counts what I learned there", async () => {
+    const { getPublisherDetail } = await import("@/server/publishers");
+    const { setLearningStatus } = await import("@/server/records");
+    const name = `Shifo ${Date.now()}`;
+    const r = (await submitResource(db, u, {
+      type: "lecture",
+      title: `Dars ${Date.now()}`,
+      media: { channel: name, durationSeconds: 1800 },
+    })) as { id: string };
+    const [row] = await db.execute<{ publisher_id: string; kind: string }>(
+      (await import("drizzle-orm")).sql`select m.publisher_id, p.kind from nodinest.media_details m
+        join nodinest.publishers p on p.id = m.publisher_id where m.resource_id = ${r.id}`,
+    );
+    expect(row.kind).toBe("channel");
+    await setLearningStatus(db, u, r.id, "completed");
+    const d = await getPublisherDetail(db, u, row.publisher_id);
+    expect(d?.items.map((i) => i.id)).toContain(r.id);
+    expect(d?.mine).toMatchObject({ completed: 1, seconds: 1800 });
+  });
+});
+
+describe("messages to the admin", () => {
+  it("are private to the sender and readable by the superadmin account only", async () => {
+    const f = await import("@/server/feedback");
+    await f.sendFeedback(u, { title: "Idea", body: "Please add X", contact: "@me" });
+    expect((await f.listMyFeedback(u)).map((x) => x.title)).toContain("Idea");
+    expect((await f.listMyFeedback(other)).map((x) => x.title)).not.toContain("Idea");
+    await expect(f.listAllFeedback(u)).rejects.toThrow();
+    const all = await f.listAllFeedback({ ...u, superadminAccount: true });
+    expect(all.find((x) => x.title === "Idea")?.contact).toBe("@me");
+  });
+});

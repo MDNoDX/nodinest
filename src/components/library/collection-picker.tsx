@@ -11,7 +11,10 @@ export function CollectionPicker({
   collections,
   selected,
   target,
+  compact,
 }: {
+  /** Icon only on phones. */
+  compact?: boolean;
   collections: { id: string; name: string | null; systemKey: string | null }[];
   selected: string[];
   target: { resourceId?: string; noteId?: string };
@@ -22,8 +25,17 @@ export function CollectionPicker({
   return (
     <M.Root>
       <M.Trigger asChild>
-        <Button variant="outline" size="sm" loading={pending}>
-          <FolderPlus /> {t("resource.addToCollection")}
+        <Button
+          variant="outline"
+          size="sm"
+          loading={pending}
+          title={t("resource.addToCollection")}
+          aria-label={t("resource.addToCollection")}
+        >
+          <FolderPlus />{" "}
+          <span className={compact ? "hidden sm:inline" : undefined}>
+            {t("resource.addToCollection")}
+          </span>
         </Button>
       </M.Trigger>
       <M.Portal>

@@ -175,7 +175,7 @@ async function searchResources(
       date: r.publication_date,
       rank: Number(r.rank),
       cover: r.cover_file_id ? `/api/files/${r.cover_file_id}` : r.cover_url,
-      status: r.my_status === "abandoned" ? "paused" : r.my_status,
+      status: r.my_status === "abandoned" || r.my_status === "paused" ? "in_progress" : r.my_status,
       rating: r.my_rating,
       progress: r.progress,
     })),

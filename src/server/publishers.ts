@@ -36,7 +36,21 @@ export async function searchPublishers(tx: Tx | Database, query: string, limit =
 }
 
 /** Exact (normalised) match or a new publisher owned by the actor. */
-export async function ensurePublisher(tx: Tx, ctx: AppContext, name: string): Promise<string> {
+export const PUBLISHER_KINDS = [
+  "publisher",
+  "channel",
+  "podcast",
+  "website",
+  "organization",
+] as const;
+export type PublisherKind = (typeof PUBLISHER_KINDS)[number];
+
+export async function ensurePublisher(
+  tx: Tx,
+  ctx: AppContext,
+  name: string,
+  kind: PublisherKind = "publisher",
+): Promise<string> {
   const clean = name.trim().slice(0, 200);
   if (!clean) throw new AppError("VALIDATION", "publisher_required");
   const [found] = await tx.execute<{ id: string }>(sql`
@@ -45,7 +59,7 @@ export async function ensurePublisher(tx: Tx, ctx: AppContext, name: string): Pr
   if (found) return found.id;
   const [row] = await tx
     .insert(publishers)
-    .values({ name: clean, createdBy: ctx.userId })
+    .values({ name: clean, kind, createdBy: ctx.userId })
     .returning({ id: publishers.id });
   return row.id;
 }
@@ -61,7 +75,7 @@ export async function canEditPublisher(tx: Tx | Database, ctx: AppContext, id: s
 
 export async function getPublisherDetail(database: Database, ctx: AppContext, id: string) {
   return withUser(database, ctx, async (tx) => {
-    const [[p], books, canEdit] = await Promise.all([
+    const [[p], items, [mine], canEdit] = await Promise.all([
       tx
         .select()
         .from(publishers)
@@ -69,39 +83,85 @@ export async function getPublisherDetail(database: Database, ctx: AppContext, id
       tx.execute<{
         id: string;
         title: string;
-        type: "book";
+        type: string;
         cover_url: string | null;
         cover_file_id: string | null;
         publication_date: string | null;
         authors: string | null;
         my_status: string | null;
       }>(sql`
-        select r.id, r.title, r.type, r.cover_url, r.cover_file_id, r.publication_date,
+        select r.id, r.title, r.type::text as type, r.cover_url, r.cover_file_id, r.publication_date,
           (select string_agg(pp.full_name, ', ' order by c.position)
              from nodinest.resource_contributors c join nodinest.people pp on pp.id = c.person_id
-            where c.resource_id = r.id and c.role = 'author') as authors,
+            where c.resource_id = r.id) as authors,
           (select lr.status::text from nodinest.learning_records lr
             where lr.resource_id = r.id and lr.user_id = ${ctx.userId}) as my_status
-        from nodinest.book_details b join nodinest.resources r on r.id = b.resource_id
-        where b.publisher_id = ${id} and r.deleted_at is null
+        from nodinest.resources r
+        where r.deleted_at is null and (
+          exists (select 1 from nodinest.book_details b where b.resource_id = r.id and b.publisher_id = ${id})
+          or exists (select 1 from nodinest.media_details m where m.resource_id = r.id and m.publisher_id = ${id}))
         order by r.publication_date desc nulls last, r.title`),
+      // What I learned from it.
+      tx.execute<{
+        in_library: number;
+        completed: number;
+        in_progress: number;
+        seconds: number;
+        pages: number;
+        notes: number;
+        quotes: number;
+        words: number;
+      }>(sql`
+        with mine as (
+          select r.id, lr.status, b.page_count, m.duration_seconds
+          from nodinest.resources r
+          join nodinest.learning_records lr on lr.resource_id = r.id and lr.user_id = ${ctx.userId}
+          left join nodinest.book_details b on b.resource_id = r.id
+          left join nodinest.media_details m on m.resource_id = r.id
+          where r.deleted_at is null and (b.publisher_id = ${id} or m.publisher_id = ${id}))
+        select count(*)::int as in_library,
+          count(*) filter (where status = 'completed')::int as completed,
+          count(*) filter (where status = 'in_progress')::int as in_progress,
+          coalesce(sum(duration_seconds) filter (where status = 'completed'), 0)::int as seconds,
+          coalesce(sum(page_count) filter (where status = 'completed'), 0)::int as pages,
+          (select count(*)::int from nodinest.notes n where n.user_id = ${ctx.userId}
+             and n.deleted_at is null and n.kind = 'note' and n.resource_id in (select id from mine)) as notes,
+          (select count(*)::int from nodinest.notes n where n.user_id = ${ctx.userId}
+             and n.deleted_at is null and n.kind = 'quote' and n.resource_id in (select id from mine)) as quotes,
+          (select coalesce(sum(w.words), 0)::int from nodinest.writeups w where w.user_id = ${ctx.userId}
+             and w.resource_id in (select id from mine)) as words
+        from mine`),
       canEditPublisher(tx, ctx, id),
     ]);
     if (!p) return null;
-    return { publisher: p, books: books.map((b) => ({ ...b })), canEdit };
+    return { publisher: p, items: items.map((b) => ({ ...b })), mine, canEdit };
   });
 }
 
 export async function listPublishers(database: Database, ctx: AppContext) {
   return withUser(database, ctx, async (tx) =>
     (
-      await tx.execute<{ id: string; name: string; city: string | null; books: number }>(sql`
-        select p.id, p.name, p.city,
-          (select count(*)::int from nodinest.book_details b
-             join nodinest.resources r on r.id = b.resource_id
-            where b.publisher_id = p.id and r.deleted_at is null) as books
+      await tx.execute<{
+        id: string;
+        name: string;
+        city: string | null;
+        kind: string;
+        books: number;
+        learned: number;
+      }>(sql`
+        with items as (
+          select b.publisher_id as pid, r.id from nodinest.book_details b
+            join nodinest.resources r on r.id = b.resource_id and r.deleted_at is null
+          union all
+          select m.publisher_id, r.id from nodinest.media_details m
+            join nodinest.resources r on r.id = m.resource_id and r.deleted_at is null)
+        select p.id, p.name, p.city, p.kind,
+          (select count(*)::int from items i where i.pid = p.id) as books,
+          (select count(*)::int from items i join nodinest.learning_records lr
+             on lr.resource_id = i.id and lr.user_id = ${ctx.userId} and lr.status = 'completed'
+           where i.pid = p.id) as learned
         from nodinest.publishers p where p.deleted_at is null
-        order by books desc, p.name limit 500`)
+        order by learned desc, books desc, p.name limit 500`)
     ).map((r) => ({ ...r })),
   );
 }

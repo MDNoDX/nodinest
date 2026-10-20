@@ -44,7 +44,7 @@ describe("publishers work like people", () => {
     expect(pa.publisherId).toBeTruthy();
     expect(pb.publisherId).toBe(pa.publisherId);
     const d = await getPublisherDetail(db, other, pa.publisherId!);
-    expect(d?.books.map((x) => x.title).sort()).toEqual(
+    expect(d?.items.map((x) => x.title).sort()).toEqual(
       [`Ufq trilogiyasi ${tag}`, `Kecha va kunduz ${tag}`].sort(),
     );
     // Created by u → u may edit, the other user may not; names stay unique.

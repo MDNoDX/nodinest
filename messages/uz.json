@@ -104,8 +104,9 @@
     "adminMode": "Admin rejimi",
     "adminOn": "Admin rejimi yoqilgan",
     "adminOff": "Oddiy rejim",
-    "publishers": "Nashriyotlar",
-    "review": "Takrorlash"
+    "publishers": "Nashriyot va kanallar",
+    "review": "Takrorlash",
+    "libraryTab": "Manbalarim"
   },
   "theme": {
     "label": "Mavzu",
@@ -186,7 +187,8 @@
     "emptyFinished": "O‘qib tugatgan kitoblaringiz shu yerda chiroyli ko‘rinadi.",
     "avgRating": "O‘rtacha baho",
     "rated": "{count} ta baholangan",
-    "continue": "Davom ettirish: {title}"
+    "continue": "Davom ettirish: {title}",
+    "dueReview": "Bugun {n} ta savol"
   },
   "types": {
     "book": "Kitob",
@@ -209,7 +211,7 @@
     }
   },
   "status": {
-    "planned": "O‘qiyman",
+    "planned": "Rejada",
     "in_progress": "O‘qiyapman",
     "completed": "O‘qidim",
     "paused": "To‘xtatilgan",
@@ -414,7 +416,7 @@
     "releaseDate": "Chiqqan sana",
     "lessonCount": "Darslar soni",
     "where": "Qayerda",
-    "whereHint": "Kanal, platforma, sayt yoki o‘quv markazi",
+    "whereHint": "Kanal yoki platforma — «Nashriyot va kanallar»ga o‘zi qo‘shiladi",
     "watchUrl": "Havola (ko‘rish / tinglash)",
     "readingTime": "O‘qish vaqti (daqiqa)",
     "publisherHint": "Bir marta yozing — keyin ro‘yxatdan tanlaysiz.",
@@ -1022,7 +1024,7 @@
     "end_before_start": "Tugash sanasi boshlanishdan keyin bo‘lishi kerak."
   },
   "statusMedia": {
-    "planned": "Ko‘raman",
+    "planned": "Rejada",
     "in_progress": "Ko‘ryapman",
     "completed": "Ko‘rdim",
     "paused": "To‘xtatilgan"
@@ -1099,7 +1101,11 @@
     "replaceWith": "Almashtirish…",
     "replace": "Almashtirish",
     "replaceAll": "Hammasini",
-    "closeFind": "Qidiruvni yopish"
+    "closeFind": "Qidiruvni yopish",
+    "findSideLabel": "Taqrizdan qidirish",
+    "findSidePlaceholder": "So‘z yoki ibora…",
+    "findCount": "{n} / {total} topildi",
+    "findNone": "Topilmadi"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1125,17 +1131,38 @@
     "hours": "{h} soat {m} daq."
   },
   "publishers": {
-    "title": "Nashriyotlar",
-    "subtitle": "Kitoblaringizni chiqargan nashriyotlar.",
-    "add": "Nashriyot qo‘shish",
+    "title": "Nashriyot va kanallar",
+    "subtitle": "",
+    "add": "Qo‘shish",
     "name": "Nomi",
     "city": "Shahar",
     "country": "Davlat",
     "website": "Sayt",
-    "empty": "Hali nashriyotlar yo‘q",
-    "emptyBody": "Kitob qo‘shganda nashriyotni yozing — u shu yerda paydo bo‘ladi.",
+    "empty": "Hali yozuv yo‘q",
+    "emptyBody": "Kitob nashriyotini yoki video kanalini yozing — u shu yerda paydo bo‘ladi.",
     "books": "{count, plural, =0 {kitob yo‘q} other {# kitob}}",
-    "noBooks": "Bu nashriyotning kitoblari hali qo‘shilmagan."
+    "noBooks": "Bu yerdan hali hech narsa qo‘shilmagan.",
+    "kind": "Turi",
+    "explain": "Bu yerda kitob nashriyotlari bilan birga YouTube kanallari, podkastlar, saytlar va tashkilotlar ham turadi. Video yoki ma’ruza qo‘shganda «Qayerda» maydoniga kanal nomini yozsangiz, u shu yerga o‘zi qo‘shiladi va undan nimalar o‘rganganingizni ko‘rasiz.",
+    "kinds": {
+      "publisher": "Nashriyot",
+      "channel": "YouTube / kanal",
+      "podcast": "Podkast",
+      "website": "Sayt / platforma",
+      "organization": "Tashkilot"
+    },
+    "items": "{count, plural, =0 {material yo‘q} other {# ta material}}",
+    "learnedN": "{count} tasini o‘rgandim",
+    "whatILearned": "Bu manbadan o‘rganganlarim",
+    "stat": {
+      "completed": "Tugatilgan",
+      "inProgress": "Jarayonda",
+      "hours": "Ko‘rilgan / eshitilgan",
+      "pages": "O‘qilgan betlar",
+      "quotes": "Iqtiboslar",
+      "notes": "Qaydlar",
+      "words": "Taqrizdagi so‘zlar"
+    }
   },
   "install": {
     "title": "Ilovani o‘rnatish (Mac va telefon)",
@@ -1265,7 +1292,10 @@
     "resumeAfter": "Qachon davom etsin",
     "resumeAfterN": "{n} soniyadan keyin davom etsin",
     "typePauseWeb": "Yoza boshlasangiz NodiNest pleeri to‘xtaydi va yozishdan to‘xtaganingizdan keyin 2 soniya orqadan davom etadi.",
-    "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNest uning holatini biladi."
+    "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNest uning holatini biladi.",
+    "playerExplain": "Pleer — saytning pastki burchagidagi kichik oyna. Kitob sahifasida YouTube video yoki audio «Tinglab yozish» bilan ochilganda u sahifadan sahifaga o‘tsangiz ham to‘xtamay ijro etadi: taqriz yozayotganda eshitib turasiz. Uni sudrab istalgan joyga qo‘yasiz, videoni yashirib faqat ovozini qoldirasiz, yozayotganda o‘zi to‘xtab turadi, to‘xtagan joyingiz esa akkauntingizda saqlanadi.",
+    "replayTour": "Qo‘llanmani qayta ko‘rish",
+    "replayTourHint": "Asosiy tugmalar qisqacha tushuntiriladi"
   },
   "taqrizAi": {
     "tabAsk": "So‘rash",
@@ -1410,5 +1440,61 @@
     },
     "allImportant": "Hammasi (AI aniqlaydi)",
     "countPlaceholder": "yoki soni"
+  },
+  "feedback": {
+    "tabWrite": "Adminga yozish",
+    "tabCatalog": "Katalog tuzatishlari",
+    "tabInbox": "Kelgan xabarlar",
+    "formTitle": "Taklif yoki savolingizni yozing",
+    "formHint": "Fikr, xato yoki yangi imkoniyat haqida — to‘g‘ridan to‘g‘ri saytning adminiga boradi.",
+    "titleLabel": "Sarlavha",
+    "titlePlaceholder": "Masalan: Video uchun yangi imkoniyat",
+    "bodyLabel": "Matn",
+    "bodyPlaceholder": "Batafsil yozing…",
+    "contactLabel": "Siz bilan bog‘lanish uchun",
+    "contactPlaceholder": "Telegram, email yoki telefon",
+    "send": "Yuborish",
+    "sent": "Yuborildi — rahmat!",
+    "contactTitle": "Bog‘lanish",
+    "contactHint": "Telegram orqali to‘g‘ridan to‘g‘ri yozing",
+    "mine": "Yuborganlarim",
+    "status": {
+      "new": "Yuborildi",
+      "read": "O‘qildi",
+      "done": "Hal qilindi"
+    },
+    "mark": {
+      "read": "O‘qildi",
+      "done": "Hal qilindi"
+    },
+    "inboxEmpty": "Hozircha xabar yo‘q.",
+    "contactShort": "Aloqa",
+    "catalogExplain": "Umumiy katalogdagi boshqa foydalanuvchi qo‘shgan yozuvni o‘zgartirsangiz, o‘zgarish shu yerga taklif bo‘lib tushadi va admin tasdiqlagach qo‘llanadi. O‘zingiz qo‘shganlarni esa darhol tahrirlaysiz."
+  },
+  "tour": {
+    "label": "Qo‘llanma",
+    "skip": "O‘tkazib yuborish",
+    "back": "Orqaga",
+    "next": "Keyingi",
+    "start": "Boshlash",
+    "done": "Tushunarli!",
+    "welcomeTitle": "NodiNest’ga xush kelibsiz",
+    "welcomeBody": "Bu sizning shaxsiy darsxonangiz: o‘qigan kitoblaringiz, ko‘rgan video va ma’ruzalaringiz, qaydlar, taqrizlar va savollar bir joyda. Asosiy tugmalarni qisqacha ko‘rsatib o‘taman.",
+    "libraryTitle": "Darsxona",
+    "libraryBody": "Barcha kitob, video, ma’ruza va kurslaringiz. Ichida shaxslar (mualliflar, ma’ruzachilar) hamda nashriyot va kanallar ham bor.",
+    "addTitle": "Qo‘shish",
+    "addBody": "Yangi kitob yoki video qo‘shish. YouTube yoki kitob havolasini qo‘ysangiz, ma’lumotlar o‘zi to‘ldiriladi.",
+    "searchTitle": "Tezkor qidiruv",
+    "searchBody": "Istalgan kitob, shaxs, qayd yoki iqtibosni bir zumda toping (⌘K / Ctrl+K).",
+    "notesTitle": "Qaydlar va iqtiboslar",
+    "notesBody": "O‘qiyotganda yozgan fikr va iqtiboslaringiz. Har bir kitobning taqrizini esa kitob sahifasidagi «Taqriz» tugmasi orqali yozasiz.",
+    "reviewTitle": "Takrorlash",
+    "reviewBody": "AI qaydlaringiz, taqrizingiz va video matnidan eng muhim savollarni tuzadi; har savol unutishingizdan oldin qayta chiqadi — shunday yodda qoladi.",
+    "assistantTitle": "AI yordamchi",
+    "assistantBody": "Saytning sun’iy intellektiga istalgan narsani so‘rang: kitob qo‘shish, savol tuzish, matnni tushuntirish, statistika… U har o‘zgarishdan oldin sizdan tasdiq so‘raydi. Kunlik limit: {limit}.",
+    "unlimited": "cheklanmagan",
+    "limitN": "kuniga {n} ta so‘rov",
+    "settingsTitle": "Sozlamalar",
+    "settingsBody": "Klaviatura tugmalari, pleer va ko‘rinish. Bu qo‘llanmani shu yerdan qayta ko‘rishingiz mumkin."
   }
 }

@@ -1,6 +1,7 @@
 import {
   BookCheck,
   BookOpen,
+  Brain,
   FileStack,
   GraduationCap,
   History,
@@ -22,11 +23,13 @@ import { Button } from "@/components/ui/button";
 import { fmtClock } from "@/lib/clock";
 import { Card, CardHeader, EmptyState, IconChip } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
+import { cn } from "@/lib/cn";
 import { hueStyle, type Hue } from "@/lib/hues";
 import { listGoalsWithProgress } from "@/server/goals";
 import { getCollection, listCollections, listNotes } from "@/server/notes";
 import { listMyRecords } from "@/server/records";
 import { lastResume } from "@/server/resume";
+import { listDecks } from "@/server/study-cards";
 import { getCollectionStats } from "@/server/stats";
 
 export const dynamic = "force-dynamic";
@@ -67,13 +70,14 @@ export default async function DashboardPage() {
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const year = Number(today.slice(0, 4));
-  const [records, stats, goals, notes, cols, last] = await Promise.all([
+  const [records, stats, goals, notes, cols, last, decks] = await Promise.all([
     listMyRecords(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
     listGoalsWithProgress(db, ctx, today, tz),
     listNotes(db, ctx, {}),
     listCollections(db, ctx),
     lastResume(db, ctx),
+    listDecks(ctx),
   ]);
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
@@ -83,6 +87,47 @@ export default async function DashboardPage() {
   const s = stats.totals;
   const nf = new Intl.NumberFormat(locale === "uz" ? "uz-UZ" : "en-US");
   const hours = Math.round(s.media_seconds / 360) / 10;
+  const counters = [
+    {
+      key: "books",
+      show: s.books_read > 0,
+      label: t("dashboard.booksRead"),
+      value: nf.format(s.books_read),
+      icon: <BookCheck />,
+      hue: "blue" as Hue,
+      href: "/library?status=completed&type=book",
+    },
+    {
+      key: "pages",
+      show: s.pages_read > 0,
+      label: t("dashboard.pagesRead"),
+      value: nf.format(s.pages_read),
+      icon: <FileStack />,
+      hue: "blue" as Hue,
+      href: "/stats",
+    },
+    {
+      key: "courses",
+      show: s.courses_done > 0,
+      label: t("dashboard.coursesDone"),
+      value: nf.format(s.courses_done),
+      sub: s.lessons_done ? `${s.lessons_done} ${t("progressUnits.lessons")}` : undefined,
+      icon: <GraduationCap />,
+      hue: "blue" as Hue,
+      href: "/library?status=completed&type=course",
+    },
+    {
+      key: "media",
+      show: s.media_done > 0,
+      label: t("dashboard.mediaDone"),
+      value: nf.format(s.media_done),
+      sub: hours ? t("dashboard.mediaHours", { hours }) : undefined,
+      icon: <MonitorPlay />,
+      hue: "blue" as Hue,
+      href: "/stats",
+    },
+  ].filter((c) => c.show);
+  const due = decks.reduce((n, d) => n + d.due, 0);
 
   return (
     <>
@@ -129,50 +174,50 @@ export default async function DashboardPage() {
                 </Link>
               </Button>
             )}
+            {due > 0 && (
+              <Button variant="secondary" asChild>
+                <Link href="/review">
+                  <Brain /> {t("dashboard.dueReview", { n: due })}
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" asChild>
               <Link href="/assistant">
                 <Sparkles /> AI
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild data-tour="add">
               <Link href="/library/new">
                 <Plus /> {t("nav.newResource")}
               </Link>
             </Button>
           </div>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Counter
-            label={t("dashboard.booksRead")}
-            value={nf.format(s.books_read)}
-            icon={<BookCheck />}
-            hue="indigo"
-            href="/library?status=completed&type=book"
-          />
-          <Counter
-            label={t("dashboard.pagesRead")}
-            value={nf.format(s.pages_read)}
-            icon={<FileStack />}
-            hue="blue"
-            href="/stats"
-          />
-          <Counter
-            label={t("dashboard.coursesDone")}
-            value={nf.format(s.courses_done)}
-            sub={s.lessons_done ? `${s.lessons_done} ${t("progressUnits.lessons")}` : undefined}
-            icon={<GraduationCap />}
-            hue="teal"
-            href="/library?status=completed&type=course"
-          />
-          <Counter
-            label={t("dashboard.mediaDone")}
-            value={nf.format(s.media_done)}
-            sub={hours ? t("dashboard.mediaHours", { hours }) : undefined}
-            icon={<MonitorPlay />}
-            hue="rose"
-            href="/stats"
-          />
-        </div>
+        {/* Only what has a value: empty counters are noise. */}
+        {counters.length > 0 && (
+          <div
+            className={cn(
+              "mt-6 grid grid-cols-2 gap-3",
+              counters.length >= 4
+                ? "lg:grid-cols-4"
+                : counters.length === 3
+                  ? "lg:grid-cols-3"
+                  : "",
+            )}
+          >
+            {counters.map((c) => (
+              <Counter
+                key={c.key}
+                label={c.label}
+                value={c.value}
+                sub={c.sub}
+                icon={c.icon}
+                hue={c.hue}
+                href={c.href}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {s.library === 0 && (
@@ -193,24 +238,22 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <div className="flex flex-col gap-6 lg:col-span-2">
-          <Card>
-            <CardHeader
-              title={t("dashboard.reading")}
-              icon={<BookOpen />}
-              hue="blue"
-              action={
-                <Link
-                  href="/library?status=in_progress"
-                  className="text-primary text-xs font-medium hover:underline"
-                >
-                  {t("common.seeAll")}
-                </Link>
-              }
-            />
-            <div className="px-5 pb-5">
-              {reading.length === 0 ? (
-                <p className="text-muted text-sm">{t("dashboard.emptyReading")}</p>
-              ) : (
+          {reading.length > 0 && (
+            <Card>
+              <CardHeader
+                title={t("dashboard.reading")}
+                icon={<BookOpen />}
+                hue="blue"
+                action={
+                  <Link
+                    href="/library?status=in_progress"
+                    className="text-primary text-xs font-medium hover:underline"
+                  >
+                    {t("common.seeAll")}
+                  </Link>
+                }
+              />
+              <div className="px-5 pb-5">
                 <ul className="grid gap-3 xl:grid-cols-2">
                   {reading.map((r) => (
                     <li key={r.id}>
@@ -218,9 +261,9 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          </Card>
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardHeader

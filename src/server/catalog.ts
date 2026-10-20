@@ -434,7 +434,13 @@ async function setResourceChildren(tx: Tx, ctx: AppContext, id: string, data: Re
     await tx.insert(bookDetails).values({ resourceId: id, ...book, publisherId: pid });
   }
   if (MEDIA_LIKE.includes(data.type) && data.media) {
-    await tx.insert(mediaDetails).values({ resourceId: id, ...data.media });
+    // "Where" (channel / podcast / site) is linked to its entry in
+    // "Nashriyot va kanallar", created on first use.
+    const where = data.media.channel?.trim();
+    const kind =
+      data.type === "podcast" ? "podcast" : data.type === "article" ? "website" : "channel";
+    const pid = where ? await ensurePublisher(tx, ctx, where, kind) : null;
+    await tx.insert(mediaDetails).values({ resourceId: id, ...data.media, publisherId: pid });
   }
   // Contributors
   const contributors = await resolveContributors(tx, ctx, data);
@@ -785,7 +791,8 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
         coverFileId: r.cover_file_id,
         publicationDate: r.publication_date,
         contributors: r.contributors ?? "",
-        myStatus: r.my_status === "abandoned" ? "paused" : r.my_status,
+        myStatus:
+          r.my_status === "abandoned" || r.my_status === "paused" ? "in_progress" : r.my_status,
         myRating: r.my_rating,
         updatedAt: new Date(r.updated_at),
         readYear: r.read_year,

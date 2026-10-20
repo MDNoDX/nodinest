@@ -367,12 +367,20 @@ export const publishers = nodinest.table(
     country: text("country"),
     description: text("description"),
     websiteUrl: text("website_url"),
+    /** publisher | channel (YouTube…) | podcast | website | organization */
+    kind: text("kind").notNull().default("publisher"),
     createdBy: uuid("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: ts("deleted_at"),
   },
-  (t) => [index("publishers_updated_idx").on(t.updatedAt)],
+  (t) => [
+    index("publishers_updated_idx").on(t.updatedAt),
+    check(
+      "publishers_kind_chk",
+      sql`${t.kind} IN ('publisher', 'channel', 'podcast', 'website', 'organization')`,
+    ),
+  ],
 );
 
 export const bookDetails = nodinest.table("book_details", {
@@ -392,6 +400,8 @@ export const mediaDetails = nodinest.table("media_details", {
     .references(() => resources.id, { onDelete: "cascade" }),
   platform: text("platform"),
   channel: text("channel"),
+  /** The channel / podcast / site entry (in "Nashriyot va kanallar"). */
+  publisherId: uuid("publisher_id").references(() => publishers.id, { onDelete: "set null" }),
   durationSeconds: integer("duration_seconds"),
   /** Courses: number of lessons. */
   lessonCount: integer("lesson_count"),
@@ -743,6 +753,29 @@ export const writeups = nodinest.table(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("writeups_user_resource_uq").on(t.userId, t.resourceId)],
+);
+
+/** Messages to the admin ("Takliflar" → "Adminga yozish"). */
+export const feedback = nodinest.table(
+  "feedback",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    contact: text("contact"),
+    /** new | read | done */
+    status: text("status").notNull().default("new"),
+    adminNote: text("admin_note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("feedback_status_created_idx").on(t.status, t.createdAt),
+    check("feedback_status_chk", sql`${t.status} IN ('new', 'read', 'done')`),
+  ],
 );
 
 /**

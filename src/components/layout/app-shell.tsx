@@ -6,8 +6,9 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
 import { MediaDockProvider } from "@/components/media/media-dock";
+import { OnboardingTour } from "@/components/onboarding/tour";
 import { cn } from "@/lib/cn";
-import { hueStyle, SECTION_HUE } from "@/lib/hues";
+import { hueStyle } from "@/lib/hues";
 import { CommandPalette } from "./command-palette";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
@@ -41,8 +42,10 @@ const WIDE_RE = /^\/library\/[^/]+\/taqriz/;
 
 type ShellUser = { name: string; email: string; image: string | null; role: "user" | "superadmin" };
 
-function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, item: NavItem) {
+  const hit = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  return hit(item.href) || (item.includes ?? []).some(hit);
 }
 
 function NavList({
@@ -62,7 +65,7 @@ function NavList({
   return (
     <ul className="flex flex-col gap-0.5">
       {items.map((item) => {
-        const active = isActive(pathname, item.href);
+        const active = isActive(pathname, item);
         const Icon = item.icon;
         const count = badge?.[item.key];
         return (
@@ -72,7 +75,8 @@ function NavList({
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               title={collapsed ? t(item.key) : undefined}
-              style={hueStyle(SECTION_HUE[item.key] ?? "blue")}
+              data-tour={`nav-${item.key}`}
+              style={hueStyle("blue")}
               className={cn(
                 "group relative flex h-10 items-center gap-3 rounded-xl px-2 text-sm font-medium transition-colors",
                 active
@@ -91,7 +95,7 @@ function NavList({
                 aria-hidden
                 className={cn(
                   "grid size-7 shrink-0 place-items-center rounded-lg transition-colors",
-                  active ? "chip" : "text-[var(--hue)] opacity-80 group-hover:opacity-100",
+                  active ? "chip" : "text-muted group-hover:text-foreground",
                 )}
               >
                 <Icon className="size-[17px]" />
@@ -117,8 +121,11 @@ export function AppShell({
   user,
   pendingSuggestions,
   timerSlot,
+  aiDailyLimit,
   children,
 }: {
+  /** Daily AI requests for this account; null = unlimited (superadmin). */
+  aiDailyLimit: number | null;
   user: ShellUser;
   pendingSuggestions: number;
   timerSlot: React.ReactNode;
@@ -261,6 +268,7 @@ export function AppShell({
             {children}
           </main>
         </div>
+        <OnboardingTour aiLimit={aiDailyLimit} />
       </div>
     </MediaDockProvider>
   );

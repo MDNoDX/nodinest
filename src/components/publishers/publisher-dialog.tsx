@@ -18,7 +18,10 @@ type P = {
   country: string | null;
   description: string | null;
   websiteUrl: string | null;
+  kind?: string;
 };
+
+export const KINDS = ["publisher", "channel", "podcast", "website", "organization"] as const;
 
 export function PublisherDialog({ publisher }: { publisher?: P }) {
   const t = useTranslations();
@@ -27,6 +30,7 @@ export function PublisherDialog({ publisher }: { publisher?: P }) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [v, setV] = useState({
     name: publisher?.name ?? "",
+    kind: publisher?.kind ?? "publisher",
     city: publisher?.city ?? "",
     country: publisher?.country ?? "",
     websiteUrl: publisher?.websiteUrl ?? "",
@@ -68,6 +72,28 @@ export function PublisherDialog({ publisher }: { publisher?: P }) {
             });
           }}
         >
+          <div
+            role="radiogroup"
+            aria-label={t("publishers.kind")}
+            className="flex flex-wrap gap-1.5"
+          >
+            {KINDS.map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={v.kind === k}
+                onClick={() => set("kind", k)}
+                className={
+                  v.kind === k
+                    ? "bg-primary text-primary-foreground rounded-full px-3 py-1 text-sm font-medium"
+                    : "border-border text-muted hover:text-foreground rounded-full border px-3 py-1 text-sm"
+                }
+              >
+                {t(`publishers.kinds.${k}`)}
+              </button>
+            ))}
+          </div>
           <Field label={t("publishers.name")} error={errors.name}>
             {(p) => (
               <Input

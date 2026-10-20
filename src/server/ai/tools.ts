@@ -960,7 +960,8 @@ export const TOOLS = {
           .from(learningRecords)
           .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id))),
       );
-      const prevStatus = rec?.status === "abandoned" ? "paused" : rec?.status;
+      const prevStatus =
+        rec?.status === "abandoned" || rec?.status === "paused" ? "in_progress" : rec?.status;
       await upsertLearningRecord(db, ctx, {
         resourceId: id,
         status: a.status ?? prevStatus ?? (a.completedAt ? "completed" : "planned"),

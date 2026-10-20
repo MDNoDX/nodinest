@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { setDockPrefs, useDockPrefs } from "@/components/media/dock-prefs";
+import { TOUR_EVENT } from "@/components/onboarding/tour";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import {
@@ -160,7 +161,19 @@ export function ShortcutsSettings() {
         </Button>
       </div>
       <div className="border-border flex flex-col gap-2.5 border-t pt-4 text-sm">
+        <div className="mb-2 flex items-center gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}
+          >
+            {t("replayTour")}
+          </Button>
+          <span className="text-muted text-xs">{t("replayTourHint")}</span>
+        </div>
         <h3 className="font-semibold">{t("playerSettings")}</h3>
+        <p className="text-muted text-sm leading-relaxed">{t("playerExplain")}</p>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"

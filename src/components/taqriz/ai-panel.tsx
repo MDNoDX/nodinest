@@ -552,8 +552,9 @@ function ListenTab({
   const te = useTranslations("errors");
   const dock = useMediaDock();
   const [live, setLive] = useState(false);
-  const [mode, setMode] = useState<"transcript" | "notes">("transcript");
-  const [deep, setDeep] = useState(true);
+  // Only the faithful transcript, always written with full care.
+  const mode = "transcript" as const;
+  const deep = true;
   const [auto, setAuto] = useState(true);
   const [segs, setSegs] = useState<Seg[]>([]);
   const segsRef = useRef<Seg[]>([]);
@@ -722,40 +723,7 @@ function ListenTab({
         <p className="text-muted">{t("noMedia")}</p>
       ) : (
         <>
-          <div role="radiogroup" className="bg-surface-2 flex w-fit rounded-lg p-0.5 text-xs">
-            {(["transcript", "notes"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="radio"
-                aria-checked={mode === m}
-                onClick={() => setMode(m)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 font-medium",
-                  mode === m
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground",
-                )}
-              >
-                {t(m === "transcript" ? "modeTranscript" : "modeNotes")}
-              </button>
-            ))}
-          </div>
-          <p className="text-muted text-xs">
-            {t(mode === "transcript" ? "modeTranscriptHint" : "modeNotesHint")}
-          </p>
-          <label className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-4 accent-[var(--primary)]"
-              checked={deep}
-              onChange={(e) => setDeep(e.target.checked)}
-            />
-            <span>
-              {t("deep")}
-              <span className="text-muted block text-xs">{t("deepHint")}</span>
-            </span>
-          </label>
+          <p className="text-muted text-xs">{t("modeTranscriptHint")}</p>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -938,8 +906,9 @@ function FullTranscript({
   const t = useTranslations("taqrizAi");
   const te = useTranslations("errors");
   const dock = useMediaDock();
-  const [mode, setMode] = useState<"transcript" | "notes">("transcript");
-  const [deep, setDeep] = useState(true);
+  // Only the faithful transcript, always written with full care.
+  const mode = "transcript" as const;
+  const deep = true;
   const [list, setList] = useState<TranscriptInfo[] | null>(null);
   const [running, setRunning] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
@@ -1059,37 +1028,6 @@ function FullTranscript({
   return (
     <div className="flex flex-col gap-3 p-3 text-sm">
       <p className="text-muted text-xs">{t("fullHint")}</p>
-      <div role="radiogroup" className="bg-surface-2 flex w-fit rounded-lg p-0.5 text-xs">
-        {(["transcript", "notes"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={mode === m}
-            onClick={() => setMode(m)}
-            className={cn(
-              "rounded-md px-2.5 py-1 font-medium",
-              mode === m
-                ? "bg-surface text-foreground shadow-sm"
-                : "text-muted hover:text-foreground",
-            )}
-          >
-            {t(m === "transcript" ? "modeTranscript" : "modeNotes")}
-          </button>
-        ))}
-      </div>
-      <label className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-4 accent-[var(--primary)]"
-          checked={deep}
-          onChange={(e) => setDeep(e.target.checked)}
-        />
-        <span>
-          {t("deep")}
-          <span className="text-muted block text-xs">{t("fullDeepHint")}</span>
-        </span>
-      </label>
       <button
         type="button"
         disabled={!!running || waiting}

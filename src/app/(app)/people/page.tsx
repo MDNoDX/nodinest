@@ -1,4 +1,5 @@
 import { Plus, Search, Users } from "lucide-react";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import Link from "next/link";
 import { shortYear } from "@/lib/dates";
 import { getTranslations } from "next-intl/server";
@@ -42,6 +43,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: SP })
           </Button>
         }
       />
+      <DarsxonaTabs current="people" />
       <AutoSubmitForm className="mb-6 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
         <div className="relative">
           <Search

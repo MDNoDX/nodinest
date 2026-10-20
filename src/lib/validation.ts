@@ -192,8 +192,8 @@ export const resourceInput = z.object({
 });
 export type ResourceInput = z.infer<typeof resourceInput>;
 
-/** "abandoned" was merged into "paused" in v2 (kept only in the DB enum). */
-export const LEARNING_STATUSES = ["planned", "in_progress", "completed", "paused"] as const;
+/** "paused" / "abandoned" were merged into "in_progress" (kept only in the DB enum). */
+export const LEARNING_STATUSES = ["planned", "in_progress", "completed"] as const;
 export type LearningStatus = (typeof LEARNING_STATUSES)[number];
 
 const isoDay = z
@@ -293,6 +293,7 @@ export const planInput = z
 
 export const publisherInput = z.object({
   name: trimmed(200).min(1, "required"),
+  kind: z.enum(["publisher", "channel", "podcast", "website", "organization"]).default("publisher"),
   city: optText(120),
   country: optText(120),
   description: optText(5000),

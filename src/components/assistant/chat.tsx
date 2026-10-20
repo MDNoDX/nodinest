@@ -162,7 +162,9 @@ function CandidateRow({ c, action }: { c: Candidate; action?: React.ReactNode })
         <div className="mt-0.5 flex flex-wrap gap-1">
           {c.myStatus ? (
             <Badge tone="success">
-              {t(`status.${c.myStatus === "abandoned" ? "paused" : c.myStatus}`)}
+              {t(
+                `status.${c.myStatus === "abandoned" || c.myStatus === "paused" ? "in_progress" : c.myStatus}`,
+              )}
             </Badge>
           ) : (
             <Badge>{t("assistant.notInLibrary")}</Badge>

@@ -1,4 +1,5 @@
 import { BookOpen, Copy, Plus, Search } from "lucide-react";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -123,6 +124,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           </Button>
         }
       />
+      <DarsxonaTabs current="library" />
       <nav className="mb-4 flex flex-wrap items-center gap-2" aria-label={t("library.scope")}>
         {(["mine", "all"] as const).map((sc) => (
           <Link

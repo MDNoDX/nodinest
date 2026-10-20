@@ -10,7 +10,7 @@
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v4";
+const VERSION = "v4-logo2";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;

@@ -12,7 +12,7 @@
   --surface-2: #eef2fa;
   --surface-3: #e2e8f5;
   --foreground: #0f172a;
-  --muted-foreground: #556079;
+  --muted-foreground: #475166;
   --border: #e1e6f0;
   --border-strong: #c9d2e3;
   --primary: #2459e0;
@@ -54,7 +54,7 @@
   --surface-2: #161f3b;
   --surface-3: #1e2a4d;
   --foreground: #e7ebf6;
-  --muted-foreground: #9aa5c2;
+  --muted-foreground: #aeb7cf;
   --border: #1f2a4a;
   --border-strong: #2d3a63;
   --primary: #6f9dff;
@@ -380,4 +380,18 @@
 .taqriz-doc .nn-find-current {
   background: color-mix(in oklab, var(--c-amber) 70%, transparent);
   outline: 1px solid var(--c-amber);
+}
+
+/* Onboarding: a soft pulsing ring around the lit button */
+@keyframes tour-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+.tour-ring {
+  outline: 2px solid var(--primary);
+  animation: tour-pulse 1.4s ease-out infinite;
 }

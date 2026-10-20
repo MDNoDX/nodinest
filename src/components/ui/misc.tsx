@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { hueStyle, SECTION_HUE, TYPE_HUE, type Hue } from "@/lib/hues";
-import { NAV_PRIMARY, NAV_SECONDARY } from "@/components/layout/nav-items";
+import { hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
+import { NAV_INNER, NAV_PRIMARY, NAV_SECONDARY } from "@/components/layout/nav-items";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("card", className)} {...props} />;
@@ -37,19 +37,20 @@ export function CardHeader({
   description,
   className,
   icon,
-  hue = "blue",
 }: {
   title: React.ReactNode;
   action?: React.ReactNode;
   description?: React.ReactNode;
   className?: string;
   icon?: React.ReactNode;
+  /** Kept for callers; headers use the one accent colour now. */
   hue?: Hue;
 }) {
   return (
     <div className={cn("flex items-start justify-between gap-3 px-5 pt-4 pb-3", className)}>
       <div className="flex min-w-0 items-center gap-2.5">
-        {icon && <IconChip icon={icon} hue={hue} className="size-7 rounded-md" />}
+        {/* One calm accent everywhere; colour is kept for status and data. */}
+        {icon && <IconChip icon={icon} hue="blue" className="size-7 rounded-md" />}
         <div className="min-w-0">
           <h2 className="text-foreground text-sm font-semibold tracking-tight">{title}</h2>
           {description && <p className="text-muted mt-0.5 text-xs">{description}</p>}
@@ -141,16 +142,15 @@ export function PageHeader({
   section?: string;
 }) {
   if (section) {
-    const nav = [...NAV_PRIMARY, ...NAV_SECONDARY].find((n) => n.key === section);
+    const nav = [...NAV_PRIMARY, ...NAV_SECONDARY, ...NAV_INNER].find((n) => n.key === section);
     if (nav && !icon) {
       const Icon = nav.icon;
       icon = <Icon />;
     }
-    hue ??= SECTION_HUE[section];
   }
-  hue ??= "blue";
+  hue = "blue";
   return (
-    <header className="hero -mx-4 -mt-6 mb-7 flex flex-col gap-4 rounded-b-3xl px-4 pt-6 pb-5 sm:-mx-6 sm:-mt-8 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:pt-8">
+    <header className="mb-7 flex flex-col gap-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex min-w-0 items-start gap-3.5">
         {icon && (
           <IconChip icon={icon} hue={hue} className="mt-0.5 size-11 rounded-xl [&_svg]:size-5" />
@@ -269,7 +269,8 @@ export function StatTile({
       <span aria-hidden className="hue-bar absolute inset-x-0 top-0 h-1 opacity-80" />
       <div className="flex items-center justify-between gap-2">
         <div className="text-muted text-xs font-medium">{label}</div>
-        {icon && <IconChip icon={icon} hue={hue} className="size-7 rounded-md" />}
+        {/* One calm accent everywhere; colour is kept for status and data. */}
+        {icon && <IconChip icon={icon} hue="blue" className="size-7 rounded-md" />}
       </div>
       <div className="mt-1.5 text-2xl font-bold tracking-tight tabular-nums">{value}</div>
       {hint && <div className="text-muted mt-0.5 text-xs">{hint}</div>}

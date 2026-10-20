@@ -87,6 +87,7 @@ export function CommandPalette() {
         <button
           className="border-border bg-surface text-muted hover:border-border-strong flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 text-sm transition-colors sm:max-w-sm"
           aria-label={t("nav.commandPalette")}
+          data-tour="search"
         >
           <Search className="size-4 shrink-0" />
           <span className="truncate">{t("nav.commandHint")}</span>

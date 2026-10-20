@@ -20,7 +20,7 @@ export default async function CollectionsPage() {
     listCollections(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
   ]);
-  const shelves = (["planned", "in_progress", "completed", "paused"] as const).map((s) => ({
+  const shelves = (["planned", "in_progress", "completed"] as const).map((s) => ({
     key: s,
     count: stats.totals[s],
   }));

@@ -1,5 +1,5 @@
 "use client";
-import { BookmarkPlus, Check, Clock3, Pause, Play, Plus, X } from "lucide-react";
+import { BookmarkPlus, Check, Clock3, Play, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { DropdownMenu as M } from "radix-ui";
 import { useOptimistic, useTransition } from "react";
@@ -8,7 +8,7 @@ import { removeRecordAction, setStatusAction } from "@/app/actions/personal";
 import { cn } from "@/lib/cn";
 import { MEDIA_LIKE, type ResourceType } from "@/lib/validation";
 
-type Status = "planned" | "in_progress" | "completed" | "paused";
+type Status = "planned" | "in_progress" | "completed";
 
 /** Ribbon colour + icon per state (identity colours, always paired with an icon + label). */
 const LOOK: Record<Status | "none", { bg: string; icon: typeof Check }> = {
@@ -16,12 +16,11 @@ const LOOK: Record<Status | "none", { bg: string; icon: typeof Check }> = {
   planned: { bg: "bg-[var(--c-amber)]", icon: Clock3 },
   in_progress: { bg: "bg-[var(--c-blue)]", icon: Play },
   completed: { bg: "bg-[var(--c-emerald)]", icon: Check },
-  paused: { bg: "bg-[var(--c-slate)]", icon: Pause },
 };
 
 /**
  * IMDb-style corner ribbon on a cover: shows at a glance whether you have
- * read/watched it, are on it now, planned it or paused — and changes it in
+ * read/watched it, are on it now, or planned it — and changes it in
  * one click. Sits OUTSIDE the cover link (no nested interactive elements).
  */
 export function StatusRibbon({
@@ -39,7 +38,9 @@ export function StatusRibbon({
 }) {
   const t = useTranslations();
   const [pending, start] = useTransition();
-  const initial = (status === "abandoned" ? "paused" : status) as Status | null;
+  const initial = (
+    status === "abandoned" || status === "paused" ? "in_progress" : status
+  ) as Status | null;
   const [shown, setShown] = useOptimistic<Status | null>(initial);
   const media = MEDIA_LIKE.includes(type);
   const label = (s: Status) => (media ? t(`statusMedia.${s}`) : t(`status.${s}`));
@@ -83,7 +84,7 @@ export function StatusRibbon({
           sideOffset={4}
           className="border-border bg-surface animate-scale-in z-50 w-52 rounded-xl border p-1.5 shadow-xl"
         >
-          {(["planned", "in_progress", "completed", "paused"] as Status[]).map((s) => {
+          {(["planned", "in_progress", "completed"] as Status[]).map((s) => {
             const L = LOOK[s];
             const SIcon = L.icon;
             return (

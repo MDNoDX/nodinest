@@ -79,7 +79,9 @@ export function DuplicateGroupCard({ items }: { items: Item[] }) {
               </span>
               {i.status && (
                 <Badge tone="success">
-                  {t(`status.${i.status === "abandoned" ? "paused" : i.status}`)}
+                  {t(
+                    `status.${i.status === "abandoned" || i.status === "paused" ? "in_progress" : i.status}`,
+                  )}
                 </Badge>
               )}
               {keep === i.id && <Badge tone="primary">{t("duplicates.keep")}</Badge>}

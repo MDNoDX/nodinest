@@ -104,8 +104,9 @@
     "adminMode": "Admin mode",
     "adminOn": "Admin mode is on",
     "adminOff": "Normal mode",
-    "publishers": "Publishers",
-    "review": "Review"
+    "publishers": "Publishers & channels",
+    "review": "Review",
+    "libraryTab": "My resources"
   },
   "theme": {
     "label": "Theme",
@@ -186,7 +187,8 @@
     "emptyFinished": "Books you finish will be shown here.",
     "avgRating": "Average rating",
     "rated": "{count} rated",
-    "continue": "Continue: {title}"
+    "continue": "Continue: {title}",
+    "dueReview": "{n} questions due"
   },
   "types": {
     "book": "Book",
@@ -209,7 +211,7 @@
     }
   },
   "status": {
-    "planned": "Want to read",
+    "planned": "Planned",
     "in_progress": "Reading",
     "completed": "Read",
     "paused": "Paused",
@@ -414,7 +416,7 @@
     "releaseDate": "Release date",
     "lessonCount": "Lessons",
     "where": "Where",
-    "whereHint": "Channel, platform, site or school",
+    "whereHint": "Channel or platform — added to “Publishers & channels” automatically",
     "watchUrl": "Link (watch / listen)",
     "readingTime": "Reading time (minutes)",
     "publisherHint": "Type it once — then pick it from the list.",
@@ -1022,7 +1024,7 @@
     "end_before_start": "End date must be after the start date."
   },
   "statusMedia": {
-    "planned": "Want to watch",
+    "planned": "Planned",
     "in_progress": "Watching",
     "completed": "Watched",
     "paused": "Paused"
@@ -1099,7 +1101,11 @@
     "replaceWith": "Replace with…",
     "replace": "Replace",
     "replaceAll": "All",
-    "closeFind": "Close find"
+    "closeFind": "Close find",
+    "findSideLabel": "Find in this taqriz",
+    "findSidePlaceholder": "Word or phrase…",
+    "findCount": "{n} of {total}",
+    "findNone": "Not found"
   },
   "dates": {
     "kind": "Date kind",
@@ -1125,17 +1131,38 @@
     "hours": "{h} h {m} min"
   },
   "publishers": {
-    "title": "Publishers",
-    "subtitle": "The publishers of your books.",
-    "add": "Add publisher",
+    "title": "Publishers & channels",
+    "subtitle": "",
+    "add": "Add",
     "name": "Name",
     "city": "City",
     "country": "Country",
     "website": "Website",
-    "empty": "No publishers yet",
-    "emptyBody": "Type a publisher when adding a book — it appears here.",
+    "empty": "Nothing here yet",
+    "emptyBody": "Add a book's publisher or a video's channel — it shows up here.",
     "books": "{count, plural, =0 {no books} one {# book} other {# books}}",
-    "noBooks": "No books from this publisher yet."
+    "noBooks": "Nothing from here yet.",
+    "kind": "Kind",
+    "explain": "Book publishers live here together with YouTube channels, podcasts, websites and organisations. Type the channel in a video or lecture's “Where” field and it appears here, with what you learned from it.",
+    "kinds": {
+      "publisher": "Publisher",
+      "channel": "YouTube / channel",
+      "podcast": "Podcast",
+      "website": "Website / platform",
+      "organization": "Organisation"
+    },
+    "items": "{count, plural, =0 {nothing yet} one {# item} other {# items}}",
+    "learnedN": "{count} learned",
+    "whatILearned": "What I learned here",
+    "stat": {
+      "completed": "Finished",
+      "inProgress": "In progress",
+      "hours": "Watched / heard",
+      "pages": "Pages read",
+      "quotes": "Quotes",
+      "notes": "Notes",
+      "words": "Taqriz words"
+    }
   },
   "install": {
     "title": "Install the app (Mac and phone)",
@@ -1265,7 +1292,10 @@
     "resumeAfter": "Resume after",
     "resumeAfterN": "Resume after {n} s",
     "typePauseWeb": "Typing pauses the NodiNest player; it resumes 2 s back once you stop typing.",
-    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNest knows it is playing."
+    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNest knows it is playing.",
+    "playerExplain": "The player is the small window in the corner. Opened from a resource with “Listen and write”, a YouTube video or audio keeps playing while you move between pages — listen while you write the taqriz. Drag it anywhere, hide the video to keep only the sound; it pauses while you type and remembers where you stopped on your account.",
+    "replayTour": "Replay the guide",
+    "replayTourHint": "A quick tour of the main buttons"
   },
   "taqrizAi": {
     "tabAsk": "Ask",
@@ -1410,5 +1440,61 @@
     },
     "allImportant": "All (AI decides)",
     "countPlaceholder": "or a number"
+  },
+  "feedback": {
+    "tabWrite": "Write to the admin",
+    "tabCatalog": "Catalog corrections",
+    "tabInbox": "Messages",
+    "formTitle": "Write your suggestion or question",
+    "formHint": "Ideas, bugs or new features — straight to the site's admin.",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. A new feature for videos",
+    "bodyLabel": "Text",
+    "bodyPlaceholder": "Tell us more…",
+    "contactLabel": "How to reach you",
+    "contactPlaceholder": "Telegram, email or phone",
+    "send": "Send",
+    "sent": "Sent — thank you!",
+    "contactTitle": "Contact",
+    "contactHint": "Message directly on Telegram",
+    "mine": "My messages",
+    "status": {
+      "new": "Sent",
+      "read": "Read",
+      "done": "Resolved"
+    },
+    "mark": {
+      "read": "Mark read",
+      "done": "Resolved"
+    },
+    "inboxEmpty": "No messages yet.",
+    "contactShort": "Contact",
+    "catalogExplain": "When you change an entry someone else added to the shared catalog, your change lands here as a suggestion and is applied once the admin approves it. Entries you added yourself you edit directly."
+  },
+  "tour": {
+    "label": "Guide",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "start": "Start",
+    "done": "Got it!",
+    "welcomeTitle": "Welcome to NodiNest",
+    "welcomeBody": "Your personal study room: books you read, videos and lectures you watch, notes, write-ups and questions in one place. Here is a quick look at the main buttons.",
+    "libraryTitle": "Darsxona",
+    "libraryBody": "All your books, videos, lectures and courses — with people (authors, speakers) and publishers & channels inside.",
+    "addTitle": "Add",
+    "addBody": "Add a new book or video. Paste a YouTube or book link and the details fill in by themselves.",
+    "searchTitle": "Quick search",
+    "searchBody": "Find any book, person, note or quote in a moment (⌘K / Ctrl+K).",
+    "notesTitle": "Notes & quotes",
+    "notesBody": "Thoughts and quotes you write while studying. A book's taqriz is written from its page with the “Taqriz” button.",
+    "reviewTitle": "Review",
+    "reviewBody": "The AI makes the most important questions from your notes, taqriz and video text; each comes back just before you would forget it.",
+    "assistantTitle": "AI assistant",
+    "assistantBody": "Ask the site's AI anything: add books, make questions, explain a passage, show stats… It always asks before changing anything. Daily limit: {limit}.",
+    "unlimited": "unlimited",
+    "limitN": "{n} requests a day",
+    "settingsTitle": "Settings",
+    "settingsBody": "Shortcuts, the player and appearance. You can replay this guide from here."
   }
 }

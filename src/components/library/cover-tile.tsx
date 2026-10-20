@@ -37,6 +37,7 @@ export function CoverTile({
             type={type}
             title={title}
             src={cover}
+            author={line}
             className="aspect-[2/3] h-auto w-full transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
           />
         </Link>

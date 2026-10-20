@@ -154,7 +154,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
     d.media?.lessonCount ??
     (d.media?.durationSeconds ? Math.round(d.media.durationSeconds / 60) : null);
   const chapters = d.mine.writeupHeadings;
-  const statusKey = (s: string) => (s === "abandoned" ? "paused" : s);
+  const statusKey = (s: string) => (s === "abandoned" || s === "paused" ? "in_progress" : s);
   const statusLabel = (s: string) =>
     isMedia ? t(`statusMedia.${statusKey(s)}`) : t(`status.${statusKey(s)}`);
 
@@ -172,6 +172,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
             type={r.type}
             title={r.title}
             src={coverSrc(r)}
+            author={d.contributors.map((c) => c.fullName).join(", ")}
             size="lg"
             className={isMedia ? "md:w-80" : "shadow-xl"}
           />
@@ -265,24 +266,37 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/notes/new?resource=${r.id}&kind=quote`}>
-                  <Quote /> {t("resource.addQuote")}
+                <Link
+                  href={`/notes/new?resource=${r.id}&kind=quote`}
+                  title={t("resource.addQuote")}
+                  aria-label={t("resource.addQuote")}
+                >
+                  <Quote /> <span className="hidden sm:inline">{t("resource.addQuote")}</span>
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/notes/new?resource=${r.id}`}>
-                  <StickyNote /> {t("resource.addNote")}
+                <Link
+                  href={`/notes/new?resource=${r.id}`}
+                  title={t("resource.addNote")}
+                  aria-label={t("resource.addNote")}
+                >
+                  <StickyNote /> <span className="hidden sm:inline">{t("resource.addNote")}</span>
                 </Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href={`/review?resource=${r.id}`}>
-                  <Brain /> {t("resource.makeQuestions")}
+                <Link
+                  href={`/review?resource=${r.id}`}
+                  title={t("resource.makeQuestions")}
+                  aria-label={t("resource.makeQuestions")}
+                >
+                  <Brain /> <span className="hidden sm:inline">{t("resource.makeQuestions")}</span>
                 </Link>
               </Button>
               <CollectionPicker
                 collections={cols}
                 selected={inCols}
                 target={{ resourceId: r.id }}
+                compact
               />
             </div>
             <div className="mt-3">
