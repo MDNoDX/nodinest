@@ -1058,7 +1058,9 @@ export const TOOLS = {
     parameters: obj(
       {
         resources: arr(obj(resourceRef), "The resources to make questions from (1–8)"),
-        count: int("How many questions (default 15, max 50)"),
+        count: int(
+          "How many questions, only if the user said a number (max 200). Omit it to get EVERY important question the material supports.",
+        ),
         focus: str("Optional focus, e.g. 'faqat 3-bob', 'asosiy tushunchalar', 'imtihonga'"),
         deck: str("Optional deck name; default: the resource title(s)"),
       },
@@ -1066,7 +1068,7 @@ export const TOOLS = {
     ),
     args: z.object({
       resources: z.array(z.object(resourceRefSchema)).min(1).max(8),
-      count: z.number().int().min(3).max(50).optional(),
+      count: z.number().int().min(1).max(200).optional(),
       focus: z.string().trim().max(500).optional(),
       deck: z.string().trim().max(120).optional(),
     }),
@@ -1085,7 +1087,7 @@ export const TOOLS = {
       const ids = [...new Set(await Promise.all(a.resources.map((r) => resolveResource(ctx, r))))];
       const out = await generateCards(ctx, {
         resourceIds: ids,
-        count: a.count ?? 15,
+        count: a.count ?? null,
         focus: a.focus ?? "",
         deck: a.deck,
         locale: env.locale === "en" ? "en" : "uz",

@@ -385,7 +385,7 @@ function ProposalCard({
             <CandidateRow key={c.id} c={c} />
           ))}
           <dl className="text-muted flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <span>{t("cardsCount", { n: Number(a.count ?? 15) })}</span>
+            <span>{a.count ? t("cardsCount", { n: Number(a.count) }) : t("cardsAll")}</span>
             {a.focus ? <span>{t("cardsFocus", { focus: String(a.focus) })}</span> : null}
             {a.deck ? <span>{t("cardsDeck", { deck: String(a.deck) })}</span> : null}
           </dl>

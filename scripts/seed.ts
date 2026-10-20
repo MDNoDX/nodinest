@@ -20,6 +20,8 @@ const CATEGORIES: [slug: string, uz: string, en: string][] = [
   ["languages", "Tillar", "Languages"],
   ["self-development", "Shaxsiy rivojlanish", "Self-development"],
   ["mathematics", "Matematika", "Mathematics"],
+  ["fantasy", "Fantastika", "Science fiction & fantasy"],
+  ["romance", "Romantika", "Romance"],
 ];
 
 async function main() {

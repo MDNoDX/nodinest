@@ -148,7 +148,8 @@ function Maker({
   const query = useDebounced(q.trim(), 250);
   const [hits, setHits] = useState<Picked[]>([]);
   const [picked, setPicked] = useState<Picked[]>([]);
-  const [count, setCount] = useState(15);
+  const [count, setCount] = useState("");
+  const [all, setAll] = useState(true);
   const [focus, setFocus] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHits, setShowHits] = useState(false);
@@ -170,9 +171,10 @@ function Maker({
 
   const make = async () => {
     setBusy(true);
+    const n = Number(count);
     const r = await generateCardsAction({
       resourceIds: picked.map((p) => p.id),
-      count,
+      count: all || !Number.isInteger(n) || n < 1 ? null : Math.min(n, 200),
       focus,
     }).catch(() => null);
     setBusy(false);
@@ -261,18 +263,34 @@ function Maker({
         </div>
       )}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <select
-          value={count}
-          onChange={(e) => setCount(Number(e.target.value))}
-          aria-label={t("count")}
-          className="border-border-strong bg-surface h-10 rounded-lg border px-2 text-sm"
-        >
-          {[10, 15, 20, 30, 50].map((n) => (
-            <option key={n} value={n}>
-              {t("nQuestions", { n })}
-            </option>
-          ))}
-        </select>
+        <div className="border-border-strong bg-surface flex h-10 shrink-0 items-center gap-2 rounded-lg border px-2.5">
+          <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={all}
+              onChange={(e) => setAll(e.target.checked)}
+              className="size-4 accent-[var(--primary)]"
+            />
+            {t("allImportant")}
+          </label>
+          <span className="bg-border h-5 w-px" />
+          <input
+            type="number"
+            min={1}
+            max={200}
+            inputMode="numeric"
+            value={count}
+            disabled={all}
+            onChange={(e) => {
+              setCount(e.target.value);
+              if (e.target.value) setAll(false);
+            }}
+            onFocus={() => setAll(false)}
+            placeholder={t("countPlaceholder")}
+            aria-label={t("count")}
+            className="w-20 bg-transparent text-sm tabular-nums outline-none disabled:opacity-50"
+          />
+        </div>
         <input
           value={focus}
           onChange={(e) => setFocus(e.target.value)}

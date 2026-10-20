@@ -789,7 +789,8 @@
     "cardsCount": "{n} questions",
     "cardsFocus": "Focus: {focus}",
     "cardsDeck": "Deck: {deck}",
-    "cardsHint": "The most important questions are made from your notes, quotes, video transcript / konspekt, taqriz and book text and saved to Review."
+    "cardsHint": "The most important questions are made from your notes, quotes, video transcript / konspekt, taqriz and book text and saved to Review.",
+    "cardsAll": "Every important question (AI decides)"
   },
   "stats": {
     "title": "Metrics",
@@ -1356,14 +1357,13 @@
     "decks": "Question decks",
     "noDecks": "No questions yet. Pick resources above and let the AI make questions, or ask the assistant “make questions from …”.",
     "makeTitle": "Make questions with AI",
-    "makeHint": "Pick resources: the AI makes the most important questions with answers from your notes, quotes, video transcript / konspekt, taqriz and book text.",
+    "makeHint": "Pick resources: the AI studies the whole taqriz, your notes, quotes, video transcript / konspekt and book text and writes the questions a real test would ask — ideas, reasons, names, dates, meanings of terms and words.",
     "pickPlaceholder": "Book, video or lecture title…",
     "unpick": "Remove",
     "count": "Number of questions",
-    "nQuestions": "{n} questions",
     "focusPlaceholder": "Focus (optional): e.g. only chapter 3, key concepts, for the exam",
     "make": "Make questions",
-    "making": "Making…",
+    "making": "Studying and writing…",
     "made": "“{deck}”: {n} questions ready",
     "thinMaterial": "Some resources have no notes, video text or book text — their questions rely on general facts only.",
     "deckStats": "{total} questions · {due} due today · {learned}% learned",
@@ -1397,13 +1397,18 @@
       "recall": "Recall",
       "understanding": "Understanding",
       "application": "Application",
-      "quote": "Quote"
+      "quote": "Quote",
+      "term": "Term / word meaning",
+      "person": "Person",
+      "date": "Date / year"
     },
     "grade": {
       "again": "Again",
       "hard": "Hard",
       "good": "Good",
       "easy": "Easy"
-    }
+    },
+    "allImportant": "All (AI decides)",
+    "countPlaceholder": "or a number"
   }
 }

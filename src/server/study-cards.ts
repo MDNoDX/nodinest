@@ -82,11 +82,22 @@ async function material(ctx: AppContext, resourceId: string, budget: number) {
 
 export const generateInput = z.object({
   resourceIds: z.array(z.string().uuid()).min(1).max(8),
-  count: z.number().int().min(3).max(50).default(15),
+  /** null / omitted = every important question the material supports. */
+  count: z.number().int().min(1).max(200).nullish(),
   focus: z.string().trim().max(500).default(""),
   deck: z.string().trim().max(120).optional(),
   locale: z.enum(["uz", "en"]).default("uz"),
 });
+
+export const CARD_KINDS = [
+  "understanding",
+  "recall",
+  "term",
+  "person",
+  "date",
+  "application",
+  "quote",
+] as const;
 
 const CARD_SCHEMA = {
   type: Type.OBJECT,
@@ -96,14 +107,13 @@ const CARD_SCHEMA = {
       items: {
         type: Type.OBJECT,
         properties: {
-          work: { type: Type.INTEGER, description: "Number of the WORK it is about (1-based)" },
-          kind: { type: Type.STRING, enum: ["recall", "understanding", "application", "quote"] },
+          kind: { type: Type.STRING, enum: [...CARD_KINDS] },
           question: { type: Type.STRING },
           answer: { type: Type.STRING },
           explanation: { type: Type.STRING },
           source: { type: Type.STRING, description: "e.g. p. 12, 14:30 (konspekt), my notes" },
         },
-        required: ["work", "kind", "question", "answer"],
+        required: ["kind", "question", "answer"],
       },
     },
   },
@@ -111,7 +121,6 @@ const CARD_SCHEMA = {
 };
 
 type GenCard = {
-  work: number;
   kind: string;
   question: string;
   answer: string;
@@ -119,23 +128,65 @@ type GenCard = {
   source?: string;
 };
 
-const SYSTEM = (count: number, locale: string, focus: string) =>
+const SYSTEM = (want: string, locale: string, focus: string) =>
   [
-    `You are an excellent teacher preparing ${count} study questions so the user deeply understands and remembers the WORKS below.`,
-    "Choose the most important things, the ones a strong exam or a thoughtful discussion would ask about: the central ideas and arguments, why something is so (causes, reasons, evidence), how ideas connect or differ, key terms with their meaning, important people / events / numbers only when they matter, how to apply an idea, and memorable key quotes (who said it / what it means).",
-    "Mix the kinds: about 35% understanding (why / how / explain), 30% recall of essential facts and terms, 20% application or comparison, 15% quotes. Order them from the foundations to the details.",
-    "Each question asks one clear thing and can be answered from the material. Each answer is complete but short (1–4 sentences, or a short list), so it can be checked from memory; add an 'explanation' only when context helps remembering (a mnemonic, the connection, an example).",
-    "Use ONLY the material. Never invent facts, quotes, page numbers or times; 'source' says where the answer is (p. N, a time like 12:30 from the konspekt, 'my notes', 'my taqriz').",
-    "Ask about the subject itself, as a teacher would: never mention 'my notes', 'the taqriz', 'the transcript', 'the material' or 'the text' inside a question or answer (that belongs in 'source' only).",
-    "Ignore parts of the material that clearly do not belong to the work (pasted by mistake, test text, another topic).",
-    "Do not ask trivia (page counts, publication details) unless important; do not repeat or rephrase the EXISTING questions.",
+    "You are an outstanding teacher and examiner. Study this part of the material deeply — the whole context, not single sentences — and write the questions that would really be asked in a good test or oral exam on this topic, so the user understands it and remembers it.",
+    want,
+    "Cover, wherever the material has them:",
+    "- the central ideas, arguments and conclusions; why / how something happens (causes, reasons, evidence, consequences); how ideas connect or differ (understanding);",
+    "- essential facts and events (recall);",
+    "- key terms and difficult or foreign words: their meaning, translation and origin (term) — e.g. Arabic, Persian, Russian or English words used in the text;",
+    "- people: who they are, what they did or said (person);",
+    "- important dates, years, periods and numbers and what happened then (date);",
+    "- applying or comparing an idea (application); memorable key quotes — who said it and what it means (quote).",
+    "Each question asks one clear thing; the answer is complete but short (1–4 sentences or a short list) so it can be checked from memory. Add an 'explanation' only when it helps remembering (context, a mnemonic, an example).",
+    "Ask about the subject itself, as a teacher would: never mention 'my notes', 'the taqriz', 'the transcript', 'the material' or 'the text' in a question or answer (that belongs in 'source').",
+    "Use ONLY the material and well-established facts it relies on; never invent facts, quotes, page numbers or times. 'source' says where the answer is (p. N, a time like 12:30, 'my notes', 'my taqriz').",
+    "Ignore parts that clearly do not belong to the work (pasted by mistake, test text, another topic). Skip trivia (page counts, publication details). Do not repeat or rephrase the EXISTING questions.",
     focus ? `Focus: ${focus}` : "",
     langRule(locale),
   ]
     .filter(Boolean)
     .join("\n");
 
-/** Makes cards from one or more resources and saves them into a deck. */
+/** Splits text at paragraph breaks into pieces of about `size` characters. */
+function chunks(text: string, size: number) {
+  const out: string[] = [];
+  let cur = "";
+  for (const para of text.split(/\n{2,}/)) {
+    if (cur && cur.length + para.length > size) {
+      out.push(cur);
+      cur = "";
+    }
+    cur += (cur ? "\n\n" : "") + para.slice(0, size * 1.5);
+  }
+  if (cur.trim()) out.push(cur);
+  return out;
+}
+
+/** Word set used to drop near-duplicate questions from parallel parts. */
+const words = (q: string) =>
+  new Set(
+    q
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2),
+  );
+function similar(a: Set<string>, b: Set<string>) {
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / Math.max(1, Math.min(a.size, b.size));
+}
+
+const CHUNK = 24_000;
+const MAX_PARTS = 8;
+
+/**
+ * Makes cards from one or more resources and saves them into a deck. The
+ * material is split into parts that are studied in parallel (fast even for a
+ * whole book or a long konspekt); near-duplicates are removed afterwards.
+ */
 export async function generateCards(ctx: AppContext, raw: unknown) {
   const a = generateInput.parse(raw);
   await gate(ctx, "ask");
@@ -148,31 +199,79 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
       .where(and(eq(studyCards.userId, ctx.userId), inArray(studyCards.resourceId, a.resourceIds)))
       .limit(300),
   );
-  const prompt = [
-    mats.map((m, i) => `## WORK ${i + 1}\n${m.text}`).join("\n\n"),
-    existing.length ? `EXISTING QUESTIONS\n${existing.map((e) => `- ${e.q}`).join("\n")}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-  const res = await generate(
-    [{ role: "user", parts: [{ text: prompt }] }],
-    {
-      systemInstruction: SYSTEM(a.count, a.locale, a.focus),
-      temperature: 0.4,
-      responseMimeType: "application/json",
-      responseSchema: CARD_SCHEMA,
-      thinkingConfig: { thinkingBudget: 4096 },
-    },
-    { timeoutMs: 110_000 },
-  );
-  let cards: GenCard[] = [];
-  try {
-    cards = (JSON.parse(res.text ?? "{}") as { cards?: GenCard[] }).cards ?? [];
-  } catch {
-    throw new AppError("AI_UNAVAILABLE", "bad_json");
+
+  // Parts: each starts with its work's facts so every part knows the context.
+  let parts = mats.flatMap((m, wi) => {
+    const [head, ...rest] = m.text.split("\n\n");
+    const body = rest.join("\n\n");
+    return (body ? chunks(body, CHUNK) : [""]).map((c) => ({ wi, text: `${head}\n\n${c}` }));
+  });
+  if (parts.length > MAX_PARTS) {
+    // Too long: merge neighbours of the same work until it fits.
+    const merged: typeof parts = [];
+    const step = Math.ceil(parts.length / MAX_PARTS);
+    for (let i = 0; i < parts.length; i += step) {
+      const g = parts.slice(i, i + step);
+      merged.push({
+        wi: g[0].wi,
+        text: g
+          .map((x) => x.text)
+          .join("\n\n")
+          .slice(0, CHUNK * 2),
+      });
+    }
+    parts = merged;
   }
-  cards = cards.filter((c) => c.question?.trim() && c.answer?.trim()).slice(0, a.count);
+  const total = parts.reduce((n, p) => n + p.text.length, 0);
+  const existingText = existing.length
+    ? `EXISTING QUESTIONS\n${existing.map((e) => `- ${e.q}`).join("\n")}`
+    : "";
+
+  const runPart = async (p: (typeof parts)[number]) => {
+    const share = a.count ? Math.max(1, Math.ceil((a.count * p.text.length) / total) + 1) : null;
+    const want = share
+      ? `Write about ${share} questions for this part.`
+      : "Write EVERY question that is genuinely important for this part — as many as the content deserves (often 8–30), no filler.";
+    const res = await generate(
+      [{ role: "user", parts: [{ text: [p.text, existingText].filter(Boolean).join("\n\n") }] }],
+      {
+        systemInstruction: SYSTEM(want, a.locale, a.focus),
+        temperature: 0.3,
+        responseMimeType: "application/json",
+        responseSchema: CARD_SCHEMA,
+        thinkingConfig: { thinkingBudget: 1024 },
+      },
+      { timeoutMs: 100_000 },
+    );
+    try {
+      const cards = (JSON.parse(res.text ?? "{}") as { cards?: GenCard[] }).cards ?? [];
+      return cards.map((c) => ({ ...c, wi: p.wi }));
+    } catch {
+      return [];
+    }
+  };
+  // At most 4 requests at once (free-tier rate limits).
+  const results: (GenCard & { wi: number })[][] = [];
+  for (let i = 0; i < parts.length; i += 4)
+    results.push(
+      ...(await Promise.all(parts.slice(i, i + 4).map((p) => runPart(p).catch(() => [])))),
+    );
+
+  // Interleave parts (spread over the whole work), drop near-duplicates.
+  const flat: (GenCard & { wi: number })[] = [];
+  for (let i = 0; results.some((r) => r[i]); i++)
+    for (const r of results) if (r[i]) flat.push(r[i]);
+  const seen = existing.map((e) => words(e.q));
+  let cards = flat.filter((c) => {
+    if (!c.question?.trim() || !c.answer?.trim()) return false;
+    const w = words(c.question);
+    if (seen.some((s) => similar(s, w) > 0.8)) return false;
+    seen.push(w);
+    return true;
+  });
+  cards = cards.slice(0, a.count ?? 200);
   if (!cards.length) throw new AppError("AI_UNAVAILABLE", "no_cards");
+
   const deck =
     a.deck ||
     (mats.length === 1 ? mats[0].title : mats.map((m) => m.title).join(" + ")).slice(0, 120);
@@ -182,15 +281,13 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
       .values(
         cards.map((c) => ({
           userId: ctx.userId,
-          resourceId: a.resourceIds[Math.min(Math.max(1, c.work || 1), a.resourceIds.length) - 1],
+          resourceId: a.resourceIds[c.wi] ?? a.resourceIds[0],
           deck,
           question: c.question.trim().slice(0, 2000),
           answer: c.answer.trim().slice(0, 4000),
           explanation: c.explanation?.trim().slice(0, 2000) || null,
           source: c.source?.trim().slice(0, 200) || null,
-          kind: ["recall", "understanding", "application", "quote"].includes(c.kind)
-            ? c.kind
-            : "recall",
+          kind: (CARD_KINDS as readonly string[]).includes(c.kind) ? c.kind : "recall",
         })),
       )
       .returning({ id: studyCards.id, question: studyCards.question, answer: studyCards.answer }),
@@ -198,6 +295,7 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
   return {
     deck,
     created: rows.length,
+    parts: parts.length,
     thinMaterial: mats.some((m) => !m.hasOwn),
     sample: rows.slice(0, 50).map((r) => ({ q: r.question, a: r.answer })),
   };

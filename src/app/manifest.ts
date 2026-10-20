@@ -24,7 +24,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Kutubxona",
+        name: "Darsxona",
         url: "/library",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
