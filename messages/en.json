@@ -303,7 +303,7 @@
   "resource": {
     "newTitle": "Add a resource",
     "editTitle": "Edit resource",
-    "newSubtitleAdmin": "Your changes are saved to the shared catalog.",
+    "newSubtitleAdmin": "Your changes are saved to your library.",
     "newSubtitleUser": "Someone else added this entry: your change is applied after an administrator reviews it.",
     "importFromUrl": "Import from a link",
     "importHint": "Paste a YouTube, Wikipedia or any public page link to pre-fill the form.",
@@ -345,7 +345,7 @@
     "readingUrl": "Read online (external link)",
     "purchaseUrl": "Purchase link",
     "fileFormat": "Format (e.g. PDF, EPUB, Print)",
-    "duration": "Duration (minutes)",
+    "duration": "Duration",
     "transcript": "Transcript",
     "transcriptUrl": "Transcript URL",
     "linksSection": "External links",
@@ -353,7 +353,7 @@
     "duplicateTitle": "Possible duplicates found",
     "duplicateBody": "These existing records look similar. Open one instead, or create a new record if it really is different (e.g. another edition).",
     "submittedForReview": "Submitted for review. An administrator will check it soon.",
-    "savedToCatalog": "Saved to the catalog.",
+    "savedToCatalog": "Saved to your library.",
     "metadata": "Details",
     "linkedPeople": "People",
     "related": "Related resources",
@@ -419,7 +419,7 @@
     "where": "Where",
     "whereHint": "Channel or platform — added to “Publishers & channels” automatically",
     "watchUrl": "Link (watch / listen)",
-    "readingTime": "Reading time (minutes)",
+    "readingTime": "Reading time",
     "publisherHint": "Type it once — then pick it from the list.",
     "publisherPlaceholder": "Search or type a new publisher…",
     "createPublisher": "“{name}” — new publisher",
@@ -429,7 +429,10 @@
     "deleteConfirm": "Delete this entry from your library and the catalog? Your notes are kept.",
     "deleted": "Deleted",
     "liveWrite": "Listen and write",
-    "makeQuestions": "Make questions"
+    "makeQuestions": "Make questions",
+    "detectDuration": "Detect",
+    "durationDetected": "Duration taken from YouTube",
+    "durationUnknown": "Couldn’t detect the duration"
   },
   "record": {
     "status": "Status",
@@ -1072,7 +1075,7 @@
     "uploadFailed": "Upload failed",
     "addImage": "Add image",
     "recordAudio": "Record audio",
-    "addFile": "PDF or audio file",
+    "addFile": "PDF, audio or video file",
     "micDenied": "Microphone access is blocked",
     "cancel": "Cancel",
     "stop": "Stop and add",
@@ -1112,7 +1115,15 @@
     "goalProgress": "{words} / {goal} words",
     "chapters": "Chapters",
     "askAiBook": "Write together with the AI",
-    "backToBooks": "My books"
+    "backToBooks": "My books",
+    "close": "Close",
+    "addYoutube": "Add a YouTube video",
+    "youtubeHint": "Paste the video link — it shows inside the text. You can also paste a link straight into the text.",
+    "youtubeInvalid": "This doesn’t look like a YouTube link",
+    "insert": "Insert",
+    "removeVideo": "Remove video",
+    "spaceFull": "Your space is full — the file wasn’t uploaded",
+    "spaceFullHint": "Save the book via “Download → With media”, then remove big audio/video files you no longer need."
   },
   "dates": {
     "kind": "Date kind",
@@ -1197,13 +1208,17 @@
       "pdf": "PDF",
       "docx": "Word (.docx)",
       "md": "Markdown (.md)",
-      "txt": "Plain text (.txt)"
+      "txt": "Plain text (.txt)",
+      "zip": "Web book (.zip)",
+      "epub": "E-book (EPUB)"
     },
     "hints": {
       "pdf": "Print-ready: cover, contents, page numbers",
       "docx": "Edit in Word / Pages / Google Docs",
       "md": "For Obsidian, Notion and other note apps",
-      "txt": "Opens on any device"
+      "txt": "Opens on any device",
+      "zip": "Text, pictures, audio and video in one folder — opens offline in a browser",
+      "epub": "With audio/video in Apple Books and other readers"
     },
     "withNotes": "Include notes and quotes",
     "ready": "Ready: {name}",
@@ -1212,7 +1227,10 @@
     "tooMany": "Too many downloads. Try again shortly.",
     "offline": "Downloading needs an internet connection.",
     "downloadAll": "Download all",
-    "savingToDownloads": "Saving to your Downloads folder…"
+    "savingToDownloads": "Saving to your Downloads folder…",
+    "withMedia": "With audio and video",
+    "packing": "Preparing… {pct}%",
+    "thisBook": "Download this book"
   },
   "duplicates": {
     "title": "Duplicates",
@@ -1581,6 +1599,14 @@
         "title": "My book",
         "desc": "No template — start your own way."
       }
-    }
+    },
+    "storageFull": "Your space is almost full: {used} / {quota} MB",
+    "storageFullBody": "Save your books to your computer via “Download → With audio and video” (web book or EPUB). Then remove big audio and video files you no longer need from the text to free space."
+  },
+  "duration": {
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "min": "min",
+    "sec": "s"
   }
 }

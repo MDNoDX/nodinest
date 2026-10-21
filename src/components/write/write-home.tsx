@@ -23,6 +23,7 @@ import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { BOOK_TEMPLATES, type BookTemplate } from "@/lib/book-templates";
 import { useAction } from "@/lib/use-action";
+import { StorageHint } from "./storage-hint";
 
 type Book = {
   id: string;
@@ -45,7 +46,15 @@ const ICON: Record<BookTemplate, typeof BookOpen> = {
 };
 
 /** "Kitob yozish": inspiration, templates and the user's own books. */
-export function WriteHome({ books, author }: { books: Book[]; author: string }) {
+export function WriteHome({
+  books,
+  author,
+  storage,
+}: {
+  books: Book[];
+  author: string;
+  storage: { used: number; quota: number } | null;
+}) {
   const t = useTranslations("write");
   const router = useRouter();
   const { pending, exec } = useAction();
@@ -59,6 +68,7 @@ export function WriteHome({ books, author }: { books: Book[]; author: string }) 
 
   return (
     <div className="flex flex-col gap-8">
+      {storage && <StorageHint {...storage} />}
       {/* Why write — a gentle invitation, the memoir first. */}
       <section className="card relative overflow-hidden p-6">
         <div className="max-w-2xl">

@@ -61,7 +61,7 @@ function fit(b: Uint8Array, maxW = 460, maxH = 420) {
   const k = Math.min(maxW / w, maxH / h, 1);
   return { width: Math.round(w * k), height: Math.round(h * k) };
 }
-let LBL = { audio: "Audio", file: "File" };
+let LBL = { audio: "Audio", file: "File", video: "Video" };
 
 function blocks(nodes: DocNode[], level = 0, quote = false): Paragraph[] {
   const out: Paragraph[] = [];
@@ -99,12 +99,14 @@ function blocks(nodes: DocNode[], level = 0, quote = false): Paragraph[] {
         break;
       }
       case "audio":
+      case "video":
+      case "youtube":
       case "file":
         out.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: `${n.type === "audio" ? LBL.audio : LBL.file}: ${String(n.attrs?.name ?? "")}`,
+                text: `${n.type === "audio" ? LBL.audio : n.type === "file" ? LBL.file : LBL.video}: ${n.type === "youtube" ? `https://youtu.be/${String(n.attrs?.videoId)}` : String(n.attrs?.name ?? "")}`,
                 color: "5B6478",
                 size: 18,
               }),
@@ -238,7 +240,7 @@ function bookSection(it: ExportItem, loc: Loc, tz: string, first: boolean): Para
   );
   const content = it.doc?.content ?? [];
   IMAGES = it.images ?? {};
-  LBL = { audio: t.audio, file: t.file };
+  LBL = { audio: t.audio, file: t.file, video: t.video };
   if (content.some((n) => n.content?.length || n.attrs?.fileId)) out.push(...blocks(content));
   else
     out.push(

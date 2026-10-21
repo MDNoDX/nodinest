@@ -260,14 +260,23 @@ function Blocks({
             ) : null;
           }
           case "audio":
+          case "video":
+          case "youtube":
           case "file":
             return (
               <Text
                 key={key}
                 style={{ fontFamily: "Sans", fontSize: 9.5, color: MUTED, marginVertical: 4 }}
               >
-                {n.type === "audio" ? (t?.audio ?? "Audio") : (t?.file ?? "File")}:{" "}
-                {String(n.attrs?.name ?? "")}
+                {n.type === "audio"
+                  ? (t?.audio ?? "Audio")
+                  : n.type === "file"
+                    ? (t?.file ?? "File")
+                    : (t?.video ?? "Video")}
+                :{" "}
+                {n.type === "youtube"
+                  ? `https://youtu.be/${String(n.attrs?.videoId)}`
+                  : String(n.attrs?.name ?? "")}
               </Text>
             );
           case "bulletList":

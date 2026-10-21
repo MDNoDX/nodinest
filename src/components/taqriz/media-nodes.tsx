@@ -1,7 +1,7 @@
 "use client";
 import { Node } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
-import { Loader2, Music, Trash2, Type } from "lucide-react";
+import { Film, Loader2, Music, Trash2, Type } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -62,6 +62,7 @@ export const FileNode = Node.create({
 });
 
 function AudioView({ node, editor, getPos, deleteNode, selected }: NodeViewProps) {
+  const isVideo = node.type.name === "video";
   const t = useTranslations("taqriz");
   const [busy, setBusy] = useState(false);
   const toText = async () => {
@@ -84,16 +85,30 @@ function AudioView({ node, editor, getPos, deleteNode, selected }: NodeViewProps
       className={`taqriz-audio not-prose my-3 flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${selected ? "border-primary" : "border-border"} bg-surface`}
       contentEditable={false}
     >
-      <Music className="size-4 shrink-0 text-[var(--c-rose)]" />
+      {isVideo ? (
+        <Film className="size-4 shrink-0 text-[var(--c-violet)]" />
+      ) : (
+        <Music className="size-4 shrink-0 text-[var(--c-rose)]" />
+      )}
       <span className="text-muted min-w-0 flex-1 truncate text-xs">
         {node.attrs.name as string}
       </span>
-      <audio
-        controls
-        preload="metadata"
-        src={`/api/files/${node.attrs.fileId}`}
-        className="h-9 w-full"
-      />
+      {isVideo ? (
+        <video
+          controls
+          preload="metadata"
+          playsInline
+          src={`/api/files/${node.attrs.fileId}`}
+          className="max-h-[420px] w-full rounded-lg bg-black"
+        />
+      ) : (
+        <audio
+          controls
+          preload="metadata"
+          src={`/api/files/${node.attrs.fileId}`}
+          className="h-9 w-full"
+        />
+      )}
       <span className="flex w-full justify-end gap-1">
         <button
           type="button"
@@ -109,7 +124,7 @@ function AudioView({ node, editor, getPos, deleteNode, selected }: NodeViewProps
           onClick={deleteNode}
           className="text-muted hover:text-danger hover:bg-surface-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
         >
-          <Trash2 className="size-3.5" /> {t("removeAudio")}
+          <Trash2 className="size-3.5" /> {isVideo ? t("removeVideo") : t("removeAudio")}
         </button>
       </span>
     </NodeViewWrapper>
@@ -126,4 +141,68 @@ export const AudioNode = Node.create({
   parseHTML: () => [{ tag: "div[data-audio-file]" }],
   renderHTML: ({ node }) => ["div", { "data-audio-file": node.attrs.fileId }],
   addNodeView: () => ReactNodeViewRenderer(AudioView),
+});
+
+/** An uploaded video: plays inline; its speech can be turned into text below it. */
+export const VideoNode = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes: () => fileAttrs,
+  parseHTML: () => [{ tag: "div[data-video-file]" }],
+  renderHTML: ({ node }) => ["div", { "data-video-file": node.attrs.fileId }],
+  addNodeView: () => ReactNodeViewRenderer(AudioView),
+});
+
+function YouTubeView({ node, deleteNode, selected }: NodeViewProps) {
+  const t = useTranslations("taqriz");
+  const id = node.attrs.videoId as string;
+  return (
+    <NodeViewWrapper
+      data-drag-handle
+      className={`not-prose my-3 rounded-xl border p-2 ${selected ? "border-primary" : "border-border"} bg-surface`}
+      contentEditable={false}
+    >
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}`}
+          title={(node.attrs.title as string) || "YouTube"}
+          className="absolute inset-0 size-full"
+          allow="encrypted-media; picture-in-picture; fullscreen"
+          loading="lazy"
+        />
+      </div>
+      <span className="mt-1 flex items-center gap-1">
+        <Film className="size-3.5 shrink-0 text-[var(--c-violet)]" />
+        <span className="text-muted min-w-0 flex-1 truncate text-xs">
+          {(node.attrs.title as string) || `youtu.be/${id}`}
+        </span>
+        <button
+          type="button"
+          onClick={deleteNode}
+          className="text-muted hover:text-danger hover:bg-surface-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
+        >
+          <Trash2 className="size-3.5" /> {t("removeVideo")}
+        </button>
+      </span>
+    </NodeViewWrapper>
+  );
+}
+
+/** A YouTube video placed in the text (privacy-enhanced embed). */
+export const YouTubeNode = Node.create({
+  name: "youtube",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes: () => ({ videoId: { default: null }, title: { default: "" } }),
+  parseHTML: () => [
+    {
+      tag: "div[data-youtube]",
+      getAttrs: (el) => ({ videoId: (el as HTMLElement).dataset.youtube }),
+    },
+  ],
+  renderHTML: ({ node }) => ["div", { "data-youtube": node.attrs.videoId }],
+  addNodeView: () => ReactNodeViewRenderer(YouTubeView),
 });

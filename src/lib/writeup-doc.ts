@@ -28,8 +28,12 @@ const BLOCKS = new Set([
   // Media the user uploaded (private files, referenced by id).
   "image",
   "audio",
+  "video",
   "file",
+  // A YouTube video (by id) shown in place.
+  "youtube",
 ]);
+const FILE_NODES = new Set(["image", "audio", "video", "file"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 const SIMPLE_MARKS = new Set(["bold", "italic", "underline", "strike"]);
@@ -89,8 +93,14 @@ export function sanitizeDoc(raw: unknown): WriteupDoc {
       }
       case "horizontalRule":
         return { type: "horizontalRule" };
+      case "youtube": {
+        const videoId = o.attrs?.videoId;
+        if (typeof videoId !== "string" || !/^[\w-]{11}$/.test(videoId)) return null;
+        return { type: "youtube", attrs: { videoId, title: str(o.attrs?.title, 300) } };
+      }
       case "image":
       case "audio":
+      case "video":
       case "file": {
         const fileId = o.attrs?.fileId;
         if (typeof fileId !== "string" || !UUID.test(fileId)) return null;
@@ -150,8 +160,9 @@ export function docToPlain(doc: WriteupDoc, opts: { markHeadings?: boolean } = {
         );
       else if (n.type === "blockquote") walk(n.content ?? [], "> ");
       else if (n.type === "paragraph") out.push(prefix + textOf(n));
-      else if (n.type === "image" || n.type === "audio" || n.type === "file")
-        out.push(`[${n.type}: ${String(n.attrs?.name ?? "")}]`);
+      else if (FILE_NODES.has(n.type)) out.push(`[${n.type}: ${String(n.attrs?.name ?? "")}]`);
+      else if (n.type === "youtube")
+        out.push(`[video: https://youtu.be/${String(n.attrs?.videoId)}]`);
     }
   };
   walk(doc.content);
@@ -182,11 +193,10 @@ export function countWords(plain: string): number {
   return m ? m.length : 0;
 }
 
-/** File ids embedded in a document (images / audio / files). */
+/** File ids embedded in a document (images / audio / video / files). */
 export function docMedia(doc: WriteupDoc): { type: string; fileId: string; name: string }[] {
   return doc.content.flatMap((n) =>
-    (n.type === "image" || n.type === "audio" || n.type === "file") &&
-    typeof n.attrs?.fileId === "string"
+    FILE_NODES.has(n.type) && typeof n.attrs?.fileId === "string"
       ? [{ type: n.type, fileId: n.attrs.fileId as string, name: String(n.attrs?.name ?? "") }]
       : [],
   );

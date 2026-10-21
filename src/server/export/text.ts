@@ -37,8 +37,10 @@ function blocks(nodes: DocNode[], md: boolean, indent = ""): string[] {
     else if (n.type === "blockquote")
       out.push(...blocks(n.content ?? [], md).map((l) => (l ? `> ${l}` : ">")));
     else if (n.type === "horizontalRule") out.push(md ? "---" : "* * *");
-    else if (n.type === "image" || n.type === "audio" || n.type === "file")
+    else if (["image", "audio", "video", "file"].includes(n.type))
       out.push(`[${String(n.attrs?.name ?? n.type)}]`);
+    else if (n.type === "youtube")
+      out.push(`[Video: https://youtu.be/${String(n.attrs?.videoId)}]`);
     else if (n.type === "bulletList" || n.type === "orderedList") {
       (n.content ?? []).forEach((li, i) => {
         const marker =

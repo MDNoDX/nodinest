@@ -74,9 +74,7 @@ export default async function EditResourcePage({ params }: { params: Promise<{ i
     media: {
       platform: s(snap.media?.platform),
       channel: s(snap.media?.channel),
-      durationMinutes: snap.media?.durationSeconds
-        ? String(Math.round(snap.media.durationSeconds / 60))
-        : "",
+      durationSeconds: snap.media?.durationSeconds ? String(snap.media.durationSeconds) : "",
       lessonCount: snap.media?.lessonCount ? String(snap.media.lessonCount) : "",
       transcript: s(snap.media?.transcript),
       transcriptUrl: s(snap.media?.transcriptUrl),

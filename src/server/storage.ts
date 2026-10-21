@@ -39,9 +39,12 @@ export const AUDIO_TYPES = [
   "audio/x-wav",
   "audio/flac",
 ];
-const MEDIA_TYPES = [...IMAGE_TYPES, "application/pdf", ...AUDIO_TYPES];
+export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const MEDIA_TYPES = [...IMAGE_TYPES, "application/pdf", ...AUDIO_TYPES, ...VIDEO_TYPES];
 export const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 export const MEDIA_MAX_BYTES = 30 * 1024 * 1024;
+/** Videos in a taqriz / own book (they count toward the user's quota). */
+export const VIDEO_MAX_BYTES = 150 * 1024 * 1024;
 export const USER_QUOTA_BYTES = 900 * 1024 * 1024;
 
 export function attachmentMaxBytes() {
@@ -57,7 +60,8 @@ export function allowedTypes(purpose: UploadPurpose) {
   return purpose === "attachment" ? DOC_TYPES : purpose === "media" ? MEDIA_TYPES : IMAGE_TYPES;
 }
 
-export function maxBytes(purpose: UploadPurpose) {
+export function maxBytes(purpose: UploadPurpose, mime = "") {
+  if (purpose === "media" && VIDEO_TYPES.includes(mime)) return VIDEO_MAX_BYTES;
   return purpose === "attachment"
     ? attachmentMaxBytes()
     : purpose === "media"
@@ -102,7 +106,7 @@ export async function authorizeUpload(
   if (
     !Number.isInteger(payload.size) ||
     payload.size <= 0 ||
-    payload.size > maxBytes(payload.purpose)
+    payload.size > maxBytes(payload.purpose, payload.mime)
   )
     throw new AppError("VALIDATION", "file_too_large");
   await enforceRateLimit(db, `upload:${ctx.userId}`, 60, 3600);
@@ -110,7 +114,7 @@ export async function authorizeUpload(
     throw new AppError("VALIDATION", "quota_exceeded");
   return {
     allowedContentTypes: allowedTypes(payload.purpose),
-    maximumSizeInBytes: maxBytes(payload.purpose),
+    maximumSizeInBytes: maxBytes(payload.purpose, payload.mime),
   };
 }
 
@@ -135,7 +139,7 @@ export async function registerUpload(
   }
   if (
     !allowedTypes(input.purpose).includes(meta.contentType) ||
-    meta.size > maxBytes(input.purpose)
+    meta.size > maxBytes(input.purpose, meta.contentType)
   ) {
     await del(input.pathname).catch(() => {});
     throw new AppError("VALIDATION", "upload_mismatch");

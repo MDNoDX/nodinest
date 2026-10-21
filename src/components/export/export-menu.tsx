@@ -1,11 +1,13 @@
 "use client";
 import {
+  BookOpenText,
   Check,
   Download,
   FileText,
   FileType2,
   Loader2,
   NotebookText,
+  Package,
   ScrollText,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -13,7 +15,13 @@ import { DropdownMenu as M } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BundleError, downloadBundle } from "@/lib/bundle-download";
 import { cn } from "@/lib/cn";
+
+const BUNDLES = [
+  { key: "zip", icon: Package, hue: "var(--c-amber)" },
+  { key: "epub", icon: BookOpenText, hue: "var(--c-teal)" },
+] as const;
 
 const FORMATS = [
   { key: "pdf", icon: FileText, hue: "var(--c-rose)" },
@@ -33,7 +41,10 @@ export function ExportMenu({
   variant = "outline",
   label,
   className,
+  book,
 }: {
+  /** An own book: "this book", and no notes / quotes option. */
+  book?: boolean;
   resourceId?: string;
   /** e.g. the editor flushes unsaved text first */
   beforeDownload?: () => Promise<void> | void;
@@ -43,7 +54,8 @@ export function ExportMenu({
   className?: string;
 }) {
   const t = useTranslations("export");
-  const [notes, setNotes] = useState(true);
+  const [notesOn, setNotes] = useState(true);
+  const notes = notesOn && !book;
   const [busy, setBusy] = useState<string | null>(null);
 
   const download = async (format: string) => {
@@ -95,6 +107,32 @@ export function ExportMenu({
     }
   };
 
+  /** The text with every audio, video and picture, packed in the browser. */
+  const bundle = async (kind: "zip" | "epub") => {
+    setBusy(kind);
+    const id = toast.loading(t("packing", { pct: 0 }));
+    try {
+      await beforeDownload?.();
+      const name = await downloadBundle(resourceId!, kind, (pct) =>
+        toast.loading(t("packing", { pct }), { id }),
+      );
+      toast.success(t("ready", { name }), { id });
+    } catch (e) {
+      toast.error(
+        e instanceof BundleError && e.message === "NOT_FOUND"
+          ? t("nothing")
+          : e instanceof BundleError && e.message === "RATE_LIMITED"
+            ? t("tooMany")
+            : navigator.onLine
+              ? t("failed")
+              : t("offline"),
+        { id },
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <M.Root>
       <M.Trigger asChild>
@@ -109,7 +147,7 @@ export function ExportMenu({
           className="border-border bg-surface animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
         >
           <M.Label className="text-muted px-2 pt-1 pb-1.5 text-[11px] font-semibold tracking-wide uppercase">
-            {resourceId ? t("thisOne") : t("all")}
+            {book ? t("thisBook") : resourceId ? t("thisOne") : t("all")}
           </M.Label>
           {FORMATS.map(({ key, icon: Icon, hue }) => (
             <M.Item
@@ -124,27 +162,50 @@ export function ExportMenu({
               </span>
             </M.Item>
           ))}
-          <M.Separator className="bg-border my-1 h-px" />
-          <M.CheckboxItem
-            checked={notes}
-            onSelect={(e) => {
-              e.preventDefault();
-              setNotes((v) => !v);
-            }}
-            className="data-[highlighted]:bg-surface-2 flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm outline-none"
-          >
-            <span
-              className={cn(
-                "grid size-4 place-items-center rounded border",
-                notes
-                  ? "bg-primary border-primary text-primary-foreground"
-                  : "border-border-strong",
-              )}
+          {resourceId && (
+            <>
+              <M.Separator className="bg-border my-1 h-px" />
+              <M.Label className="text-muted px-2 pt-1 pb-1.5 text-[11px] font-semibold tracking-wide uppercase">
+                {t("withMedia")}
+              </M.Label>
+              {BUNDLES.map(({ key, icon: Icon, hue }) => (
+                <M.Item
+                  key={key}
+                  onSelect={() => void bundle(key)}
+                  className="data-[highlighted]:bg-surface-2 flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 text-sm outline-none"
+                >
+                  <Icon className="mt-0.5 size-4 shrink-0" style={{ color: hue }} />
+                  <span className="flex flex-col">
+                    <span className="font-medium">{t(`formats.${key}`)}</span>
+                    <span className="text-muted text-xs">{t(`hints.${key}`)}</span>
+                  </span>
+                </M.Item>
+              ))}
+            </>
+          )}
+          {!book && <M.Separator className="bg-border my-1 h-px" />}
+          {!book && (
+            <M.CheckboxItem
+              checked={notesOn}
+              onSelect={(e) => {
+                e.preventDefault();
+                setNotes((v) => !v);
+              }}
+              className="data-[highlighted]:bg-surface-2 flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-sm outline-none"
             >
-              {notes && <Check className="size-3" />}
-            </span>
-            {t("withNotes")}
-          </M.CheckboxItem>
+              <span
+                className={cn(
+                  "grid size-4 place-items-center rounded border",
+                  notesOn
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "border-border-strong",
+                )}
+              >
+                {notesOn && <Check className="size-3" />}
+              </span>
+              {t("withNotes")}
+            </M.CheckboxItem>
+          )}
         </M.Content>
       </M.Portal>
     </M.Root>

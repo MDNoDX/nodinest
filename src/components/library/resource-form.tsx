@@ -12,12 +12,14 @@ import {
   Headphones,
   Image as ImageIcon,
   Link2,
+  Loader2,
   Mic,
   Plus,
   Presentation,
   Search,
   Shapes,
   Tags,
+  Timer,
   Trash2,
   Users,
   X,
@@ -35,6 +37,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { FileUpload } from "@/components/ui/file-upload";
+import { DurationInput } from "@/components/ui/duration-input";
 import { FlexDateInput } from "@/components/ui/flex-date-input";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge, IconChip } from "@/components/ui/misc";
@@ -42,6 +45,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/cn";
 import type { FieldErrors } from "@/lib/errors";
 import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
+import { youtubeIdFromUrl } from "@/lib/youtube";
 import {
   BOOK_LIKE,
   CONTRIBUTOR_ROLES,
@@ -138,9 +142,7 @@ function toPayload(v: ResourceFormValue) {
       ? {
           platform: v.media.platform || platformOf(v.sourceUrl),
           channel: v.media.channel,
-          durationSeconds: v.media.durationMinutes
-            ? Math.round(Number(v.media.durationMinutes) * 60)
-            : null,
+          durationSeconds: Number(v.media.durationSeconds) || null,
           lessonCount: v.type === "course" ? v.media.lessonCount : null,
           transcript: v.media.transcript,
           transcriptUrl: v.media.transcriptUrl,
@@ -203,6 +205,24 @@ export function ResourceForm({
   const err = (k: string) => errors[k];
   const isBook = BOOK_LIKE.includes(v.type);
   const isMedia = MEDIA_LIKE.includes(v.type);
+  // A YouTube id from the identifiers, the source URL or a link: its length can be read.
+  const ytId =
+    v.identifiers
+      .filter((i) => i.scheme === "youtube")
+      .map((i) => youtubeIdFromUrl(i.value))
+      .find(Boolean) ??
+    [v.sourceUrl, ...v.links.map((l) => l.url)].map(youtubeIdFromUrl).find(Boolean) ??
+    null;
+  const [detecting, startDetect] = useTransition();
+  const detectDuration = (id: string, loud: boolean) =>
+    startDetect(async () => {
+      const r = await importUrlAction(`https://www.youtube.com/watch?v=${id}`);
+      const secs = r.ok ? r.data.durationSeconds : null;
+      if (secs) {
+        setV((s) => ({ ...s, media: { ...s.media, durationSeconds: String(secs) } }));
+        if (loud) toast.success(t("resource.durationDetected"));
+      } else if (loud) toast.error(r.ok ? t("resource.durationUnknown") : t(`errors.${r.code}`));
+    });
   const coverPreview = v.coverFileId ? `/api/files/${v.coverFileId}` : v.coverUrl || null;
 
   const submit = (allowDuplicate = false) =>
@@ -281,9 +301,8 @@ export function ResourceForm({
               ...s.media,
               platform: s.media.platform || (m.kind === "youtube" ? "YouTube" : m.siteName || ""),
               channel: s.media.channel || m.channel || "",
-              durationMinutes:
-                s.media.durationMinutes ||
-                (m.durationSeconds ? String(Math.round(m.durationSeconds / 60)) : ""),
+              durationSeconds:
+                s.media.durationSeconds || (m.durationSeconds ? String(m.durationSeconds) : ""),
             },
           };
         });
@@ -764,13 +783,27 @@ export function ResourceForm({
                 error={err("media.durationSeconds")}
               >
                 {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={1}
-                    value={v.media.durationMinutes}
-                    onChange={(e) => set("media", { ...v.media, durationMinutes: e.target.value })}
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DurationInput
+                      id={p.id}
+                      value={v.media.durationSeconds}
+                      withSeconds={v.type !== "article"}
+                      invalid={!!err("media.durationSeconds")}
+                      onChange={(x) => set("media", { ...v.media, durationSeconds: x })}
+                    />
+                    {ytId && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={detecting}
+                        onClick={() => detectDuration(ytId, true)}
+                      >
+                        {detecting ? <Loader2 className="animate-spin" /> : <Timer />}
+                        {t("resource.detectDuration")}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </Field>
               <Field label={t("resource.where")} optional>
@@ -972,6 +1005,17 @@ export function ResourceForm({
                   <Input
                     aria-label={t("resource.identifiers")}
                     value={id.value}
+                    onBlur={() => {
+                      if (id.scheme !== "youtube") return;
+                      const yt = youtubeIdFromUrl(id.value);
+                      if (!yt) return;
+                      if (yt !== id.value)
+                        set(
+                          "identifiers",
+                          v.identifiers.map((x, j) => (j === i ? { ...x, value: yt } : x)),
+                        );
+                      if (isMedia && !v.media.durationSeconds) detectDuration(yt, false);
+                    }}
                     onChange={(e) =>
                       set(
                         "identifiers",

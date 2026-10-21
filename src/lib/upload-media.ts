@@ -21,6 +21,8 @@ const EXT_MIME: Record<string, string> = {
   webm: "audio/webm",
   aac: "audio/aac",
   flac: "audio/flac",
+  mov: "video/quicktime",
+  m4v: "video/mp4",
 };
 
 /** "audio/webm;codecs=opus" → "audio/webm"; empty types guessed from the extension. */
@@ -30,7 +32,7 @@ export function baseMime(type: string, name = ""): string {
   return EXT_MIME[name.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
 }
 
-/** Uploads an image / PDF / audio (purpose "media") straight to Blob and registers it. */
+/** Uploads an image / PDF / audio / video (purpose "media") straight to Blob and registers it. */
 export async function uploadMedia(
   input: File | Blob,
   opts: {

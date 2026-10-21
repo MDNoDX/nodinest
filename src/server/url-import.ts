@@ -13,6 +13,7 @@ import { AppError } from "@/lib/errors";
 import { extractMeta, htmlToText, robotsAllows } from "@/lib/net/html";
 import { checkPublicUrl } from "@/lib/net/ip";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { youtubeIdFromUrl } from "@/lib/youtube";
 import { enforceRateLimit } from "./rate-limit";
 
 export type ImportedMetadata = {
@@ -36,24 +37,6 @@ export type ImportedMetadata = {
 };
 
 const CACHE_TTL_MS = 7 * 24 * 3600 * 1000;
-
-export function youtubeIdFromUrl(raw: string): string | null {
-  try {
-    const u = new URL(raw);
-    const host = u.hostname.replace(/^www\.|^m\./, "");
-    if (host === "youtu.be")
-      return /^[\w-]{11}$/.test(u.pathname.slice(1)) ? u.pathname.slice(1) : null;
-    if (host === "youtube.com" || host === "music.youtube.com") {
-      const v = u.searchParams.get("v");
-      if (v && /^[\w-]{11}$/.test(v)) return v;
-      const m = u.pathname.match(/^\/(embed|shorts|live)\/([\w-]{11})/);
-      return m ? m[2] : null;
-    }
-  } catch {
-    /* invalid */
-  }
-  return null;
-}
 
 function cacheKey(url: string) {
   return `url:${createHash("sha256").update(url).digest("hex")}`;
@@ -105,6 +88,25 @@ function parseIsoDuration(v: unknown): number | null {
   return s > 0 ? Math.round(s) : null;
 }
 
+/**
+ * oEmbed has no length, so read it from the public watch page
+ * (`itemprop="duration"` microdata or the player's `lengthSeconds`).
+ * Best effort: null when YouTube answers differently.
+ */
+async function youtubeDuration(watchUrl: string): Promise<number | null> {
+  try {
+    const res = await safeFetch(watchUrl, { maxBytes: 2_000_000, timeoutMs: 8000 });
+    if (res.status !== 200) return null;
+    const iso = res.body.match(/itemprop="duration" content="(P[^"]+)"/)?.[1];
+    const fromIso = iso ? parseIsoDuration(iso) : null;
+    if (fromIso) return fromIso;
+    const len = Number(res.body.match(/"lengthSeconds":"(\d+)"/)?.[1]);
+    return len > 0 ? len : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function importUrlMetadata(
   rawUrl: string,
   userId: string,
@@ -116,7 +118,8 @@ export async function importUrlMetadata(
   url.hash = "";
   const key = cacheKey(url.toString());
   const cached = await readCache<ImportedMetadata>(key);
-  if (cached) return cached;
+  // Older YouTube entries were cached before durations were read.
+  if (cached && !(cached.kind === "youtube" && cached.durationSeconds == null)) return cached;
 
   if (!opts.unlimited) await enforceRateLimit(db, `urlimport:${userId}`, 20, 3600);
   await enforceRateLimit(db, `urlhost:${url.hostname}`, 30, 60);
@@ -164,6 +167,7 @@ export async function importUrlMetadata(
       siteName: "YouTube",
       image: data.thumbnail_url ?? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
       youtubeId: ytId,
+      durationSeconds: await youtubeDuration(canonical),
     };
   } else if (/(^|\.)wikipedia\.org$/.test(url.hostname) && url.pathname.startsWith("/wiki/")) {
     const title = url.pathname.slice("/wiki/".length);

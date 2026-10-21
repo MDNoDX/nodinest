@@ -39,7 +39,8 @@ export type ResourceFormValue = {
   media: {
     platform: string;
     channel: string;
-    durationMinutes: string;
+    /** Total seconds as text ("" = unknown). */
+    durationSeconds: string;
     lessonCount: string;
     transcript: string;
     transcriptUrl: string;
@@ -72,7 +73,7 @@ export const emptyResource = (type: ResourceType = "book"): ResourceFormValue =>
   media: {
     platform: "",
     channel: "",
-    durationMinutes: "",
+    durationSeconds: "",
     lessonCount: "",
     transcript: "",
     transcriptUrl: "",

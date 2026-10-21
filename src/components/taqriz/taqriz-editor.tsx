@@ -28,6 +28,7 @@ import {
   ListTree,
   Loader2,
   Mic,
+  MonitorPlay,
   Paperclip,
   Pilcrow,
   Quote,
@@ -47,12 +48,16 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import { importUrlAction } from "@/app/actions/catalog";
+import { storageStatusAction } from "@/app/actions/files";
 import { saveNoteAction, saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Cover } from "@/components/library/cover";
 import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
 import { uploadMedia } from "@/lib/upload-media";
-import { AudioNode, FileNode, ImageNode } from "./media-nodes";
+import { youtubeIdFromUrl } from "@/lib/youtube";
+import { AudioNode, FileNode, ImageNode, VideoNode, YouTubeNode } from "./media-nodes";
+import { YouTubeDialog } from "./youtube-dialog";
 import { cn } from "@/lib/cn";
 import { countWords, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
 
@@ -214,6 +219,7 @@ export function TaqrizEditor({
     find: () => void;
   } | null>(null);
   const [findOpen, setFindOpen] = useState(false);
+  const [ytOpen, setYtOpen] = useState(false);
   const [findQ, setFindQ] = useState("");
   const [replaceQ, setReplaceQ] = useState("");
   const findInput = useRef<HTMLInputElement>(null);
@@ -325,6 +331,8 @@ export function TaqrizEditor({
       }),
       ImageNode,
       AudioNode,
+      VideoNode,
+      YouTubeNode,
       FileNode,
       Find,
       Placeholder.configure({
@@ -364,6 +372,13 @@ export function TaqrizEditor({
         return true;
       },
       handlePaste: (_view, event) => {
+        // A pasted YouTube link becomes a video in the text.
+        const pasted = event.clipboardData?.getData("text/plain").trim() ?? "";
+        const yt = /^https?:\/\/\S+$/.test(pasted) ? youtubeIdFromUrl(pasted) : null;
+        if (yt) {
+          insertYouTube(yt);
+          return true;
+        }
         const imgs = [...(event.clipboardData?.files ?? [])].filter((f) =>
           f.type.startsWith("image/"),
         );
@@ -716,7 +731,26 @@ export function TaqrizEditor({
       .run();
   };
 
-  /** Upload → insert as image / audio / file block at the cursor. */
+  function insertYouTube(videoId: string) {
+    editorRef.current
+      ?.chain()
+      .focus()
+      .insertContent([{ type: "youtube", attrs: { videoId } }, { type: "paragraph" }])
+      .run();
+    // Then fill in the video's title (shown under it and in exports).
+    void importUrlAction(`https://www.youtube.com/watch?v=${videoId}`).then((r) => {
+      const ed = editorRef.current;
+      if (!r.ok || !r.data.title || !ed) return;
+      const tr = ed.state.tr;
+      ed.state.doc.descendants((n, pos) => {
+        if (n.type.name === "youtube" && n.attrs.videoId === videoId && !n.attrs.title)
+          tr.setNodeMarkup(pos, undefined, { ...n.attrs, title: r.data.title });
+      });
+      if (tr.docChanged) ed.view.dispatch(tr);
+    });
+  }
+
+  /** Upload → insert as image / audio / video / file block at the cursor. */
   async function insertFiles(list: (File | Blob)[], names?: string[]) {
     for (const [i, f] of list.entries()) {
       const name = names?.[i] ?? (f instanceof File ? f.name : "file");
@@ -727,7 +761,9 @@ export function TaqrizEditor({
           ? "image"
           : up.mime.startsWith("audio/")
             ? "audio"
-            : "file";
+            : up.mime.startsWith("video/")
+              ? "video"
+              : "file";
         editorRef.current
           ?.chain()
           .focus()
@@ -745,7 +781,14 @@ export function TaqrizEditor({
           .run();
         toast.success(t("added", { name }), { id });
       } catch {
-        toast.error(t("uploadFailed"), { id });
+        // A full upload space gets a way out: download with media, then clean up.
+        const st = await storageStatusAction();
+        const full = st.ok && st.data.used + f.size > st.data.quota;
+        toast.error(full ? t("spaceFull") : t("uploadFailed"), {
+          id,
+          description: full ? t("spaceFullHint") : undefined,
+          duration: full ? 12_000 : undefined,
+        });
       }
     }
   }
@@ -1120,7 +1163,7 @@ export function TaqrizEditor({
             <input
               ref={pickFile}
               type="file"
-              accept="application/pdf,audio/*"
+              accept="application/pdf,audio/*,video/mp4,video/webm,video/quicktime"
               multiple
               hidden
               onChange={(e) => {
@@ -1151,6 +1194,9 @@ export function TaqrizEditor({
             <Tool label={t("addFile")} onClick={() => pickFile.current?.click()}>
               <Paperclip className="size-4" />
             </Tool>
+            <Tool label={t("addYoutube")} onClick={() => setYtOpen(true)}>
+              <MonitorPlay className="size-4" />
+            </Tool>
             <Tool
               label={t("find")}
               on={findOpen}
@@ -1168,6 +1214,7 @@ export function TaqrizEditor({
             <span className="text-muted ml-auto flex shrink-0 items-center gap-3 pl-3 text-xs">
               <ExportMenu
                 resourceId={resource.id}
+                book={book}
                 beforeDownload={flush}
                 variant="ghost"
                 className="h-8"
@@ -1386,6 +1433,7 @@ export function TaqrizEditor({
           />
         </aside>
       )}
+      <YouTubeDialog open={ytOpen} onOpenChange={setYtOpen} onInsert={insertYouTube} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/charts/hbar-list";
 import { fmtBytes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { isStorageConfigured, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
+import { StorageHint } from "@/components/write/storage-hint";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,9 @@ export default async function SettingsPage() {
                     total: fmtBytes(USER_QUOTA_BYTES),
                   })}
                 </p>
+                <div className="mt-3">
+                  <StorageHint used={used} quota={USER_QUOTA_BYTES} />
+                </div>
               </>
             ) : (
               <p className="text-muted">{t("settings.storageOff")}</p>

@@ -303,7 +303,7 @@
   "resource": {
     "newTitle": "Manba qo‘shish",
     "editTitle": "Manbani tahrirlash",
-    "newSubtitleAdmin": "O‘zgarishlar umumiy katalogga saqlanadi.",
+    "newSubtitleAdmin": "O‘zgarishlar Darsxonangizga saqlanadi.",
     "newSubtitleUser": "Bu yozuvni boshqa foydalanuvchi qo‘shgan: o‘zgarishingiz administrator tekshiruvidan so‘ng qo‘llanadi.",
     "importFromUrl": "Havoladan import qilish",
     "importHint": "Formani to‘ldirish uchun YouTube, Wikipedia yoki istalgan ochiq sahifa havolasini kiriting.",
@@ -345,7 +345,7 @@
     "readingUrl": "Onlayn o‘qish (tashqi havola)",
     "purchaseUrl": "Sotib olish havolasi",
     "fileFormat": "Format (masalan, PDF, EPUB, bosma)",
-    "duration": "Davomiyligi (daqiqa)",
+    "duration": "Davomiyligi",
     "transcript": "Transkript",
     "transcriptUrl": "Transkript URL",
     "linksSection": "Tashqi havolalar",
@@ -353,7 +353,7 @@
     "duplicateTitle": "O‘xshash yozuvlar topildi",
     "duplicateBody": "Quyidagi mavjud yozuvlar o‘xshash ko‘rinadi. Ulardan birini oching yoki haqiqatan ham boshqa bo‘lsa (masalan, boshqa nashr), yangisini yarating.",
     "submittedForReview": "Ko‘rib chiqish uchun yuborildi. Administrator tez orada tekshiradi.",
-    "savedToCatalog": "Katalogga saqlandi.",
+    "savedToCatalog": "Darsxonangizga saqlandi.",
     "metadata": "Tafsilotlar",
     "linkedPeople": "Shaxslar",
     "related": "Bog‘liq manbalar",
@@ -419,7 +419,7 @@
     "where": "Qayerda",
     "whereHint": "Kanal yoki platforma — «Nashriyot va kanallar»ga o‘zi qo‘shiladi",
     "watchUrl": "Havola (ko‘rish / tinglash)",
-    "readingTime": "O‘qish vaqti (daqiqa)",
+    "readingTime": "O‘qish vaqti",
     "publisherHint": "Bir marta yozing — keyin ro‘yxatdan tanlaysiz.",
     "publisherPlaceholder": "Nashriyotni qidiring yoki yangisini yozing…",
     "createPublisher": "«{name}» — yangi nashriyot",
@@ -429,7 +429,10 @@
     "deleteConfirm": "Bu yozuv darsxonangizdan va katalogdan o‘chirilsinmi? Qaydlaringiz saqlanib qoladi.",
     "deleted": "O‘chirildi",
     "liveWrite": "Tinglab yozish",
-    "makeQuestions": "Savollar tuzish"
+    "makeQuestions": "Savollar tuzish",
+    "detectDuration": "Aniqlash",
+    "durationDetected": "Davomiylik YouTube’dan olindi",
+    "durationUnknown": "Davomiylikni aniqlab bo‘lmadi"
   },
   "record": {
     "status": "Holati",
@@ -1072,7 +1075,7 @@
     "uploadFailed": "Fayl yuklanmadi",
     "addImage": "Rasm qo‘shish",
     "recordAudio": "Ovoz yozish",
-    "addFile": "PDF yoki audio fayl",
+    "addFile": "PDF, audio yoki video fayl",
     "micDenied": "Mikrofonga ruxsat berilmagan",
     "cancel": "Bekor qilish",
     "stop": "To‘xtatish va qo‘shish",
@@ -1112,7 +1115,15 @@
     "goalProgress": "{words} / {goal} so‘z",
     "chapters": "Boblar",
     "askAiBook": "AI bilan birga yozish",
-    "backToBooks": "Kitoblarimga"
+    "backToBooks": "Kitoblarimga",
+    "close": "Yopish",
+    "addYoutube": "YouTube video qo‘yish",
+    "youtubeHint": "Video havolasini qo‘ying — u matn ichida ko‘rinadi. Havolani to‘g‘ridan-to‘g‘ri matnga joylashtirsangiz ham bo‘ladi.",
+    "youtubeInvalid": "Bu YouTube havolasiga o‘xshamaydi",
+    "insert": "Qo‘yish",
+    "removeVideo": "Videoni o‘chirish",
+    "spaceFull": "Joy to‘ldi — fayl yuklanmadi",
+    "spaceFullHint": "Kitobni “Yuklab olish → Media bilan” orqali saqlab oling, so‘ng keraksiz katta audio/videolarni o‘chirib joy bo‘shating."
   },
   "dates": {
     "kind": "Sana turi",
@@ -1197,13 +1208,17 @@
       "pdf": "PDF",
       "docx": "Word (.docx)",
       "md": "Markdown (.md)",
-      "txt": "Oddiy matn (.txt)"
+      "txt": "Oddiy matn (.txt)",
+      "zip": "Veb-kitob (.zip)",
+      "epub": "Elektron kitob (EPUB)"
     },
     "hints": {
       "pdf": "Chop etishga tayyor: muqova, mundarija, sahifa raqamlari",
       "docx": "Word / Pages / Google Docs’da tahrirlash uchun",
       "md": "Obsidian, Notion va boshqa yozuv ilovalari uchun",
-      "txt": "Har qanday qurilmada ochiladi"
+      "txt": "Har qanday qurilmada ochiladi",
+      "zip": "Matn, rasm, audio va videolar bitta papkada — brauzerda internetsiz ochiladi",
+      "epub": "Apple Books va boshqa o‘qish ilovalarida audio/video bilan"
     },
     "withNotes": "Qaydlar va iqtiboslarni ham qo‘shish",
     "ready": "Tayyor: {name}",
@@ -1212,7 +1227,10 @@
     "tooMany": "Juda ko‘p yuklab olish. Birozdan keyin urinib ko‘ring.",
     "offline": "Yuklab olish uchun internet kerak.",
     "downloadAll": "Hammasini yuklab olish",
-    "savingToDownloads": "Fayl «Yuklanmalar» papkasiga saqlanmoqda…"
+    "savingToDownloads": "Fayl «Yuklanmalar» papkasiga saqlanmoqda…",
+    "withMedia": "Audio va videolari bilan",
+    "packing": "Tayyorlanmoqda… {pct}%",
+    "thisBook": "Shu kitobni yuklab olish"
   },
   "duplicates": {
     "title": "Dublikatlar",
@@ -1581,6 +1599,14 @@
         "title": "Mening kitobim",
         "desc": "Hech qanday shablonsiz — o‘zingiz boshlaysiz."
       }
-    }
+    },
+    "storageFull": "Joy deyarli to‘ldi: {used} / {quota} MB",
+    "storageFullBody": "Kitoblaringizni “Yuklab olish → Audio va videolari bilan” orqali kompyuteringizga saqlab oling (veb-kitob yoki EPUB). Keyin matndan keraksiz katta audio va videolarni o‘chirsangiz, joy bo‘shaydi."
+  },
+  "duration": {
+    "minutes": "Daqiqa",
+    "seconds": "Soniya",
+    "min": "daq",
+    "sec": "son"
   }
 }

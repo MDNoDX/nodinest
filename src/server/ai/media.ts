@@ -11,7 +11,7 @@ import { AppError } from "@/lib/errors";
 import { enforceRateLimit } from "../rate-limit";
 import { getAiSettings } from "../settings";
 import { readFileBytes } from "../storage";
-import { generate, isAiConfigured } from "./gemini";
+import { generate, isAiConfigured, uploadToGemini } from "./gemini";
 import { files } from "@/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
@@ -73,29 +73,29 @@ export async function attachmentParts(ctx: AppContext, list: AttachmentInfo[]): 
   return parts;
 }
 
-/** Speech → text in the language spoken (counts toward the user's AI limit). */
+/** Speech → text in the language spoken, from audio or video (counts toward the AI limit). */
 export async function transcribeAudio(ctx: AppContext, fileId: string): Promise<string> {
   if (!isAiConfigured()) throw new AppError("AI_UNAVAILABLE", "not_configured");
   const [info] = await describeFiles(ctx, [fileId]);
-  if (!info || !info.mime.startsWith("audio/")) throw new AppError("NOT_FOUND");
+  if (!info || !/^(audio|video)\//.test(info.mime)) throw new AppError("NOT_FOUND");
   if (!ctx.superadminAccount) {
     const s = await getAiSettings(db);
     await enforceRateLimit(db, `ai:${ctx.userId}`, s.dailyLimitPerUser, 86_400);
   }
   const f = await readFileBytes(ctx, fileId);
   if (!f) throw new AppError("NOT_FOUND");
-  if (f.bytes.byteLength > INLINE_LIMIT) throw new AppError("VALIDATION", "audio_too_long");
+  const mimeType = GEMINI_AUDIO[f.mime] ?? f.mime;
+  // Small recordings go inline; longer ones (videos) through the Files API.
+  const media: Part =
+    f.bytes.byteLength > INLINE_LIMIT
+      ? { fileData: { mimeType, fileUri: await uploadToGemini(f.bytes, mimeType) } }
+      : { inlineData: { mimeType, data: Buffer.from(f.bytes).toString("base64") } };
   const res = await generate(
     [
       {
         role: "user",
         parts: [
-          {
-            inlineData: {
-              mimeType: GEMINI_AUDIO[f.mime] ?? f.mime,
-              data: Buffer.from(f.bytes).toString("base64"),
-            },
-          },
+          media,
           {
             text: "Transcribe this recording verbatim in the language spoken (Uzbek Latin script for Uzbek). Add punctuation and paragraph breaks. Output only the transcript.",
           },
@@ -103,7 +103,7 @@ export async function transcribeAudio(ctx: AppContext, fileId: string): Promise<
       },
     ],
     { temperature: 0 },
-    { timeoutMs: 60_000 },
+    { timeoutMs: 120_000 },
   );
   return (res.text ?? "").trim();
 }

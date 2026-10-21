@@ -31,6 +31,7 @@ const L = {
     page: "bet",
     noText: "Taqriz hali yozilmagan.",
     audio: "Audio yozuv",
+    video: "Video",
     file: "Fayl",
     image: "Rasm",
     status: {
@@ -76,6 +77,7 @@ const L = {
     page: "p.",
     noText: "No write-up yet.",
     audio: "Audio recording",
+    video: "Video",
     file: "File",
     image: "Image",
     status: {
