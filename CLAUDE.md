@@ -76,6 +76,14 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - First-visit guide: `components/onboarding/tour.tsx` (targets `data-tour="…"`; key
   `nodinest-tour-v1`, replay from Settings). E2E marks it seen in `tests/e2e/helpers.ts`.
 - Taqriz AI panel answers stream from `POST /api/ai/stream` (`generateStream` in gemini.ts).
+- Taqriz bubble menu: «Iqtibos» wraps the selection in a blockquote AND saves a `quote` note;
+  «Qaydnoma» saves a `note` and highlights the text with the `note` mark (`attrs.noteId`,
+  `components/taqriz/note-mark.ts`, allowed in `sanitizeDoc`). Video files + `youtube` nodes too.
+- Export "with media" (`server/export/bundle.ts`, `/api/export/bundle/[id]`): the server returns a
+  manifest (text files + media ids); the browser fetches media and zips it (`lib/bundle-download.ts`,
+  fflate) as a web book (.zip) or EPUB 3 — big videos never pass through a function response.
+- Study cards `depth: "deep"`: smaller parts, exam-level prompt, then `verifyCards` checks each card
+  against the same part (ok / fix / drop). /review maxDuration 300.
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

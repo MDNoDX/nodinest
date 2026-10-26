@@ -171,12 +171,16 @@ export const PERSONAL_TOOLS = {
         ),
         focus: str("Optional focus, e.g. 'faqat 3-bob', 'asosiy tushunchalar', 'imtihonga'"),
         deck: str("Optional deck name; default: the resource title(s)"),
+        deep: bool(
+          "Deep mode: harder exam-level questions, every card checked against the material (slower). Use when the user asks for deep / thorough / exam / very accurate questions, or many (e.g. 100).",
+        ),
       },
       ["resources"],
     ),
     args: z.object({
       resources: z.array(z.object(resourceRefSchema)).min(1).max(8),
       count: z.number().int().min(1).max(200).optional(),
+      deep: z.boolean().optional(),
       focus: z.string().trim().max(500).optional(),
       deck: z.string().trim().max(120).optional(),
     }),
@@ -198,6 +202,7 @@ export const PERSONAL_TOOLS = {
         count: a.count ?? null,
         focus: a.focus ?? "",
         deck: a.deck,
+        depth: a.deep ? "deep" : "standard",
         locale: env.locale === "en" ? "en" : "uz",
       });
       return {

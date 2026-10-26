@@ -17,6 +17,7 @@ export const SHORTCUTS = {
   search: { code: "KeyK", mod: true, alt: false, shift: false },
   askAi: { code: "KeyE", mod: true, alt: false, shift: true },
   quote: { code: "KeyB", mod: true, alt: false, shift: true },
+  note: { code: "KeyN", mod: true, alt: true, shift: false },
   chapter: { code: "Digit2", mod: true, alt: true, shift: false },
   subchapter: { code: "Digit3", mod: true, alt: true, shift: false },
 } satisfies Record<string, Combo>;

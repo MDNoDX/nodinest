@@ -73,6 +73,7 @@ const MARK_TAG: Record<string, string> = {
   italic: "em",
   underline: "u",
   strike: "s",
+  note: "mark",
 };
 
 function inline(nodes: DocNode[] | undefined, x: boolean): string {
@@ -214,6 +215,7 @@ figcaption{font:13px/1.5 system-ui,sans-serif;color:var(--muted);margin:.5rem 0}
 .frame{position:relative;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000}
 .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 a{color:var(--accent)}
+mark{background:rgba(217,119,6,.18);color:inherit;border-bottom:2px solid rgba(217,119,6,.6);border-radius:3px}
 .muted{color:var(--muted)}
 footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--line);text-align:center;font:13px system-ui,sans-serif;color:var(--muted)}
 @media (max-width:800px){.layout{display:block}nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:2rem 1rem 4rem}.title h1{font-size:2rem}}

@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Download,
   Eye,
+  Layers,
   Loader2,
   Pencil,
   Play,
@@ -151,6 +152,7 @@ function Maker({
   const [count, setCount] = useState("");
   const [all, setAll] = useState(true);
   const [focus, setFocus] = useState("");
+  const [deep, setDeep] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showHits, setShowHits] = useState(false);
 
@@ -176,6 +178,7 @@ function Maker({
       resourceIds: picked.map((p) => p.id),
       count: all || !Number.isInteger(n) || n < 1 ? null : Math.min(n, 200),
       focus,
+      depth: deep ? "deep" : "standard",
     }).catch(() => null);
     setBusy(false);
     if (!r || !r.ok) return toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
@@ -299,8 +302,55 @@ function Maker({
         />
         <Button disabled={!picked.length || busy} onClick={() => void make()}>
           {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          {busy ? t("making") : t("make")}
+          {busy ? (deep ? t("makingDeep") : t("making")) : t("make")}
         </Button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div
+          role="radiogroup"
+          aria-label={t("depth")}
+          className="bg-surface-2 flex rounded-lg p-0.5 text-xs"
+        >
+          {([false, true] as const).map((d) => (
+            <button
+              key={String(d)}
+              type="button"
+              role="radio"
+              aria-checked={deep === d}
+              onClick={() => setDeep(d)}
+              className={cn(
+                "flex items-center gap-1 rounded-md px-2.5 py-1 font-medium",
+                deep === d
+                  ? "bg-surface text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              {d && <Layers className="size-3.5" />}
+              {d ? t("deep") : t("standard")}
+            </button>
+          ))}
+        </div>
+        {[20, 50, 100].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => {
+              setAll(false);
+              setCount(String(n));
+            }}
+            className={cn(
+              "rounded-full border px-2.5 py-0.5 text-xs tabular-nums",
+              !all && count === String(n)
+                ? "border-primary bg-primary-soft text-primary"
+                : "border-border text-muted hover:text-foreground",
+            )}
+          >
+            {n}
+          </button>
+        ))}
+        <p className="text-muted w-full text-xs sm:w-auto sm:flex-1">
+          {deep ? t("deepHint") : t("standardHint")}
+        </p>
       </div>
     </section>
   );

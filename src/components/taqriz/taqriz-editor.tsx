@@ -14,13 +14,14 @@ import StarterKit from "@tiptap/starter-kit";
 import {
   ArrowLeft,
   Bold,
-  BookmarkPlus,
   ChevronDown,
   ChevronUp,
   Check,
   CloudOff,
   Heading2,
   Heading3,
+  Eraser,
+  ExternalLink,
   ImagePlus,
   Italic,
   List,
@@ -29,6 +30,7 @@ import {
   Loader2,
   Mic,
   MonitorPlay,
+  NotebookPen,
   Paperclip,
   Pilcrow,
   Quote,
@@ -56,6 +58,7 @@ import { Cover } from "@/components/library/cover";
 import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
 import { uploadMedia } from "@/lib/upload-media";
 import { youtubeIdFromUrl } from "@/lib/youtube";
+import { NoteMark } from "./note-mark";
 import { AudioNode, FileNode, ImageNode, VideoNode, YouTubeNode } from "./media-nodes";
 import { YouTubeDialog } from "./youtube-dialog";
 import { cn } from "@/lib/cn";
@@ -214,6 +217,7 @@ export function TaqrizEditor({
   const backHref = book ? "/write" : `/library/${resource.id}`;
   const keyActions = useRef<{
     quote: () => void;
+    note: () => void;
     chapter: (l: 2 | 3) => void;
     ask: () => void;
     find: () => void;
@@ -329,6 +333,7 @@ export function TaqrizEditor({
         code: false,
         link: { openOnClick: false, autolink: true, protocols: ["http", "https"] },
       }),
+      NoteMark,
       ImageNode,
       AudioNode,
       VideoNode,
@@ -352,13 +357,15 @@ export function TaqrizEditor({
         const k = getShortcuts();
         const act = matches(e, k.quote)
           ? () => keyActions.current?.quote()
-          : matches(e, k.askAi)
-            ? () => keyActions.current?.ask()
-            : matches(e, k.chapter)
-              ? () => keyActions.current?.chapter(2)
-              : matches(e, k.subchapter)
-                ? () => keyActions.current?.chapter(3)
-                : null;
+          : matches(e, k.note)
+            ? () => keyActions.current?.note()
+            : matches(e, k.askAi)
+              ? () => keyActions.current?.ask()
+              : matches(e, k.chapter)
+                ? () => keyActions.current?.chapter(2)
+                : matches(e, k.subchapter)
+                  ? () => keyActions.current?.chapter(3)
+                  : null;
         if (!act) return false;
         act();
         return true;
@@ -552,6 +559,7 @@ export function TaqrizEditor({
             bullet: e.isActive("bulletList"),
             ordered: e.isActive("orderedList"),
             quote: e.isActive("blockquote"),
+            note: e.isActive("note"),
             canUndo: e.can().undo(),
             canRedo: e.can().redo(),
             find: (() => {
@@ -700,15 +708,22 @@ export function TaqrizEditor({
     openAi("ask");
   };
 
-  useEffect(() => {
-    keyActions.current = { quote: makeQuote, chapter: makeChapter, ask: askAi, find: openFind };
-  });
-
-  /** The selection becomes a quote here AND is kept in "Notes & quotes" for this book. */
-  const saveAsQuote = async () => {
+  /**
+   * The quote button: the selection becomes a quote here AND is kept in the
+   * site-wide Quotes for this book. Pressing it inside a quote only removes the
+   * styling (the saved quote stays).
+   */
+  const quoteAndSave = async () => {
     if (!editor) return;
-    const { from, to } = editor.state.selection;
-    const text = editor.state.doc.textBetween(from, to, "\n").trim();
+    if (editor.isActive("blockquote")) {
+      editor.chain().focus().lift("blockquote").run();
+      return;
+    }
+    const { from, to, $from } = editor.state.selection;
+    const text = (
+      from !== to ? editor.state.doc.textBetween(from, to, "\n") : $from.parent.textContent
+    ).trim();
+    makeQuote();
     if (!text) return;
     const r = await saveNoteAction({
       kind: "quote",
@@ -716,9 +731,52 @@ export function TaqrizEditor({
       resourceId: resource.id,
     });
     if (!r.ok) return toast.error(t("quoteSaveFailed"));
-    if (!editor.isActive("blockquote")) makeQuote();
-    toast.success(t("quoteSaved"));
+    toast.success(t("quoteSaved"), {
+      action: { label: t("open"), onClick: () => window.open(`/notes/${r.data}`, "_blank") },
+    });
   };
+
+  /**
+   * "Qaydnomaga": the selection is saved as a note (in Notes, linked to this
+   * book) and highlighted here in the note colour, linked to that note.
+   */
+  const saveAsNote = async () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, "\n").trim();
+    if (!text) return;
+    const r = await saveNoteAction({
+      kind: "note",
+      body: text.slice(0, 50_000),
+      resourceId: resource.id,
+    });
+    if (!r.ok) return toast.error(t("noteSaveFailed"));
+    // Highlight it, unless the text moved while saving.
+    if (
+      to <= editor.state.doc.content.size &&
+      editor.state.doc.textBetween(from, to, "\n").trim() === text
+    )
+      editor
+        .chain()
+        .setTextSelection({ from, to })
+        .setMark("note", { noteId: r.data })
+        .setTextSelection(to)
+        .focus()
+        .run();
+    toast.success(t("noteSaved"), {
+      action: { label: t("open"), onClick: () => window.open(`/notes/${r.data}`, "_blank") },
+    });
+  };
+
+  useEffect(() => {
+    keyActions.current = {
+      quote: () => void quoteAndSave(),
+      note: () => void saveAsNote(),
+      chapter: makeChapter,
+      ask: askAi,
+      find: openFind,
+    };
+  });
 
   const addChapter = () => {
     if (!editor) return;
@@ -1130,8 +1188,11 @@ export function TaqrizEditor({
             >
               <ListOrdered className="size-4" />
             </Tool>
-            <Tool label={t("quote")} on={info?.quote} onClick={makeQuote}>
+            <Tool label={t("quoteHint")} on={info?.quote} onClick={() => void quoteAndSave()}>
               <Quote className="size-4" />
+            </Tool>
+            <Tool label={t("saveNoteHint")} on={info?.note} onClick={() => void saveAsNote()}>
+              <NotebookPen className="size-4 text-[var(--c-amber)]" />
             </Tool>
             <span className="bg-border mx-1 h-5 w-px shrink-0" />
             <Tool
@@ -1366,18 +1427,39 @@ export function TaqrizEditor({
               >
                 <Italic className="size-4" />
               </Tool>
-              <Tool label={t("quote")} on={info?.quote} onClick={makeQuote}>
-                <Quote className="size-4" />
-              </Tool>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => void saveAsQuote()}
-                className="text-foreground/80 hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 text-sm"
-                title={t("saveQuoteHint")}
-              >
-                <BookmarkPlus className="size-4 text-[var(--c-violet)]" /> {t("saveQuote")}
-              </button>
+              {/* The pair: a real quote (→ Quotes) and, right next to it, a note (→ Notes). */}
+              <span className="bg-surface-2 mx-0.5 flex items-center gap-0.5 rounded-lg p-0.5">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => void quoteAndSave()}
+                  aria-pressed={info?.quote}
+                  title={t("quoteHint")}
+                  className={cn(
+                    "flex h-7 items-center gap-1.5 rounded-md px-2 text-sm",
+                    info?.quote
+                      ? "bg-primary-soft text-primary"
+                      : "text-foreground/80 hover:bg-surface",
+                  )}
+                >
+                  <Quote className="text-primary size-4" /> {t("quoteShort")}
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => void saveAsNote()}
+                  aria-pressed={info?.note}
+                  title={t("saveNoteHint")}
+                  className={cn(
+                    "flex h-7 items-center gap-1.5 rounded-md px-2 text-sm",
+                    info?.note
+                      ? "text-foreground bg-[var(--c-amber)]/15"
+                      : "text-foreground/80 hover:bg-surface",
+                  )}
+                >
+                  <NotebookPen className="size-4 text-[var(--c-amber)]" /> {t("saveNote")}
+                </button>
+              </span>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
@@ -1386,6 +1468,36 @@ export function TaqrizEditor({
                 title={t("askSelectionHint")}
               >
                 <Sparkles className="text-primary size-4" /> {t("askSelection")}
+              </button>
+            </BubbleMenu>
+          )}
+          {editor && (
+            <BubbleMenu
+              editor={editor}
+              pluginKey="noteMenu"
+              shouldShow={({ editor: e, from, to }) => from === to && e.isActive("note")}
+              className="border-border bg-surface flex items-center gap-0.5 rounded-xl border p-1 text-sm shadow-lg"
+            >
+              <span className="text-muted flex items-center gap-1.5 px-2">
+                <NotebookPen className="size-4 text-[var(--c-amber)]" /> {t("inNotes")}
+              </span>
+              <a
+                href={`/notes/${editor.getAttributes("note").noteId as string}`}
+                target="_blank"
+                rel="noopener"
+                className="text-primary hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 font-medium"
+              >
+                <ExternalLink className="size-4" /> {t("openNote")}
+              </a>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() =>
+                  editor.chain().focus().extendMarkRange("note").unsetMark("note").run()
+                }
+                className="text-muted hover:text-danger hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2"
+              >
+                <Eraser className="size-4" /> {t("removeNoteMark")}
               </button>
             </BubbleMenu>
           )}

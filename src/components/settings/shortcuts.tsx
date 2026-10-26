@@ -130,7 +130,7 @@ export function ShortcutsSettings() {
         <section>
           <h3 className="mb-2 text-sm font-semibold">{t("taqriz")}</h3>
           <dl className="flex flex-col gap-1.5 text-sm">
-            {(["askAi", "quote", "chapter", "subchapter"] as const).map(editable)}
+            {(["askAi", "quote", "note", "chapter", "subchapter"] as const).map(editable)}
             {plain(fixed("⌘B", "Ctrl+B"), t("bold"))}
             {plain(fixed("⌘I", "Ctrl+I"), t("italic"))}
             {plain(fixed("⇧⌘S", "Ctrl+Shift+S"), t("strike"))}

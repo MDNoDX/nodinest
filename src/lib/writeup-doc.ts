@@ -5,8 +5,9 @@
  * server, the editor and tests.
  */
 export type DocMark = {
-  type: "bold" | "italic" | "underline" | "strike" | "link";
-  attrs?: { href: string };
+  /** "note": a passage saved to Notes (highlighted; `attrs.noteId` = the note). */
+  type: "bold" | "italic" | "underline" | "strike" | "link" | "note";
+  attrs?: { href?: string; noteId?: string };
 };
 export type DocNode = {
   type: string;
@@ -69,6 +70,10 @@ export function sanitizeDoc(raw: unknown): WriteupDoc {
       else if (m?.type === "link") {
         const href = safeHref(m.attrs?.href);
         if (href) marks.push({ type: "link", attrs: { href } });
+      } else if (m?.type === "note") {
+        const noteId = m.attrs?.noteId;
+        if (typeof noteId === "string" && UUID.test(noteId))
+          marks.push({ type: "note", attrs: { noteId } });
       }
     }
     return marks.length ? { type: "text", text, marks } : { type: "text", text };

@@ -6,7 +6,8 @@ import { listDecks } from "@/server/study-cards";
 
 export const dynamic = "force-dynamic";
 // Making questions with the AI runs as a server action from this page.
-export const maxDuration = 120;
+// Deep question sets read and check the material in several passes.
+export const maxDuration = 300;
 
 export async function generateMetadata() {
   return { title: (await getTranslations("review"))("title") };

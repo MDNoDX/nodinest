@@ -1086,9 +1086,7 @@
     "removeAudio": "Remove audio",
     "noMic": "No microphone found. Check that one is connected.",
     "micError": "Couldn’t start recording. Reload the page and try again.",
-    "saveQuote": "To quotes",
-    "saveQuoteHint": "Quote it and keep it in Notes & quotes",
-    "quoteSaved": "Quote saved",
+    "quoteSaved": "Quoted and saved to Quotes",
     "quoteSaveFailed": "Couldn’t save the quote",
     "mediaListen": "Listen and write",
     "mediaPlay": "Resume",
@@ -1123,7 +1121,17 @@
     "insert": "Insert",
     "removeVideo": "Remove video",
     "spaceFull": "Your space is full — the file wasn’t uploaded",
-    "spaceFullHint": "Save the book via “Download → With media”, then remove big audio/video files you no longer need."
+    "spaceFullHint": "Save the book via “Download → With media”, then remove big audio/video files you no longer need.",
+    "quoteHint": "Quote — also saved to Quotes",
+    "saveNote": "Note",
+    "saveNoteHint": "Save the selection to Notes and highlight it here",
+    "noteSaved": "Saved to notes",
+    "noteSaveFailed": "Couldn’t save the note",
+    "open": "Open",
+    "inNotes": "In notes",
+    "openNote": "Open note",
+    "removeNoteMark": "Remove highlight",
+    "quoteShort": "Quote"
   },
   "dates": {
     "kind": "Date kind",
@@ -1279,7 +1287,7 @@
     "bold": "Bold",
     "italic": "Italic",
     "strike": "Strikethrough",
-    "quote": "Quote the selection",
+    "quote": "Quote the selection (to Quotes)",
     "chapter": "Chapter",
     "subchapter": "Sub-chapter",
     "bullets": "Bullet list",
@@ -1308,9 +1316,10 @@
       "stamp": "Time stamp into taqriz",
       "search": "Quick search",
       "askAi": "Ask AI about the selection",
-      "quote": "Quote the selection",
+      "quote": "Quote the selection (to Quotes)",
       "chapter": "Chapter",
-      "subchapter": "Sub-chapter"
+      "subchapter": "Sub-chapter",
+      "note": "Save selection to notes"
     },
     "typePause": "Pause automatically while typing",
     "resumeAfter": "Resume after",
@@ -1319,7 +1328,8 @@
     "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so NodiNote knows it is playing.",
     "playerExplain": "The player is the small window in the corner. Opened from a resource with “Listen and write”, a YouTube video or audio keeps playing while you move between pages — listen while you write the taqriz. Drag it anywhere, hide the video to keep only the sound; it pauses while you type and remembers where you stopped on your account.",
     "replayTour": "Replay the guide",
-    "replayTourHint": "A quick tour of the main buttons"
+    "replayTourHint": "A quick tour of the main buttons",
+    "note": "Save selection to notes"
   },
   "taqrizAi": {
     "tabAsk": "Ask",
@@ -1486,7 +1496,13 @@
       "easy": "Easy"
     },
     "allImportant": "All (AI decides)",
-    "countPlaceholder": "or a number"
+    "countPlaceholder": "or a number",
+    "depth": "Depth",
+    "standard": "Standard",
+    "deep": "Deep",
+    "standardHint": "Quick: main ideas, facts and terms.",
+    "deepHint": "Exam level: causes, comparisons, exact names, dates and numbers; every answer is checked against the source. Takes 1–4 minutes.",
+    "makingDeep": "Preparing in depth and checking…"
   },
   "feedback": {
     "tabWrite": "Write to the admin",

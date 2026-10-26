@@ -1086,9 +1086,7 @@
     "removeAudio": "Audioni o‘chirish",
     "noMic": "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
     "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring.",
-    "saveQuote": "Iqtiboslarga",
-    "saveQuoteHint": "Iqtibos qilib, «Qaydlar va iqtiboslar»ga saqlash",
-    "quoteSaved": "Iqtibos saqlandi",
+    "quoteSaved": "Iqtibos qilindi va «Iqtiboslar»ga saqlandi",
     "quoteSaveFailed": "Iqtibos saqlanmadi",
     "mediaListen": "Tinglab yozish",
     "mediaPlay": "Davom ettirish",
@@ -1123,7 +1121,17 @@
     "insert": "Qo‘yish",
     "removeVideo": "Videoni o‘chirish",
     "spaceFull": "Joy to‘ldi — fayl yuklanmadi",
-    "spaceFullHint": "Kitobni “Yuklab olish → Media bilan” orqali saqlab oling, so‘ng keraksiz katta audio/videolarni o‘chirib joy bo‘shating."
+    "spaceFullHint": "Kitobni “Yuklab olish → Media bilan” orqali saqlab oling, so‘ng keraksiz katta audio/videolarni o‘chirib joy bo‘shating.",
+    "quoteHint": "Iqtibos qilish — «Iqtiboslar»ga ham saqlanadi",
+    "saveNote": "Qaydnoma",
+    "saveNoteHint": "Belgilanganni «Qaydlar»ga saqlash va shu yerda rang bilan belgilash",
+    "noteSaved": "Qaydnomaga saqlandi",
+    "noteSaveFailed": "Qayd saqlanmadi",
+    "open": "Ochish",
+    "inNotes": "Qaydnomada",
+    "openNote": "Qaydni ochish",
+    "removeNoteMark": "Belgini olib tashlash",
+    "quoteShort": "Iqtibos"
   },
   "dates": {
     "kind": "Sana turi",
@@ -1279,7 +1287,7 @@
     "bold": "Qalin",
     "italic": "Kursiv",
     "strike": "Ustidan chizish",
-    "quote": "Belgilanganni iqtibos qilish",
+    "quote": "Belgilanganni iqtibos qilish (Iqtiboslarga)",
     "chapter": "Bob",
     "subchapter": "Kichik bob",
     "bullets": "Ro‘yxat",
@@ -1308,9 +1316,10 @@
       "stamp": "Taqrizga vaqt belgisi",
       "search": "Tezkor qidiruv",
       "askAi": "Belgilanganni AI’dan so‘rash",
-      "quote": "Belgilanganni iqtibos qilish",
+      "quote": "Belgilanganni iqtibos qilish (Iqtiboslarga)",
       "chapter": "Bob",
-      "subchapter": "Kichik bob"
+      "subchapter": "Kichik bob",
+      "note": "Belgilanganni qaydnomaga saqlash"
     },
     "typePause": "Yozayotganda avtomatik to‘xtatish",
     "resumeAfter": "Qachon davom etsin",
@@ -1319,7 +1328,8 @@
     "typePauseMacApp": "Yoza boshlasangiz to‘xtaydi, yozib bo‘lgach o‘zi davom etadi. Tashqi dastur (Mutolaa, YouTube…) uchun: avval uni shu yerdagi to‘xtatish tugmasi bilan yoqing — shunda NodiNote uning holatini biladi.",
     "playerExplain": "Pleer — saytning pastki burchagidagi kichik oyna. Kitob sahifasida YouTube video yoki audio «Tinglab yozish» bilan ochilganda u sahifadan sahifaga o‘tsangiz ham to‘xtamay ijro etadi: taqriz yozayotganda eshitib turasiz. Uni sudrab istalgan joyga qo‘yasiz, videoni yashirib faqat ovozini qoldirasiz, yozayotganda o‘zi to‘xtab turadi, to‘xtagan joyingiz esa akkauntingizda saqlanadi.",
     "replayTour": "Qo‘llanmani qayta ko‘rish",
-    "replayTourHint": "Asosiy tugmalar qisqacha tushuntiriladi"
+    "replayTourHint": "Asosiy tugmalar qisqacha tushuntiriladi",
+    "note": "Belgilanganni qaydnomaga saqlash"
   },
   "taqrizAi": {
     "tabAsk": "So‘rash",
@@ -1486,7 +1496,13 @@
       "easy": "Oson"
     },
     "allImportant": "Hammasi (AI aniqlaydi)",
-    "countPlaceholder": "yoki soni"
+    "countPlaceholder": "yoki soni",
+    "depth": "Chuqurlik",
+    "standard": "Oddiy",
+    "deep": "Chuqur",
+    "standardHint": "Tez: asosiy g‘oyalar, faktlar va atamalar.",
+    "deepHint": "Imtihon darajasida: sabab-oqibat, taqqoslash, aniq ism, sana va raqamlar; har bir javob manbaga solishtirib tekshiriladi. 1–4 daqiqa oladi.",
+    "makingDeep": "Chuqur tayyorlanmoqda va tekshirilmoqda…"
   },
   "feedback": {
     "tabWrite": "Adminga yozish",

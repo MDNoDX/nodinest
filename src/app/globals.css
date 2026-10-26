@@ -326,6 +326,17 @@
   color: var(--muted-foreground);
   font-style: italic;
 }
+/* A passage saved to Notes: a soft amber highlighter, distinct from quotes. */
+.taqriz-doc mark.taqriz-note {
+  background: color-mix(in oklab, var(--c-amber) 22%, transparent);
+  color: inherit;
+  border-bottom: 2px solid color-mix(in oklab, var(--c-amber) 70%, transparent);
+  border-radius: 3px;
+  padding: 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+}
 .taqriz-doc a {
   color: var(--primary);
   text-decoration: underline;

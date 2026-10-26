@@ -87,6 +87,11 @@ export const generateInput = z.object({
   focus: z.string().trim().max(500).default(""),
   deck: z.string().trim().max(120).optional(),
   locale: z.enum(["uz", "en"]).default("uz"),
+  /**
+   * "deep": smaller parts studied closely, harder exam-level questions, and
+   * every card checked against the material afterwards (fixed or dropped).
+   */
+  depth: z.enum(["standard", "deep"]).default("standard"),
 });
 
 export const CARD_KINDS = [
@@ -128,10 +133,97 @@ type GenCard = {
   source?: string;
 };
 
-const SYSTEM = (want: string, locale: string, focus: string) =>
+const DEEP_RULES = [
+  "DEEP MODE — the user wants an exam-level, very accurate set:",
+  "- Go beyond surface recall: ask why / how, causes and consequences, the author's reasoning and evidence, comparisons, distinctions between similar ideas, exceptions and conditions, and what follows from an idea.",
+  "- Capture precise details exactly as the material gives them: full names, titles, dates, numbers, places, definitions, the wording of key terms; ask about each important one.",
+  "- Every answer must be directly supported by the material. If the material is ambiguous, do not ask about it. Never guess.",
+  "- 'source' must point to where it is said (p. N, a time, 'my notes') and, when possible, quote a few exact words of the supporting passage in «».",
+].join("\n");
+
+const VERIFY_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    results: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          n: { type: Type.INTEGER },
+          verdict: { type: Type.STRING, enum: ["ok", "fix", "drop"] },
+          question: { type: Type.STRING },
+          answer: { type: Type.STRING },
+        },
+        required: ["n", "verdict"],
+      },
+    },
+  },
+  required: ["results"],
+};
+
+/**
+ * Deep mode's second pass: each card is checked against the same material.
+ * Wrong or unsupported answers are corrected ("fix") or removed ("drop");
+ * vague or trivial questions are dropped. On failure the cards are kept.
+ */
+async function verifyCards(text: string, cards: GenCard[], locale: string): Promise<GenCard[]> {
+  if (!cards.length) return cards;
+  const list = cards
+    .map(
+      (c, i) =>
+        `#${i + 1} Q: ${c.question}\nA: ${c.answer}${c.source ? `\nSOURCE: ${c.source}` : ""}`,
+    )
+    .join("\n\n");
+  try {
+    const res = await generate(
+      [{ role: "user", parts: [{ text: `${text}\n\nCARDS TO CHECK\n${list}` }] }],
+      {
+        systemInstruction: [
+          "You are a meticulous fact-checker for study cards. Compare EVERY card with the material above.",
+          "verdict 'ok': the question is clear and the answer is fully correct and supported by the material.",
+          "verdict 'fix': the card is worth keeping but the answer is incomplete, imprecise or partly wrong (or the question is ambiguous) — return the corrected 'question' and 'answer', using only the material.",
+          "verdict 'drop': the answer is not supported by the material, the question is trivial, duplicated, or about something outside the work.",
+          "Check names, dates, numbers and term meanings character by character against the material.",
+          "Also 'fix' a question or answer that mentions 'the material', 'the text', 'my notes', 'the taqriz' or 'the transcript' — ask about the subject itself.",
+          langRule(locale),
+        ].join("\n"),
+        temperature: 0,
+        responseMimeType: "application/json",
+        responseSchema: VERIFY_SCHEMA,
+        thinkingConfig: { thinkingBudget: 2048 },
+      },
+      { timeoutMs: 100_000 },
+    );
+    const results =
+      (
+        JSON.parse(res.text ?? "{}") as {
+          results?: { n: number; verdict: string; question?: string; answer?: string }[];
+        }
+      ).results ?? [];
+    if (!results.length) return cards;
+    const byN = new Map(results.map((r) => [r.n, r]));
+    return cards.flatMap((c, i) => {
+      const r = byN.get(i + 1);
+      if (!r || r.verdict === "ok") return [c];
+      if (r.verdict === "drop") return [];
+      return [
+        {
+          ...c,
+          question: r.question?.trim() || c.question,
+          answer: r.answer?.trim() || c.answer,
+        },
+      ];
+    });
+  } catch {
+    return cards;
+  }
+}
+
+const SYSTEM = (want: string, locale: string, focus: string, deep = false) =>
   [
     "You are an outstanding teacher and examiner. Study this part of the material deeply — the whole context, not single sentences — and write the questions that would really be asked in a good test or oral exam on this topic, so the user understands it and remembers it.",
     want,
+    deep ? DEEP_RULES : "",
     "Cover, wherever the material has them:",
     "- the central ideas, arguments and conclusions; why / how something happens (causes, reasons, evidence, consequences); how ideas connect or differ (understanding);",
     "- essential facts and events (recall);",
@@ -148,6 +240,15 @@ const SYSTEM = (want: string, locale: string, focus: string) =>
   ]
     .filter(Boolean)
     .join("\n");
+
+/** "p. my notes" → "my notes": "p." only belongs before a page number. */
+function cleanSource(v: string | undefined): string | null {
+  const t = v
+    ?.trim()
+    .replace(/^p\.\s*(?=\D)/i, "")
+    .slice(0, 200);
+  return t || null;
+}
 
 /** Splits text at paragraph breaks into pieces of about `size` characters. */
 function chunks(text: string, size: number) {
@@ -181,6 +282,9 @@ function similar(a: Set<string>, b: Set<string>) {
 
 const CHUNK = 24_000;
 const MAX_PARTS = 8;
+// Deep mode: smaller parts get closer reading (and are checked afterwards).
+const DEEP_CHUNK = 14_000;
+const DEEP_MAX_PARTS = 10;
 
 /**
  * Makes cards from one or more resources and saves them into a deck. The
@@ -189,6 +293,9 @@ const MAX_PARTS = 8;
  */
 export async function generateCards(ctx: AppContext, raw: unknown) {
   const a = generateInput.parse(raw);
+  const deep = a.depth === "deep";
+  const size = deep ? DEEP_CHUNK : CHUNK;
+  const maxParts = deep ? DEEP_MAX_PARTS : MAX_PARTS;
   await gate(ctx, "ask");
   const per = Math.floor(MAX_MATERIAL / a.resourceIds.length);
   const mats = await Promise.all(a.resourceIds.map((id) => material(ctx, id, per)));
@@ -204,12 +311,12 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
   let parts = mats.flatMap((m, wi) => {
     const [head, ...rest] = m.text.split("\n\n");
     const body = rest.join("\n\n");
-    return (body ? chunks(body, CHUNK) : [""]).map((c) => ({ wi, text: `${head}\n\n${c}` }));
+    return (body ? chunks(body, size) : [""]).map((c) => ({ wi, text: `${head}\n\n${c}` }));
   });
-  if (parts.length > MAX_PARTS) {
+  if (parts.length > maxParts) {
     // Too long: merge neighbours of the same work until it fits.
     const merged: typeof parts = [];
-    const step = Math.ceil(parts.length / MAX_PARTS);
+    const step = Math.ceil(parts.length / maxParts);
     for (let i = 0; i < parts.length; i += step) {
       const g = parts.slice(i, i + step);
       merged.push({
@@ -217,7 +324,7 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
         text: g
           .map((x) => x.text)
           .join("\n\n")
-          .slice(0, CHUNK * 2),
+          .slice(0, size * 2),
       });
     }
     parts = merged;
@@ -228,33 +335,41 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
     : "";
 
   const runPart = async (p: (typeof parts)[number]) => {
-    const share = a.count ? Math.max(1, Math.ceil((a.count * p.text.length) / total) + 1) : null;
+    // Deep mode asks a little more per part: the check afterwards drops some.
+    const share = a.count
+      ? Math.max(1, Math.ceil((a.count * p.text.length * (deep ? 1.25 : 1)) / total) + 1)
+      : null;
     const want = share
       ? `Write about ${share} questions for this part.`
-      : "Write EVERY question that is genuinely important for this part — as many as the content deserves (often 8–30), no filler.";
+      : deep
+        ? "Write EVERY question a demanding examiner would ask about this part — as many as the content truly supports (often 15–40), no filler."
+        : "Write EVERY question that is genuinely important for this part — as many as the content deserves (often 8–30), no filler.";
     const res = await generate(
       [{ role: "user", parts: [{ text: [p.text, existingText].filter(Boolean).join("\n\n") }] }],
       {
-        systemInstruction: SYSTEM(want, a.locale, a.focus),
-        temperature: 0.3,
+        systemInstruction: SYSTEM(want, a.locale, a.focus, deep),
+        temperature: deep ? 0.2 : 0.3,
         responseMimeType: "application/json",
         responseSchema: CARD_SCHEMA,
-        thinkingConfig: { thinkingBudget: 1024 },
+        thinkingConfig: { thinkingBudget: deep ? 4096 : 1024 },
       },
       { timeoutMs: 100_000 },
     );
+    let cards: GenCard[];
     try {
-      const cards = (JSON.parse(res.text ?? "{}") as { cards?: GenCard[] }).cards ?? [];
-      return cards.map((c) => ({ ...c, wi: p.wi }));
+      cards = (JSON.parse(res.text ?? "{}") as { cards?: GenCard[] }).cards ?? [];
     } catch {
       return [];
     }
+    if (deep) cards = await verifyCards(p.text, cards, a.locale);
+    return cards.map((c) => ({ ...c, wi: p.wi }));
   };
-  // At most 4 requests at once (free-tier rate limits).
+  // A few requests at once (free-tier rate limits).
+  const width = deep ? 5 : 4;
   const results: (GenCard & { wi: number })[][] = [];
-  for (let i = 0; i < parts.length; i += 4)
+  for (let i = 0; i < parts.length; i += width)
     results.push(
-      ...(await Promise.all(parts.slice(i, i + 4).map((p) => runPart(p).catch(() => [])))),
+      ...(await Promise.all(parts.slice(i, i + width).map((p) => runPart(p).catch(() => [])))),
     );
 
   // Interleave parts (spread over the whole work), drop near-duplicates.
@@ -286,7 +401,7 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
           question: c.question.trim().slice(0, 2000),
           answer: c.answer.trim().slice(0, 4000),
           explanation: c.explanation?.trim().slice(0, 2000) || null,
-          source: c.source?.trim().slice(0, 200) || null,
+          source: cleanSource(c.source),
           kind: (CARD_KINDS as readonly string[]).includes(c.kind) ? c.kind : "recall",
         })),
       )
@@ -294,6 +409,7 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
   );
   return {
     deck,
+    deep,
     created: rows.length,
     parts: parts.length,
     thinMaterial: mats.some((m) => !m.hasOwn),
