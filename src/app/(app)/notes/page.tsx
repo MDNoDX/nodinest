@@ -224,6 +224,11 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
                         {n.title && (
                           <h2 className="text-[15px] font-semibold tracking-tight">{n.title}</h2>
                         )}
+                        {n.quoteText && n.quoteText !== n.body && (
+                          <p className="text-muted mb-1 line-clamp-3 border-l-2 border-[var(--c-amber)] pl-2 font-serif text-sm italic">
+                            {n.quoteText}
+                          </p>
+                        )}
                         <p className="text-foreground/80 mt-1 line-clamp-6 text-sm leading-relaxed whitespace-pre-line">
                           {n.body}
                         </p>

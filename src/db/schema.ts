@@ -923,6 +923,10 @@ export const bookTextSources = nodinest.table(
     status: textSourceStatus("status").notNull().default("pending"),
     pages: integer("pages"),
     error: text("error"),
+    /** The PDF's own bookmarks: [{ title, page, level }]. */
+    outline: jsonb("outline"),
+    /** Chapters found once for the whole book (reader + audiobook): [{ title, page, at }]. */
+    chapters: jsonb("chapters"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1106,3 +1110,52 @@ export const appHandoffs = nodinest.table("app_handoffs", {
   expiresAt: ts("expires_at").notNull(),
   createdAt: createdAt(),
 });
+
+/**
+ * Audiokitob: a book's PDF read aloud. `analysis` is the AI's deep reading of
+ * the whole book (genre, tone, characters with their voices, pronunciation,
+ * chapters); `plan` splits the text into segments that are voiced on demand.
+ */
+export const audiobooks = nodinest.table(
+  "audiobooks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    resourceId: uuid("resource_id")
+      .notNull()
+      .references(() => resources.id, { onDelete: "cascade" }),
+    /** The PDF the text came from (scanned pages are read from it). */
+    fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+    /** analyzing | ready | failed */
+    status: text("status").notNull().default("analyzing"),
+    error: text("error"),
+    analysis: jsonb("analysis"),
+    plan: jsonb("plan"),
+    /** Most pages have no text layer: segments are read from the page images. */
+    scanned: boolean("scanned").notNull().default(false),
+    positionIdx: integer("position_idx").notNull().default(0),
+    positionSec: real("position_sec").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("audiobooks_user_resource_uq").on(t.userId, t.resourceId)],
+);
+
+/** The voiced script of one segment (who says what), kept so replays only cost speech. */
+export const audiobookScripts = nodinest.table(
+  "audiobook_scripts",
+  {
+    audiobookId: uuid("audiobook_id")
+      .notNull()
+      .references(() => audiobooks.id, { onDelete: "cascade" }),
+    idx: integer("idx").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    script: jsonb("script").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.audiobookId, t.idx] })],
+);

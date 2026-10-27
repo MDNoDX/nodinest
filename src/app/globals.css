@@ -337,6 +337,13 @@
   -webkit-box-decoration-break: clone;
   cursor: pointer;
 }
+/* The same note colour in the reader. */
+mark.taqriz-note-mark {
+  background: color-mix(in oklab, var(--c-amber) 22%, transparent);
+  border-bottom: 2px solid color-mix(in oklab, var(--c-amber) 70%, transparent);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
 .taqriz-doc a {
   color: var(--primary);
   text-decoration: underline;

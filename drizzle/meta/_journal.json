@@ -176,6 +176,20 @@
       "when": 1792522297488,
       "tag": "0024_own_books",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793105692799,
+      "tag": "0025_audiobooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793113581917,
+      "tag": "0026_book_structure",
+      "breakpoints": true
     }
   ]
 }

@@ -4,19 +4,31 @@
  * (private to the owner, RLS) so search results can cite page numbers.
  */
 import "server-only";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { extractText } from "unpdf";
 import { db, withUser, type AppContext } from "@/db";
-import { bookPages, bookTextSources, resources } from "@/db/schema";
+import { bookPages, bookTextSources, files, resources } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { htmlToText } from "@/lib/net/html";
 import { safeFetch } from "@/lib/net/safe-fetch";
 import { makeSnippet, searchTokens, toPrefixTsQuery, type SnippetPart } from "@/lib/normalize";
 import { enforceRateLimit } from "./rate-limit";
+import { pdfOutline } from "./book-structure";
 import { readFileBytes } from "./storage";
 
 const MAX_PAGES = 3000;
 const MAX_PAGE_CHARS = 12_000;
+
+/** All text pages of a resource, in order (the reader, the audiobook). */
+export async function loadBookPages(ctx: AppContext, resourceId: string) {
+  return withUser(db, ctx, (tx) =>
+    tx
+      .select({ page: bookPages.page, content: bookPages.content })
+      .from(bookPages)
+      .where(and(eq(bookPages.userId, ctx.userId), eq(bookPages.resourceId, resourceId)))
+      .orderBy(bookPages.page),
+  );
+}
 
 async function pdfPages(bytes: Uint8Array): Promise<string[]> {
   const { text } = await extractText(bytes, { mergePages: false });
@@ -112,8 +124,21 @@ export async function indexFromFile(ctx: AppContext, resourceId: string, fileId:
     const f = await readFileBytes(ctx, fileId);
     if (!f) throw new AppError("NOT_FOUND");
     if (f.mime !== "application/pdf") throw new AppError("VALIDATION", "only_pdf_indexed");
+    // A PDF uploaded with a new book (before it had an id) now belongs to it.
+    await withUser(db, ctx, (tx) =>
+      tx
+        .update(files)
+        .set({ resourceId })
+        .where(and(eq(files.id, fileId), eq(files.ownerId, ctx.userId), isNull(files.resourceId))),
+    );
+    // Bookmarks first: text extraction may take over (detach) the bytes.
+    const outline = await pdfOutline(f.bytes);
     const pages = await pdfPages(f.bytes);
     await storePages(ctx, sourceId, resourceId, pages);
+    if (outline.length)
+      await withUser(db, ctx, (tx) =>
+        tx.update(bookTextSources).set({ outline }).where(eq(bookTextSources.id, sourceId)),
+      );
     return { pages: pages.length };
   } catch (err) {
     await fail(

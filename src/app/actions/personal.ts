@@ -1,6 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { after } from "next/server";
+import { getLocale } from "next-intl/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { withUser } from "@/db";
@@ -10,6 +12,8 @@ import { ADMIN_MODE_COOKIE } from "@/lib/auth/session";
 import { isValidTimeZone } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { LEARNING_STATUSES } from "@/lib/validation";
+import { analyzeAudiobook, resetAudiobook } from "@/server/audiobook";
+import { findStructure } from "@/server/book-structure";
 import { indexFromFile, indexFromUrl } from "@/server/booktext";
 import { deleteWriteup, saveWriteup } from "@/server/writeups";
 import {
@@ -81,7 +85,16 @@ export async function deleteWriteupAction(resourceId: string) {
 // ─── Book text (PDF / reading link) ───
 export async function indexFileAction(resourceId: string, fileId: string) {
   return run(async ({ ctx }) => {
-    const r = await indexFromFile(ctx, id.parse(resourceId), id.parse(fileId));
+    const rid = id.parse(resourceId);
+    const r = await indexFromFile(ctx, rid, id.parse(fileId));
+    // A new PDF: the audiobook is prepared again, in the background (deep analysis).
+    await resetAudiobook(ctx, rid);
+    const locale = (await getLocale()) === "en" ? "en" : "uz";
+    // Then: its chapters (bookmarks + headings), then the audiobook's deep analysis.
+    after(async () => {
+      await findStructure(ctx, rid, locale).catch(() => null);
+      await analyzeAudiobook(ctx, rid, locale).catch(() => {});
+    });
     revalidatePath(`/library/${resourceId}`);
     return r;
   });

@@ -84,6 +84,28 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   fflate) as a web book (.zip) or EPUB 3 — big videos never pass through a function response.
 - Study cards `depth: "deep"`: smaller parts, exam-level prompt, then `verifyCards` checks each card
   against the same part (ok / fix / drop). /review maxDuration 300.
+- Audiokitob (`server/audiobook.ts`, pure parts in `lib/audiobook-plan.ts`, page
+  `/library/[id]/audiobook`, tables `audiobooks` + `audiobook_scripts`, 0025): one deep analysis
+  of the whole book (genre, tone, cast with voices, pronunciation, chapters, startPage; scanned PDFs
+  are sent as a file) → text split into ~3-min segments that never cross a chapter → per segment a
+  cached "director" script (speaker lines, author's words kept, numbers spelled out) → `speak()` in
+  gemini.ts (≤ 2 voices per request; 3.8 TTS models use `speechMetadata`, older ones a
+  "SpeakerN: …" transcript) → MP3 (lamejs) at `/api/audiobook/[id]/segment/[idx]?v=rev.voiceRev`,
+  cached in the browser (Cache API, `blob:` in CSP media-src). Free tier: ~10 speech requests per
+  model per day, so `runs()` keeps ≤ 3 requests per segment. A new PDF re-runs the analysis via
+  `after()`.
+- Book structure (`server/book-structure.ts`, columns `book_text_sources.outline/chapters`, 0026):
+  PDF bookmarks (stored at index time) + heading-like lines of every page (`headingCandidates`)
+  → one AI pass picks the chapters; running headers (`runningLines` → `noise`) are removed from
+  the text everything is computed on (`cleanPages`), so chapter `at` offsets match the audiobook
+  plan. Found in `after()` on PDF upload, or on the first reader visit.
+- Kitobni o'qish (`/library/[id]/read`, `server/reader.ts`, `components/reader/*`): PDF text
+  reflowed into paragraphs (`lib/reflow.ts`), contents, selection menu (Iqtibos / Qaydnoma with
+  a thought / Ask AI / copy), saved quotes & notes re-highlighted by `quote_text` (notes keep it
+  too), reading page → learning record progress. AI: `prepareAsk({ from: "book", page })`
+  explains without spoilers past the page; selection optional (questions about the book).
+- `generate(..., { patient: true })` waits out per-minute 429s; the global AI pause is only set
+  when every model's retry delay is > 60 s (daily quota), never for a per-minute limit.
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

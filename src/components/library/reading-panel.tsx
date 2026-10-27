@@ -3,7 +3,7 @@ import { ExternalLink, FileText, Loader2, ScanText, Search, Trash2 } from "lucid
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deleteFileAction } from "@/app/actions/files";
 import { indexFileAction, indexUrlAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function ReadingPanel({
   sources,
   storageEnabled,
   userId,
+  pendingPdf,
 }: {
   resourceId: string;
   readingUrl: string | null;
@@ -38,6 +39,8 @@ export function ReadingPanel({
   sources: Source[];
   storageEnabled: boolean;
   userId: string;
+  /** A PDF uploaded with the new book: read it now. */
+  pendingPdf?: string | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -47,6 +50,18 @@ export function ReadingPanel({
   const pages = ready.reduce((a, s) => a + (s.pages ?? 0), 0);
   const failed = sources.some((s) => s.status === "failed") && !ready.length;
   const pdf = files.find((f) => f.mimeType === "application/pdf");
+  const started = useRef(false);
+  useEffect(() => {
+    if (!pendingPdf || started.current || sources.length) return;
+    started.current = true;
+    void exec(() => indexFileAction(resourceId, pendingPdf), {
+      success: t("resource.pdfIndexed"),
+      onSuccess: () => {
+        router.replace(`/library/${resourceId}`);
+        router.refresh();
+      },
+    });
+  }, [pendingPdf, sources.length, exec, resourceId, router, t]);
 
   const index = (kind: "file" | "url") =>
     exec(

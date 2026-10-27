@@ -1,5 +1,6 @@
 import {
   AudioLines,
+  Headphones,
   BookOpenText,
   Brain,
   ExternalLink,
@@ -39,6 +40,8 @@ import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
 
 export const dynamic = "force-dynamic";
+// Uploading a PDF starts the audiobook analysis in the background (after the response).
+export const maxDuration = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,7 +53,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 const MEDIA_URL_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|mp4|webm|mov|m4v)(\?|#|$)/i;
 
-export default async function ResourcePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ResourcePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const pendingPdf = (await searchParams).pdf;
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { ctx, db, user, locale, tz } = await pageContext();
@@ -268,6 +278,20 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                   <NotebookPen /> {t("taqriz.title")}
                 </Link>
               </Button>
+              {!isMedia && sources.some((s) => s.status === "ready") && (
+                <Button asChild variant="outline">
+                  <Link href={`/library/${r.id}/read`}>
+                    <BookOpenText /> {t("reader.read")}
+                  </Link>
+                </Button>
+              )}
+              {!isMedia && (
+                <Button asChild variant="outline">
+                  <Link href={`/library/${r.id}/audiobook`}>
+                    <Headphones /> {t("audiobook.listen")}
+                  </Link>
+                </Button>
+              )}
               <Button variant="outline" asChild>
                 <Link
                   href={`/notes/new?resource=${r.id}&kind=quote`}
@@ -616,7 +640,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
             </div>
           </Card>
           {!isMedia && (
-            <Card>
+            <Card id="reading" className="scroll-mt-20">
               <CardHeader title={t("resource.reading")} icon={<FileText />} hue="violet" />
               <div className="px-5 pb-5">
                 <ReadingPanel
@@ -632,6 +656,11 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
                   }))}
                   storageEnabled={storage}
                   userId={user.id}
+                  pendingPdf={
+                    typeof pendingPdf === "string" && /^[0-9a-f-]{36}$/i.test(pendingPdf)
+                      ? pendingPdf
+                      : null
+                  }
                 />
               </div>
             </Card>

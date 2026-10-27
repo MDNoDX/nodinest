@@ -25,7 +25,7 @@ import { enforceRateLimit, hitRateLimit } from "../rate-limit";
 import { getAiSettings } from "../settings";
 import { generate, isAiConfigured } from "./gemini";
 
-export async function gate(ctx: AppContext, bucket: "ask" | "listen") {
+export async function gate(ctx: AppContext, bucket: "ask" | "listen" | "audiobook") {
   if (!isAiConfigured()) throw new AppError("AI_UNAVAILABLE", "not_configured");
   const s = await getAiSettings(db);
   if (!s.enabled) throw new AppError("AI_UNAVAILABLE", "disabled");
@@ -36,6 +36,10 @@ export async function gate(ctx: AppContext, bucket: "ask" | "listen") {
     const daily = await hitRateLimit(db, `ai:${ctx.userId}`, s.dailyLimitPerUser, 86_400);
     if (!daily.allowed)
       throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
+  } else if (bucket === "audiobook") {
+    // One request per ~1.5-minute segment of an audiobook: about 3 hours a day.
+    await enforceRateLimit(db, `abookburst:${ctx.userId}`, 10, 60);
+    await enforceRateLimit(db, `abook:${ctx.userId}`, 120, 86_400);
   } else {
     // One request per minute of media: ~5 hours of listening a day.
     // Short clips (90 s) for faithful transcripts: ~40 requests per hour of
@@ -85,17 +89,23 @@ export const langRule = (locale: string) =>
 
 // ── Ask about the selection ───────────────────────────────────────────────
 
-export const askInput = z.object({
-  resourceId: z.string().uuid(),
-  selection: z.string().trim().min(1).max(4000),
-  context: z.string().max(4000).default(""),
-  question: z.string().trim().max(1000).default(""),
-  history: z
-    .array(z.object({ q: z.string().max(1500), a: z.string().max(6000) }))
-    .max(6)
-    .default([]),
-  locale: z.enum(["uz", "en"]).default("uz"),
-});
+export const askInput = z
+  .object({
+    resourceId: z.string().uuid(),
+    /** "book": asked while reading the book itself (Kitobni o'qish), not in a taqriz. */
+    from: z.enum(["taqriz", "book"]).default("taqriz"),
+    /** The page being read (book mode): no spoilers beyond it unless asked. */
+    page: z.number().int().min(1).max(100_000).optional(),
+    selection: z.string().trim().max(4000).default(""),
+    context: z.string().max(4000).default(""),
+    question: z.string().trim().max(1000).default(""),
+    history: z
+      .array(z.object({ q: z.string().max(1500), a: z.string().max(6000) }))
+      .max(6)
+      .default([]),
+    locale: z.enum(["uz", "en"]).default("uz"),
+  })
+  .refine((a) => a.selection || a.question, { message: "required", path: ["selection"] });
 
 /** Everything a request needs (also used by the streaming route). */
 export type Prepared = {
@@ -118,25 +128,39 @@ export async function prepareAsk(ctx: AppContext, raw: unknown): Promise<Prepare
   await gate(ctx, "ask");
   const facts = await resourceFacts(ctx, a.resourceId);
   // The user's own book text (if indexed) is the best source for this book.
-  const query = searchTokens(a.selection, 6).join(" ");
+  const book = a.from === "book";
+  const query = searchTokens(a.selection || a.question, 6).join(" ");
   const pages = query
     ? (await searchBookText(ctx, { query, resourceId: a.resourceId, limit: 4 })).hits
     : [];
   const system = [
-    "You are NodiNote's study assistant. The user is writing a taqriz (a review / study essay) and selected a word or passage. Help them understand it deeply.",
-    "Explain: the meaning (for a single word also its origin and nuances), the context it comes from (historical, literary, religious, scientific or terminological), how it connects to this work and its author, and anything worth noting for the essay.",
+    book
+      ? "You are NodiNote's reading companion. The user is reading this book and selected a word or passage, or asks about the book. Help them understand it deeply."
+      : "You are NodiNote's study assistant. The user is writing a taqriz (a review / study essay) and selected a word or passage. Help them understand it deeply.",
+    book
+      ? "Explain: the meaning (for a single word also its translation, origin and nuances), who the people and places mentioned are, the context (historical, literary, cultural), and how it connects to the story so far. If the book is in another language than the user's, translate the passage when it helps."
+      : "Explain: the meaning (for a single word also its origin and nuances), the context it comes from (historical, literary, religious, scientific or terminological), how it connects to this work and its author, and anything worth noting for the essay.",
+    book && a.page
+      ? `The user is on page ${a.page}. Do NOT reveal what happens later in the book (no spoilers) unless they explicitly ask for it.`
+      : "",
     "Use the book passages below when relevant and cite them as (p. N). Use your general knowledge for the rest.",
     "Be honest: never invent quotes, dates, page numbers, sources or facts. When you are not sure, say so plainly instead of guessing.",
     "Be concise (about 120–250 words unless the user asks for more). Format: short paragraphs, '- ' bullets, **bold** for key terms. No headings, no preamble.",
     langRule(a.locale),
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
   const material = [
     `WORK\n${factsText(facts)}`,
     pages.length
       ? `BOOK PASSAGES (user's copy)\n${pages.map((p) => `(p. ${p.page}) ${p.snippet}`).join("\n")}`
       : "",
-    a.context ? `SURROUNDING TEXT IN THE USER'S ESSAY\n${a.context}` : "",
-    `SELECTED\n«${a.selection}»`,
+    a.context
+      ? book
+        ? `THE PAGE BEING READ${a.page ? ` (p. ${a.page})` : ""}\n${a.context}`
+        : `SURROUNDING TEXT IN THE USER'S ESSAY\n${a.context}`
+      : "",
+    a.selection ? `SELECTED\n«${a.selection}»` : "",
   ]
     .filter(Boolean)
     .join("\n\n");

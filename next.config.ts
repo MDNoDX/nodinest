@@ -18,7 +18,8 @@ const csp = [
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-src https://www.youtube-nocookie.com",
-  "media-src 'self' https:",
+  // blob: = audiobook segments cached in the browser and played from memory.
+  "media-src 'self' blob: https:",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

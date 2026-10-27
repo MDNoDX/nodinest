@@ -198,6 +198,7 @@ export function ResourceForm({
   const [query, setQuery] = useState("");
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [explanation, setExplanation] = useState("");
+  const [pdfId, setPdfId] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [finding, startFind] = useTransition();
   const set = <K extends keyof ResourceFormValue>(k: K, val: ResourceFormValue[K]) =>
@@ -237,7 +238,8 @@ export function ResourceForm({
         setDups(null);
         if (r.data.mode === "applied") {
           toast.success(t("resource.savedToCatalog"));
-          router.push(`/library/${r.data.id}`);
+          // A PDF given with a new book is read (indexed) on the book's page.
+          router.push(`/library/${r.data.id}${pdfId ? `?pdf=${pdfId}` : ""}`);
         } else {
           toast.success(t("resource.submittedForReview"));
           router.push("/suggestions");
@@ -575,6 +577,34 @@ export function ResourceForm({
           </div>
         </div>
       </section>
+
+      {!resourceId && isBook && storageEnabled && (
+        <section className="card p-5 sm:p-6">
+          <SectionTitle
+            title={t("resource.pdfTitle")}
+            icon={<FileText />}
+            hue="violet"
+            className="mb-1"
+          />
+          <p className="text-muted mb-3 text-sm">{t("resource.pdfHint")}</p>
+          {pdfId ? (
+            <p className="flex items-center gap-2 text-sm">
+              <FileText className="size-4 text-[var(--c-violet)]" /> {t("resource.pdfReady")}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPdfId(null)}>
+                <X /> {t("upload.remove")}
+              </Button>
+            </p>
+          ) : (
+            <FileUpload
+              purpose="attachment"
+              enabled={storageEnabled}
+              userId={userId}
+              label={t("resource.uploadPdf")}
+              onUploaded={(id) => setPdfId(id)}
+            />
+          )}
+        </section>
+      )}
 
       {/* 4. People */}
       <section className="card p-5 sm:p-6">

@@ -67,7 +67,8 @@ export async function saveNote(database: Database, ctx: AppContext, raw: unknown
       kind: d.kind,
       title: d.title,
       body: d.body,
-      quoteText: d.kind === "quote" ? d.quoteText : null,
+      // A note may keep the passage it is about (saved from the reader / taqriz).
+      quoteText: d.quoteText,
       resourceId: d.resourceId ?? null,
       personId: d.personId ?? null,
       pageFrom: d.pageFrom,
