@@ -5,6 +5,7 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  Image as ImageIcon,
   Headphones,
   ListTree,
   Loader2,
@@ -25,10 +26,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { reflow, type Para } from "@/lib/reflow";
 import type { ReaderData, ReaderMark } from "@/server/reader";
+import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
 
 type Res = { id: string; title: string; authors: string };
-type Page = { page: number; paras: Para[] };
+type Page = { page: number; paras: Para[]; picture?: boolean };
 type Sel = { text: string; page: number; context: string; x: number; y: number };
 
 const BATCH = 8;
@@ -114,7 +116,17 @@ export function ReaderApp({
   const main = useRef<HTMLDivElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const textPages = data.pages;
-  const last = textPages.at(-1) ?? 1;
+  // Picture-only pages (maps, plates, the cover) are drawn from the PDF itself.
+  const pictures = useMemo(
+    () =>
+      data.fileId
+        ? (data.structure?.images ?? []).filter((i) => i.textless).map((i) => i.page)
+        : [],
+    [data.fileId, data.structure],
+  );
+  const firstPage = Math.min(textPages[0] ?? 1, ...pictures);
+  const last = Math.max(textPages.at(-1) ?? 1, ...pictures);
+  const [original, setOriginal] = useState<Set<number>>(new Set());
   const router = useRouter();
   useEffect(() => {
     if (!preparing) return;
@@ -137,9 +149,13 @@ export function ReaderApp({
       const r = await fetch(`/api/book/${resource.id}/pages?from=${from}&to=${to}`);
       if (!r.ok) return [];
       const j = (await r.json()) as { pages: { page: number; content: string }[] };
-      return j.pages.map((p) => ({ page: p.page, paras: reflow(p.content, noise) }));
+      const got: Page[] = j.pages.map((p) => ({ page: p.page, paras: reflow(p.content, noise) }));
+      for (const pic of pictures)
+        if (pic >= from && pic <= to && !got.some((g) => g.page === pic))
+          got.push({ page: pic, paras: [], picture: true });
+      return got.sort((a, b) => a.page - b.page);
     },
-    [resource.id, noise],
+    [resource.id, noise, pictures],
   );
 
   /** Scrolls to `title` on `page` (or to the page itself). */
@@ -354,7 +370,11 @@ export function ReaderApp({
               chapterNow === c ? "bg-primary-soft text-primary font-medium" : "text-foreground/85",
             )}
           >
+            {c.image && (
+              <ImageIcon className="mr-1 inline size-3.5 align-[-2px] text-[var(--c-teal)]" />
+            )}
             {c.title}
+            {c.subtitle && <span className="text-muted ml-1.5 text-xs">· {c.subtitle}</span>}
             <span className="text-muted ml-1.5 text-xs tabular-nums">{c.page}</span>
           </button>
         ))
@@ -390,7 +410,9 @@ export function ReaderApp({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{resource.title}</p>
           <p className="text-muted truncate text-xs">
-            {chapterNow ? `${chapterNow.title} · ` : ""}
+            {chapterNow
+              ? `${chapterNow.title}${chapterNow.subtitle ? ` (${chapterNow.subtitle})` : ""} · `
+              : ""}
             {t("pageOf", { n: current, total: data.totalPages || last })}
           </p>
         </div>
@@ -473,7 +495,7 @@ export function ReaderApp({
             style={{ fontSize: font }}
             lang="und"
           >
-            {(pages[0]?.page ?? 1) > (textPages[0] ?? 1) && (
+            {(pages[0]?.page ?? 1) > firstPage && (
               <div className="mb-6 text-center font-sans">
                 <Button variant="ghost" size="sm" onClick={() => void loadEarlier()}>
                   <ChevronUp /> {t("earlier")}
@@ -483,9 +505,48 @@ export function ReaderApp({
             {pages.map((p) => (
               <section key={p.page} data-page={p.page} className="scroll-mt-32">
                 <div className="text-muted/70 my-6 flex items-center gap-3 font-sans text-xs tabular-nums select-none">
-                  <span className="bg-border h-px flex-1" /> {p.page}{" "}
+                  <span className="bg-border h-px flex-1" /> {p.page}
+                  {data.fileId && !p.picture && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOriginal((cur) => {
+                          const n = new Set(cur);
+                          if (n.has(p.page)) n.delete(p.page);
+                          else n.add(p.page);
+                          return n;
+                        })
+                      }
+                      className="hover:text-foreground rounded px-1"
+                      title={t("originalHint")}
+                    >
+                      {original.has(p.page) ? t("hideOriginal") : t("original")}
+                    </button>
+                  )}
                   <span className="bg-border h-px flex-1" />
                 </div>
+                {data.fileId && (p.picture || original.has(p.page)) && (
+                  <figure className="my-4 font-sans">
+                    <PdfPage
+                      fileId={data.fileId}
+                      page={p.page}
+                      alt={
+                        chapters
+                          .filter((c) => c.page === p.page)
+                          .map((c) => c.title)
+                          .join(" · ") || t("pageOf", { n: p.page, total: data.totalPages || last })
+                      }
+                    />
+                    {p.picture && chapters.some((c) => c.page === p.page) && (
+                      <figcaption className="text-muted mt-2 text-center text-sm">
+                        {chapters
+                          .filter((c) => c.page === p.page)
+                          .map((c) => c.title)
+                          .join(" · ")}
+                      </figcaption>
+                    )}
+                  </figure>
+                )}
                 {p.paras.map((para, i) =>
                   para.heading ? (
                     <h2

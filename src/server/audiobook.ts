@@ -32,6 +32,7 @@ import {
   cleanLines,
   cleanPages,
   faithfulness,
+  withPictureTitles,
   joinPages,
   locateHeading,
   planText,
@@ -103,7 +104,14 @@ export type Analysis = {
   characters: Character[];
   pronunciation: { written: string; spoken: string }[];
   /** `at`: offset of the title in the book text (exact start, even mid-page). */
-  chapters: { title: string; page: number; at?: number | null }[];
+  chapters: {
+    title: string;
+    subtitle?: string;
+    page: number;
+    at?: number | null;
+    /** 0 = a group (part, "Maps"), 1 = an entry. */
+    level?: number;
+  }[];
   startPage: number;
   /** Bumped when a voice is changed: cached audio is then made again. */
   voiceRev: number;
@@ -118,6 +126,8 @@ type Plan = {
   pages: number;
   /** Running lines removed from the text the offsets refer to. */
   noise?: string[];
+  /** Picture-only pages read as their titles (maps, plates). */
+  pictures?: { page: number; text: string }[];
 };
 
 const ANALYSIS_SCHEMA = {
@@ -484,6 +494,8 @@ export async function analyzeAudiobook(ctx: AppContext, resourceId: string, loca
     if (structure?.chapters.length) {
       analysis.chapters = structure.chapters.map((c) => ({
         title: c.title,
+        level: c.level,
+        ...(c.subtitle ? { subtitle: c.subtitle } : {}),
         page: c.page,
         at: c.at,
       }));
@@ -495,18 +507,48 @@ export async function analyzeAudiobook(ctx: AppContext, resourceId: string, loca
       for (let p = 1; p <= totalPages; p++) segs.push([p, p, p]);
       plan = { kind: "scan", segs, pages: totalPages };
     } else {
-      const clean = cleanPages(pages, structure?.noise);
+      // Picture-only pages (maps, plates): the narrator says their titles.
+      const pictures = (structure?.images ?? [])
+        .filter((i) => i.textless)
+        .map((i) => ({
+          page: i.page,
+          text: (structure?.chapters ?? [])
+            .filter((c) => c.page === i.page)
+            .map((c) => c.title)
+            .join("\n"),
+        }))
+        .filter((x) => x.text);
+      const plain = cleanPages(pages, structure?.noise);
+      const clean = withPictureTitles(plain, pictures);
       const { text, starts } = joinPages(clean);
+      // Chapter offsets were found on the text without the picture titles: move
+      // them to the same place (page + position on it) in this text.
+      const before = joinPages(plain).starts;
+      const move = (at: number) => {
+        let k = 0;
+        for (let i = 0; i < before.length; i++) if (before[i].at <= at) k = i;
+        const to = starts.find((x) => x.page === before[k]?.page);
+        return to ? to.at + (at - before[k].at) : at;
+      };
+      analysis.chapters = analysis.chapters.map((c) => ({
+        ...c,
+        at: c.at != null ? move(c.at) : (locateHeading(clean, starts, c.page, c.title) ?? null),
+      }));
       // Break exactly where each chapter title stands (even mid-page).
+      // A group title and its first entry on the same page ("Maps" / "The North")
+      // make one piece.
       const breaks = [
         starts.find((x) => x.page >= analysis.startPage)?.at ?? 0,
-        ...analysis.chapters.map((c) => c.at ?? locateHeading(clean, starts, c.page, c.title) ?? 0),
+        ...analysis.chapters
+          .filter((c, i, all) => !(i > 0 && all[i - 1].level === 0 && all[i - 1].page === c.page))
+          .map((c) => c.at ?? 0),
       ];
       plan = {
         kind: "text",
         segs: planText(text, starts, breaks),
         pages: totalPages,
         noise: structure?.noise,
+        pictures,
       };
     }
     const start = Math.max(
@@ -551,6 +593,9 @@ export type AudiobookView = {
   chapterAt: number[];
   pageOf: number[];
   position: { idx: number; sec: number };
+  /** The PDF (to show picture pages) and its picture-only pages. */
+  fileId: string | null;
+  pictures: number[];
 };
 
 async function getRow(ctx: AppContext, resourceId: string) {
@@ -582,12 +627,15 @@ export async function getAudiobook(
       Math.max(
         0,
         plan?.kind === "text" && c.at != null
-          ? segs.findIndex((s) => s[0] >= c.at!)
+          ? // the piece the title is in (it starts there, or right above for a group)
+            segs.findLastIndex((s) => s[0] <= c.at!)
           : segs.findIndex((s) => s[2] >= c.page),
       ),
     ),
     pageOf: segs.map((s) => s[2]),
     position: { idx: r.positionIdx, sec: r.positionSec },
+    fileId: r.fileId,
+    pictures: (plan?.pictures ?? []).map((x) => x.page),
   };
 }
 
@@ -677,7 +725,12 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
       { text: "Read the text of this book page exactly and make the script of it." },
     ];
   } else {
-    const { text } = joinPages(cleanPages(await loadBookPages(ctx, resourceId), plan.noise));
+    const { text } = joinPages(
+      withPictureTitles(
+        cleanPages(await loadBookPages(ctx, resourceId), plan.noise),
+        plan.pictures,
+      ),
+    );
     source = text.slice(seg[0], seg[1]);
     const before = text.slice(Math.max(0, seg[0] - 400), seg[0]);
     parts = [

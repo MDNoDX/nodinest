@@ -9,7 +9,8 @@ const isDev = process.env.NODE_ENV !== "production";
 // own bootstrap; everything else is locked down.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  // wasm-unsafe-eval: pdf.js decodes JPEG 2000 maps / plates with WebAssembly.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",

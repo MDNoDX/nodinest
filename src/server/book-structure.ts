@@ -12,17 +12,34 @@
 import "server-only";
 import { Type } from "@google/genai";
 import { and, desc, eq } from "drizzle-orm";
-import { getDocumentProxy } from "unpdf";
+import { getDocumentProxy, getResolvedPDFJS } from "unpdf";
 import { db, withUser, type AppContext } from "@/db";
 import { bookTextSources } from "@/db/schema";
-import { cleanPages, headingCandidates, joinPages, locateHeading } from "@/lib/audiobook-plan";
+import {
+  cleanPages,
+  contentsLines,
+  headingCandidates,
+  joinPages,
+  locateHeading,
+} from "@/lib/audiobook-plan";
 import { lineKey } from "@/lib/reflow";
 import { generate, isAiConfigured } from "./ai/gemini";
 import { langRule } from "./ai/study";
 import { loadBookPages } from "./booktext";
+import { readFileBytes } from "./storage";
 
 export type OutlineItem = { title: string; page: number; level: number };
-export type Chapter = { title: string; page: number; at: number | null; level: number };
+export type Chapter = {
+  /** Exactly as the PDF names it (its contents page / bookmarks). */
+  title: string;
+  /** The title line inside the text when it differs (e.g. "Chapter 1" → "BRAN"). */
+  subtitle?: string;
+  page: number;
+  at: number | null;
+  level: number;
+  /** The section is a picture page (a map, an illustration, the cover). */
+  image?: boolean;
+};
 export type Structure = {
   startPage: number;
   chapters: Chapter[];
@@ -31,6 +48,8 @@ export type Structure = {
   startedAt?: string;
   /** lineKey()s of running headers / footers / navigation lines to hide while reading. */
   noise?: string[];
+  /** Pages that hold pictures; `textless` ones are only a picture (maps, cover, plates). */
+  images?: { page: number; textless: boolean }[];
 };
 
 /** Lines repeated at the top or bottom of many pages (running headers, footers, links). */
@@ -50,6 +69,29 @@ export function runningLines(pages: { content: string }[]): string[] {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 30)
     .map(([k]) => k);
+}
+
+/** Pages that draw a picture (maps, illustrations, the cover). Fast: no decoding. */
+export async function pdfImagePages(bytes: Uint8Array): Promise<number[]> {
+  try {
+    const { OPS } = await getResolvedPDFJS();
+    const kinds = new Set(
+      [OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageXObjectRepeat].filter(
+        (x) => x != null,
+      ),
+    );
+    const pdf = await getDocumentProxy(bytes.slice());
+    const out: number[] = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, 3000); i++) {
+      const page = await pdf.getPage(i);
+      const ops = await page.getOperatorList();
+      if (ops.fnArray.some((f) => kinds.has(f))) out.push(i);
+      page.cleanup();
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 /** The PDF's bookmarks with their page numbers (two levels deep). */
@@ -100,8 +142,9 @@ const SCHEMA = {
         properties: {
           title: {
             type: Type.STRING,
-            description: "Clean title, e.g. 'Prologue', 'Bran', 'Chapter 3: …'",
+            description: "Exactly as on the PDF's contents page / bookmarks",
           },
+          subtitle: { type: Type.STRING, description: "The heading inside the text, if different" },
           page: { type: Type.INTEGER },
           line: { type: Type.STRING, description: "The exact heading line from the list, if any" },
           level: { type: Type.INTEGER, description: "0 = part / book, 1 = chapter" },
@@ -131,6 +174,7 @@ export async function findStructure(
         id: bookTextSources.id,
         outline: bookTextSources.outline,
         pages: bookTextSources.pages,
+        fileId: bookTextSources.fileId,
       })
       .from(bookTextSources)
       .where(
@@ -160,6 +204,15 @@ export async function findStructure(
   const pages = cleanPages(raw, noise);
   const { starts } = joinPages(pages);
   const outline = (src.outline as OutlineItem[] | null) ?? [];
+  const toc = contentsLines(raw);
+  // Picture pages (maps, plates, the cover) come from the PDF itself.
+  const pictures = src.fileId
+    ? await readFileBytes(ctx, src.fileId)
+        .then((f) => (f ? pdfImagePages(f.bytes) : []))
+        .catch(() => [] as number[])
+    : [];
+  const textLen = new Map(raw.map((p) => [p.page, p.content.replace(/\s/g, "").length]));
+  const images = pictures.map((page) => ({ page, textless: (textLen.get(page) ?? 0) < 40 }));
 
   // Heading-like lines; a line found on many pages is a running header, not a chapter.
   const all = headingCandidates(pages, 6000);
@@ -181,6 +234,12 @@ export async function findStructure(
               {
                 text: [
                   `TOTAL PAGES: ${src.pages ?? pages.at(-1)?.page ?? "?"}`,
+                  toc
+                    ? `THE PDF'S OWN CONTENTS PAGE (p. ${toc.page})\n${toc.lines.map((l) => l.line).join("\n")}`
+                    : "CONTENTS PAGE: none found",
+                  images.length
+                    ? `PICTURE PAGES (no text = only a picture, e.g. a map or the cover): ${images.map((i) => `${i.page}${i.textless ? " (no text)" : ""}`).join(", ")}`
+                    : "",
                   outline.length
                     ? `PDF BOOKMARKS (title → page)\n${outline.map((o) => `${"  ".repeat(o.level)}${o.title} → ${o.page}`).join("\n")}`
                     : "PDF BOOKMARKS: none",
@@ -202,12 +261,14 @@ export async function findStructure(
         ],
         {
           systemInstruction: [
-            "You find the table of contents of a book from its PDF. List its real chapters (and parts / books, level 0) in reading order with the page each starts on.",
-            "Bookmarks give the most reliable PAGES when present. Their titles may be useless (e.g. every bookmark just repeats the book's title): then take the title from the heading-like line on that page. Without bookmarks use the heading-like lines. In many novels a chapter title is a character's name (e.g. 'BRAN', 'CATELYN') — a chapter, even when the same name returns many times.",
-            "Skip: running headers / footers, the table of contents page itself, copyright, dedication, 'also by', maps, publisher's ads, page numbers, and lines that are just emphasis inside the text.",
-            "Never invent chapters or pages. 'line' must be copied exactly from the heading-like lines when the chapter was found there.",
-            "startPage: the first page of the actual work (prologue / first chapter / author's preface), after the front matter.",
-            "Titles: as in the book but in normal capitalisation ('BRAN' → 'Bran', 'CHAPTER ONE' → 'Chapter One'). Keep the book's language.",
+            "You rebuild the table of contents of a book EXACTLY as its PDF has it — the user wants the original division, not yours.",
+            "1. If the PDF has its own contents page, it is the authority: every entry, in its order, with its own words (only drop list bullets such as '•' or a stray 'l', dot leaders and page numbers). Groups on it (e.g. 'Maps' with 'The North', 'The South'; 'Part One' with its chapters) become level 0 with their entries at level 1. Include everything it lists — maps, prologue, chapters, epilogue, appendix.",
+            "2. Find the page each entry starts on: bookmarks give the most reliable pages (their titles may be useless, e.g. all the same); otherwise the heading-like lines; a map or plate is a picture page.",
+            "3. 'subtitle': when the title line inside the text differs from the contents entry (contents 'Chapter 1', text heading 'BRAN'), copy that text heading exactly; 'line' = the exact heading-like line used to place the entry.",
+            "Without a contents page: use the bookmarks' titles if they are real titles, else the heading-like lines (in many novels a chapter heading is a character's name, e.g. 'BRAN' — a chapter even when the name returns).",
+            "Titles are copied exactly as written (same words, same capitalisation, same language) — never translated, shortened or renamed.",
+            "Never invent entries or pages. Skip running headers / footers and lines that are just emphasis inside the text.",
+            "startPage: the first page of the actual text to be read (prologue / first chapter / author's preface), after the cover, title, contents and maps.",
             langRule(locale),
           ].join("\n"),
           temperature: 0,
@@ -219,7 +280,13 @@ export async function findStructure(
       );
       const raw = JSON.parse(res.text ?? "{}") as {
         startPage?: number;
-        chapters?: { title?: string; page?: number; line?: string; level?: number }[];
+        chapters?: {
+          title?: string;
+          subtitle?: string;
+          page?: number;
+          line?: string;
+          level?: number;
+        }[];
       };
       const maxPage = Math.max(src.pages ?? 0, pages.at(-1)?.page ?? 0, 1);
       const chapters: Chapter[] = [];
@@ -238,7 +305,19 @@ export async function findStructure(
           : pages.length
             ? locateHeading(pages, starts, page, c.line || title)
             : null;
-        chapters.push({ title, page: exact?.page ?? page, at, level: c.level === 0 ? 0 : 1 });
+        const where = exact?.page ?? page;
+        const pic = images.find((i) => i.page === where);
+        const subtitle = String(c.subtitle ?? "")
+          .trim()
+          .slice(0, 200);
+        chapters.push({
+          title,
+          ...(subtitle && norm(subtitle) !== norm(title) ? { subtitle } : {}),
+          page: where,
+          at: pic?.textless ? null : at,
+          level: c.level === 0 ? 0 : 1,
+          ...(pic?.textless ? { image: true } : {}),
+        });
       }
       structure = {
         startPage: Math.min(Math.max(1, Math.round(Number(raw.startPage)) || 1), maxPage),
@@ -263,6 +342,7 @@ export async function findStructure(
     };
   }
   structure.noise = noise;
+  structure.images = images;
   await withUser(db, ctx, (tx) =>
     tx.update(bookTextSources).set({ chapters: structure }).where(eq(bookTextSources.id, src.id)),
   );

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { cleanLines, faithfulness, joinPages, planText, runs } from "@/lib/audiobook-plan";
+import {
+  cleanLines,
+  contentsLines,
+  faithfulness,
+  joinPages,
+  planText,
+  runs,
+  withPictureTitles,
+} from "@/lib/audiobook-plan";
 
 const sentence = (n: number) => `Bu ${n}-gap, unda bir necha so‘z bor va u nuqta bilan tugaydi. `;
 
@@ -97,5 +105,35 @@ describe("faithfulness", () => {
       faithfulness("XIX asrda 12 km yurdi.", "O‘n to‘qqizinchi asrda o‘n ikki kilometr yurdi.")
         .missing,
     ).toEqual(["xix", "km"]);
+  });
+});
+
+describe("contents and pictures", () => {
+  it("reads the PDF's own contents page and the list pages after it", () => {
+    const toc = contentsLines([
+      { page: 2, content: "A GAME OF THRONES\nContents\nMaps\nThe North\nl Prologue\nl Chapter 1" },
+      { page: 3, content: "l Chapter 2\nl Chapter 3" },
+      {
+        page: 6,
+        content: "PROLOGUE\n" + "A long line of the story that goes on and on. ".repeat(4),
+      },
+    ]);
+    expect(toc?.page).toBe(2);
+    expect(toc?.lines.map((l) => l.line)).toContain("l Chapter 3");
+    expect(toc?.lines.some((l) => l.page === 6)).toBe(false);
+  });
+  it("puts picture pages' titles in their place", () => {
+    const out = withPictureTitles(
+      [
+        { page: 2, content: "Title" },
+        { page: 6, content: "PROLOGUE" },
+      ],
+      [{ page: 4, text: "Maps\nThe North" }],
+    );
+    expect(out.map((p) => [p.page, p.content])).toEqual([
+      [2, "Title"],
+      [4, "Maps\nThe North"],
+      [6, "PROLOGUE"],
+    ]);
   });
 });

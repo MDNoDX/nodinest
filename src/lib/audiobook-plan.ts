@@ -295,3 +295,50 @@ export function faithfulness(source: string, script: string) {
   }
   return { coverage: found / src.length, missing };
 }
+
+const CONTENTS =
+  /^(table of contents|contents|mundarija|muna?ndarija|содержание|оглавление|мундарижа|fihrist|index)$/i;
+
+/**
+ * The PDF's own table of contents: the page with a "Contents" / "Mundarija"
+ * line among the first pages, and the pages right after it that are still
+ * lists of short lines. Bullets and dot leaders are kept for the AI to read.
+ */
+export function contentsLines(pages: { page: number; content: string }[]) {
+  const first = pages
+    .filter((p) => p.page <= 40)
+    .find((p) =>
+      p.content
+        .split("\n")
+        .slice(0, 12)
+        .some((l) => CONTENTS.test(l.trim().replace(/[.:]+$/, ""))),
+    );
+  if (!first) return null;
+  const out: { page: number; line: string }[] = [];
+  for (const p of pages.filter((x) => x.page >= first.page && x.page <= first.page + 12)) {
+    const lines = p.content
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const short = lines.filter((l) => l.length <= 90).length;
+    if (p !== first && (!lines.length || short < lines.length * 0.7)) break;
+    for (const line of lines) out.push({ page: p.page, line });
+    if (out.length > 800) break;
+  }
+  return { page: first.page, lines: out };
+}
+
+/**
+ * Picture-only pages (maps, plates) have no text to read: the narrator says
+ * their titles instead (e.g. "Maps" / "The North"), so the audiobook keeps
+ * every part of the original in its place.
+ */
+export function withPictureTitles<P extends { page: number; content: string }>(
+  pages: P[],
+  pictures: { page: number; text: string }[] | undefined,
+): P[] {
+  if (!pictures?.length) return pages;
+  const out = pages.filter((p) => !pictures.some((x) => x.page === p.page));
+  for (const x of pictures) out.push({ ...(pages[0] ?? {}), page: x.page, content: x.text } as P);
+  return out.sort((a, b) => a.page - b.page);
+}

@@ -1772,6 +1772,9 @@
     "askPlaceholder": "Kitob haqida savol bering…",
     "send": "Yuborish",
     "close": "Yopish",
-    "findingContents": "Mundarija tayyorlanmoqda… (AI butun kitobdan boblarni topyapti)"
+    "findingContents": "Mundarija tayyorlanmoqda… (AI butun kitobdan boblarni topyapti)",
+    "original": "Asl sahifa",
+    "hideOriginal": "Yopish",
+    "originalHint": "Sahifani PDF’dagi asl ko‘rinishida ko‘rish (rasmlar, jadval, bezaklar bilan)"
   }
 }

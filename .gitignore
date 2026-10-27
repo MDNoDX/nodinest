@@ -49,3 +49,6 @@ next-env.d.ts
 /.next-e2e/
 /.next-build/
 /dist
+
+# Copied from pdfjs-dist by scripts/copy-pdfjs.mjs (postinstall)
+/public/pdfjs/

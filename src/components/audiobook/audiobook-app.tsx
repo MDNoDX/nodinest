@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { analyzeAudiobookAction, setVoiceAction } from "@/app/actions/audiobook";
 import { Cover } from "@/components/library/cover";
+import { PdfPage } from "@/components/reader/pdf-page";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { Analysis, AudiobookView, ScriptLine } from "@/server/audiobook";
@@ -445,7 +446,8 @@ function Ready({
             </p>
             <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">{resource.title}</h1>
             <p className="text-muted mt-0.5 truncate text-sm">
-              {ch ? ch.title : resource.authors} · {t("page", { n: view.pageOf[idx] ?? 1 })} ·{" "}
+              {ch ? `${ch.title}${ch.subtitle ? ` (${ch.subtitle})` : ""}` : resource.authors} ·{" "}
+              {t("page", { n: view.pageOf[idx] ?? 1 })} ·{" "}
               {t("part", { n: idx + 1, total: view.segments })}
             </p>
             {/* Segment progress */}
@@ -568,6 +570,16 @@ function Ready({
 
       {tab === "text" && (
         <section className="card p-5 sm:p-7">
+          {view.fileId && view.pictures.includes(view.pageOf[idx]) && (
+            <figure className="mb-5">
+              <PdfPage
+                fileId={view.fileId}
+                page={view.pageOf[idx]}
+                alt={chapterOf(idx)?.title ?? resource.title}
+                className="mx-auto max-w-md"
+              />
+            </figure>
+          )}
           {!lines ? (
             <p className="text-muted flex items-center gap-2 text-sm">
               <Loader2 className="size-4 animate-spin" /> {t("textLoading")}
@@ -626,7 +638,12 @@ function Ready({
                       <span className="text-muted w-6 shrink-0 text-right text-xs tabular-nums">
                         {k + 1}
                       </span>
-                      <span className="min-w-0 flex-1">{c.title}</span>
+                      <span className="min-w-0 flex-1">
+                        {c.title}
+                        {c.subtitle && (
+                          <span className="text-muted ml-1.5 text-xs">· {c.subtitle}</span>
+                        )}
+                      </span>
                       <span className="text-muted text-xs tabular-nums">
                         {t("page", { n: c.page })}
                       </span>

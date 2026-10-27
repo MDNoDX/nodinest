@@ -1772,6 +1772,9 @@
     "askPlaceholder": "Ask about the book…",
     "send": "Send",
     "close": "Close",
-    "findingContents": "Preparing the contents… (the AI is finding the chapters in the whole book)"
+    "findingContents": "Preparing the contents… (the AI is finding the chapters in the whole book)",
+    "original": "Original page",
+    "hideOriginal": "Hide",
+    "originalHint": "See the page as printed in the PDF (pictures, tables, ornaments)"
   }
 }

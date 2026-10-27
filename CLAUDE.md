@@ -99,6 +99,14 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   → one AI pass picks the chapters; running headers (`runningLines` → `noise`) are removed from
   the text everything is computed on (`cleanPages`), so chapter `at` offsets match the audiobook
   plan. Found in `after()` on PDF upload, or on the first reader visit.
+- Chapters follow the ORIGINAL: the PDF's own contents page (`contentsLines`) is the authority
+  (titles verbatim, groups as level 0, maps / appendix included; `subtitle` = the heading inside
+  the text, e.g. "Chapter 1" · "BRAN"). Picture pages (`pdfImagePages`, operator list, no
+  decoding) are stored in `structure.images`; textless ones are drawn in the reader / audiobook by
+  `components/reader/pdf-page.tsx` (pdfjs-dist; worker + JPEG2000/JBIG2 wasm copied to
+  public/pdfjs by `scripts/copy-pdfjs.mjs` on postinstall; CSP needs 'wasm-unsafe-eval'). The
+  audiobook says a picture page's titles (`withPictureTitles`) and maps chapter offsets onto that
+  text (`move`).
 - Kitobni o'qish (`/library/[id]/read`, `server/reader.ts`, `components/reader/*`): PDF text
   reflowed into paragraphs (`lib/reflow.ts`), contents, selection menu (Iqtibos / Qaydnoma with
   a thought / Ask AI / copy), saved quotes & notes re-highlighted by `quote_text` (notes keep it
