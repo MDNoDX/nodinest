@@ -708,7 +708,12 @@
       "delete_note": "Qaydni o‘chirish",
       "delete_collection": "To‘plamni o‘chirish",
       "archive_resource": "Manbani arxivlash",
-      "write_taqriz": "Taqriz yozildi"
+      "write_taqriz": "Taqriz yozildi",
+      "add_book_pdf": "Kitob PDF’i qo‘shildi",
+      "prepare_audiobook": "Audiokitob tayyorlanmoqda",
+      "create_own_book": "Kitob yaratildi",
+      "update_note": "Qayd tahrirlandi",
+      "message_admin": "Adminga yuborildi"
     },
     "suggestedReview": "Administrator ko‘rib chiqishiga yuborildi.",
     "usedTools": "Ishlatildi: {tools}",
@@ -764,7 +769,12 @@
       "merge_resources": "Dublikatlarni birlashtirish",
       "delete_resource": "Yozuvni o‘chirish",
       "make_study_cards": "Savollar tuzish (yodlash uchun)",
-      "improve_study_cards": "Savollarni yaxshilash"
+      "improve_study_cards": "Savollarni yaxshilash",
+      "add_book_pdf": "Kitob PDF’ini qo‘shish (o‘qish + audiokitob)",
+      "prepare_audiobook": "Audiokitobni tayyorlash",
+      "create_own_book": "Kitob yozishni boshlash",
+      "update_note": "Qaydni tahrirlash",
+      "message_admin": "Adminga xabar yuborish"
     },
     "fields": {
       "title": "Nomi",
@@ -792,7 +802,11 @@
       "pageCount": "Sahifalar",
       "publisher": "Nashriyot",
       "deck": "Savollar to‘plami",
-      "instruction": "Ko‘rsatma"
+      "instruction": "Ko‘rsatma",
+      "subtitle": "Kichik sarlavha",
+      "template": "Shablon",
+      "goalWords": "So‘z maqsadi",
+      "contact": "Aloqa"
     },
     "noMic": "Mikrofon topilmadi. Qurilmaga mikrofon ulanganini tekshiring.",
     "micError": "Ovoz yozishni boshlab bo‘lmadi. Sahifani yangilab, qayta urinib ko‘ring.",
@@ -800,7 +814,10 @@
     "cardsFocus": "E’tibor: {focus}",
     "cardsDeck": "To‘plam: {deck}",
     "cardsHint": "Qaydlar, iqtiboslar, video matni/konspekti, taqriz va kitob matnidan eng muhim savollar tuziladi va «Takrorlash» bo‘limiga saqlanadi.",
-    "cardsAll": "Barcha muhim savollar (AI aniqlaydi)"
+    "cardsAll": "Barcha muhim savollar (AI aniqlaydi)",
+    "bookPdfHint": "PDF kitobga biriktiriladi: matni ajratiladi, butun kitob bo‘yicha boblar topiladi va audiokitob tahlil qilinadi (katta kitobda 1–5 daqiqa). Keyin kitobni saytda o‘qiysiz va tinglaysiz.",
+    "audiobookHint": "AI butun kitobni o‘qib, qahramonlar ovozini tanlaydi (1–5 daqiqa).",
+    "bookFromEarlier": "«{title}» — oldingi kartada qo‘shiladigan kitob"
   },
   "stats": {
     "title": "Ko‘rsatkichlar",

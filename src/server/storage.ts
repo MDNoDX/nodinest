@@ -62,6 +62,8 @@ export function allowedTypes(purpose: UploadPurpose) {
 
 export function maxBytes(purpose: UploadPurpose, mime = "") {
   if (purpose === "media" && VIDEO_TYPES.includes(mime)) return VIDEO_MAX_BYTES;
+  // A whole book's PDF sent to the assistant: as big as a book attachment.
+  if (purpose === "media" && mime === "application/pdf") return attachmentMaxBytes();
   return purpose === "attachment"
     ? attachmentMaxBytes()
     : purpose === "media"

@@ -52,7 +52,23 @@ export async function attachmentParts(ctx: AppContext, list: AttachmentInfo[]): 
     const f = await readFileBytes(ctx, a.fileId);
     if (!f) continue;
     const mime = GEMINI_AUDIO[f.mime] ?? f.mime;
-    parts.push({ text: `[Attached file: ${a.name} (${mime})]` });
+    parts.push({ text: `[Attached file: ${a.name} (${mime}), fileId: ${a.fileId}]` });
+    // A whole book: its first pages (title page, contents) are enough to know
+    // what it is — the book itself is read by add_book_pdf, not in the chat.
+    if (mime === "application/pdf") {
+      const { text, totalPages } = await extractText(f.bytes.slice(), { mergePages: false });
+      if (totalPages > 40) {
+        const body = text
+          .slice(0, 12)
+          .map((t, i) => `--- page ${i + 1} ---\n${t}`)
+          .join("\n")
+          .slice(0, 40_000);
+        parts.push({
+          text: `A BOOK PDF of ${totalPages} pages. Its first pages:\n${body}`,
+        });
+        continue;
+      }
+    }
     if (f.bytes.byteLength <= budget) {
       budget -= f.bytes.byteLength;
       parts.push({ inlineData: { mimeType: mime, data: Buffer.from(f.bytes).toString("base64") } });

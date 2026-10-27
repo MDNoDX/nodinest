@@ -14,6 +14,7 @@ import {
   Square,
   Trash2,
   X,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,6 +65,7 @@ export type ChatAction = {
     remove?: Candidate[];
     target?: Candidate;
     sources?: Candidate[];
+    file?: { name: string; size: number; pdf: boolean } | null;
   } | null;
   outcome?: { href?: string; suggested?: boolean; linked?: boolean };
   error?: string | null;
@@ -126,6 +128,10 @@ const FIELDS = [
   "markdown",
   "imageUrl",
   "explanation",
+  "subtitle",
+  "template",
+  "goalWords",
+  "contact",
 ];
 
 function MiniCover({ src, title }: { src: string | null; title: string }) {
@@ -392,6 +398,28 @@ function ProposalCard({
             {a.deck ? <span>{t("cardsDeck", { deck: String(a.deck) })}</span> : null}
           </dl>
           <p className="text-muted text-xs">{t("cardsHint")}</p>
+        </div>
+      ) : (action.tool === "add_book_pdf" || action.tool === "prepare_audiobook") &&
+        action.preview ? (
+        <div className="flex flex-col gap-2 text-sm">
+          {action.preview.file && (
+            <p className="flex items-center gap-2">
+              <FileText className="size-4 shrink-0 text-[var(--c-violet)]" />
+              <span className="min-w-0 truncate font-medium">{action.preview.file.name}</span>
+              <span className="text-muted shrink-0 text-xs">
+                {(action.preview.file.size / 1024 / 1024).toFixed(1)} MB
+              </span>
+            </p>
+          )}
+          {(action.preview.sources ?? []).map((c) => (
+            <CandidateRow key={c.id} c={c} />
+          ))}
+          {!action.preview.sources?.length && a.title ? (
+            <p className="text-muted text-xs">{t("bookFromEarlier", { title: String(a.title) })}</p>
+          ) : null}
+          <p className="text-muted text-xs">
+            {action.tool === "add_book_pdf" ? t("bookPdfHint") : t("audiobookHint")}
+          </p>
         </div>
       ) : action.tool === "delete_resource" && action.preview?.target ? (
         <div className="flex flex-col gap-2 text-sm">

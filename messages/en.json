@@ -708,7 +708,12 @@
       "delete_note": "Delete note",
       "delete_collection": "Delete collection",
       "archive_resource": "Archive resource",
-      "write_taqriz": "Write-up updated"
+      "write_taqriz": "Write-up updated",
+      "add_book_pdf": "Book PDF added",
+      "prepare_audiobook": "Audiobook being prepared",
+      "create_own_book": "Book created",
+      "update_note": "Note edited",
+      "message_admin": "Sent to the admin"
     },
     "suggestedReview": "Sent to administrator review.",
     "usedTools": "Used: {tools}",
@@ -764,7 +769,12 @@
       "merge_resources": "Merge duplicates",
       "delete_resource": "Delete entry",
       "make_study_cards": "Make study questions",
-      "improve_study_cards": "Improve study questions"
+      "improve_study_cards": "Improve study questions",
+      "add_book_pdf": "Add the book’s PDF (read + audiobook)",
+      "prepare_audiobook": "Prepare the audiobook",
+      "create_own_book": "Start writing a book",
+      "update_note": "Edit a note",
+      "message_admin": "Message the admin"
     },
     "fields": {
       "title": "Title",
@@ -792,7 +802,11 @@
       "pageCount": "Pages",
       "publisher": "Publisher",
       "deck": "Deck",
-      "instruction": "Instruction"
+      "instruction": "Instruction",
+      "subtitle": "Subtitle",
+      "template": "Template",
+      "goalWords": "Word goal",
+      "contact": "Contact"
     },
     "noMic": "No microphone found. Check that one is connected.",
     "micError": "Couldn’t start recording. Reload the page and try again.",
@@ -800,7 +814,10 @@
     "cardsFocus": "Focus: {focus}",
     "cardsDeck": "Deck: {deck}",
     "cardsHint": "The most important questions are made from your notes, quotes, video transcript / konspekt, taqriz and book text and saved to Review.",
-    "cardsAll": "Every important question (AI decides)"
+    "cardsAll": "Every important question (AI decides)",
+    "bookPdfHint": "The PDF is attached to the book: its text is read, the chapters of the whole book are found and the audiobook is analysed (1–5 minutes for a big book). Then you read and listen to it on the site.",
+    "audiobookHint": "The AI reads the whole book and casts the characters’ voices (1–5 minutes).",
+    "bookFromEarlier": "“{title}” — the book added by the card above"
   },
   "stats": {
     "title": "Metrics",

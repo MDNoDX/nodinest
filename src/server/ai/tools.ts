@@ -16,6 +16,7 @@
 import "server-only";
 import type { z } from "zod";
 import type { AppContext } from "@/db";
+import { BOOK_TOOLS } from "./tools/books";
 import { CATALOG_TOOLS } from "./tools/catalog";
 import { DESTRUCTIVE_TOOLS } from "./tools/destructive";
 import { PERSONAL_TOOLS } from "./tools/personal";
@@ -28,6 +29,7 @@ export const TOOLS = {
   ...READ_TOOLS,
   ...CATALOG_TOOLS,
   ...PERSONAL_TOOLS,
+  ...BOOK_TOOLS,
   ...DESTRUCTIVE_TOOLS,
 } as const;
 

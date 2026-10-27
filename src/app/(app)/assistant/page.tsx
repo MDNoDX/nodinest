@@ -11,6 +11,8 @@ import { aiAvailability, getConversation, listConversations } from "@/server/ai/
 import { getAiSettings } from "@/server/settings";
 
 export const dynamic = "force-dynamic";
+// Confirmed actions may continue in the background (a book PDF: chapters, audiobook).
+export const maxDuration = 300;
 export async function generateMetadata() {
   return { title: (await getTranslations("assistant"))("title") };
 }
