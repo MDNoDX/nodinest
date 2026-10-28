@@ -40,7 +40,6 @@ import {
   Strikethrough,
   Underline as UnderlineIcon,
   Undo2,
-  X,
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
@@ -55,120 +54,34 @@ import { storageStatusAction } from "@/app/actions/files";
 import { saveNoteAction, saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Cover } from "@/components/library/cover";
-import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
+import { useRecorder } from "@/components/media/use-recorder";
 import { uploadMedia } from "@/lib/upload-media";
 import { youtubeIdFromUrl } from "@/lib/youtube";
+import { FindBar, RecordingBar } from "./bars";
 import { NoteMark } from "./note-mark";
+import { Outline } from "./outline";
+import {
+  OUTLINE_KEY,
+  authorText,
+  chaptersOf,
+  readDraft,
+  readOutline,
+  subscribeOutline,
+  writeDraft,
+  type Draft,
+  type SaveState,
+} from "./taqriz-store";
+import { Tool } from "./tool";
 import { AudioNode, FileNode, ImageNode, VideoNode, YouTubeNode } from "./media-nodes";
 import { YouTubeDialog } from "./youtube-dialog";
 import { cn } from "@/lib/cn";
 import { countWords, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
-
-type Draft = { doc: WriteupDoc; base: string | null; at: number };
-type SaveState = "idle" | "dirty" | "saving" | "saved" | "offline" | "conflict";
-type Chapter = { pos: number; level: number; text: string };
-
-const draftKey = (id: string) => `nn:taqriz:${id}`;
-function readDraft(id: string): Draft | null {
-  try {
-    const raw = localStorage.getItem(draftKey(id));
-    return raw ? (JSON.parse(raw) as Draft) : null;
-  } catch {
-    return null;
-  }
-}
-function writeDraft(id: string, d: Draft | null) {
-  try {
-    if (d) localStorage.setItem(draftKey(id), JSON.stringify(d));
-    else localStorage.removeItem(draftKey(id));
-  } catch {
-    /* storage full / blocked: the server copy still exists */
-  }
-}
-
-function chaptersOf(editor: Editor | null): Chapter[] {
-  if (!editor) return [];
-  const out: Chapter[] = [];
-  editor.state.doc.forEach((node, pos) => {
-    if (node.type.name === "heading" && node.textContent.trim())
-      out.push({ pos, level: node.attrs.level as number, text: node.textContent.trim() });
-  });
-  return out;
-}
-
-function Tool({
-  on,
-  label,
-  onClick,
-  disabled,
-  children,
-}: {
-  on?: boolean;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      aria-pressed={on}
-      disabled={disabled}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className={cn(
-        "grid size-8 place-items-center rounded-md transition-colors disabled:opacity-35",
-        on ? "bg-primary-soft text-primary" : "text-foreground/75 hover:bg-surface-2",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 /**
  * Taqriz: one free-form document per resource. Write plainly, or turn any
  * line / selected sentence into a chapter — chapters build the outline on the
  * left. Autosaves; works offline (draft kept on the device, synced later).
  */
-/**
- * The author's own text: a book template's guiding prompts (paragraphs that
- * are entirely italic) are not counted towards words or goals.
- */
-function authorText(doc: PMNode) {
-  const parts: string[] = [];
-  doc.forEach((n) => {
-    if (n.type.name === "paragraph" && n.childCount > 0) {
-      let allItalic = true;
-      n.forEach((c) => {
-        if (!c.marks.some((m) => m.type.name === "italic")) allItalic = false;
-      });
-      if (allItalic) return;
-    }
-    parts.push(n.textContent);
-  });
-  return parts.join(" ");
-}
-
-const OUTLINE_KEY = "nn:taqriz-outline";
-function readOutline() {
-  try {
-    return localStorage.getItem(OUTLINE_KEY) === "hidden";
-  } catch {
-    return false;
-  }
-}
-function subscribeOutline(cb: () => void) {
-  window.addEventListener(OUTLINE_KEY, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(OUTLINE_KEY, cb);
-    window.removeEventListener("storage", cb);
-  };
-}
-
 export function TaqrizEditor({
   resource,
   initial,
@@ -882,48 +795,7 @@ export function TaqrizEditor({
     ) : null;
 
   const outline = (
-    <nav aria-label={t("contents")} className="flex flex-col">
-      {chapters.length === 0 ? (
-        <p className="text-muted px-3 py-2 text-xs leading-relaxed">{t("noChapters")}</p>
-      ) : (
-        <ol className="flex flex-col">
-          {chapters.map((c, i) => {
-            const on = c.pos === activePos;
-            return (
-              <li key={`${c.pos}-${i}`}>
-                <button
-                  type="button"
-                  onClick={() => goTo(c.pos)}
-                  aria-current={on ? "true" : undefined}
-                  className={cn(
-                    "relative flex w-full items-baseline gap-2 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors",
-                    c.level === 3 ? "pl-8 text-[13px]" : "pl-4",
-                    on
-                      ? "text-primary bg-primary-soft font-semibold"
-                      : "text-foreground/80 hover:bg-surface-2",
-                  )}
-                >
-                  {on && (
-                    <span
-                      aria-hidden
-                      className="bg-primary absolute top-1.5 bottom-1.5 left-1 w-[3px] rounded-full"
-                    />
-                  )}
-                  <span className="line-clamp-2">{c.text}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-      <button
-        type="button"
-        onClick={addChapter}
-        className="text-primary hover:bg-primary-soft mt-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm font-medium"
-      >
-        <Heading2 className="size-4" /> {t("addChapter")}
-      </button>
-    </nav>
+    <Outline chapters={chapters} activePos={activePos} onGo={goTo} onAdd={addChapter} />
   );
 
   return (
@@ -1289,103 +1161,19 @@ export function TaqrizEditor({
             </span>
           </div>
           {rec.state === "recording" && (
-            <div className="border-border mx-auto flex max-w-3xl items-center gap-3 border-t px-4 py-2 sm:px-6">
-              <span className="bg-danger size-2.5 animate-pulse rounded-full" />
-              <span className="text-sm font-medium tabular-nums">{fmtSeconds(rec.seconds)}</span>
-              <span className="bg-surface-2 h-1.5 flex-1 overflow-hidden rounded-full">
-                <span
-                  className="bg-danger block h-full rounded-full"
-                  style={{ width: `${Math.round(rec.level * 100)}%` }}
-                />
-              </span>
-              <button
-                type="button"
-                className="text-muted text-sm hover:underline"
-                onClick={rec.cancel}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="button"
-                className="bg-danger rounded-lg px-3 py-1 text-sm font-medium text-white"
-                onClick={() => void stopRecording()}
-              >
-                {t("stop")}
-              </button>
-            </div>
+            <RecordingBar rec={rec} onStop={() => void stopRecording()} />
           )}
           {findOpen && editor && (
-            <form
-              className="border-border mx-auto flex max-w-3xl flex-wrap items-center gap-1.5 border-t px-3 py-1.5 sm:px-6 xl:max-w-4xl"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <Search className="text-muted size-4 shrink-0" />
-              <input
-                ref={findInput}
-                value={findQ}
-                placeholder={t("findPlaceholder")}
-                aria-label={t("find")}
-                onChange={(e) => {
-                  setFindQ(e.target.value);
-                  editor.commands.setFind(e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    editor.commands.findStep(e.shiftKey ? -1 : 1);
-                  } else if (e.key === "Escape") closeFind();
-                }}
-                className="border-border-strong bg-surface h-8 w-44 min-w-0 flex-1 rounded-md border px-2 text-sm sm:flex-none"
-              />
-              <span className="text-muted w-14 text-center text-xs tabular-nums">
-                {findQ
-                  ? `${info?.find.total ? info.find.index + 1 : 0}/${info?.find.total ?? 0}`
-                  : ""}
-              </span>
-              <Tool label={t("findPrev")} onClick={() => editor.commands.findStep(-1)}>
-                <ChevronUp className="size-4" />
-              </Tool>
-              <Tool label={t("findNext")} onClick={() => editor.commands.findStep(1)}>
-                <ChevronDown className="size-4" />
-              </Tool>
-              <input
-                value={replaceQ}
-                placeholder={t("replaceWith")}
-                aria-label={t("replaceWith")}
-                onChange={(e) => setReplaceQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    editor.chain().replaceCurrent(replaceQ).findStep(1).run();
-                  } else if (e.key === "Escape") closeFind();
-                }}
-                className="border-border-strong bg-surface h-8 w-36 min-w-0 rounded-md border px-2 text-sm"
-              />
-              <button
-                type="button"
-                disabled={!info?.find.total}
-                onClick={() => editor.chain().replaceCurrent(replaceQ).run()}
-                className="hover:bg-surface-2 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-40"
-              >
-                {t("replace")}
-              </button>
-              <button
-                type="button"
-                disabled={!info?.find.total}
-                onClick={() => editor.chain().replaceAll(replaceQ).run()}
-                className="hover:bg-surface-2 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-40"
-              >
-                {t("replaceAll")}
-              </button>
-              <button
-                type="button"
-                onClick={closeFind}
-                className="text-muted hover:text-foreground ml-auto rounded-md p-1"
-                aria-label={t("closeFind")}
-              >
-                <X className="size-4" />
-              </button>
-            </form>
+            <FindBar
+              editor={editor}
+              inputRef={findInput}
+              findQ={findQ}
+              setFindQ={setFindQ}
+              replaceQ={replaceQ}
+              setReplaceQ={setReplaceQ}
+              found={info?.find}
+              onClose={closeFind}
+            />
           )}
           {outlineOpen && (
             <div className="border-border mx-auto max-w-3xl border-t px-3 py-2 lg:hidden">

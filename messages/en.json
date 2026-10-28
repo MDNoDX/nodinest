@@ -107,7 +107,12 @@
     "publishers": "Publishers & channels",
     "review": "Review",
     "libraryTab": "My resources",
-    "write": "Write a book"
+    "write": "Write a book",
+    "home": "Home",
+    "notesShort": "Notes",
+    "ai": "AI",
+    "more": "Menu",
+    "guide": "Guide"
   },
   "theme": {
     "label": "Theme",
@@ -436,7 +441,8 @@
     "pdfTitle": "The book’s PDF (optional)",
     "pdfHint": "Add the PDF to read the book right here: contents, questions to the AI, quotes and notes, the audiobook. The AI analyses the whole book.",
     "pdfReady": "PDF uploaded — its text is read after saving",
-    "pdfIndexed": "The PDF’s text is ready — you can read the book now. Chapters and the audiobook analysis are being prepared in the background."
+    "pdfIndexed": "The PDF’s text is ready — you can read the book now. Chapters and the audiobook analysis are being prepared in the background.",
+    "addMenu": "Add"
   },
   "record": {
     "status": "Status",
@@ -1563,26 +1569,27 @@
     "next": "Next",
     "start": "Start",
     "done": "Got it!",
-    "welcomeTitle": "Welcome to NodiNote",
-    "welcomeBody": "Your personal study room: books you read, videos and lectures you watch, notes, write-ups and questions in one place. Here is a quick look at the main buttons.",
-    "libraryTitle": "Darsxona",
-    "libraryBody": "All your books, videos, lectures and courses — with people (authors, speakers) and publishers & channels inside.",
-    "addTitle": "Add",
-    "addBody": "Add a new book or video. Paste a YouTube or book link and the details fill in by themselves.",
-    "searchTitle": "Quick search",
-    "searchBody": "Find any book, person, note or quote in a moment (⌘K / Ctrl+K).",
-    "notesTitle": "Notes & quotes",
-    "notesBody": "Thoughts and quotes you write while studying. A book's taqriz is written from its page with the “Taqriz” button.",
-    "reviewTitle": "Review",
-    "reviewBody": "The AI makes the most important questions from your notes, taqriz and video text; each comes back just before you would forget it.",
-    "assistantTitle": "AI assistant",
-    "assistantBody": "Ask the site's AI anything: add books, make questions, explain a passage, show stats… It always asks before changing anything. Daily limit: {limit}.",
+    "welcomeTitle": "Welcome to NodiNote!",
+    "welcomeBody": "A personal notebook for everything you read, watch and learn. Let me show you the essentials in one minute.",
+    "libraryTitle": "2. Library",
+    "libraryBody": "All your books and videos, each with its status (Planned → Reading → Read), rating and dates.",
+    "addTitle": "1. Add a book",
+    "addBody": "Add a book or a video: type its title or paste a link — the rest fills in. Add a book’s PDF and you can read and listen to it here.",
+    "notesTitle": "4. Notes and quotes",
+    "notesBody": "Every thought you marked is gathered here — with its page and book.",
+    "reviewTitle": "5. Review",
+    "reviewBody": "The AI writes the most important questions from what you read and asks them again just before you would forget.",
+    "assistantTitle": "6. AI assistant",
+    "assistantBody": "Say what you need in plain words: add a book, make questions, explain… Send a book’s PDF and it does everything. It asks before every change. Daily limit: {limit}.",
     "unlimited": "unlimited",
     "limitN": "{n} requests a day",
-    "settingsTitle": "Settings",
-    "settingsBody": "Shortcuts, the player and appearance. You can replay this guide from here.",
-    "writeTitle": "Write a book",
-    "writeBody": "Write your own book — your life or your family's story. The AI asks questions and turns what you say into book prose."
+    "writeTitle": "7. Write a book",
+    "writeBody": "Write your own book — your life or your family’s story. The AI asks, you speak or type.",
+    "readTitle": "3. Read or listen",
+    "readBody": "A book with its PDF gets “Read” and “Audiobook” buttons. While reading, select text: “Quote”, “Note” or “Ask AI”.",
+    "guideTitle": "The full guide",
+    "guideBody": "Every section explained in plain words. Learn from here whenever you like. Enjoy!",
+    "openGuide": "Open the guide"
   },
   "write": {
     "title": "Write a book",
@@ -1729,7 +1736,12 @@
       "forward": "forward",
       "gentle": "gentle",
       "warm": "warm"
-    }
+    },
+    "sleep": "Sleep timer",
+    "sleepOff": "No timer",
+    "sleepOn": "Timer on",
+    "sleepMin": "In {n} minutes",
+    "sleepChapter": "End of chapter"
   },
   "reader": {
     "title": "Read the book",
@@ -1777,6 +1789,69 @@
     "original": "Original page",
     "hideOriginal": "Hide",
     "originalHint": "See the page as printed in the PDF (pictures, tables, ornaments)",
-    "continue": "Continue"
+    "continue": "Continue",
+    "display": "Display (Aa)",
+    "paper": "Paper",
+    "paper_auto": "Auto",
+    "paper_white": "White",
+    "paper_sepia": "Sepia",
+    "paper_night": "Night",
+    "size": "Text size",
+    "typeface": "Typeface",
+    "serif": "Book",
+    "sans": "Plain",
+    "leading": "Line spacing",
+    "width": "Text width",
+    "width_narrow": "Narrow",
+    "width_normal": "Normal",
+    "width_wide": "Wide",
+    "marks": "Marks",
+    "search": "Search",
+    "noMarks": "No marks yet. Select a passage and press “Quote” or “Note” — it is kept here with its page.",
+    "pageShort": "p. {n}",
+    "searchPlaceholder": "Search in the book…",
+    "found": "{n, plural, one {Found on # page} other {Found on # pages}}",
+    "offlineSave": "Save for reading offline",
+    "offlineHint": "The book’s text is stored on this device — read it without internet",
+    "savingOffline": "Saving… {pct}%",
+    "offlineReady": "Ready for offline reading",
+    "offlineRemove": "Remove from this device",
+    "offlineDone": "Saved on this device — you can read it offline now",
+    "offlineFailed": "Not saved. Check the connection and try again."
+  },
+  "guide": {
+    "title": "Guide",
+    "subtitle": "Every part of the site in plain words: what it is for and how to use it.",
+    "contents": "Sections",
+    "search": "Search the guide…",
+    "replay": "Replay the tour",
+    "nothing": "Nothing found.",
+    "settingsTitle": "About the site and the guide",
+    "settingsBody": "Every section explained: getting started, reading, audiobooks, write-ups, the AI and privacy."
+  },
+  "start": {
+    "title": "Getting started",
+    "hide": "Hide",
+    "guide": "The full guide",
+    "added": {
+      "title": "Add a book",
+      "hint": "Type its title or paste a link"
+    },
+    "pdf": {
+      "title": "Upload its PDF",
+      "hint": "On the book’s page, “Reading” section"
+    },
+    "reading": {
+      "title": "Start reading",
+      "hint": "The “Read” or “Audiobook” button"
+    },
+    "marked": {
+      "title": "Keep a thought",
+      "hint": "Select text: “Quote” or “Note”"
+    },
+    "questions": {
+      "title": "Make questions",
+      "hint": "“Review” helps you remember"
+    }
   }
 }

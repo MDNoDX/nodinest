@@ -307,23 +307,35 @@ function toPcm(data: string, mime: string): { pcm: Int16Array; rate: number } {
 export async function speak(
   lines: SpeechLine[],
   voiceOf: (speaker: string) => string,
-  opts: { timeoutMs?: number } = {},
+  opts: {
+    timeoutMs?: number;
+    /** How to say it, e.g. "Read as an unhurried, warm audiobook narrator:" */
+    style?: string;
+  } = {},
 ): Promise<{ pcm: Int16Array; rate: number }> {
   const speakers = [...new Set(lines.map((l) => l.speaker))];
   if (!lines.length || speakers.length > 2) throw new AppError("VALIDATION", "speakers");
   const single = speakers.length === 1;
   // Plain tokens as speaker names: real names may contain spaces or colons.
   const token = (s: string) => `Speaker${speakers.indexOf(s) + 1}`;
+  // Older speech models take a spoken-style direction before the text (the
+  // 3.8 ones have no such channel: they would read it aloud).
+  const direct = (model: string, text: string) =>
+    opts.style && !usesSpeechMetadata(model) ? `${opts.style}\n\n${text}` : text;
   const contentsFor = (model: string): Content[] => [
     {
       role: "user",
       parts: single
-        ? [{ text: lines.map((l) => l.text).join("\n") }]
+        ? [{ text: direct(model, lines.map((l) => l.text).join("\n")) }]
         : usesSpeechMetadata(model)
           ? lines.map(
               (l) => ({ text: l.text, speechMetadata: { speaker: token(l.speaker) } }) as never,
             )
-          : [{ text: lines.map((l) => `${token(l.speaker)}: ${l.text}`).join("\n") }],
+          : [
+              {
+                text: direct(model, lines.map((l) => `${token(l.speaker)}: ${l.text}`).join("\n")),
+              },
+            ],
     },
   ];
   const speechConfig = single

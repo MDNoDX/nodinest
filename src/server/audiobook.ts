@@ -28,6 +28,7 @@ import { factsText, gate, langRule, resourceFacts } from "./ai/study";
 import { findStructure, getStructure } from "./book-structure";
 import { loadBookPages } from "./booktext";
 import { readFileBytes } from "./storage";
+import { stretchPauses } from "@/lib/audio-pauses";
 import {
   cleanLines,
   cleanPages,
@@ -803,16 +804,19 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
   for (const c of a.characters) voice.set(c.name, c.voice);
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;
   const groups = runs(lines);
+  const style =
+    `Read this as a professional audiobook narrator: unhurried, warm and expressive, with natural pauses between sentences and a longer pause between paragraphs; give each character their own feeling. ${a.narration.style ?? ""}`.trim();
   // A few requests at once; the order of the pieces is kept.
   const pieces: { pcm: Int16Array; rate: number }[] = new Array(groups.length);
   for (let i = 0; i < groups.length; i += 3)
     await Promise.all(
       groups.slice(i, i + 3).map(async (g, j) => {
-        pieces[i + j] = await speak(g, voiceOf);
+        pieces[i + j] = await speak(g, voiceOf, { style });
       }),
     );
   const rate = pieces[0]?.rate ?? 24000;
-  const gap = new Int16Array(Math.round(rate * 0.35));
+  // A breath between the pieces of the recording.
+  const gap = new Int16Array(Math.round(rate * 0.55));
   const total = pieces.reduce((n, p) => n + p.pcm.length + gap.length, 0);
   const pcm = new Int16Array(total);
   let at = 0;
@@ -820,7 +824,10 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
     pcm.set(p.pcm, at);
     at += p.pcm.length + gap.length;
   }
-  return { mp3: encodeMp3(pcm, rate), seconds: total / rate };
+  // A human narrator's pacing: the model's own pauses at sentence ends and
+  // commas are lengthened (no extra request, nothing re-spoken).
+  const paced = stretchPauses(pcm, rate);
+  return { mp3: encodeMp3(paced, rate), seconds: paced.length / rate };
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────

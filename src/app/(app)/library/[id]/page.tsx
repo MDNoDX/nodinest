@@ -2,7 +2,6 @@ import {
   AudioLines,
   Headphones,
   BookOpenText,
-  Brain,
   ExternalLink,
   FileText,
   Lock,
@@ -38,6 +37,7 @@ import { listTextSources } from "@/server/booktext";
 import { getResourceDetail, getResourceHeader } from "@/server/catalog";
 import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
+import { AddMenu } from "@/components/library/add-menu";
 
 export const dynamic = "force-dynamic";
 // Uploading a PDF starts the audiobook analysis in the background (after the response).
@@ -294,33 +294,7 @@ export default async function ResourcePage({
                   </Link>
                 </Button>
               )}
-              <Button variant="outline" asChild>
-                <Link
-                  href={`/notes/new?resource=${r.id}&kind=quote`}
-                  title={t("resource.addQuote")}
-                  aria-label={t("resource.addQuote")}
-                >
-                  <Quote /> <span className="hidden sm:inline">{t("resource.addQuote")}</span>
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link
-                  href={`/notes/new?resource=${r.id}`}
-                  title={t("resource.addNote")}
-                  aria-label={t("resource.addNote")}
-                >
-                  <StickyNote /> <span className="hidden sm:inline">{t("resource.addNote")}</span>
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link
-                  href={`/review?resource=${r.id}`}
-                  title={t("resource.makeQuestions")}
-                  aria-label={t("resource.makeQuestions")}
-                >
-                  <Brain /> <span className="hidden sm:inline">{t("resource.makeQuestions")}</span>
-                </Link>
-              </Button>
+              <AddMenu resourceId={r.id} />
               <CollectionPicker
                 collections={cols}
                 selected={inCols}

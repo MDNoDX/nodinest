@@ -2,11 +2,12 @@ import { expect, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { E2E_DB } from "../../playwright.config";
 
-/** The first-visit guide would cover the page in every test: mark it as seen. */
+/** The first-visit guide (and the start checklist) would get in the way: mark them as seen. */
 async function skipTour(page: Page) {
   await page.addInitScript(() => {
     try {
       localStorage.setItem("nodinest-tour-v1", "1");
+      localStorage.setItem("nodinest-start-hidden", "1");
     } catch {
       /* ignore */
     }

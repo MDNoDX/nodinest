@@ -1,4 +1,4 @@
-import { AppWindow, Keyboard, Lock } from "lucide-react";
+import { AppWindow, Keyboard, LifeBuoy, Lock } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
@@ -9,6 +9,8 @@ import { fmtBytes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { isStorageConfigured, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
 import { StorageHint } from "@/components/write/storage-hint";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,20 @@ export default async function SettingsPage() {
           <CardHeader title={t("install.title")} icon={<AppWindow />} hue="blue" />
           <div className="px-5 pb-5">
             <InstallApp />
+          </div>
+        </Card>
+        <Card className="border-[var(--c-teal)]/30">
+          <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--c-teal)]/12 text-[var(--c-teal)]">
+              <LifeBuoy className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold">{t("guide.settingsTitle")}</h2>
+              <p className="text-muted text-sm">{t("guide.settingsBody")}</p>
+            </div>
+            <Button asChild>
+              <Link href="/guide">{t("guide.title")}</Link>
+            </Button>
           </div>
         </Card>
         <Card>

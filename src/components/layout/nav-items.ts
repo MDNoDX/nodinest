@@ -7,6 +7,7 @@ import {
   FolderHeart,
   Home,
   Inbox,
+  LifeBuoy,
   NotebookPen,
   PenLine,
   Search,
@@ -41,6 +42,7 @@ export const NAV_SECONDARY: NavItem[] = [
   { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },
+  { href: "/guide", key: "guide", icon: LifeBuoy },
   { href: "/settings", key: "settings", icon: Settings },
   { href: "/admin", key: "admin", icon: ShieldCheck, admin: true },
 ];

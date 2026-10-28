@@ -52,7 +52,8 @@ test("catalog: person + resource with author autocomplete, quote, search", async
   await expect(page.getByRole("heading", { name: "Xamsa", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Alisher Navoiy" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Iqtibos qo‘shish" }).first().click();
+  await page.getByRole("button", { name: "Qo‘shish", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Iqtibos qo‘shish" }).click();
   await page.getByLabel("Aynan iqtibos").fill("Ilm — nur, jaholat — zulmat.");
   await page.getByRole("button", { name: "Saqlash" }).click();
   await expect(page.getByText("“Ilm — nur, jaholat — zulmat.”")).toBeVisible();

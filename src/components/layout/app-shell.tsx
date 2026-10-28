@@ -9,6 +9,7 @@ import { MediaDockProvider } from "@/components/media/media-dock";
 import { OnboardingTour } from "@/components/onboarding/tour";
 import { cn } from "@/lib/cn";
 import { hueStyle } from "@/lib/hues";
+import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
@@ -148,6 +149,16 @@ export function AppShell({
 
   const toggle = () => writeSidebar(!collapsed);
 
+  // Phones: room for the bottom bar (the page end and the player sit above it).
+  // On the root, so the player (rendered outside this tree) sees it too.
+  const immersive = IMMERSIVE_RE.test(pathname);
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--bottom-nav",
+      immersive ? "0px" : "calc(4rem + env(safe-area-inset-bottom))",
+    );
+  }, [immersive]);
+
   const secondary = NAV_SECONDARY.filter((i) => !i.admin || user.role === "superadmin");
   const badge = { suggestions: pendingSuggestions };
 
@@ -261,6 +272,7 @@ export function AppShell({
             id="main"
             className={cn(
               "page-enter mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
+              "max-lg:pb-[calc(var(--bottom-nav,0px)+1.5rem)]",
               // Writing pages use the whole width (their panels hug the edges).
               WIDE_RE.test(pathname) ? "max-w-none" : "max-w-6xl",
             )}
@@ -268,6 +280,13 @@ export function AppShell({
             {children}
           </main>
         </div>
+        {!immersive && (
+          <BottomNav
+            pathname={pathname}
+            onMenu={() => setMobileOpen(true)}
+            badge={pendingSuggestions}
+          />
+        )}
         <OnboardingTour aiLimit={aiDailyLimit} />
       </div>
     </MediaDockProvider>

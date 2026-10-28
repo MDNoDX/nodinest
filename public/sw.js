@@ -10,7 +10,7 @@
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v5-nodinote";
+const VERSION = "v6-reader";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;
@@ -31,7 +31,11 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      for (const key of await caches.keys()) if (!KEEP.includes(key)) await caches.delete(key);
+      // Only this worker's own older caches. The app's own (audiobook audio,
+      // books saved for offline reading) survive updates; sign-out clears them.
+      for (const key of await caches.keys())
+        if (/^nn-(static|pages|img|files)-/.test(key) && !KEEP.includes(key))
+          await caches.delete(key);
       if (self.registration.navigationPreload) await self.registration.navigationPreload.enable();
       await self.clients.claim();
     })(),

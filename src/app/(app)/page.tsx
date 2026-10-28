@@ -33,6 +33,8 @@ import { lastResume } from "@/server/resume";
 import { listDecks } from "@/server/study-cards";
 import { getCollectionStats } from "@/server/stats";
 import { withBookText } from "@/server/reader";
+import { StartPath } from "@/components/onboarding/start-path";
+import { getStartSteps } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +74,7 @@ export default async function DashboardPage() {
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const year = Number(today.slice(0, 4));
-  const [records, stats, goals, notes, cols, last, decks] = await Promise.all([
+  const [records, stats, goals, notes, cols, last, decks, startSteps] = await Promise.all([
     listMyRecords(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
     listGoalsWithProgress(db, ctx, today, tz),
@@ -80,6 +82,7 @@ export default async function DashboardPage() {
     listCollections(db, ctx),
     lastResume(db, ctx),
     listDecks(ctx),
+    getStartSteps(ctx),
   ]);
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
@@ -226,6 +229,10 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
+
+      <div className="mb-8 empty:hidden">
+        <StartPath steps={startSteps} />
+      </div>
 
       {s.library === 0 && (
         <EmptyState

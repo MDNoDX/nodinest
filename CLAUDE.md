@@ -114,6 +114,20 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   explains without spoilers past the page; selection optional (questions about the book).
 - `generate(..., { patient: true })` waits out per-minute 429s; the global AI pause is only set
   when every model's retry delay is > 60 s (daily quota), never for a per-minute limit.
+- Phone layout: `components/layout/bottom-nav.tsx` (lg:hidden tab bar; hidden on immersive routes
+  `IMMERSIVE_RE` = reader / taqriz / write editor). AppShell sets `--bottom-nav` on <html>; anything
+  fixed at the bottom (media dock) must sit above `var(--bottom-nav)`.
+- Onboarding: tour (first visit only, ends with a link to /guide) + home "Boshlash yo'li" checklist
+  (`server/onboarding.ts` checks real data; dismiss key `nodinest-start-hidden`) + the guide page
+  `/guide` (text in `src/content/guide.ts`, uz + en; linked from nav and Settings). New features
+  should get a guide entry.
+- Reader modules: `reader-prefs.ts` (paper / font / size / leading / width, localStorage),
+  `reader-settings.tsx` ("Aa"), `reader-side.tsx` (contents / marks / in-book search via
+  `/api/book/[id]/search`), `reader-selection.tsx`, `offline.ts` (Cache API `nn-books`).
+  sw.js must never delete `nn-books` / `nn-audiobook` caches on activate.
+- Audiobook pacing: style prompt for non-3.8 TTS models, 0.55 s between runs and
+  `lib/audio-pauses.ts` `stretchPauses` (longer sentence pauses) on the final PCM; bump
+  `AUDIO_VERSION` in audiobook-app.tsx when the audio pipeline changes (busts browser cache).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

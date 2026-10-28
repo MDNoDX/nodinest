@@ -1,5 +1,6 @@
 "use client";
 import { ArrowLeft, ArrowRight, Sparkles, X } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -14,19 +15,24 @@ export const TOUR_EVENT = "nodinest:tour";
 type Step = { id: string; target?: string };
 const STEPS: Step[] = [
   { id: "welcome" },
-  { id: "library", target: "nav-library" },
   { id: "add", target: "add" },
-  { id: "search", target: "search" },
-  { id: "write", target: "nav-write" },
+  { id: "library", target: "nav-library" },
+  { id: "read" },
   { id: "notes", target: "nav-notes" },
   { id: "review", target: "nav-review" },
   { id: "assistant", target: "nav-assistant" },
-  { id: "settings", target: "nav-settings" },
+  { id: "write", target: "nav-write" },
+  { id: "guide", target: "nav-guide" },
 ];
 
 /** First visible element with data-tour=name (the phone menu has a copy). */
 function findTarget(name?: string): HTMLElement | null {
   if (!name) return null;
+  return findOne(name) ?? (name.startsWith("nav-") ? findOne("nav-more") : null);
+}
+
+/** On phones a section may sit behind the bottom bar's "Menu": that is lit then. */
+function findOne(name: string): HTMLElement | null {
   for (const el of document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)) {
     const r = el.getBoundingClientRect();
     if (r.width > 0 && r.height > 0 && !el.closest("[hidden]")) return el;
@@ -193,6 +199,13 @@ export function OnboardingTour({ aiLimit }: { aiLimit: number | null }) {
             {i > 0 && (
               <Button size="sm" variant="ghost" onClick={() => setI(i - 1)} aria-label={t("back")}>
                 <ArrowLeft />
+              </Button>
+            )}
+            {last && (
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/guide" onClick={finish}>
+                  {t("openGuide")}
+                </Link>
               </Button>
             )}
             <Button size="sm" onClick={() => (last ? finish() : setI(i + 1))}>

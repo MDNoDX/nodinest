@@ -107,7 +107,12 @@
     "publishers": "Nashriyot va kanallar",
     "review": "Takrorlash",
     "libraryTab": "Manbalarim",
-    "write": "Kitob yozish"
+    "write": "Kitob yozish",
+    "home": "Bosh",
+    "notesShort": "Qaydlar",
+    "ai": "AI",
+    "more": "Menyu",
+    "guide": "Qo‘llanma"
   },
   "theme": {
     "label": "Mavzu",
@@ -436,7 +441,8 @@
     "pdfTitle": "Kitobning PDF fayli (ixtiyoriy)",
     "pdfHint": "PDF qo‘shsangiz, kitobni shu yerning o‘zida o‘qiysiz: boblar mundarijasi, AI bilan savol-javob, iqtibos va qaydnomalar, audiokitob. AI kitobni boshidan oxirigacha tahlil qiladi.",
     "pdfReady": "PDF yuklandi — saqlangach matni ajratiladi",
-    "pdfIndexed": "PDF matni ajratildi — endi kitobni o‘qishingiz mumkin. Boblar va audiokitob tahlili fonda tayyorlanmoqda."
+    "pdfIndexed": "PDF matni ajratildi — endi kitobni o‘qishingiz mumkin. Boblar va audiokitob tahlili fonda tayyorlanmoqda.",
+    "addMenu": "Qo‘shish"
   },
   "record": {
     "status": "Holati",
@@ -1563,26 +1569,27 @@
     "next": "Keyingi",
     "start": "Boshlash",
     "done": "Tushunarli!",
-    "welcomeTitle": "NodiNote’ga xush kelibsiz",
-    "welcomeBody": "Bu sizning shaxsiy darsxonangiz: o‘qigan kitoblaringiz, ko‘rgan video va ma’ruzalaringiz, qaydlar, taqrizlar va savollar bir joyda. Asosiy tugmalarni qisqacha ko‘rsatib o‘taman.",
-    "libraryTitle": "Darsxona",
-    "libraryBody": "Barcha kitob, video, ma’ruza va kurslaringiz. Ichida shaxslar (mualliflar, ma’ruzachilar) hamda nashriyot va kanallar ham bor.",
-    "addTitle": "Qo‘shish",
-    "addBody": "Yangi kitob yoki video qo‘shish. YouTube yoki kitob havolasini qo‘ysangiz, ma’lumotlar o‘zi to‘ldiriladi.",
-    "searchTitle": "Tezkor qidiruv",
-    "searchBody": "Istalgan kitob, shaxs, qayd yoki iqtibosni bir zumda toping (⌘K / Ctrl+K).",
-    "notesTitle": "Qaydlar va iqtiboslar",
-    "notesBody": "O‘qiyotganda yozgan fikr va iqtiboslaringiz. Har bir kitobning taqrizini esa kitob sahifasidagi «Taqriz» tugmasi orqali yozasiz.",
-    "reviewTitle": "Takrorlash",
-    "reviewBody": "AI qaydlaringiz, taqrizingiz va video matnidan eng muhim savollarni tuzadi; har savol unutishingizdan oldin qayta chiqadi — shunday yodda qoladi.",
-    "assistantTitle": "AI yordamchi",
-    "assistantBody": "Saytning sun’iy intellektiga istalgan narsani so‘rang: kitob qo‘shish, savol tuzish, matnni tushuntirish, statistika… U har o‘zgarishdan oldin sizdan tasdiq so‘raydi. Kunlik limit: {limit}.",
+    "welcomeTitle": "NodiNote’ga xush kelibsiz!",
+    "welcomeBody": "Bu — o‘qigan, ko‘rgan va o‘rgangan hamma narsangiz uchun shaxsiy daftar. 1 daqiqada eng kerakli joylarni ko‘rsatib o‘taman.",
+    "libraryTitle": "2. Darsxona",
+    "libraryBody": "Hamma kitob va videolaringiz shu yerda. Har birida holat (Rejada → O‘qiyapman → O‘qidim), baho va sanalar.",
+    "addTitle": "1. Kitob qo‘shing",
+    "addBody": "Kitob yoki video qo‘shing: nomini yozing yoki havolasini qo‘ying — qolgani o‘zi to‘ladi. Kitobning PDF faylini ham qo‘shsangiz, saytda o‘qiysiz va tinglaysiz.",
+    "notesTitle": "4. Qaydlar va iqtiboslar",
+    "notesBody": "Belgilagan hamma fikrlaringiz shu yerga yig‘iladi — sahifasi va kitobi bilan.",
+    "reviewTitle": "5. Takrorlash",
+    "reviewBody": "AI o‘qiganlaringizdan eng muhim savollarni tuzadi va ularni unutishingizdan oldin qayta so‘raydi. Shunday qilib yodda qoladi.",
+    "assistantTitle": "6. AI yordamchi",
+    "assistantBody": "Istagan narsangizni oddiy so‘z bilan ayting: kitob qo‘shish, savol tuzish, tushuntirish… Kitob PDF’ini tashlasangiz, hammasini o‘zi qiladi. Har bir o‘zgarishdan oldin tasdiq so‘raydi. Kunlik limit: {limit}.",
     "unlimited": "cheklanmagan",
     "limitN": "kuniga {n} ta so‘rov",
-    "settingsTitle": "Sozlamalar",
-    "settingsBody": "Klaviatura tugmalari, pleer va ko‘rinish. Bu qo‘llanmani shu yerdan qayta ko‘rishingiz mumkin.",
-    "writeTitle": "Kitob yozish",
-    "writeBody": "O‘z kitobingizni yozing — masalan, hayotingiz yoki oilangiz tarixi haqida. AI savol berib, gapirganlaringizni kitob matniga aylantiradi."
+    "writeTitle": "7. Kitob yozish",
+    "writeBody": "O‘z kitobingizni yozing — hayotingiz yoki oilangiz haqida. AI savol beradi, siz gapirasiz yoki yozasiz.",
+    "readTitle": "3. O‘qing yoki tinglang",
+    "readBody": "PDF’i bor kitob sahifasida «O‘qish» va «Audiokitob» tugmalari chiqadi. O‘qiyotganda matnni belgilang: «Iqtibos», «Qaydnoma» yoki «AI’dan so‘rash».",
+    "guideTitle": "Batafsil qo‘llanma",
+    "guideBody": "Har bir bo‘lim oddiy tilda tushuntirilgan. Istalgan payt shu yerdan o‘rganishingiz mumkin. Omad!",
+    "openGuide": "Qo‘llanmani ochish"
   },
   "write": {
     "title": "Kitob yozish",
@@ -1729,7 +1736,12 @@
       "forward": "dadil",
       "gentle": "nozik",
       "warm": "iliq"
-    }
+    },
+    "sleep": "Uyqu taymeri",
+    "sleepOff": "Taymer yo‘q",
+    "sleepOn": "Taymer yoqilgan",
+    "sleepMin": "{n} daqiqadan keyin",
+    "sleepChapter": "Bob oxirida"
   },
   "reader": {
     "title": "Kitobni o‘qish",
@@ -1777,6 +1789,69 @@
     "original": "Asl sahifa",
     "hideOriginal": "Yopish",
     "originalHint": "Sahifani PDF’dagi asl ko‘rinishida ko‘rish (rasmlar, jadval, bezaklar bilan)",
-    "continue": "Davom etish"
+    "continue": "Davom etish",
+    "display": "Ko‘rinish (Aa)",
+    "paper": "Fon",
+    "paper_auto": "Avto",
+    "paper_white": "Oq",
+    "paper_sepia": "Sepiya",
+    "paper_night": "Tun",
+    "size": "Harf o‘lchami",
+    "typeface": "Shrift",
+    "serif": "Kitobiy",
+    "sans": "Oddiy",
+    "leading": "Qator oralig‘i",
+    "width": "Matn kengligi",
+    "width_narrow": "Tor",
+    "width_normal": "O‘rta",
+    "width_wide": "Keng",
+    "marks": "Belgilar",
+    "search": "Qidiruv",
+    "noMarks": "Hali belgi yo‘q. Matndan bir joyni belgilab «Iqtibos» yoki «Qaydnoma»ni bosing — u shu yerda sahifasi bilan saqlanadi.",
+    "pageShort": "{n}-bet",
+    "searchPlaceholder": "Kitob ichidan qidirish…",
+    "found": "{n, plural, other {# ta sahifada topildi}}",
+    "offlineSave": "Internetsiz o‘qish uchun saqlash",
+    "offlineHint": "Kitob matni shu qurilmaga yuklanadi — internet bo‘lmasa ham o‘qiysiz",
+    "savingOffline": "Saqlanmoqda… {pct}%",
+    "offlineReady": "Internetsiz o‘qishga tayyor",
+    "offlineRemove": "Qurilmadan o‘chirish",
+    "offlineDone": "Kitob qurilmaga saqlandi — endi internetsiz ham o‘qiysiz",
+    "offlineFailed": "Saqlanmadi. Internetni tekshirib, qayta urinib ko‘ring."
+  },
+  "guide": {
+    "title": "Qo‘llanma",
+    "subtitle": "Saytning har bir bo‘limi oddiy tilda: nima uchun kerak va qanday ishlatiladi.",
+    "contents": "Bo‘limlar",
+    "search": "Qo‘llanmadan qidirish…",
+    "replay": "Tanishtiruvni qayta ko‘rish",
+    "nothing": "Hech narsa topilmadi.",
+    "settingsTitle": "Sayt haqida va qo‘llanma",
+    "settingsBody": "Har bir bo‘lim batafsil tushuntirilgan. Boshlash yo‘li, o‘qish, audiokitob, taqriz, AI va maxfiylik."
+  },
+  "start": {
+    "title": "Boshlash yo‘li",
+    "hide": "Yashirish",
+    "guide": "Batafsil qo‘llanma",
+    "added": {
+      "title": "Kitob qo‘shing",
+      "hint": "Nomini yozing yoki havolasini qo‘ying"
+    },
+    "pdf": {
+      "title": "PDF yuklang",
+      "hint": "Kitob sahifasida «Kitob o‘qish uchun» bo‘limidan"
+    },
+    "reading": {
+      "title": "O‘qishni boshlang",
+      "hint": "«O‘qish» yoki «Audiokitob» tugmasi"
+    },
+    "marked": {
+      "title": "Fikringizni saqlang",
+      "hint": "Matnni belgilab «Iqtibos» yoki «Qaydnoma»"
+    },
+    "questions": {
+      "title": "Savollar tuzing",
+      "hint": "«Takrorlash»da AI yodlashga yordam beradi"
+    }
   }
 }

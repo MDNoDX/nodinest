@@ -201,7 +201,16 @@ export type BookHit = { resourceId: string; title: string; page: number; snippet
 /** Full-text search inside the user's indexed books (optionally one book). */
 export async function searchBookText(
   ctx: AppContext,
-  opts: { query: string; resourceId?: string | null; limit?: number; offset?: number },
+  opts: {
+    query: string;
+    resourceId?: string | null;
+    limit?: number;
+    offset?: number;
+    /** "page": in reading order (searching inside one book); default: relevance. */
+    order?: "rank" | "page";
+    /** Cleans a page before the snippet is cut (e.g. drops running headers). */
+    clean?: (content: string) => string;
+  },
 ): Promise<{ hits: BookHit[]; total: number }> {
   const tokens = searchTokens(opts.query);
   const tsq = toPrefixTsQuery(tokens);
@@ -219,7 +228,7 @@ export async function searchBookText(
       from nodinest.book_pages bp join nodinest.resources r on r.id = bp.resource_id
       where bp.user_id = ${ctx.userId} and bp.search @@ to_tsquery('simple', ${tsq})
         ${opts.resourceId ? sql`and bp.resource_id = ${opts.resourceId}` : sql``}
-      order by ts_rank(bp.search, to_tsquery('simple', ${tsq})) desc, bp.page asc
+      order by ${opts.order === "page" ? sql`bp.page asc` : sql`ts_rank(bp.search, to_tsquery('simple', ${tsq})) desc, bp.page asc`}
       limit ${Math.min(opts.limit ?? 20, 50)} offset ${opts.offset ?? 0}`),
   );
   return {
@@ -228,7 +237,7 @@ export async function searchBookText(
       resourceId: r.resource_id,
       title: r.title,
       page: r.page,
-      snippet: makeSnippet(r.content, tokens, 160),
+      snippet: makeSnippet(opts.clean ? opts.clean(r.content) : r.content, tokens, 160),
     })),
   };
 }

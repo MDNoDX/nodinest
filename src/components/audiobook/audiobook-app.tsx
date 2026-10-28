@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { analyzeAudiobookAction, setVoiceAction } from "@/app/actions/audiobook";
 import { Cover } from "@/components/library/cover";
@@ -30,7 +30,32 @@ import type { Analysis, AudiobookView, ScriptLine } from "@/server/audiobook";
 type Res = { id: string; title: string; type: string; cover: string | null; authors: string };
 type Voice = { name: string; female: boolean; d: string };
 
-const SPEEDS = [0.8, 1, 1.15, 1.3, 1.5, 1.75, 2];
+const SPEEDS = [0.75, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+/** An unhurried narrator by default; the listener's choice is kept (this device). */
+const SPEED_KEY = "nn:abook-speed";
+function readSpeed() {
+  try {
+    const v = Number(localStorage.getItem(SPEED_KEY));
+    return SPEEDS.includes(v) ? v : 0.9;
+  } catch {
+    return 0.9;
+  }
+}
+function subscribeSpeed(cb: () => void) {
+  window.addEventListener(SPEED_KEY, cb);
+  return () => window.removeEventListener(SPEED_KEY, cb);
+}
+function saveSpeed(v: number) {
+  try {
+    localStorage.setItem(SPEED_KEY, String(v));
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event(SPEED_KEY));
+}
+/** Audio made with an older pacing is made again (the URL changes). */
+const AUDIO_VERSION = "p2";
+const SLEEP = [15, 30, 45, 60] as const;
 const CACHE = "nn-audiobook";
 /** Stable colours for speakers (narrator stays neutral). */
 const HUES = [
@@ -200,7 +225,10 @@ function Ready({
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState({ cur: 0, dur: 0 });
-  const [speed, setSpeed] = useState(1);
+  const speed = useSyncExternalStore(subscribeSpeed, readSpeed, () => 0.9);
+  const setSpeed = saveSpeed;
+  // Sleep timer: a time to stop at, or the end of the chapter.
+  const [sleep, setSleep] = useState<number | "chapter" | null>(null);
   const [lines, setLines] = useState<ScriptLine[] | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const urls = useRef(new Map<number, string>());
@@ -215,7 +243,7 @@ function Ready({
 
   const segUrl = useCallback(
     (i: number) =>
-      `/api/audiobook/${resource.id}/segment/${i}?v=${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}`,
+      `/api/audiobook/${resource.id}/segment/${i}?v=${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${AUDIO_VERSION}`,
     [resource.id, analysis.rev, analysis.voiceRev],
   );
   const blobFor = useCallback(
@@ -350,6 +378,18 @@ function Ready({
     if (a) a.currentTime = Math.max(0, Math.min(a.duration || 0, a.currentTime + d));
   };
 
+  // Sleep timer by time: pause when it is up (a gentle stop, the place is saved).
+  useEffect(() => {
+    if (typeof sleep !== "number") return;
+    const timer = setInterval(() => {
+      if (Date.now() < sleep) return;
+      audio.current?.pause();
+      setSleep(null);
+      savePos();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [sleep, savePos]);
+
   // Lock screen / headphone buttons.
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
@@ -426,7 +466,15 @@ function Ready({
           setTime({ cur: e.currentTarget.currentTime, dur: e.currentTarget.duration || 0 })
         }
         onEnded={() => {
-          if (live.current.idx + 1 < view.segments) go(live.current.idx + 1, true);
+          const next = live.current.idx + 1;
+          // Sleep timer "end of chapter": stop before the next chapter begins.
+          if (sleep === "chapter" && view.chapterAt.includes(next)) {
+            setSleep(null);
+            setPlaying(false);
+            savePos();
+            return;
+          }
+          if (next < view.segments) go(next, true);
           else setPlaying(false);
         }}
       />
@@ -523,6 +571,30 @@ function Ready({
                     {s}×
                   </option>
                 ))}
+              </select>
+              <select
+                value={sleep == null ? "" : String(sleep === "chapter" ? "chapter" : "on")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSleep(
+                    v === "" ? null : v === "chapter" ? "chapter" : Date.now() + Number(v) * 60_000,
+                  );
+                }}
+                aria-label={t("sleep")}
+                title={t("sleep")}
+                className={cn(
+                  "border-border-strong bg-surface h-9 rounded-lg border px-2 text-sm",
+                  sleep != null && "border-primary text-primary",
+                )}
+              >
+                <option value="">{t("sleepOff")}</option>
+                {typeof sleep === "number" && <option value="on">{t("sleepOn")}</option>}
+                {SLEEP.map((m) => (
+                  <option key={m} value={m}>
+                    {t("sleepMin", { n: m })}
+                  </option>
+                ))}
+                <option value="chapter">{t("sleepChapter")}</option>
               </select>
             </div>
             {loading && (
