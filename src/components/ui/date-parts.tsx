@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { Input, Select } from "./input";
+import { toCyrillic } from "@/lib/uz-cyrl";
 
 type Parts = { y: string; m: string; d: string };
 
@@ -97,7 +98,14 @@ export function DateParts({
   // Local state keeps a month / day picked before the year is typed.
   const [p, setP] = useState<Parts>(() => split(value));
   const shown = join(p) === value ? p : value ? split(value) : p;
-  const months = locale === "uz" ? MONTHS_UZ : locale === "ru" ? MONTHS_RU : MONTHS_EN;
+  const months =
+    locale === "uz"
+      ? MONTHS_UZ
+      : locale === "uz-Cyrl"
+        ? MONTHS_UZ.map(toCyrillic)
+        : locale === "ru"
+          ? MONTHS_RU
+          : MONTHS_EN;
   const update = (next: Partial<Parts>) => {
     const n = { ...shown, ...next };
     if (!n.m) n.d = "";

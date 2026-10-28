@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
 import { EmailCode } from "./email-code";
 import { TelegramLogin } from "./telegram-login";
-import { LOCALES } from "@/i18n/config";
+import { LOCALES, localeKey } from "@/i18n/config";
 
 function GoogleIcon() {
   return (
@@ -197,7 +197,7 @@ export function LoginPanel({
               })
             }
           >
-            {tl(l)}
+            {tl(localeKey(l))}
           </button>
         ))}
       </div>

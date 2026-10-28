@@ -13,7 +13,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  UsersRound,
+  CircleUserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -40,7 +40,7 @@ export const NAV_PRIMARY: NavItem[] = [
 
 export const NAV_SECONDARY: NavItem[] = [
   { href: "/assistant", key: "assistant", icon: Sparkles },
-  { href: "/community", key: "community", icon: UsersRound, includes: ["/u"] },
+  { href: "/profile", key: "profile", icon: CircleUserRound, includes: ["/u", "/community"] },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },
   { href: "/settings", key: "settings", icon: Settings },

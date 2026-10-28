@@ -4,6 +4,7 @@ import { formatPartialDate } from "@/lib/dates";
 import { intlTag } from "@/i18n/config";
 import type { ExportItem } from "./data";
 import { type Locale } from "@/i18n/config";
+import { toCyrillic } from "@/lib/uz-cyrl";
 
 export type Loc = Locale;
 
@@ -147,7 +148,17 @@ const L = {
     minutes: (m: number) => (m >= 60 ? `${Math.floor(m / 60)} ч ${m % 60} мин` : `${m} мин`),
   },
 };
-export const labels = (loc: Loc) => L[loc];
+export const labels = (loc: Loc): Labels =>
+  loc === "uz-Cyrl" ? (cyrillic(L.uz) as Labels) : (L[loc] as Labels);
+
+/** Every string (and every string a function returns) in Uzbek Cyrillic. */
+function cyrillic(o: unknown): unknown {
+  if (typeof o === "string") return toCyrillic(o);
+  if (typeof o === "function") return (...a: unknown[]) => toCyrillic(String(o(...a)));
+  if (o && typeof o === "object")
+    return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, cyrillic(v)]));
+  return o;
+}
 export type Labels = (typeof L)["uz"];
 
 export function fmtWhen(d: Date | null, precision: string | null, loc: Loc, timeZone: string) {

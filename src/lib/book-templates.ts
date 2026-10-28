@@ -5,6 +5,7 @@
  */
 import type { DocNode, WriteupDoc } from "./writeup-doc";
 import { type Locale } from "@/i18n/config";
+import { toCyrillic } from "./uz-cyrl";
 
 export const BOOK_TEMPLATES = [
   "memoir",
@@ -264,9 +265,20 @@ const RU: Record<BookTemplate, Chapter[]> = {
   blank: [{ title: "Глава 1", prompts: [] }],
 };
 
+/** The templates in a language (Uzbek Cyrillic is made from the Latin text). */
+function chaptersFor(locale: Locale): Record<BookTemplate, Chapter[]> {
+  if (locale !== "uz-Cyrl") return { uz: UZ, ru: RU, en: EN }[locale];
+  return Object.fromEntries(
+    Object.entries(UZ).map(([k, list]) => [
+      k,
+      list.map((c) => ({ title: toCyrillic(c.title), prompts: c.prompts.map(toCyrillic) })),
+    ]),
+  ) as Record<BookTemplate, Chapter[]>;
+}
+
 /** The starting document of a new book (chapters + italic guiding prompts). */
 export function templateDoc(template: BookTemplate, locale: Locale): WriteupDoc {
-  const chapters = { uz: UZ, ru: RU, en: EN }[locale][template];
+  const chapters = chaptersFor(locale)[template];
   const content: DocNode[] = [];
   for (const c of chapters) {
     content.push({
@@ -285,5 +297,5 @@ export function templateDoc(template: BookTemplate, locale: Locale): WriteupDoc 
 }
 
 export function templateChapters(template: BookTemplate, locale: Locale) {
-  return { uz: UZ, ru: RU, en: EN }[locale][template].map((c) => c.title);
+  return chaptersFor(locale)[template].map((c) => c.title);
 }

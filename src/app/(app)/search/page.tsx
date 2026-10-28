@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverTile } from "@/components/library/cover-tile";
 import { SearchControls } from "@/components/search/search-controls";
+import { PeopleSearch } from "@/components/social/people-search";
 import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { shortYear } from "@/lib/dates";
@@ -96,6 +97,11 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   return (
     <>
       <PageHeader section="search" title={t("search.title")} />
+      <div className="card mb-6 p-4 sm:p-5">
+        <h2 className="mb-3 text-sm font-semibold">{t("social.peopleTitle")}</h2>
+        <PeopleSearch />
+      </div>
+      <h2 className="mb-3 text-sm font-semibold">{t("search.mineTitle")}</h2>
       <SearchControls
         categories={cats.map((c) => ({
           id: c.id,

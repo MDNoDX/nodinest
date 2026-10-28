@@ -2,8 +2,7 @@
 
 /** Partial ISO date: "YYYY", "YYYY-MM" or "YYYY-MM-DD" (unknown parts omitted). */
 export const PARTIAL_DATE_RE = /^-?\d{1,4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
-import { type Locale } from "@/i18n/config";
-import { intlTag } from "@/i18n/config";
+import { intlTag, isUz, uzScript, type Locale } from "@/i18n/config";
 
 /**
  * Flexible historical date (a small EDTF subset), stored as text:
@@ -136,12 +135,12 @@ export function formatPartialDate(v: string | null | undefined, locale: Locale):
   const f = parseFlexDate(v);
   if (!f) return v ?? "";
   if (f.kind === "approx")
-    return `${locale === "uz" ? "taxm." : locale === "ru" ? "ок." : "c."} ${formatExact(f.value, locale)}`;
+    return `${isUz(locale) ? uzScript(locale, "taxm.") : locale === "ru" ? "ок." : "c."} ${formatExact(f.value, locale)}`;
   if (f.kind === "range") {
     const c = centuryOf(f);
     if (c && c < ROMAN.length)
-      return locale === "uz"
-        ? `${ROMAN[c]} asr`
+      return isUz(locale)
+        ? uzScript(locale, `${ROMAN[c]} asr`)
         : locale === "ru"
           ? `${ROMAN[c]} век`
           : `${ordinal(c)} century`;
@@ -159,7 +158,11 @@ function ordinal(n: number) {
 function formatExact(v: string, locale: Locale): string {
   if (v.startsWith("-")) {
     const y = v.slice(1).split("-")[0];
-    return locale === "uz" ? `mil. avv. ${y}` : locale === "ru" ? `${y} до н. э.` : `${y} BC`;
+    return isUz(locale)
+      ? uzScript(locale, `mil. avv. ${y}`)
+      : locale === "ru"
+        ? `${y} до н. э.`
+        : `${y} BC`;
   }
   const parts = v.split("-");
   const [y, m, d] = parts.map(Number);

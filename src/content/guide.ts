@@ -4,6 +4,7 @@
  * tour). Kept here rather than in messages/*.json: it is long prose, not UI
  * labels. Both languages must keep the same section ids.
  */
+import { toCyrillic } from "@/lib/uz-cyrl";
 import { ru } from "./guide-ru";
 
 export type GuideItem = { title: string; text: string; tip?: string };
@@ -269,7 +270,7 @@ const uz: GuideSection[] = [
   {
     id: "community",
     icon: "users",
-    title: "Hamjamiyat",
+    title: "Profil va kuzatiş",
     intro: "Boşqa öquvçilarni kuzating, öqituvçi öquvçilarining faoliyatini körib tursin.",
     items: [
       {
@@ -283,10 +284,10 @@ const uz: GuideSection[] = [
       },
       {
         title: "Kuzatiş va özingizga olish",
-        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari Hamjamiyat sahifasida çiqadi. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
+        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni Qidiruv sahifasining yuqorisida bir harfdan boşlab topasiz. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
       },
     ],
-    link: { href: "/community", label: "Hamjamiyatni oçiş" },
+    link: { href: "/search", label: "Odam qidiriş" },
   },
   {
     id: "premium",
@@ -613,7 +614,7 @@ const en: GuideSection[] = [
   {
     id: "community",
     icon: "users",
-    title: "Community",
+    title: "Profile and following",
     intro: "Follow other learners; a teacher can follow students’ progress.",
     items: [
       {
@@ -627,10 +628,10 @@ const en: GuideSection[] = [
       },
       {
         title: "Follow and take it yourself",
-        text: "Press “Follow” on someone’s profile — what they read next appears on the Community page. Open a book you like and pick a status: it joins your own library.",
+        text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people at the top of the Search page, from the first letter. Open a book you like and pick a status: it joins your own library.",
       },
     ],
-    link: { href: "/community", label: "Open Community" },
+    link: { href: "/search", label: "Find people" },
   },
   {
     id: "premium",
@@ -708,5 +709,17 @@ const en: GuideSection[] = [
 ];
 
 export function guideFor(locale: string): GuideSection[] {
+  if (locale === "uz-Cyrl")
+    return uz.map((sec) => ({
+      ...sec,
+      title: toCyrillic(sec.title),
+      intro: toCyrillic(sec.intro),
+      items: sec.items.map((i) => ({
+        title: toCyrillic(i.title),
+        text: toCyrillic(i.text),
+        tip: i.tip && toCyrillic(i.tip),
+      })),
+      link: sec.link && { href: sec.link.href, label: toCyrillic(sec.link.label) },
+    }));
   return locale === "en" ? en : locale === "ru" ? ru : uz;
 }

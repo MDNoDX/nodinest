@@ -3,6 +3,8 @@
  * for the user: what is kept, why, who sees it, how to delete it, contact.
  * Keep them TRUE when new kinds of data are collected, and bump LEGAL_UPDATED.
  */
+import { toCyrillic } from "@/lib/uz-cyrl";
+
 export const LEGAL_UPDATED = "2026-10-28";
 export const CONTACT_EMAIL = "mdnodx@gmail.com";
 
@@ -236,5 +238,13 @@ export function legalDoc(kind: "privacy" | "terms", locale: string): LegalDoc {
     en: { privacy: enPrivacy, terms: enTerms },
     ru: { privacy: ruPrivacy, terms: ruTerms },
   };
+  if (locale === "uz-Cyrl") {
+    const d = set.uz[kind];
+    return {
+      title: toCyrillic(d.title),
+      intro: toCyrillic(d.intro),
+      sections: d.sections.map((x) => ({ h: toCyrillic(x.h), p: x.p.map(toCyrillic) })),
+    };
+  }
   return set[(locale in set ? locale : "uz") as keyof typeof set][kind];
 }

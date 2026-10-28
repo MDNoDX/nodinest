@@ -73,6 +73,12 @@ export function toNewUz(text: string): string {
  * names, plural / select keywords or rich-text tag names.
  */
 export function toNewUzMessage(msg: string): string {
+  return mapMessage(msg, toNewUz);
+}
+
+/** Applies `fn` to the text parts of an ICU message (arguments, keywords, tags untouched). */
+export function mapMessage(msg: string, fn: (text: string) => string): string {
+  const toNewUz = fn;
   let out = "";
   let i = 0;
   const text = (stop: (c: string) => boolean) => {

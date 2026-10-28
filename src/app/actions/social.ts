@@ -6,7 +6,7 @@ import { run } from "./_run";
 export async function followAction(userId: string, on: boolean) {
   return run(async ({ ctx }) => {
     await follow(ctx, userId, on);
-    revalidatePath("/community");
+    revalidatePath("/profile");
   });
 }
 

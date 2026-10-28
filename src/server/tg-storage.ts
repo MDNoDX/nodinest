@@ -80,20 +80,68 @@ export async function upload(fileId: string, i: number, total: number, plain: Ui
 }
 
 const paths = new Map<string, { path: string; at: number }>();
-async function download(p: TgPart): Promise<Buffer> {
-  let hit = paths.get(p.f);
-  if (!hit || Date.now() - hit.at > 50 * 60_000) {
-    const r = await tgRaw<{ file_path: string }>("getFile", { file_id: p.f });
-    if (!r?.file_path) throw new Error("telegram getFile failed");
-    hit = { path: r.file_path, at: Date.now() };
-    paths.set(p.f, hit);
+/** Decrypted parts kept in memory (most recent last), up to ~120 MB per instance. */
+const parts = new Map<string, Buffer>();
+let cached = 0;
+const CACHE_BYTES = 120 * 1024 * 1024;
+const inflight = new Map<string, Promise<Buffer>>();
+
+async function filePath(fileId: string) {
+  const hit = paths.get(fileId);
+  if (hit && Date.now() - hit.at < 50 * 60_000) return hit.path;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const r = await tgRaw<{ file_path: string }>("getFile", { file_id: fileId });
+    if (r?.file_path) {
+      paths.set(fileId, { path: r.file_path, at: Date.now() });
+      return r.file_path;
+    }
+    // Telegram limits bursts: wait a little and ask again.
+    await new Promise((res) => setTimeout(res, 700 * (attempt + 1) ** 2));
   }
-  const res = await fetch(
-    `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${hit.path}`,
-    { signal: AbortSignal.timeout(120_000) },
-  );
-  if (!res.ok) throw new Error(`telegram download ${res.status}`);
-  return open(new Uint8Array(await res.arrayBuffer()), p);
+  throw new Error("telegram getFile failed");
+}
+
+async function fetchPart(p: TgPart): Promise<Buffer> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(
+        `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${await filePath(p.f)}`,
+        { signal: AbortSignal.timeout(120_000) },
+      );
+      if (!res.ok) throw new Error(`telegram download ${res.status}`);
+      return open(new Uint8Array(await res.arrayBuffer()), p);
+    } catch (err) {
+      paths.delete(p.f);
+      if (attempt >= 2) throw err;
+      await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
+    }
+  }
+}
+
+/** One decrypted part: from memory, a download already running, or Telegram. */
+async function download(p: TgPart): Promise<Buffer> {
+  const hit = parts.get(p.f);
+  if (hit) {
+    parts.delete(p.f);
+    parts.set(p.f, hit);
+    return hit;
+  }
+  let job = inflight.get(p.f);
+  if (!job) {
+    job = fetchPart(p).finally(() => inflight.delete(p.f));
+    inflight.set(p.f, job);
+  }
+  const buf = await job;
+  if (!parts.has(p.f)) {
+    parts.set(p.f, buf);
+    cached += buf.length;
+    for (const [k, v] of parts) {
+      if (cached <= CACHE_BYTES) break;
+      parts.delete(k);
+      cached -= v.length;
+    }
+  }
+  return buf;
 }
 
 /** Moves one Blob file to Telegram and deletes the Blob copy. */

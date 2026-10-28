@@ -1,4 +1,6 @@
-export const LOCALES = ["uz", "ru", "en"] as const;
+import { toCyrillic } from "@/lib/uz-cyrl";
+
+export const LOCALES = ["uz", "uz-Cyrl", "ru", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "uz";
 export const LOCALE_COOKIE = "NEXT_LOCALE";
@@ -11,7 +13,14 @@ export function isLocale(v: unknown): v is Locale {
 export const asLocale = (v: unknown): Locale => (isLocale(v) ? v : DEFAULT_LOCALE);
 
 /** BCP 47 tag for Intl formatting. */
-export const intlTag = (l: Locale) => (l === "uz" ? "uz-Latn-UZ" : l === "ru" ? "ru-RU" : "en-GB");
+export const intlTag = (l: Locale) =>
+  l === "uz" ? "uz-Latn-UZ" : l === "uz-Cyrl" ? "uz-Cyrl-UZ" : l === "ru" ? "ru-RU" : "en-GB";
+
+/** Uzbek in either script (Cyrillic UI text is made from the Latin one). */
+export const isUz = (l: string) => l === "uz" || l === "uz-Cyrl";
+
+/** Uzbek text (written in Latin) in the locale's script. */
+export const uzScript = (l: string, s: string) => (l === "uz-Cyrl" ? toCyrillic(s) : s);
 
 /**
  * The language AI answers are written in. Uzbek uses the Latin alphabet of
@@ -22,7 +31,9 @@ export const aiLanguage = (l: Locale) =>
     ? "English"
     : l === "ru"
       ? "Russian"
-      : "Uzbek in the new Latin alphabet (2026 law): write ö, ğ, ş, ç instead of oʻ, gʻ, sh, ch (e.g. «özbek», «ğoya», «şahar», «çiroyli»)";
+      : l === "uz-Cyrl"
+        ? "Uzbek in the Cyrillic script (ў, ғ, қ, ҳ)"
+        : "Uzbek in the new Latin alphabet (2026 law): write ö, ğ, ş, ç instead of oʻ, gʻ, sh, ch (e.g. «özbek», «ğoya», «şahar», «çiroyli»)";
 
 /** First choice from the browser's languages (first visit, no cookie yet). */
 export function fromAcceptLanguage(header: string | null): Locale {
@@ -35,4 +46,7 @@ export function fromAcceptLanguage(header: string | null): Locale {
 
 /** A name in three languages where Russian may be missing (falls back to English). */
 export const pickName = (l: Locale, n: { uz: string; ru?: string | null; en: string }) =>
-  l === "uz" ? n.uz : l === "ru" ? n.ru || n.en : n.en;
+  l === "uz" ? n.uz : l === "uz-Cyrl" ? toCyrillic(n.uz) : l === "ru" ? n.ru || n.en : n.en;
+
+/** Message key of a locale's own name (keys cannot contain "-"). */
+export const localeKey = (l: Locale) => (l === "uz-Cyrl" ? "uzCyrl" : l);

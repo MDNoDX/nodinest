@@ -10,7 +10,7 @@ import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
-import { LOCALES } from "@/i18n/config";
+import { LOCALES, localeKey } from "@/i18n/config";
 
 /** The time zone used for dates and "today" (the name lives in the profile form). */
 export function TimezoneForm({
@@ -112,7 +112,7 @@ export function AppearanceForm() {
                   : "border-border-strong hover:bg-surface-2",
               )}
             >
-              {t(`locale.${l}`)}
+              {t(`locale.${localeKey(l)}`)}
             </button>
           ))}
         </div>

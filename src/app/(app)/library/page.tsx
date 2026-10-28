@@ -20,6 +20,7 @@ import {
 } from "@/server/catalog";
 import { findLibraryDuplicates } from "@/server/merge";
 import { pickName } from "@/i18n/config";
+import { isUz, uzScript } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 
@@ -74,8 +75,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
         ? r.writtenYear == null
           ? t("library.unknownYear")
           : r.writtenYear < 0
-            ? locale === "uz"
-              ? `mil. avv. ${-r.writtenYear}`
+            ? isUz(locale)
+              ? uzScript(locale, `mil. avv. ${-r.writtenYear}`)
               : locale === "ru"
                 ? `${-r.writtenYear} до н. э.`
                 : `${-r.writtenYear} BC`

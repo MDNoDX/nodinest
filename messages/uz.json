@@ -113,7 +113,8 @@
     "ai": "AI",
     "more": "Menyu",
     "guide": "Qöllanma",
-    "community": "Hamjamiyat"
+    "community": "Hamjamiyat",
+    "profile": "Profil"
   },
   "theme": {
     "label": "Mavzu",
@@ -124,6 +125,7 @@
   "locale": {
     "label": "Til",
     "uz": "Özbekça",
+    "uzCyrl": "Ўзбекча",
     "ru": "Русский",
     "en": "English"
   },
@@ -712,7 +714,8 @@
     "genres": "Janrlar",
     "genresAll": "· barçasiga mos keladiganlar",
     "browseHint": "Söz yozing yoki janr / tur / holatni tanlang.",
-    "noBrowseResults": "Bu tanlovga mos manba topilmadi"
+    "noBrowseResults": "Bu tanlovga mos manba topilmadi",
+    "mineTitle": "Mening ma’lumotlarim"
   },
   "assistant": {
     "title": "AI yordamçi",
@@ -2052,13 +2055,13 @@
   "social": {
     "title": "Hamjamiyat",
     "subtitle": "Boşqa öquvçilarni toping, ularni kuzating va oçiq darsliklarini köring.",
-    "searchPlaceholder": "Ism yoki @username…",
+    "searchPlaceholder": "Ism yoki @username — bir harf yetarli…",
     "results": "Topilganlar",
     "nobody": "Oçiq profil topilmadi.",
     "yourProfile": "Sizning profilingiz:",
     "feed": "Kuzatayotganlaringiz nima öqiyapti",
     "feedEmpty": "Hali heç narsa yöq",
-    "feedEmptyBody": "Kimnidir toping va «Kuzatiş»ni bosing — ularning oçiq darsliklari şu yerda çiqadi.",
+    "feedEmptyBody": "Odamlarni Qidiruv sahifasida toping va «Kuzatiş»ni bosing — ularning oçiq darsliklari şu yerda çiqadi.",
     "followingTitle": "Kuzatayotganlarim",
     "follow": "Kuzatiş",
     "following": "Kuzatyapsiz",
@@ -2085,6 +2088,7 @@
     "bio": "Özingiz haqingizda qisqaça",
     "save": "Saqlaş",
     "saved": "Saqlandi",
-    "viewProfile": "Profilimni köriş"
+    "viewProfile": "Profilimni köriş",
+    "peopleTitle": "Odamlar — saytdagi foydalanuvçilar"
   }
 }

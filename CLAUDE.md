@@ -150,6 +150,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Big files (> 2 MB) move from Vercel Blob to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
   ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
+- People: no separate community page — "Profil" (/profile → /u/<me>) shows follows and their
+  activity; the top of /search finds people live from the first letter (`/api/people`).
 - Profiles: `/welcome` (language, photo, first/last name, unique username — required before the
   app), Settings → profile. Social (`server/social.ts`, `/community`, `/u/[username]`): everything
   private by default; public profile + per-item visibility; follows. Never expose notes, write-ups,
@@ -180,7 +182,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   placeholders). Uzbek is written in the **2026 Latin alphabet** (law OʻRQ–1184: Ö Ğ Ş Ç instead of
   Oʻ Gʻ Sh Ch; "ng" is not a separate letter): write it so, or run `npx tsx scripts/uz-latin.ts
   messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fails on old letters.
-  Missing Russian: `GEMINI_API_KEY=… node scripts/translate-ru.mjs` (fills keys still in English).
+  Uzbek Cyrillic (`uz-Cyrl`) is GENERATED: after editing uz.json run `npx tsx scripts/uz-cyrl.ts`
+  (a test checks it); content (guide, legal, templates, export labels) is converted at runtime
+  (`lib/uz-cyrl.ts`, `uzScript()` / `isUz()` in i18n/config). Locale-name keys: `localeKey()`.
+  `node scripts/check-i18n-keys.mjs` (also a unit test) finds t("…") keys missing from en.json.
   Search folds both alphabets (nn_norm / normalizeText: ş→sh ç→ch ö→o ğ→g). AI prompts take the
   answer language from `aiLanguage(locale)` (i18n/config.ts).
 

@@ -27,9 +27,11 @@ export function intervalLabel(days: number, locale: Locale) {
   const u =
     locale === "uz"
       ? { m: "daq", h: "soat", d: "kun", mo: "oy", y: "yil" }
-      : locale === "ru"
-        ? { m: "мин", h: "ч", d: "дн", mo: "мес", y: "г" }
-        : { m: "min", h: "h", d: "d", mo: "mo", y: "y" };
+      : locale === "uz-Cyrl"
+        ? { m: "дақ", h: "соат", d: "кун", mo: "ой", y: "йил" }
+        : locale === "ru"
+          ? { m: "мин", h: "ч", d: "дн", mo: "мес", y: "г" }
+          : { m: "min", h: "h", d: "d", mo: "mo", y: "y" };
   if (days < 1 / 24) return `${Math.round(days * 1440)} ${u.m}`;
   if (days < 1) return `${Math.round(days * 24)} ${u.h}`;
   if (days < 30) return `${Math.round(days)} ${u.d}`;

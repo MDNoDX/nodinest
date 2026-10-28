@@ -113,7 +113,8 @@
     "ai": "AI",
     "more": "Menu",
     "guide": "Guide",
-    "community": "Community"
+    "community": "Community",
+    "profile": "Profile"
   },
   "theme": {
     "label": "Theme",
@@ -124,6 +125,7 @@
   "locale": {
     "label": "Language",
     "uz": "Özbekça",
+    "uzCyrl": "Ўзбекча",
     "ru": "Русский",
     "en": "English"
   },
@@ -712,7 +714,8 @@
     "genres": "Genres",
     "genresAll": "· matching all of them",
     "browseHint": "Type words or pick genres / a type / a status.",
-    "noBrowseResults": "Nothing matches this selection"
+    "noBrowseResults": "Nothing matches this selection",
+    "mineTitle": "My data"
   },
   "assistant": {
     "title": "AI assistant",
@@ -2052,13 +2055,13 @@
   "social": {
     "title": "Community",
     "subtitle": "Find other learners, follow them and see their public lessons.",
-    "searchPlaceholder": "Name or @username…",
+    "searchPlaceholder": "Name or @username — one letter is enough…",
     "results": "Results",
     "nobody": "No public profile found.",
     "yourProfile": "Your profile:",
     "feed": "What the people you follow are reading",
     "feedEmpty": "Nothing yet",
-    "feedEmptyBody": "Find someone and press “Follow” — their public lessons appear here.",
+    "feedEmptyBody": "Find people on the Search page and press “Follow” — their public lessons appear here.",
     "followingTitle": "Following",
     "follow": "Follow",
     "following": "Following",
@@ -2085,6 +2088,7 @@
     "bio": "A few words about you",
     "save": "Save",
     "saved": "Saved",
-    "viewProfile": "View my profile"
+    "viewProfile": "View my profile",
+    "peopleTitle": "People on the site"
   }
 }

@@ -9,7 +9,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
-import { profileByUsername, publicItems } from "@/server/social";
+import { followingFeed, followingList, profileByUsername, publicItems } from "@/server/social";
+import { PersonCard } from "@/components/social/person-card";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const t = await getTranslations("social");
   const p = await profileByUsername(ctx, decodeURIComponent(username));
   if (!p) notFound();
-  const items = p.visible ? await publicItems(ctx, p.id) : [];
+  const [items, feed, following] = await Promise.all([
+    p.visible ? publicItems(ctx, p.id) : Promise.resolve([]),
+    p.self ? followingFeed(ctx) : Promise.resolve([]),
+    p.self ? followingList(ctx) : Promise.resolve([]),
+  ]);
   return (
     <div className="flex flex-col gap-8">
       <header className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
@@ -59,6 +64,28 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </section>
       )}
       {p.self && !p.profilePublic && <p className="text-muted text-sm">{t("selfPrivateNote")}</p>}
+      {p.self && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold">{t("feed")}</h2>
+          {feed.length ? (
+            <ItemGrid items={feed} by />
+          ) : (
+            <EmptyState title={t("feedEmpty")} body={t("feedEmptyBody")} />
+          )}
+        </section>
+      )}
+      {p.self && following.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold">{t("followingTitle")}</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {following.map((f) => (
+              <li key={f.id}>
+                <PersonCard p={f} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

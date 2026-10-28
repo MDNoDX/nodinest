@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import en from "../../messages/en.json";
 import ru from "../../messages/ru.json";
 import uz from "../../messages/uz.json";
+import uzCyrl from "../../messages/uz-Cyrl.json";
+import { toCyrillicMessage } from "@/lib/uz-cyrl";
 import { toNewUzMessage } from "@/lib/uz-latin";
 
 function keys(obj: object, prefix = ""): string[] {
@@ -26,6 +28,16 @@ describe("i18n catalogs", () => {
   it("Uzbek, Russian and English have identical keys", () => {
     expect(keys(uz).sort()).toEqual(keys(en).sort());
     expect(keys(ru).sort()).toEqual(keys(en).sort());
+  });
+  it("Uzbek Cyrillic is generated from the Latin file (run scripts/uz-cyrl.ts)", () => {
+    const walk = (o: object): unknown =>
+      Object.fromEntries(
+        Object.entries(o).map(([k, v]) => [
+          k,
+          typeof v === "string" ? toCyrillicMessage(v) : walk(v),
+        ]),
+      );
+    expect(uzCyrl).toEqual(walk(uz));
   });
   it("placeholders and tags match English in every language", () => {
     const sig = (s: string) =>

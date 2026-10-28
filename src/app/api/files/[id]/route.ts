@@ -22,7 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const headers: Record<string, string> = {
       "content-type": f.contentType,
       "cache-control":
-        f.purpose === "attachment" ? "private, no-store" : "private, max-age=86400, immutable",
+        // Book PDFs: an hour in this browser (the reader opens them often).
+        f.purpose === "attachment" ? "private, max-age=3600" : "private, max-age=86400, immutable",
       "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(f.name)}`,
       "x-content-type-options": "nosniff",
     };

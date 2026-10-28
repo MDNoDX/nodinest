@@ -10,7 +10,7 @@ import { setLocaleAction } from "@/app/actions/personal";
 import { clearOfflineData } from "@/components/pwa/pwa";
 import { authClient } from "@/lib/auth/client";
 import { Avatar } from "@/components/ui/avatar";
-import { LOCALES } from "@/i18n/config";
+import { LOCALES, localeKey } from "@/i18n/config";
 import { PremiumBadge } from "@/components/premium/premium-badge";
 
 const item =
@@ -87,10 +87,10 @@ export function UserMenu({
                 })
               }
             >
-              <span className="text-muted w-4 text-center text-xs font-semibold uppercase">
-                {l}
+              <span className="text-muted w-5 text-center text-xs font-semibold uppercase">
+                {l === "uz-Cyrl" ? "ЎЗ" : l}
               </span>{" "}
-              {t(`locale.${l}`)}
+              {t(`locale.${localeKey(l)}`)}
               {locale === l && <Check className="text-primary ml-auto size-4" />}
             </M.Item>
           ))}

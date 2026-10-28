@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 
 const LANGS = [
   { code: "uz", label: "Özbekça" },
+  { code: "uz-Cyrl", label: "Ўзбекча" },
   { code: "ru", label: "Русский" },
   { code: "en", label: "English" },
 ] as const;
@@ -17,7 +18,7 @@ export function LanguagePicker({ className }: { className?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
-    <div role="radiogroup" className={cn("grid grid-cols-3 gap-2", className)}>
+    <div role="radiogroup" className={cn("grid grid-cols-2 gap-2 sm:grid-cols-4", className)}>
       {LANGS.map((l) => (
         <button
           key={l.code}
@@ -42,7 +43,7 @@ export function LanguagePicker({ className }: { className?: string }) {
             aria-hidden
             className="bg-surface-2 grid size-9 place-items-center rounded-lg text-xs font-bold tracking-wide uppercase"
           >
-            {l.code}
+            {l.code === "uz-Cyrl" ? "ЎЗ" : l.code}
           </span>
           {l.label}
         </button>

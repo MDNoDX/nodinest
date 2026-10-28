@@ -7,6 +7,7 @@
  * fetches the media and packs the archive, so big videos never pass through
  * a serverless response.
  */
+import { toCyrillic } from "@/lib/uz-cyrl";
 import "server-only";
 import type { DocMark, DocNode, WriteupDoc } from "@/lib/writeup-doc";
 import { docMedia } from "@/lib/writeup-doc";
@@ -160,6 +161,13 @@ function blocks(nodes: DocNode[], c: Ctx): string {
 const textOf = (n: DocNode): string =>
   n.type === "text" ? (n.text ?? "") : (n.content ?? []).map(textOf).join("");
 
+/** The Uzbek strings below, in Cyrillic for "uz-Cyrl" (labels are converted already). */
+function cyrOrLatin<T extends Record<string, unknown>>(loc: Loc, o: T): T {
+  if (loc !== "uz-Cyrl") return o;
+  const extra = ["by", "online", "made", "intro", "readme"] as const;
+  return { ...o, ...Object.fromEntries(extra.map((k) => [k, toCyrillic(String(o[k]))])) };
+}
+
 function bundleLabels(loc: Loc) {
   const t = labels(loc);
   if (loc === "ru")
@@ -184,7 +192,7 @@ function bundleLabels(loc: Loc) {
         readme:
           "Open index.html in any browser: the text, pictures, audio and video are all here and work offline (YouTube videos need the internet). The text alone is in the .md file. To print or save as PDF, use the browser's Print.",
       }
-    : {
+    : cyrOrLatin(loc, {
         ...t,
         by: "muallif",
         youtube: "YouTube video",
@@ -193,7 +201,7 @@ function bundleLabels(loc: Loc) {
         intro: "Boşlaniş",
         readme:
           "index.html faylini istalgan brauzerda oçing: matn, rasmlar, audio va videolar şu yerda, internetsiz ham işlaydi (YouTube videolari uçun internet kerak). Faqat matni .md faylida. Çop etiş yoki PDF qiliş uçun brauzerdagi “Çop etiş”dan foydalaning.",
-      };
+      });
 }
 
 const CSS = `

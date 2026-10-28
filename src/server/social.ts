@@ -110,21 +110,28 @@ export type PersonCard = {
   items: number;
 };
 
-/** Public profiles by name or @username. */
+/**
+ * Public profiles by name or @username, from the first letter (prefix match
+ * for 1–2 letters, anywhere in the name after that), with "do I follow".
+ */
 export async function searchPeople(ctx: AppContext, q: string) {
   const k = normalizeText(q).replace(/^@/, "").slice(0, 60);
-  if (k.length < 2) return [];
-  await enforceRateLimit(db, `peoplesearch:${ctx.userId}`, 120, 3600);
-  const like = `%${k.replace(/[%_\\]/g, "\\$&")}%`;
-  return db.execute<PersonCard>(sql`
+  if (!k) return [];
+  await enforceRateLimit(db, `peoplesearch:${ctx.userId}`, 900, 3600);
+  const esc = k.replace(/[%_\\]/g, "\\$&");
+  const like = k.length < 3 ? `${esc}%` : `%${esc}%`;
+  const word = `% ${esc}%`;
+  return db.execute<PersonCard & { isFollowing: boolean }>(sql`
     select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
       (select count(*)::int from nodinest.learning_records lr
-        where lr.user_id = u.id and lr.visibility = 'public') as items
+        where lr.user_id = u.id and lr.visibility = 'public') as items,
+      exists(select 1 from nodinest.follows f where f.follower_id = ${ctx.userId} and f.followee_id = u.id) as "isFollowing"
     from nodinest."user" u
-    where u.profile_public and u.status = 'active' and u.username is not null
-      and (lower(u.username) like ${like} or nodinest.nn_norm(u.name) like ${like})
-    order by (lower(u.username) = ${k}) desc, items desc
-    limit 20`);
+    where u.profile_public and u.status = 'active' and u.username is not null and u.id <> ${ctx.userId}
+      and (lower(u.username) like ${like} or nodinest.nn_norm(u.name) like ${like}
+           or nodinest.nn_norm(u.name) like ${word})
+    order by (lower(u.username) = ${k}) desc, (lower(u.username) like ${`${esc}%`}) desc, items desc
+    limit 12`);
 }
 
 /** People I follow (only those whose profile is public now). */

@@ -22,7 +22,7 @@ import {
   toolsForGemini,
   type ToolName,
 } from "./tools";
-import { aiLanguage, asLocale } from "@/i18n/config";
+import { aiLanguage, asLocale, uzScript } from "@/i18n/config";
 import { limitsFor } from "../premium";
 
 const MAX_ROUNDS = 8;
@@ -515,7 +515,10 @@ export async function runAssistant(
           ? `${n === 1 ? "Here is my proposal" : `Here are ${n} proposals`} — confirm or reject on the card${n === 1 ? "" : "s"} below.`
           : input.locale === "ru"
             ? `${n === 1 ? "Предложение готово" : `Готово предложений: ${n}`} — подтвердите или отклоните на карточке ниже.`
-            : `${n === 1 ? "Taklif tayyor" : `${n} ta taklif tayyor`} — quyidagi kartada tasdiqlang yoki rad eting.`;
+            : uzScript(
+                input.locale,
+                `${n === 1 ? "Taklif tayyor" : `${n} ta taklif tayyor`} — quyidagi kartada tasdiqlang yoki rad eting.`,
+              );
       break;
     }
   }
