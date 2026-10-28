@@ -145,7 +145,10 @@
       "stats": "Ranked collections and pages-read counts",
       "assistant": "AI assistant: adds, organises, searches inside your PDFs",
       "taqriz": "A write-up for every book: write freely or in chapters"
-    }
+    },
+    "withTelegram": "Continue with Telegram",
+    "telegramSigningIn": "Signing in with Telegram…",
+    "agree": "By signing in you agree to the <terms>Terms of use</terms> and the <privacy>Privacy policy</privacy>."
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",
@@ -823,7 +826,8 @@
     "cardsAll": "Every important question (AI decides)",
     "bookPdfHint": "The PDF is attached to the book: its text is read, the chapters of the whole book are found and the audiobook is analysed (1–5 minutes for a big book). Then you read and listen to it on the site.",
     "audiobookHint": "The AI reads the whole book and casts the characters’ voices (1–5 minutes).",
-    "bookFromEarlier": "“{title}” — the book added by the card above"
+    "bookFromEarlier": "“{title}” — the book added by the card above",
+    "limitLeft": "Free service: {left} of {limit} requests left today (resets daily)."
   },
   "stats": {
     "title": "Metrics",
@@ -935,7 +939,16 @@
     "storageOff": "File uploads are not configured. External links still work.",
     "privacy": "Privacy",
     "privacyBody": "Notes, quotes, write-ups, ratings and reading records belong to you only. Only quotes you mark public are visible to other users.",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "deleteAccount": {
+      "button": "Delete account",
+      "hint": "Your account, all notes, write-ups, library and files are deleted for good. This cannot be undone — export what you need first.",
+      "title": "Delete your account for good",
+      "body": "All your personal data and files are deleted at once. Shared catalog entries you added stay, without an author.",
+      "typeIt": "Type DELETE to confirm",
+      "confirm": "Delete",
+      "failed": "Could not delete the account. Please try again later."
+    }
   },
   "admin": {
     "title": "Administration",
@@ -1741,7 +1754,9 @@
     "sleepOff": "No timer",
     "sleepOn": "Timer on",
     "sleepMin": "In {n} minutes",
-    "sleepChapter": "End of chapter"
+    "sleepChapter": "End of chapter",
+    "textDraft": "The book’s text. Speakers are marked in colour once the voice is ready.",
+    "betaHint": "In testing: voices are made within Google’s free limit, a few parts a day. Finished parts are kept."
   },
   "reader": {
     "title": "Read the book",
@@ -1853,5 +1868,11 @@
       "title": "Make questions",
       "hint": "“Review” helps you remember"
     }
+  },
+  "legal": {
+    "privacyTitle": "Privacy policy",
+    "termsTitle": "Terms of use",
+    "updated": "Updated: {date}",
+    "back": "Sign-in page"
   }
 }

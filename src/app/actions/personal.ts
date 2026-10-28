@@ -12,6 +12,7 @@ import { ADMIN_MODE_COOKIE } from "@/lib/auth/session";
 import { isValidTimeZone } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { LEARNING_STATUSES } from "@/lib/validation";
+import { deleteAccount } from "@/server/account";
 import { analyzeAudiobook, resetAudiobook } from "@/server/audiobook";
 import { findStructure } from "@/server/book-structure";
 import { indexFromFile, indexFromUrl } from "@/server/booktext";
@@ -264,5 +265,12 @@ export async function saveProfileAction(input: { name: string; timezone: string 
       tx.update(user).set({ name: p.name, timezone: p.timezone }).where(eq(user.id, ctx.userId)),
     );
     revalidatePath("/", "layout");
+  });
+}
+
+export async function deleteAccountAction(confirm: string) {
+  return run(async ({ ctx }) => {
+    if (confirm.trim().toLocaleUpperCase() !== "DELETE") throw new AppError("VALIDATION");
+    await deleteAccount(ctx);
   });
 }

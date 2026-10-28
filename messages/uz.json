@@ -145,7 +145,10 @@
       "stats": "Reytingli to‘plamlar va o‘qilgan sahifalar hisobi",
       "assistant": "AI yordamchi: qo‘shadi, tartiblaydi, PDF ichidan topadi",
       "taqriz": "Har bir kitobga taqriz: erkin yozing yoki boblarga ajrating"
-    }
+    },
+    "withTelegram": "Telegram orqali kirish",
+    "telegramSigningIn": "Telegram orqali kirilmoqda…",
+    "agree": "Kirish orqali siz <terms>Foydalanish shartlari</terms> va <privacy>Maxfiylik siyosati</privacy>ga rozilik bildirasiz."
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -823,7 +826,8 @@
     "cardsAll": "Barcha muhim savollar (AI aniqlaydi)",
     "bookPdfHint": "PDF kitobga biriktiriladi: matni ajratiladi, butun kitob bo‘yicha boblar topiladi va audiokitob tahlil qilinadi (katta kitobda 1–5 daqiqa). Keyin kitobni saytda o‘qiysiz va tinglaysiz.",
     "audiobookHint": "AI butun kitobni o‘qib, qahramonlar ovozini tanlaydi (1–5 daqiqa).",
-    "bookFromEarlier": "«{title}» — oldingi kartada qo‘shiladigan kitob"
+    "bookFromEarlier": "«{title}» — oldingi kartada qo‘shiladigan kitob",
+    "limitLeft": "Bepul xizmat: bugun {limit} ta so‘rovdan {left} tasi qoldi (har kuni yangilanadi)."
   },
   "stats": {
     "title": "Ko‘rsatkichlar",
@@ -935,7 +939,16 @@
     "storageOff": "Fayl yuklash sozlanmagan. Tashqi havolalar ishlayveradi.",
     "privacy": "Maxfiylik",
     "privacyBody": "Qaydlar, iqtiboslar, taqrizlar, reytinglar va o‘qish yozuvlari faqat sizga tegishli. Faqat ochiq deb belgilagan iqtiboslaringiz boshqa foydalanuvchilarga ko‘rinadi.",
-    "saved": "Sozlamalar saqlandi."
+    "saved": "Sozlamalar saqlandi.",
+    "deleteAccount": {
+      "button": "Hisobni o‘chirish",
+      "hint": "Hisobingiz, barcha qaydlar, taqrizlar, kitoblar ro‘yxati va fayllaringiz butunlay o‘chiriladi. Buni qaytarib bo‘lmaydi — avval kerakli narsalarni eksport qiling.",
+      "title": "Hisobni butunlay o‘chirish",
+      "body": "Barcha shaxsiy ma’lumotlaringiz va fayllaringiz darhol o‘chiriladi. Katalogga qo‘shgan umumiy yozuvlar muallifsiz qoladi.",
+      "typeIt": "Tasdiqlash uchun DELETE deb yozing",
+      "confirm": "O‘chirish",
+      "failed": "Hisobni o‘chirib bo‘lmadi. Keyinroq urinib ko‘ring."
+    }
   },
   "admin": {
     "title": "Boshqaruv",
@@ -1741,7 +1754,9 @@
     "sleepOff": "Taymer yo‘q",
     "sleepOn": "Taymer yoqilgan",
     "sleepMin": "{n} daqiqadan keyin",
-    "sleepChapter": "Bob oxirida"
+    "sleepChapter": "Bob oxirida",
+    "textDraft": "Kitob matni. Kim gapirayotgani ovoz tayyor bo‘lgach ranglar bilan ajratiladi.",
+    "betaHint": "Sinov bosqichida: ovoz Google’ning bepul limiti bilan tayyorlanadi, kuniga bir necha qism. Tayyor qismlar saqlanib qoladi."
   },
   "reader": {
     "title": "Kitobni o‘qish",
@@ -1853,5 +1868,11 @@
       "title": "Savollar tuzing",
       "hint": "«Takrorlash»da AI yodlashga yordam beradi"
     }
+  },
+  "legal": {
+    "privacyTitle": "Maxfiylik siyosati",
+    "termsTitle": "Foydalanish shartlari",
+    "updated": "Yangilangan: {date}",
+    "back": "Kirish sahifasi"
   }
 }

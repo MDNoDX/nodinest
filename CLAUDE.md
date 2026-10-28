@@ -128,6 +128,17 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Audiobook pacing: style prompt for non-3.8 TTS models, 0.55 s between runs and
   `lib/audio-pauses.ts` `stretchPauses` (longer sentence pauses) on the final PCM; bump
   `AUDIO_VERSION` in audiobook-app.tsx when the audio pipeline changes (busts browser cache).
+- Audiobook text: the player asks `/api/audiobook/[id]/script/[idx]?fast=1` first
+  (`segmentPreview`: cached script, else the book's own text reflowed — no AI), then the full
+  speaker script once the voice exists. `bookText()` caches the cleaned book per warm function.
+- Sign-in: Google + Telegram (`lib/auth/telegram.ts` Better Auth plugin, on only when
+  `TELEGRAM_BOT_TOKEN` is set; the browser goes to oauth.telegram.org and back to /login/telegram,
+  which posts `tgAuthResult` to /api/auth/telegram/callback; users get a placeholder email
+  `tg<id>@telegram.nodinest.invalid`). BotFather `/setdomain` must name the site's domain.
+- Public legal pages /privacy and /terms (`src/content/legal.ts`, uz + en): keep them true when
+  adding services, cookies or data. Settings → delete account (`server/account.ts`: DB cascade +
+  Blob files; never the superadmin). Vercel Web Analytics (`components/pwa/analytics.tsx`, ids
+  stripped from URLs) — enable it in the Vercel dashboard.
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;

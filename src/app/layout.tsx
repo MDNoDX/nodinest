@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Pwa } from "@/components/pwa/pwa";
+import { SiteAnalytics } from "@/components/pwa/analytics";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
             <Toaster />
             <Pwa />
+            <SiteAnalytics />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

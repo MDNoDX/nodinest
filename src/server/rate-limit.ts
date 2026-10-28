@@ -40,3 +40,17 @@ export async function pruneRateLimits(database: Database): Promise<void> {
     sql`delete from nodinest.rate_limits where window_start < now() - interval '2 days'`,
   );
 }
+
+/** How many hits the current window of `key` has (0 when none), without counting one. */
+export async function peekRateLimit(
+  database: Database,
+  key: string,
+  windowSeconds: number,
+): Promise<number> {
+  const rows = await database.execute<{ count: number }>(sql`
+    select count from nodinest.rate_limits
+    where key = ${key}
+      and window_start = to_timestamp(floor(extract(epoch from now()) / ${windowSeconds}) * ${windowSeconds})
+  `);
+  return Number(rows[0]?.count ?? 0);
+}

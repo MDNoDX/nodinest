@@ -27,6 +27,7 @@ import { generate, speak, uploadToGemini } from "./ai/gemini";
 import { factsText, gate, langRule, resourceFacts } from "./ai/study";
 import { findStructure, getStructure } from "./book-structure";
 import { loadBookPages } from "./booktext";
+import { reflow } from "@/lib/reflow";
 import { readFileBytes } from "./storage";
 import { stretchPauses } from "@/lib/audio-pauses";
 import {
@@ -699,6 +700,48 @@ async function onePage(bytes: Uint8Array, page: number) {
 }
 
 /** The voiced script of segment `idx` (cached). */
+/**
+ * The text the plan's offsets refer to. Kept for a while per warm function, so
+ * moving between segments does not reload and clean the whole book each time.
+ */
+const textCache = new Map<string, { text: string; at: number }>();
+async function bookText(ctx: AppContext, resourceId: string, id: string, rev: string, plan: Plan) {
+  const key = `${ctx.userId}:${id}:${rev}`;
+  const hit = textCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.text;
+  const { text } = joinPages(
+    withPictureTitles(cleanPages(await loadBookPages(ctx, resourceId), plan.noise), plan.pictures),
+  );
+  if (textCache.size > 8) textCache.delete(textCache.keys().next().value!);
+  textCache.set(key, { text, at: Date.now() });
+  return text;
+}
+
+/**
+ * Shown at once while a segment is being voiced: the cached script if there is
+ * one, else the book's own text of the segment as narrator paragraphs (no AI).
+ * Scanned books have no text before the AI reads the page: `lines` is empty then.
+ */
+export async function segmentPreview(ctx: AppContext, resourceId: string, idx: number) {
+  const r = await getRow(ctx, resourceId);
+  if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
+  const plan = r.plan as Plan;
+  const a = r.analysis as Analysis;
+  const seg = plan.segs[idx];
+  if (!seg) throw new AppError("NOT_FOUND");
+  const [cached] = await withUser(db, ctx, (tx) =>
+    tx
+      .select({ script: audiobookScripts.script })
+      .from(audiobookScripts)
+      .where(and(eq(audiobookScripts.audiobookId, r.id), eq(audiobookScripts.idx, idx))),
+  );
+  if (cached) return { lines: cached.script as ScriptLine[], page: seg[2], draft: false };
+  if (plan.kind === "scan") return { lines: [] as ScriptLine[], page: seg[2], draft: true };
+  const text = (await bookText(ctx, resourceId, r.id, a.rev, plan)).slice(seg[0], seg[1]);
+  const lines = reflow(text).map((p) => ({ speaker: "narrator", text: p.text }));
+  return { lines, page: seg[2], draft: true };
+}
+
 export async function segmentScript(ctx: AppContext, resourceId: string, idx: number) {
   const r = await getRow(ctx, resourceId);
   if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
@@ -726,12 +769,7 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
       { text: "Read the text of this book page exactly and make the script of it." },
     ];
   } else {
-    const { text } = joinPages(
-      withPictureTitles(
-        cleanPages(await loadBookPages(ctx, resourceId), plan.noise),
-        plan.pictures,
-      ),
-    );
+    const text = await bookText(ctx, resourceId, r.id, a.rev, plan);
     source = text.slice(seg[0], seg[1]);
     const before = text.slice(Math.max(0, seg[0] - 400), seg[0]);
     parts = [

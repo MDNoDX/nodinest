@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
+import { TelegramIcon, telegramLogin } from "./telegram-login";
 
 function GoogleIcon() {
   return (
@@ -30,10 +31,13 @@ function GoogleIcon() {
 
 export function LoginPanel({
   googleEnabled,
+  telegramBotId = null,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
+  /** Set when Telegram sign-in is configured. */
+  telegramBotId?: string | null;
   devEnabled: boolean;
   /** Where to go after signing in (validated same-site path). */
   next?: string;
@@ -88,6 +92,16 @@ export function LoginPanel({
         >
           <GoogleIcon /> {t("withGoogle")}
         </Button>
+        {telegramBotId && (
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => telegramLogin(telegramBotId, next)}
+            disabled={pending}
+          >
+            <TelegramIcon /> {t("withTelegram")}
+          </Button>
+        )}
         {!googleEnabled && (
           <p className="bg-warning-soft text-warning rounded-lg p-3 text-xs">
             {t("googleMissing")}

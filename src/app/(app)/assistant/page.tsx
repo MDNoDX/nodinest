@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { aiAvailability, getConversation, listConversations } from "@/server/ai/assistant";
 import { getAiSettings } from "@/server/settings";
+import { peekRateLimit } from "@/server/rate-limit";
 
 export const dynamic = "force-dynamic";
 // Confirmed actions may continue in the background (a book PDF: chapters, audiobook).
@@ -107,6 +108,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           available={avail.available}
           unavailableReason={avail.reason}
           dailyLimit={user.isSuperadmin ? null : settings.dailyLimitPerUser}
+          usedToday={user.isSuperadmin ? 0 : await peekRateLimit(db, `ai:${user.id}`, 86_400)}
           userId={user.id}
         />
       </div>

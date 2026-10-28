@@ -14,8 +14,12 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { bootstrapSuperadmin, isUserSuspended, seedNewUser } from "./bootstrap";
 import { isDevLoginEnabled } from "./dev-login";
+import { telegram } from "./telegram";
+import { botIdOf } from "./telegram-verify";
 
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
+const telegramToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
+const telegramBotId = botIdOf(telegramToken);
 
 export const auth = betterAuth({
   appName: "NodiNote",
@@ -89,10 +93,12 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [nextCookies()],
+  plugins: [...(telegramBotId ? [telegram(telegramToken)] : []), nextCookies()],
 });
 
 export const authProviders = {
   google: googleConfigured,
   devLogin: isDevLoginEnabled(),
+  /** Public bot id for oauth.telegram.org (null = Telegram sign-in off). */
+  telegramBotId,
 };

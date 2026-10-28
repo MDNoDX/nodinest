@@ -230,6 +230,7 @@ function Ready({
   // Sleep timer: a time to stop at, or the end of the chapter.
   const [sleep, setSleep] = useState<number | "chapter" | null>(null);
   const [lines, setLines] = useState<ScriptLine[] | null>(null);
+  const [draft, setDraft] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
   const urls = useRef(new Map<number, string>());
   const inflight = useRef(new Map<string, Promise<Blob>>());
@@ -286,6 +287,20 @@ function Ready({
       want.current = play;
       setLoading(true);
       setLines(null);
+      setDraft(false);
+      // The text first (the book's own words at once), the voice after.
+      const script = (fast: boolean) =>
+        fetch(`/api/audiobook/${resource.id}/script/${i}${fast ? "?fast=1" : ""}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { lines: ScriptLine[]; draft?: boolean } | null) => {
+            if (d && live.current.idx === i) {
+              setLines(d.lines);
+              setDraft(!!d.draft);
+            }
+            return d;
+          })
+          .catch(() => null);
+      const first = script(true);
       try {
         const blob = await blobFor(i);
         if (live.current.idx !== i) return;
@@ -302,11 +317,10 @@ function Ready({
           a.addEventListener("loadedmetadata", () => (a.currentTime = s), { once: true });
         }
         if (want.current) await a.play().catch(() => {});
-        void fetch(`/api/audiobook/${resource.id}/script/${i}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d: { lines: ScriptLine[] } | null) => {
-            if (d && live.current.idx === i) setLines(d.lines);
-          });
+        // Voicing made the speaker script: swap the plain text for it.
+        void first.then((d) => {
+          if (!d || d.draft) void script(false);
+        });
         // Make the next one while this one plays.
         if (i + 1 < view.segments) void blobFor(i + 1).catch(() => {});
       } catch (e) {
@@ -491,6 +505,12 @@ function Ready({
           <div className="flex min-w-0 flex-1 flex-col">
             <p className="text-primary flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
               <Headphones className="size-3.5" /> {t("title")}
+              <span
+                className="bg-primary-soft rounded px-1.5 py-px text-[10px] tracking-normal normal-case"
+                title={t("betaHint")}
+              >
+                beta
+              </span>
             </p>
             <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">{resource.title}</h1>
             <p className="text-muted mt-0.5 truncate text-sm">
@@ -652,12 +672,13 @@ function Ready({
               />
             </figure>
           )}
-          {!lines ? (
+          {!lines || (draft && !lines.length) ? (
             <p className="text-muted flex items-center gap-2 text-sm">
               <Loader2 className="size-4 animate-spin" /> {t("textLoading")}
             </p>
           ) : (
             <div className="flex flex-col gap-3 font-serif text-[17px] leading-relaxed">
+              {draft && <p className="text-muted font-sans text-xs">{t("textDraft")}</p>}
               {lines.map((l, i) => {
                 const hue = hueOf(l.speaker);
                 return (

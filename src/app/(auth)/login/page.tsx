@@ -1,4 +1,5 @@
 import { BookOpen, ListTree, Sparkles, Trophy } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { LoginPanel } from "@/components/auth/login-panel";
@@ -67,10 +68,25 @@ export default async function LoginPage({
           </div>
           <LoginPanel
             googleEnabled={authProviders.google}
+            telegramBotId={authProviders.telegramBotId}
             devEnabled={authProviders.devLogin}
             next={next}
           />
           <p className="text-muted mt-6 text-center text-xs">{t("auth.privacyNote")}</p>
+          <p className="text-muted mt-2 text-center text-xs">
+            {t.rich("auth.agree", {
+              terms: (c) => (
+                <Link href="/terms" className="hover:text-foreground underline">
+                  {c}
+                </Link>
+              ),
+              privacy: (c) => (
+                <Link href="/privacy" className="hover:text-foreground underline">
+                  {c}
+                </Link>
+              ),
+            })}
+          </p>
         </section>
       </div>
     </main>

@@ -525,6 +525,7 @@ export function Chat({
   available,
   unavailableReason,
   dailyLimit,
+  usedToday = 0,
   userId,
 }: {
   conversationId: string | null;
@@ -533,6 +534,8 @@ export function Chat({
   available: boolean;
   unavailableReason?: string;
   dailyLimit: number | null;
+  /** AI requests already made today (all AI features share the limit). */
+  usedToday?: number;
   userId: string;
 }) {
   const t = useTranslations("assistant");
@@ -885,7 +888,7 @@ export function Chat({
         )}
         {dailyLimit !== null && (
           <p className="text-muted mt-1.5 text-center text-[11px]">
-            {t("limitNote", { limit: dailyLimit })}
+            {t("limitLeft", { left: Math.max(0, dailyLimit - usedToday), limit: dailyLimit })}
           </p>
         )}
       </form>

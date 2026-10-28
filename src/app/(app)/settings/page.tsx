@@ -7,6 +7,7 @@ import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/misc";
 import { ProgressBar } from "@/components/charts/hbar-list";
 import { fmtBytes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
+import { DeleteAccount } from "@/components/settings/delete-account";
 import { isStorageConfigured, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
 import { StorageHint } from "@/components/write/storage-hint";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,25 @@ export default async function SettingsPage() {
               </span>
             }
           />
-          <p className="text-muted px-5 pb-5 text-sm">{t("settings.privacyBody")}</p>
+          <div className="flex flex-col gap-3 px-5 pb-5 text-sm">
+            <p className="text-muted">{t("settings.privacyBody")}</p>
+            <p className="flex gap-4">
+              <Link href="/privacy" className="text-primary font-medium hover:underline">
+                {t("legal.privacyTitle")}
+              </Link>
+              <Link href="/terms" className="text-primary font-medium hover:underline">
+                {t("legal.termsTitle")}
+              </Link>
+            </p>
+            {!user.isSuperadmin && (
+              <div className="border-border flex flex-col gap-2 border-t pt-3">
+                <p className="text-muted">{t("settings.deleteAccount.hint")}</p>
+                <div>
+                  <DeleteAccount />
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </div>
