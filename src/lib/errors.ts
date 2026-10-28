@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 /**
  * Typed application errors. `code` is a stable identifier that the UI maps to
  * a translated message (messages/*.json → errors.<code>).
@@ -53,6 +54,9 @@ export function toActionError(err: unknown): Extract<ActionResult, { ok: false }
       details: err.code === "DUPLICATE" ? err.details : undefined,
     };
   }
+  // Bad input that failed a zod schema: a validation error, not a crash.
+  if (err instanceof ZodError)
+    return { ok: false, code: "VALIDATION", message: err.issues[0]?.path.join(".") || undefined };
   // Postgres unique violation → conflict
   const pgCode =
     (err as { code?: string; cause?: { code?: string } })?.cause?.code ??

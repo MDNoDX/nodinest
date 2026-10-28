@@ -159,7 +159,21 @@
     "verify": "Kiriş",
     "or": "yoki",
     "badCode": "Kod notöğri yoki eskirgan.",
-    "changeEmail": "Boşqa email"
+    "changeEmail": "Boşqa email",
+    "tg": {
+      "button": "Telegram orqali kiriş",
+      "title": "Telegram orqali kiriş",
+      "body": "Botda «Tasdiqlaş»ni bosing — sayt özi oçiladi. Telefon raqami yoki SMS kod kerak emas.",
+      "close": "Yopiş",
+      "expired": "Vaqt tugadi yoki kiriş bekor qilindi.",
+      "error": "Hozir ulanib bölmadi. Birozdan keyin qayta urinib köring.",
+      "again": "Qayta uriniş",
+      "signingIn": "Kirilmoqda…",
+      "qr": "Telegram’da oçiş uçun QR kod",
+      "scan": "Telefoningizda kamerani QR kodga qarating yoki pastdagi tugmani bosing.",
+      "open": "Telegram’ni oçiş",
+      "waiting": "Botda tasdiqlaşingizni kutyapmiz…"
+    }
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -2032,7 +2046,8 @@
     "remove": "Olib taşlaş",
     "preview": "Körinişi",
     "add": "Reklama qöşiş",
-    "saved": "Saqlandi"
+    "saved": "Saqlandi",
+    "save": "Saqlaş"
   },
   "social": {
     "title": "Hamjamiyat",

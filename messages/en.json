@@ -159,7 +159,21 @@
     "verify": "Sign in",
     "or": "or",
     "badCode": "The code is wrong or expired.",
-    "changeEmail": "Other e-mail"
+    "changeEmail": "Other e-mail",
+    "tg": {
+      "button": "Continue with Telegram",
+      "title": "Sign in with Telegram",
+      "body": "Press “Confirm” in the bot — the site opens by itself. No phone number or SMS code.",
+      "close": "Close",
+      "expired": "Time is up or the sign-in was cancelled.",
+      "error": "Could not connect right now. Please try again shortly.",
+      "again": "Try again",
+      "signingIn": "Signing in…",
+      "qr": "QR code to open in Telegram",
+      "scan": "Point your phone camera at the QR code or press the button below.",
+      "open": "Open Telegram",
+      "waiting": "Waiting for you to confirm in the bot…"
+    }
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",
@@ -2032,7 +2046,8 @@
     "remove": "Remove",
     "preview": "Preview",
     "add": "Add an ad",
-    "saved": "Saved"
+    "saved": "Saved",
+    "save": "Save"
   },
   "social": {
     "title": "Community",

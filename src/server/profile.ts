@@ -79,11 +79,11 @@ export const profileInput = z.object({
   firstName: z.string().trim().min(1).max(60),
   lastName: z.string().trim().max(60).nullish(),
   username: z.string().trim().max(40),
-  /** /api/files/<id> of an uploaded picture, or null to keep / clear. */
-  image: z
-    .string()
-    .regex(/^\/api\/files\/[0-9a-f-]{36}$/)
-    .nullish(),
+  /**
+   * The picture: an uploaded one (/api/files/<id>), the current one unchanged
+   * (e.g. the Google photo), or null to remove it.
+   */
+  image: z.string().trim().max(2000).nullish(),
 });
 
 export async function saveProfile(ctx: AppContext, raw: unknown) {
@@ -92,7 +92,10 @@ export async function saveProfile(ctx: AppContext, raw: unknown) {
   if (!USERNAME_RE.test(username) || RESERVED.has(username))
     throw new AppError("VALIDATION", "username_invalid");
   if (!(await usernameFree(username, ctx.userId))) throw new AppError("CONFLICT", "username_taken");
-  if (a.image) {
+  const [me] = await db.select({ image: user.image }).from(user).where(eq(user.id, ctx.userId));
+  const keep = a.image === undefined || a.image === me?.image;
+  if (a.image && !keep) {
+    if (!/^\/api\/files\/[0-9a-f-]{36}$/.test(a.image)) throw new AppError("VALIDATION", "image");
     const [f] = await db
       .select({ owner: files.ownerId, purpose: files.purpose })
       .from(files)
@@ -110,7 +113,7 @@ export async function saveProfile(ctx: AppContext, raw: unknown) {
         lastName: last,
         name: [first, last].filter(Boolean).join(" "),
         username,
-        ...(a.image !== undefined ? { image: a.image } : {}),
+        ...(keep ? {} : { image: a.image ?? null }),
         updatedAt: new Date(),
       })
       .where(eq(user.id, ctx.userId)),

@@ -159,7 +159,21 @@
     "verify": "Sign in",
     "or": "or",
     "badCode": "The code is wrong or expired.",
-    "changeEmail": "Other e-mail"
+    "changeEmail": "Other e-mail",
+    "tg": {
+      "button": "Войти через Telegram",
+      "title": "Вход через Telegram",
+      "body": "Нажмите «Подтвердить» в боте — сайт откроется сам. Номер телефона и SMS-код не нужны.",
+      "close": "Закрыть",
+      "expired": "Время вышло или вход отменён.",
+      "error": "Сейчас не удалось подключиться. Попробуйте чуть позже.",
+      "again": "Попробовать снова",
+      "signingIn": "Входим…",
+      "qr": "QR-код для открытия в Telegram",
+      "scan": "Наведите камеру телефона на QR-код или нажмите кнопку ниже.",
+      "open": "Открыть Telegram",
+      "waiting": "Ждём подтверждения в боте…"
+    }
   },
   "dashboard": {
     "greetingMorning": "Доброе утро, {name}",
@@ -2032,7 +2046,8 @@
     "remove": "Remove",
     "preview": "Preview",
     "add": "Add an ad",
-    "saved": "Saved"
+    "saved": "Saved",
+    "save": "Сохранить"
   },
   "social": {
     "title": "Community",
