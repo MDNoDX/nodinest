@@ -11,5 +11,7 @@ const globalForDb = globalThis as unknown as { __nodinestDb?: Database };
  * caches, settings, audit writes and admin operations already authorised
  * server-side. All user-scoped data access goes through `withUser`.
  */
-export const db: Database = globalForDb.__nodinestDb ?? createDb(process.env.DATABASE_URL!);
+/** The Frankfurt database (next to the fra1 functions) when configured, else the original. */
+const url = process.env.EU_DATABASE_URL || process.env.DATABASE_URL;
+export const db: Database = globalForDb.__nodinestDb ?? createDb(url!);
 if (process.env.NODE_ENV !== "production") globalForDb.__nodinestDb = db;

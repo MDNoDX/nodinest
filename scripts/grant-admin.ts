@@ -14,7 +14,7 @@ async function main() {
   const revoke = process.argv.includes("--revoke");
   if (!email || !email.includes("@"))
     throw new Error("Usage: npm run admin:grant -- <email> [--revoke]");
-  const sql = postgres(process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!, {
+  const sql = postgres(process.env.EU_DATABASE_URL_UNPOOLED || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!, {
     max: 1,
     onnotice: () => {},
   });
