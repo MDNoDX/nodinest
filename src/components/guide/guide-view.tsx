@@ -1,6 +1,9 @@
 "use client";
 import {
   ArrowRight,
+  BadgeCheck,
+  Send,
+  UsersRound,
   BookOpen,
   Brain,
   Feather,
@@ -39,6 +42,9 @@ const ICONS: Record<string, LucideIcon> = {
   layers: Layers,
   shield: Shield,
   help: HelpCircle,
+  users: UsersRound,
+  badge: BadgeCheck,
+  send: Send,
 };
 
 const fold = (s: string) => s.toLocaleLowerCase().replace(/[‘’ʻʼ`']/g, "'");

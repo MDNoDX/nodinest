@@ -4,13 +4,14 @@ import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { analyzeAudiobook, setVoice } from "@/server/audiobook";
 import { run } from "./_run";
+import { asLocale } from "@/i18n/config";
 
 const id = z.string().uuid();
 
 /** Reads the whole book and prepares the audiobook (can take a minute or two). */
 export async function analyzeAudiobookAction(resourceId: string) {
   return run(async ({ ctx }) => {
-    const locale = (await getLocale()) === "en" ? "en" : "uz";
+    const locale = asLocale(await getLocale());
     const r = await analyzeAudiobook(ctx, id.parse(resourceId), locale);
     revalidatePath(`/library/${resourceId}/audiobook`);
     return r;

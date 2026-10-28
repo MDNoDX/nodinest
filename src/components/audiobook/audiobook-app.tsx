@@ -67,19 +67,28 @@ const HUES = [
 ];
 
 /** Segment audio from the browser cache, or made by the server (then cached). */
-async function segmentBlob(url: string): Promise<Blob> {
+type Seg = { blob: Blob; marks: number[] };
+const marksOf = (r: Response) =>
+  (r.headers.get("x-nn-marks") ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map(Number)
+    .filter(Number.isFinite);
+
+/** One segment's MP3 + when each line starts (cached in the browser with its headers). */
+async function segmentBlob(url: string): Promise<Seg> {
   let cache: Cache | null = null;
   try {
     cache = await caches.open(CACHE);
     const hit = await cache.match(url);
-    if (hit) return await hit.blob();
+    if (hit) return { marks: marksOf(hit), blob: await hit.blob() };
   } catch {
     cache = null;
   }
   const res = await fetch(url);
   if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error ?? "INTERNAL");
   if (cache) await cache.put(url, res.clone()).catch(() => {});
-  return res.blob();
+  return { marks: marksOf(res), blob: await res.blob() };
 }
 
 export function AudiobookApp({
@@ -231,9 +240,11 @@ function Ready({
   const [sleep, setSleep] = useState<number | "chapter" | null>(null);
   const [lines, setLines] = useState<ScriptLine[] | null>(null);
   const [draft, setDraft] = useState(false);
+  // Start time (s) of each script line in the playing segment; [] = unknown.
+  const [marks, setMarks] = useState<number[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
   const urls = useRef(new Map<number, string>());
-  const inflight = useRef(new Map<string, Promise<Blob>>());
+  const inflight = useRef(new Map<string, Promise<Seg>>());
   const startAt = useRef(view.position.sec);
   const want = useRef(false);
   // Latest values for event handlers (set in effects, read outside render).
@@ -288,6 +299,7 @@ function Ready({
       setLoading(true);
       setLines(null);
       setDraft(false);
+      setMarks([]);
       // The text first (the book's own words at once), the voice after.
       const script = (fast: boolean) =>
         fetch(`/api/audiobook/${resource.id}/script/${i}${fast ? "?fast=1" : ""}`)
@@ -302,7 +314,8 @@ function Ready({
           .catch(() => null);
       const first = script(true);
       try {
-        const blob = await blobFor(i);
+        const { blob, marks: m } = await blobFor(i);
+        setMarks(m);
         if (live.current.idx !== i) return;
         let src = urls.current.get(i);
         if (!src) {
@@ -439,7 +452,10 @@ function Ready({
   const chars = lines?.map((l) => l.text.length) ?? [];
   const totalChars = chars.reduce((a, b) => a + b, 0) || 1;
   let current = -1;
-  if (lines && time.dur) {
+  if (lines && !draft && marks.length === lines.length) {
+    // Exact: the server measured where each line starts.
+    for (let i = 0; i < marks.length; i++) if (marks[i] <= time.cur + 0.12) current = i;
+  } else if (lines && time.dur) {
     const target = (time.cur / time.dur) * totalChars;
     for (let i = 0, acc = 0; i < chars.length; i++) {
       acc += chars[i];
@@ -816,6 +832,8 @@ function Ready({
       {tab === "cast" && (
         <section className="grid gap-3 sm:grid-cols-2">
           <CastCard
+            resourceId={resource.id}
+            speaker="narrator"
             name={t("narrator")}
             sub={analysis.narration.style}
             voice={analysis.narration.voice}
@@ -826,6 +844,8 @@ function Ready({
           {analysis.characters.map((c) => (
             <CastCard
               key={c.name}
+              resourceId={resource.id}
+              speaker={c.name}
               name={c.name}
               sub={[c.role, c.description, c.speech].filter(Boolean).join(" · ")}
               meta={`${t(`gender.${c.gender}`)} · ${t(`age.${c.age}`)}`}
@@ -845,6 +865,8 @@ function Ready({
 }
 
 function CastCard({
+  resourceId,
+  speaker,
   name,
   sub,
   meta,
@@ -853,6 +875,8 @@ function CastCard({
   onVoice,
   hue,
 }: {
+  resourceId: string;
+  speaker: string;
   name: string;
   sub: string;
   meta?: string;
@@ -862,6 +886,29 @@ function CastCard({
   hue: string | null;
 }) {
   const t = useTranslations("audiobook");
+  const [busy, setBusy] = useState(false);
+  // A ~10 s sample of the chosen voice reading this book (kept by the browser).
+  const listen = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(
+        `/api/audiobook/${resourceId}/preview?voice=${encodeURIComponent(voice)}&speaker=${encodeURIComponent(speaker)}`,
+      );
+      if (!r.ok) {
+        const code = ((await r.json().catch(() => ({}))) as { error?: string }).error;
+        toast.error(code === "RATE_LIMITED" ? t("previewLimit") : t("voiceFailed"));
+        return;
+      }
+      const url = URL.createObjectURL(await r.blob());
+      const a = new Audio(url);
+      a.onended = () => URL.revokeObjectURL(url);
+      await a.play();
+    } catch {
+      toast.error(t("voiceFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <article
       className="card flex flex-col gap-2 p-4"
@@ -887,6 +934,16 @@ function CastCard({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => void listen()}
+          disabled={busy}
+          className="border-border hover:bg-surface-2 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs font-medium"
+          title={t("previewHint")}
+        >
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+          {t("preview")}
+        </button>
       </label>
     </article>
   );

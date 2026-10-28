@@ -14,12 +14,11 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { bootstrapSuperadmin, isUserSuspended, seedNewUser } from "./bootstrap";
 import { isDevLoginEnabled } from "./dev-login";
+import { notifyNewUser } from "@/server/monitor/events";
 import { telegram } from "./telegram";
-import { botIdOf } from "./telegram-verify";
 
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
-const telegramToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
-const telegramBotId = botIdOf(telegramToken);
+const telegramEnabled = /^\d+:[\w-]{30,}$/.test(process.env.TELEGRAM_BOT_TOKEN ?? "");
 
 export const auth = betterAuth({
   appName: "NodiNote",
@@ -78,6 +77,7 @@ export const auth = betterAuth({
       create: {
         after: async (u) => {
           await seedNewUser(db, u.id);
+          await notifyNewUser(u).catch(() => {});
         },
       },
     },
@@ -93,12 +93,12 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [...(telegramBotId ? [telegram(telegramToken)] : []), nextCookies()],
+  plugins: [...(telegramEnabled ? [telegram()] : []), nextCookies()],
 });
 
 export const authProviders = {
   google: googleConfigured,
   devLogin: isDevLoginEnabled(),
-  /** Public bot id for oauth.telegram.org (null = Telegram sign-in off). */
-  telegramBotId,
+  /** Sign-in confirmed in the site's Telegram bot. */
+  telegram: telegramEnabled,
 };

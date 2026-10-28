@@ -9,6 +9,7 @@ import { renderDocx } from "./docx";
 import { fileName, labels, type Loc } from "./labels";
 import { renderPdf } from "./pdf";
 import { renderText } from "./text";
+import { asLocale } from "@/i18n/config";
 
 export const FORMATS = ["pdf", "docx", "md", "txt"] as const;
 export type Format = (typeof FORMATS)[number];
@@ -32,7 +33,7 @@ export async function exportResponse(
   },
 ) {
   await enforceRateLimit(db, `export:${user.id}`, 40, 3600);
-  const loc: Loc = user.locale === "en" ? "en" : "uz";
+  const loc: Loc = asLocale(user.locale);
   const t = labels(loc);
   const combined = !opts.resourceIds;
   let items = await loadExport(ctx, {

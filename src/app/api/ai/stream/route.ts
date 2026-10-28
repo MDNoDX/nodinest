@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { generateStream } from "@/server/ai/gemini";
 import { prepareAsk, prepareWrite } from "@/server/ai/study";
 import { apiError, apiUser } from "../../_utils";
+import { asLocale } from "@/i18n/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     const body = z
       .object({ kind: z.enum(["ask", "write"]), input: z.record(z.string(), z.unknown()) })
       .parse(await req.json());
-    const locale = user.locale === "en" ? "en" : "uz";
+    const locale = asLocale(user.locale);
     const full = { ...ctx, superadminAccount: user.isSuperadmin };
     const p =
       body.kind === "ask"

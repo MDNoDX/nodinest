@@ -12,6 +12,7 @@ import { db } from "@/db";
 import { aiCache } from "@/db/schema";
 import { safeFetch } from "@/lib/net/safe-fetch";
 import { parseIsbn } from "@/lib/normalize";
+import { type Locale } from "@/i18n/config";
 
 const TTL = 7 * 24 * 3600 * 1000;
 
@@ -177,11 +178,8 @@ export type PersonCandidate = {
 };
 
 /** Wikipedia people lookup (uz → en fallback). */
-export async function lookupPerson(
-  name: string,
-  lang: "uz" | "en" = "uz",
-): Promise<PersonCandidate[]> {
-  const langs = lang === "uz" ? ["uz", "en"] : ["en", "uz"];
+export async function lookupPerson(name: string, lang: Locale = "uz"): Promise<PersonCandidate[]> {
+  const langs = lang === "uz" ? ["uz", "en"] : lang === "ru" ? ["ru", "en", "uz"] : ["en", "uz"];
   for (const l of langs) {
     const search = await cachedJson<{
       pages?: Array<{ key: string; title: string; description?: string }>;

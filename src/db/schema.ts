@@ -25,6 +25,7 @@ import {
   index,
   integer,
   jsonb,
+  bigint,
   pgSchema,
   primaryKey,
   real,
@@ -158,6 +159,15 @@ export const user = nodinest.table(
     email: text("email").notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"),
+    /** Public handle, unique (case-insensitive); chosen on first sign-in (/welcome). */
+    username: text("username"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    /** Premium while this is in the future (set when the admin confirms a payment). */
+    premiumUntil: ts("premium_until"),
+    /** The profile (/u/<username>) and its public items can be seen by others. */
+    profilePublic: boolean("profile_public").notNull().default(false),
+    bio: text("bio"),
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
     status: userStatus("status").notNull().default("active"),
@@ -166,7 +176,14 @@ export const user = nodinest.table(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("user_email_uq").on(sql`lower(${t.email})`)],
+  (t) => [
+    uniqueIndex("user_email_uq").on(sql`lower(${t.email})`),
+    uniqueIndex("user_username_uq").on(sql`lower(${t.username})`),
+    check(
+      "user_username_chk",
+      sql`${t.username} IS NULL OR ${t.username} ~ '^[a-z][a-z0-9_]{2,29}$'`,
+    ),
+  ],
 );
 
 export const session = nodinest.table(
@@ -237,6 +254,11 @@ export const files = nodinest.table(
     originalName: text("original_name").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
+    /**
+     * Set when the file was moved to Telegram (bucket "telegram"): encrypted
+     * ≤ 19 MB parts in the storage channel (server/tg-storage.ts).
+     */
+    tgParts: jsonb("tg_parts"),
     purpose: filePurpose("purpose").notNull(),
     // Catalog files (covers/portraits) are readable by any signed-in user;
     // attachments stay owner-only.
@@ -484,6 +506,7 @@ export const categories = nodinest.table(
     slug: text("slug").notNull().unique(),
     nameUz: text("name_uz").notNull(),
     nameEn: text("name_en").notNull(),
+    nameRu: text("name_ru"),
     description: text("description"),
     parentId: uuid("parent_id"),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -566,6 +589,8 @@ export const learningRecords = nodinest.table(
     /** year | month | day | time (NULL = time); see lib/reading-date. */
     startedPrecision: text("started_precision"),
     completedPrecision: text("completed_precision"),
+    /** private | public — public items show on the user's profile (if it is public). */
+    visibility: text("visibility").notNull().default("private"),
     rating: smallint("rating"),
     review: text("review"),
     progressCurrent: integer("progress_current"),
@@ -783,12 +808,17 @@ export const feedback = nodinest.table(
   "feedback",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    /** NULL for a message sent to the bot by someone without an account. */
+    userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     body: text("body").notNull(),
     contact: text("contact"),
+    /** site | bot */
+    source: text("source").notNull().default("site"),
+    tgId: bigint("tg_id", { mode: "number" }),
+    /** The admin's answer (shown in Takliflar and sent by the bot). */
+    reply: text("reply"),
+    repliedAt: ts("replied_at"),
     /** new | read | done */
     status: text("status").notNull().default("new"),
     adminNote: text("admin_note"),
@@ -1158,4 +1188,99 @@ export const audiobookScripts = nodinest.table(
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.audiobookId, t.idx] })],
+);
+
+/**
+ * "Continue with Telegram" by the bot: the site makes a one-time code, the user
+ * presses Start in @bot with it, the webhook approves it, the waiting page signs in.
+ */
+export const telegramLogins = nodinest.table("telegram_logins", {
+  codeHash: text("code_hash").primaryKey(),
+  /** Hash of the httpOnly cookie of the browser that asked: only it can sign in. */
+  browserHash: text("browser_hash").notNull(),
+  /** Shown in the bot so the person sees which device asks to sign in. */
+  device: text("device"),
+  tgUser: jsonb("tg_user"),
+  approvedAt: ts("approved_at"),
+  usedAt: ts("used_at"),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: createdAt(),
+});
+
+/** People who started the bot (for answers and announcements). */
+export const botUsers = nodinest.table(
+  "bot_users",
+  {
+    tgId: bigint("tg_id", { mode: "number" }).primaryKey(),
+    username: text("username"),
+    firstName: text("first_name"),
+    language: text("language"),
+    userId: uuid("user_id").references(() => user.id, { onDelete: "set null" }),
+    /** The bot is waiting for this person's suggestion text. */
+    awaiting: text("awaiting"),
+    blocked: boolean("blocked").notNull().default(false),
+    startedAt: createdAt(),
+    lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+  },
+  (t) => [index("bot_users_user_idx").on(t.userId)],
+);
+
+/** Channel posts the admin can answer by replying to them. */
+export const tgPosts = nodinest.table("tg_posts", {
+  messageId: bigint("message_id", { mode: "number" }).primaryKey(),
+  kind: text("kind").notNull(),
+  feedbackId: uuid("feedback_id").references(() => feedback.id, { onDelete: "cascade" }),
+  tgId: bigint("tg_id", { mode: "number" }),
+  createdAt: createdAt(),
+});
+
+/**
+ * Premium payments: the user transfers to the admin's card / Payme / Click
+ * and sends this request; the admin confirms it (site or Telegram channel).
+ */
+export const payments = nodinest.table(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Amount in so‘m as the user states it. */
+    amount: integer("amount").notNull(),
+    months: integer("months").notNull().default(1),
+    /** card | payme | click */
+    method: text("method").notNull(),
+    note: text("note"),
+    receiptFileId: uuid("receipt_file_id").references(() => files.id, { onDelete: "set null" }),
+    /** pending | approved | rejected */
+    status: text("status").notNull().default("pending"),
+    decidedAt: ts("decided_at"),
+    decidedBy: text("decided_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("payments_status_idx").on(t.status, t.createdAt),
+    index("payments_user_idx").on(t.userId),
+    check("payments_status_chk", sql`${t.status} IN ('pending', 'approved', 'rejected')`),
+    check("payments_method_chk", sql`${t.method} IN ('card', 'payme', 'click')`),
+  ],
+);
+
+/** Who follows whom (a teacher follows students, friends follow each other). */
+export const follows = nodinest.table(
+  "follows",
+  {
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    followeeId: uuid("followee_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.followerId, t.followeeId] }),
+    index("follows_followee_idx").on(t.followeeId),
+    check("follows_not_self", sql`${t.followerId} <> ${t.followeeId}`),
+  ],
 );

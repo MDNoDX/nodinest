@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
-import { TelegramIcon, telegramLogin } from "./telegram-login";
+import { TelegramLogin } from "./telegram-login";
+import { LOCALES } from "@/i18n/config";
 
 function GoogleIcon() {
   return (
@@ -31,13 +32,13 @@ function GoogleIcon() {
 
 export function LoginPanel({
   googleEnabled,
-  telegramBotId = null,
+  telegramEnabled = false,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
-  /** Set when Telegram sign-in is configured. */
-  telegramBotId?: string | null;
+  /** Telegram sign-in (confirmed in the site's bot) is configured. */
+  telegramEnabled?: boolean;
   devEnabled: boolean;
   /** Where to go after signing in (validated same-site path). */
   next?: string;
@@ -92,16 +93,7 @@ export function LoginPanel({
         >
           <GoogleIcon /> {t("withGoogle")}
         </Button>
-        {telegramBotId && (
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => telegramLogin(telegramBotId, next)}
-            disabled={pending}
-          >
-            <TelegramIcon /> {t("withTelegram")}
-          </Button>
-        )}
+        {telegramEnabled && <TelegramLogin next={next} disabled={pending} />}
         {!googleEnabled && (
           <p className="bg-warning-soft text-warning rounded-lg p-3 text-xs">
             {t("googleMissing")}
@@ -180,7 +172,7 @@ export function LoginPanel({
       )}
 
       <div className="mt-6 flex justify-center gap-1 text-xs" aria-label={tl("label")}>
-        {(["uz", "en"] as const).map((l) => (
+        {LOCALES.map((l) => (
           <button
             key={l}
             className={`rounded-md px-2 py-1 ${locale === l ? "bg-surface-2 font-semibold" : "text-muted hover:text-foreground"}`}

@@ -22,7 +22,7 @@ const STEPS: Step[] = [
   { id: "review", target: "nav-review" },
   { id: "assistant", target: "nav-assistant" },
   { id: "write", target: "nav-write" },
-  { id: "guide", target: "nav-guide" },
+  { id: "guide", target: "nav-settings" },
 ];
 
 /** First visible element with data-tour=name (the phone menu has a copy). */

@@ -2,6 +2,8 @@
 
 /** Partial ISO date: "YYYY", "YYYY-MM" or "YYYY-MM-DD" (unknown parts omitted). */
 export const PARTIAL_DATE_RE = /^-?\d{1,4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
+import { type Locale } from "@/i18n/config";
+import { intlTag } from "@/i18n/config";
 
 /**
  * Flexible historical date (a small EDTF subset), stored as text:
@@ -130,14 +132,19 @@ export function startOfWeekKey(key: string): string {
   return addDays(key, 1 - isoWeekday(key));
 }
 
-export function formatPartialDate(v: string | null | undefined, locale: "uz" | "en"): string {
+export function formatPartialDate(v: string | null | undefined, locale: Locale): string {
   const f = parseFlexDate(v);
   if (!f) return v ?? "";
-  const uz = locale === "uz";
-  if (f.kind === "approx") return `${uz ? "taxm." : "c."} ${formatExact(f.value, locale)}`;
+  if (f.kind === "approx")
+    return `${locale === "uz" ? "taxm." : locale === "ru" ? "ок." : "c."} ${formatExact(f.value, locale)}`;
   if (f.kind === "range") {
     const c = centuryOf(f);
-    if (c && c < ROMAN.length) return uz ? `${ROMAN[c]} asr` : `${ordinal(c)} century`;
+    if (c && c < ROMAN.length)
+      return locale === "uz"
+        ? `${ROMAN[c]} asr`
+        : locale === "ru"
+          ? `${ROMAN[c]} век`
+          : `${ordinal(c)} century`;
     return `${formatExact(f.from, locale)}–${formatExact(f.to, locale)}`;
   }
   return formatExact(f.value, locale);
@@ -149,14 +156,14 @@ function ordinal(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function formatExact(v: string, locale: "uz" | "en"): string {
+function formatExact(v: string, locale: Locale): string {
   if (v.startsWith("-")) {
     const y = v.slice(1).split("-")[0];
-    return locale === "uz" ? `mil. avv. ${y}` : `${y} BC`;
+    return locale === "uz" ? `mil. avv. ${y}` : locale === "ru" ? `${y} до н. э.` : `${y} BC`;
   }
   const parts = v.split("-");
   const [y, m, d] = parts.map(Number);
-  const loc = locale === "uz" ? "uz-Latn-UZ" : "en-GB";
+  const loc = intlTag(locale);
   if (parts.length === 1) return String(y);
   if (parts.length === 2)
     return new Intl.DateTimeFormat(loc, { year: "numeric", month: "long", timeZone: "UTC" }).format(

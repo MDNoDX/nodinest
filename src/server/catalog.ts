@@ -846,6 +846,7 @@ export async function getResourceDetail(database: Database, ctx: AppContext, id:
         id: categories.id,
         nameUz: categories.nameUz,
         nameEn: categories.nameEn,
+        nameRu: categories.nameRu,
         slug: categories.slug,
       })
       .from(resourceCategories)
@@ -1088,6 +1089,7 @@ export async function listCategories(database: Database, ctx: AppContext, includ
         slug: categories.slug,
         nameUz: categories.nameUz,
         nameEn: categories.nameEn,
+        nameRu: categories.nameRu,
         description: categories.description,
         parentId: categories.parentId,
         sortOrder: categories.sortOrder,

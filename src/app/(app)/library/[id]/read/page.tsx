@@ -6,6 +6,7 @@ import { pageContext, sp, type SP } from "@/lib/page";
 import { getResourceHeader } from "@/server/catalog";
 import { findStructure, needsStructure } from "@/server/book-structure";
 import { getReaderData } from "@/server/reader";
+import { asLocale } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 // The chapters of a new book are found after the first response (after()).
@@ -37,7 +38,7 @@ export default async function ReadPage({
   const preparing =
     !data.scanned && (needsStructure(data.structure) || data.structure?.source === "pending");
   if (!data.scanned && needsStructure(data.structure)) {
-    const locale = (await getLocale()) === "en" ? "en" : "uz";
+    const locale = asLocale(await getLocale());
     after(() => findStructure(ctx, id, locale).catch(() => null));
   }
   const asked = Number(sp(q.page));

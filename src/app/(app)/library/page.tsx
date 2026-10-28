@@ -19,6 +19,7 @@ import {
   type LibrarySort,
 } from "@/server/catalog";
 import { findLibraryDuplicates } from "@/server/merge";
+import { pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,9 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           : r.writtenYear < 0
             ? locale === "uz"
               ? `mil. avv. ${-r.writtenYear}`
-              : `${-r.writtenYear} BC`
+              : locale === "ru"
+                ? `${-r.writtenYear} до н. э.`
+                : `${-r.writtenYear} BC`
             : String(r.writtenYear)
         : "";
   const groups: { key: string; items: typeof data.items }[] = [];
@@ -178,7 +181,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           <option value="">{t("library.anyCategory")}</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
-              {locale === "uz" ? c.nameUz : c.nameEn}
+              {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
             </option>
           ))}
         </Select>

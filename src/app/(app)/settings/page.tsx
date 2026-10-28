@@ -2,13 +2,16 @@ import { AppWindow, Keyboard, LifeBuoy, Lock } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
-import { ProfileForm, AppearanceForm } from "@/components/settings/settings-forms";
+import { EditProfile } from "@/components/profile/edit-profile";
+import { TimezoneForm, AppearanceForm } from "@/components/settings/settings-forms";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/misc";
 import { ProgressBar } from "@/components/charts/hbar-list";
 import { fmtBytes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { DeleteAccount } from "@/components/settings/delete-account";
-import { isStorageConfigured, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
+import { ProfileVisibility } from "@/components/social/profile-visibility";
+import { PremiumBadge } from "@/components/premium/premium-badge";
+import { isStorageConfigured, storageUsage, userQuotaBytes } from "@/server/storage";
 import { StorageHint } from "@/components/write/storage-hint";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -39,6 +42,20 @@ export default async function SettingsPage() {
             <InstallApp />
           </div>
         </Card>
+        <Card className="border-[#1d9bf0]/30">
+          <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+            <PremiumBadge className="size-11" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold">
+                {user.isPremium ? t("premium.active") : t("premium.settingsTitle")}
+              </h2>
+              <p className="text-muted text-sm">{t("premium.settingsBody")}</p>
+            </div>
+            <Button asChild variant={user.isPremium ? "outline" : "primary"}>
+              <Link href="/premium">{t("premium.open")}</Link>
+            </Button>
+          </div>
+        </Card>
         <Card className="border-[var(--c-teal)]/30">
           <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--c-teal)]/12 text-[var(--c-teal)]">
@@ -53,14 +70,16 @@ export default async function SettingsPage() {
             </Button>
           </div>
         </Card>
-        <Card>
+        <Card id="profile">
           <CardHeader title={t("settings.profile")} />
           <div className="px-5 pb-5">
             <dl className="mb-5 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted text-xs">{t("settings.email")}</dt>
-                <dd>{user.email}</dd>
-              </div>
+              {!user.email.endsWith(".invalid") && (
+                <div>
+                  <dt className="text-muted text-xs">{t("settings.email")}</dt>
+                  <dd>{user.email}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-muted text-xs">{t("settings.role")}</dt>
                 <dd>
@@ -70,11 +89,27 @@ export default async function SettingsPage() {
                 </dd>
               </div>
             </dl>
-            <ProfileForm
-              name={user.name}
-              timezone={user.timezone}
-              zones={timeZones(user.timezone)}
+            <EditProfile
+              userId={user.id}
+              storage={storage}
+              initial={{
+                firstName: user.firstName ?? user.name,
+                lastName: user.lastName ?? "",
+                username: user.username ?? "",
+                image: user.image,
+              }}
             />
+            <div className="border-border mt-6 border-t pt-5">
+              <h3 className="mb-3 text-sm font-semibold">{t("social.visibilityTitle")}</h3>
+              <ProfileVisibility
+                initial={user.profilePublic}
+                bio={user.bio}
+                username={user.username}
+              />
+            </div>
+            <div className="border-border mt-6 border-t pt-5">
+              <TimezoneForm timezone={user.timezone} zones={timeZones(user.timezone)} />
+            </div>
           </div>
         </Card>
         <Card>
@@ -94,15 +129,15 @@ export default async function SettingsPage() {
           <div className="px-5 pb-5 text-sm">
             {storage ? (
               <>
-                <ProgressBar value={used} max={USER_QUOTA_BYTES} label={t("settings.storage")} />
+                <ProgressBar value={used} max={userQuotaBytes()} label={t("settings.storage")} />
                 <p className="text-muted mt-2">
                   {t("settings.storageUsed", {
                     used: fmtBytes(used),
-                    total: fmtBytes(USER_QUOTA_BYTES),
+                    total: fmtBytes(userQuotaBytes()),
                   })}
                 </p>
                 <div className="mt-3">
-                  <StorageHint used={used} quota={USER_QUOTA_BYTES} />
+                  <StorageHint used={used} quota={userQuotaBytes()} />
                 </div>
               </>
             ) : (

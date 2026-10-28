@@ -162,6 +162,17 @@ const textOf = (n: DocNode): string =>
 
 function bundleLabels(loc: Loc) {
   const t = labels(loc);
+  if (loc === "ru")
+    return {
+      ...t,
+      by: "автор",
+      youtube: "Видео YouTube",
+      online: "откроется при наличии интернета",
+      made: "Написано в NodiNote",
+      intro: "Начало",
+      readme:
+        "Откройте index.html в любом браузере: текст, изображения, аудио и видео здесь и работают без интернета (для видео YouTube нужен интернет). Только текст — в файле .md. Чтобы напечатать или сохранить в PDF, используйте «Печать» в браузере.",
+    };
   return loc === "en"
     ? {
         ...t,
@@ -177,11 +188,11 @@ function bundleLabels(loc: Loc) {
         ...t,
         by: "muallif",
         youtube: "YouTube video",
-        online: "internet bo‘lsa ochiladi",
+        online: "internet bölsa oçiladi",
         made: "NodiNote’da yozilgan",
-        intro: "Boshlanish",
+        intro: "Boşlaniş",
         readme:
-          "index.html faylini istalgan brauzerda oching: matn, rasmlar, audio va videolar shu yerda, internetsiz ham ishlaydi (YouTube videolari uchun internet kerak). Faqat matni .md faylida. Chop etish yoki PDF qilish uchun brauzerdagi “Chop etish”dan foydalaning.",
+          "index.html faylini istalgan brauzerda oçing: matn, rasmlar, audio va videolar şu yerda, internetsiz ham işlaydi (YouTube videolari uçun internet kerak). Faqat matni .md faylida. Çop etiş yoki PDF qiliş uçun brauzerdagi “Çop etiş”dan foydalaning.",
       };
 }
 

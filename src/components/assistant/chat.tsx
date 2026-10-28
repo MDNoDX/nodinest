@@ -724,7 +724,7 @@ export function Chat({
       </div>
 
       <form
-        className="border-border bg-background/90 sticky bottom-0 -mx-4 mt-6 border-t px-4 pt-3 pb-4 backdrop-blur sm:mx-0"
+        className="border-border bg-background/90 sticky bottom-[var(--bottom-nav,0px)] -mx-4 mt-6 border-t px-4 pt-3 pb-4 backdrop-blur sm:mx-0"
         onSubmit={(e) => {
           e.preventDefault();
           send(input);

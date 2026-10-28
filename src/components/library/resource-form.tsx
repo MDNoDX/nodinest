@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import {
+  Barcode,
   BookOpen,
   Building2,
   CalendarDays,
@@ -54,6 +55,8 @@ import {
   type ResourceType,
 } from "@/lib/validation";
 import type { Contributor, ResourceFormValue } from "./resource-form-value";
+import { pickName, type Locale } from "@/i18n/config";
+import { LegalPdfNote } from "./legal-pdf-note";
 
 const TYPE_ICONS: Record<ResourceType, LucideIcon> = {
   book: BookOpen,
@@ -182,12 +185,18 @@ export function ResourceForm({
 }: {
   initial: ResourceFormValue;
   resourceId?: string;
-  categories: { id: string; nameUz: string; nameEn: string; parentId: string | null }[];
+  categories: {
+    id: string;
+    nameUz: string;
+    nameEn: string;
+    nameRu?: string | null;
+    parentId: string | null;
+  }[];
   isAdmin: boolean;
   /** True when saving applies immediately (new entry, own entry or admin mode). */
   canEditDirectly: boolean;
   storageEnabled: boolean;
-  locale: "uz" | "en";
+  locale: Locale;
   userId: string;
 }) {
   const t = useTranslations();
@@ -416,8 +425,37 @@ export function ResourceForm({
             <div className="text-[15px] font-semibold tracking-tight">
               {t("resource.findOnline")}
             </div>
+            <p className="text-muted text-sm">{t("resource.findOnlineHint")}</p>
           </div>
         </div>
+        {/* What can be typed here: tap an example to try it. */}
+        <ul className="grid gap-2 text-sm sm:grid-cols-3">
+          {(
+            [
+              ["name", BookOpen, "Sapiens Harari"],
+              ["isbn", Barcode, "9780062316097"],
+              ["link", Link2, "https://www.youtube.com/watch?v=…"],
+            ] as const
+          ).map(([k, Icon, example]) => (
+            <li key={k} className="bg-surface-2/60 rounded-xl p-3">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Icon className="size-4 text-[var(--c-sky)]" /> {t(`resource.find.${k}`)}
+              </span>
+              <span className="text-muted mt-0.5 block text-xs leading-snug">
+                {t(`resource.find.${k}Hint`)}
+              </span>
+              {k !== "link" && (
+                <button
+                  type="button"
+                  onClick={() => setQuery(example)}
+                  className="text-primary mt-1 text-xs font-medium hover:underline"
+                >
+                  {t("resource.find.try", { example })}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={query}
@@ -603,6 +641,7 @@ export function ResourceForm({
               onUploaded={(id) => setPdfId(id)}
             />
           )}
+          <LegalPdfNote />
         </section>
       )}
 
@@ -932,7 +971,7 @@ export function ResourceForm({
                         )
                       }
                     />
-                    {locale === "uz" ? c.nameUz : c.nameEn}
+                    {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
                   </label>
                 );
               })}
@@ -1158,7 +1197,7 @@ export function ResourceForm({
         </section>
       )}
 
-      <div className="border-border bg-background/90 sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+      <div className="border-border bg-background/90 sticky bottom-[var(--bottom-nav,0px)] z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <p className="text-muted flex items-center gap-1.5 text-xs">
           <ImageIcon className="size-3.5" />
           {canEditDirectly

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/misc";
 import { WriteHome } from "@/components/write/write-home";
 import { pageContext } from "@/lib/page";
 import { listOwnBooks } from "@/server/own-books";
-import { isStorageConfigured, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
+import { isStorageConfigured, storageUsage, userQuotaBytes } from "@/server/storage";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -22,7 +22,7 @@ export default async function WritePage() {
       <PageHeader section="write" title={t("title")} subtitle={t("subtitle")} />
       <WriteHome
         author={user.name}
-        storage={used == null ? null : { used, quota: USER_QUOTA_BYTES }}
+        storage={used == null ? null : { used, quota: userQuotaBytes() }}
         books={books.map((b) => ({ ...b, updatedAt: b.updatedAt.toISOString() }))}
       />
     </>

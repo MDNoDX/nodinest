@@ -1,8 +1,13 @@
 import { formatDuration } from "./durations";
 import { readingFormat } from "./reading-date";
+import { type Locale } from "@/i18n/config";
+import { intlTag } from "@/i18n/config";
+import { toNewUz } from "./uz-latin";
 
-export type Loc = "uz" | "en";
-const intlLocale = (l: Loc) => (l === "uz" ? "uz-Latn-UZ" : "en-GB");
+export type Loc = Locale;
+const intlLocale = (l: Loc) => intlTag(l);
+/** Intl's Uzbek names (weekdays) are in the old spelling: shown in the 2026 alphabet. */
+const post = (l: Loc, s: string) => (l === "uz" ? toNewUz(s) : s);
 
 export function fmtDate(
   d: Date | string | null | undefined,
@@ -11,7 +16,10 @@ export function fmtDate(
   opts: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
 ) {
   if (!d) return "";
-  return new Intl.DateTimeFormat(intlLocale(locale), { ...opts, timeZone }).format(new Date(d));
+  return post(
+    locale,
+    new Intl.DateTimeFormat(intlLocale(locale), { ...opts, timeZone }).format(new Date(d)),
+  );
 }
 
 /** Start / finish date at the precision the user entered (see lib/reading-date). */
@@ -22,10 +30,13 @@ export function fmtReading(
   timeZone: string,
 ) {
   if (!d) return "";
-  return new Intl.DateTimeFormat(intlLocale(locale), {
-    timeZone,
-    ...readingFormat(precision ?? null),
-  }).format(new Date(d));
+  return post(
+    locale,
+    new Intl.DateTimeFormat(intlLocale(locale), {
+      timeZone,
+      ...readingFormat(precision ?? null),
+    }).format(new Date(d)),
+  );
 }
 
 export function fmtDateTime(d: Date | string | null | undefined, locale: Loc, timeZone: string) {
@@ -39,8 +50,11 @@ export function fmtDay(
   opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" },
 ) {
   const [y, m, d] = key.split("-").map(Number);
-  return new Intl.DateTimeFormat(intlLocale(locale), { ...opts, timeZone: "UTC" }).format(
-    new Date(Date.UTC(y, m - 1, d || 1)),
+  return post(
+    locale,
+    new Intl.DateTimeFormat(intlLocale(locale), { ...opts, timeZone: "UTC" }).format(
+      new Date(Date.UTC(y, m - 1, d || 1)),
+    ),
   );
 }
 

@@ -36,6 +36,21 @@ const MONTHS_EN = [
   "December",
 ];
 
+const MONTHS_RU = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+
 const pad = (n: string) => n.padStart(2, "0");
 
 function split(v: string): Parts {
@@ -82,7 +97,7 @@ export function DateParts({
   // Local state keeps a month / day picked before the year is typed.
   const [p, setP] = useState<Parts>(() => split(value));
   const shown = join(p) === value ? p : value ? split(value) : p;
-  const months = locale === "uz" ? MONTHS_UZ : MONTHS_EN;
+  const months = locale === "uz" ? MONTHS_UZ : locale === "ru" ? MONTHS_RU : MONTHS_EN;
   const update = (next: Partial<Parts>) => {
     const n = { ...shown, ...next };
     if (!n.m) n.d = "";

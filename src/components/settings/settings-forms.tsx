@@ -4,46 +4,34 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useState, useSyncExternalStore, useTransition } from "react";
-import { saveProfileAction, setLocaleAction } from "@/app/actions/personal";
+import { saveTimezoneAction, setLocaleAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
-import { Input, Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
+import { LOCALES } from "@/i18n/config";
 
-export function ProfileForm({
-  name: initialName,
+/** The time zone used for dates and "today" (the name lives in the profile form). */
+export function TimezoneForm({
   timezone: initialTz,
   zones,
 }: {
-  name: string;
   timezone: string;
   zones: string[];
 }) {
   const t = useTranslations();
-  const [name, setName] = useState(initialName);
   const [tz, setTz] = useState(initialTz);
   const { pending, exec } = useAction();
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3 sm:flex-row sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
-        exec(() => saveProfileAction({ name, timezone: tz }), { success: t("settings.saved") });
+        exec(() => saveTimezoneAction(tz), { success: t("settings.saved") });
       }}
     >
-      <Field label={t("settings.name")}>
-        {(p) => (
-          <Input
-            {...p}
-            required
-            maxLength={100}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        )}
-      </Field>
-      <Field label={t("settings.timezone")}>
+      <Field label={t("settings.timezone")} className="flex-1">
         {(p) => (
           <Select {...p} value={tz} onChange={(e) => setTz(e.target.value)}>
             {zones.map((z) => (
@@ -54,7 +42,7 @@ export function ProfileForm({
           </Select>
         )}
       </Field>
-      <Button type="submit" loading={pending} className="self-start">
+      <Button type="submit" variant="outline" loading={pending}>
         {t("common.save")}
       </Button>
     </form>
@@ -105,7 +93,7 @@ export function AppearanceForm() {
       <fieldset>
         <legend className="mb-2 text-sm font-medium">{t("locale.label")}</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup">
-          {(["uz", "en"] as const).map((l) => (
+          {LOCALES.map((l) => (
             <button
               key={l}
               type="button"

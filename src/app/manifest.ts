@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "NodiNote",
     short_name: "NodiNote",
-    description: "Bilimlar uchun shaxsiy makon — A home for everything you learn.",
+    description: "Bilimlar uçun şaxsiy makon — A home for everything you learn.",
     lang: "uz",
     start_url: "/?source=app",
     scope: "/",
@@ -29,7 +29,7 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
-        name: "Manba qo‘shish",
+        name: "Manba qöşiş",
         url: "/library/new",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
@@ -39,7 +39,7 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
-        name: "AI yordamchi",
+        name: "AI yordamçi",
         url: "/assistant",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },

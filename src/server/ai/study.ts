@@ -22,31 +22,49 @@ import { AppError } from "@/lib/errors";
 import { searchTokens } from "@/lib/normalize";
 import { searchBookText } from "../booktext";
 import { enforceRateLimit, hitRateLimit } from "../rate-limit";
+import { limitsFor } from "../premium";
 import { getAiSettings } from "../settings";
 import { generate, isAiConfigured } from "./gemini";
+import { LOCALES, aiLanguage, asLocale } from "@/i18n/config";
 
-export async function gate(ctx: AppContext, bucket: "ask" | "listen" | "audiobook") {
+export async function gate(ctx: AppContext, bucket: "ask" | "listen" | "audiobook" | "cards") {
   if (!isAiConfigured()) throw new AppError("AI_UNAVAILABLE", "not_configured");
   const s = await getAiSettings(db);
   if (!s.enabled) throw new AppError("AI_UNAVAILABLE", "disabled");
   if (ctx.superadminAccount) return;
   if (s.pausedUntil && new Date(s.pausedUntil) > new Date()) throw new AppError("AI_QUOTA");
-  if (bucket === "ask") {
+  // What the plan includes (free / premium, set by the admin: server/premium.ts).
+  const plan = await limitsFor(ctx);
+  if (bucket === "audiobook" && !plan.audiobook)
+    throw new AppError("PREMIUM_REQUIRED", "audiobook");
+  if (bucket === "cards" && !plan.studyCards) throw new AppError("PREMIUM_REQUIRED", "studyCards");
+  if (bucket === "ask" || bucket === "cards") {
     await enforceRateLimit(db, `aiburst:${ctx.userId}`, 8, 60);
-    const daily = await hitRateLimit(db, `ai:${ctx.userId}`, s.dailyLimitPerUser, 86_400);
+    const daily = await hitRateLimit(db, `ai:${ctx.userId}`, plan.aiDaily, 86_400);
     if (!daily.allowed)
-      throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
+      throw new AppError("RATE_LIMITED", undefined, {
+        resetAt: daily.resetAt.toISOString(),
+        premium: plan.premium,
+      });
   } else if (bucket === "audiobook") {
     // One request per ~1.5-minute segment of an audiobook: about 3 hours a day.
     await enforceRateLimit(db, `abookburst:${ctx.userId}`, 10, 60);
     await enforceRateLimit(db, `abook:${ctx.userId}`, 120, 86_400);
   } else {
-    // One request per minute of media: ~5 hours of listening a day.
-    // Short clips (90 s) for faithful transcripts: ~40 requests per hour of
-    // media. Other users share the free quota, so about 1.5 hours a day each
-    // (the superadmin account returns above and is never limited here).
+    // One request ≈ 1.5 minutes of video / audio: the plan's minutes a day
+    // (free: about 10 minutes, premium: about 3 hours).
     await enforceRateLimit(db, `ailistenburst:${ctx.userId}`, 20, 60);
-    await enforceRateLimit(db, `ailisten:${ctx.userId}`, 60, 86_400);
+    const daily = await hitRateLimit(
+      db,
+      `ailisten:${ctx.userId}`,
+      Math.max(1, Math.ceil(plan.listenMinutes / 1.5)),
+      86_400,
+    );
+    if (!daily.allowed)
+      throw new AppError("RATE_LIMITED", "listen", {
+        resetAt: daily.resetAt.toISOString(),
+        premium: plan.premium,
+      });
   }
 }
 
@@ -82,10 +100,7 @@ export const factsText = (r: ResourceFacts) =>
     .filter(Boolean)
     .join("\n");
 
-export const langRule = (locale: string) =>
-  locale === "en"
-    ? "Answer in English."
-    : "Answer in Uzbek, standard modern Latin orthography (o‘, g‘, sh, ch, ʼ).";
+export const langRule = (locale: string) => `Answer in ${aiLanguage(asLocale(locale))}.`;
 
 // ── Ask about the selection ───────────────────────────────────────────────
 
@@ -103,7 +118,7 @@ export const askInput = z
       .array(z.object({ q: z.string().max(1500), a: z.string().max(6000) }))
       .max(6)
       .default([]),
-    locale: z.enum(["uz", "en"]).default("uz"),
+    locale: z.enum(LOCALES).default("uz"),
   })
   .refine((a) => a.selection || a.question, { message: "required", path: ["selection"] });
 
@@ -209,7 +224,7 @@ export const segmentInput = z
     mode: z.enum(["transcript", "notes"]),
     deep: z.boolean().default(true),
     previous: z.string().max(2000).default(""),
-    locale: z.enum(["uz", "en"]).default("uz"),
+    locale: z.enum(LOCALES).default("uz"),
   })
   .refine((v) => v.to > v.from && v.to - v.from <= 180, { message: "segment_length" });
 
@@ -252,7 +267,7 @@ export async function transcribeSegment(ctx: AppContext, raw: unknown) {
     a.mode === "transcript"
       ? [
           ...common,
-          "Write a faithful transcript in the language that is spoken — NEVER translate and never summarize; every sentence said must be there (Uzbek: standard modern Latin orthography — o‘, g‘, sh, ch, ʼ). On-screen text may only help to spell names; do not read it out.",
+          "Write a faithful transcript in the language that is spoken — NEVER translate and never summarize; every sentence said must be there (Uzbek: the new Latin alphabet of the 2026 law — ö, ğ, ş, ç, ʼ). On-screen text may only help to spell names; do not read it out.",
           "Keep the speaker's words, word order and style. Fix only spelling, punctuation, capitalization and sentence boundaries according to the language's grammar; drop filler sounds (eee, hmm), stutters and false starts.",
           "One paragraph per thought, separated by a blank line. Output only the transcript text: no timestamps, no headings, no comments.",
         ].join("\n")
@@ -312,6 +327,7 @@ export const writeInput = z.object({
     "polish",
     "interviewQuestion",
     "interviewWrite",
+    "proofread",
   ]),
   /** "book" = the user's own book (memoir, family history…), not a review. */
   mode: z.enum(["taqriz", "book"]).default("taqriz"),
@@ -322,7 +338,7 @@ export const writeInput = z.object({
   /** The taqriz so far (plain text, Markdown headings). */
   doc: z.string().max(20_000).default(""),
   selection: z.string().max(4000).default(""),
-  locale: z.enum(["uz", "en"]).default("uz"),
+  locale: z.enum(LOCALES).default("uz"),
 });
 
 /**
@@ -389,6 +405,8 @@ export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepa
           "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
         interviewQuestion: `You are a gentle, curious biographer interviewing the author for this book. Ask ONE warm, specific question that brings out a concrete memory, scene, person or feeling for the chapter being written (${a.instruction || "the first chapter that is still empty"}); build on what is already told there and never repeat what is answered. Lines in the book that are questions are only guiding prompts, not the author's answers. Output only the question.`,
         interviewWrite: `Turn the author's ANSWER into book prose for the current chapter: first person, their own words and voice kept, ordered and readable, with natural paragraphs; keep every fact, add no invented facts, names or dates. The QUESTION is only context: do not repeat or paraphrase it, add no heading — output only the paragraphs that go into the chapter.\nQUESTION: ${a.question}\nANSWER: ${a.answer}`,
+        proofread:
+          "Proofread the SELECTED text: correct ONLY spelling, grammar, punctuation, agreement and obvious typos in the language it is written in. Keep the author's words, style, sentence order and alphabet / orthography exactly (do not modernise the spelling, do not rewrite, add or remove content). Keep paragraph breaks. Output only the corrected text.",
         custom: a.instruction || "Help write the book.",
       }[a.action]
     : {
@@ -402,6 +420,8 @@ export async function prepareWrite(ctx: AppContext, raw: unknown): Promise<Prepa
           "Write a conclusion (1–2 paragraphs): the main takeaways and the author's personal assessment, consistent with the text so far.",
         improve:
           "Rewrite the SELECTED passage so it reads better (clear, correct, well structured) without changing its meaning or adding facts. Output only the new passage.",
+        proofread:
+          "Proofread the SELECTED text: correct ONLY spelling, grammar, punctuation, agreement and obvious typos in the language it is written in. Keep the author's words, style, sentence order and alphabet / orthography exactly (do not modernise the spelling, do not rewrite, add or remove content). Keep paragraph breaks. Output only the corrected text.",
         custom: a.instruction || "Help with the taqriz.",
         nextChapter: "Continue the taqriz with its next chapter.",
         polish:
@@ -448,7 +468,7 @@ export const clipInput = z.object({
   mime: z.string().regex(/^audio\/(webm|ogg|mp4|mpeg|wav)(;.*)?$/),
   // ≈ 4 minutes of speech at 48 kbit/s; server actions accept 2 MB.
   data: z.string().max(1_900_000),
-  locale: z.enum(["uz", "en"]).default("uz"),
+  locale: z.enum(LOCALES).default("uz"),
 });
 
 /** Writes down what the user said (interview answers, dictation). */
@@ -462,7 +482,7 @@ export async function transcribeClip(ctx: AppContext, raw: unknown) {
         parts: [
           { inlineData: { mimeType: a.mime.split(";")[0], data: a.data } },
           {
-            text: "Write down exactly what is said, in the language spoken (Uzbek: standard modern Latin orthography — o‘, g‘, sh, ch, ʼ). Fix only punctuation and obvious slips; drop filler sounds. Output only the text.",
+            text: "Write down exactly what is said, in the language spoken (Uzbek: the new Latin alphabet of the 2026 law — ö, ğ, ş, ç, ʼ). Fix only punctuation and obvious slips; drop filler sounds. Output only the text.",
           },
         ],
       },

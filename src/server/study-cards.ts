@@ -19,6 +19,7 @@ import { AppError } from "@/lib/errors";
 import { schedule, type Grade } from "@/lib/srs";
 import { generate } from "./ai/gemini";
 import { factsText, gate, langRule, resourceFacts } from "./ai/study";
+import { LOCALES } from "@/i18n/config";
 
 const MAX_MATERIAL = 120_000;
 
@@ -86,7 +87,7 @@ export const generateInput = z.object({
   count: z.number().int().min(1).max(200).nullish(),
   focus: z.string().trim().max(500).default(""),
   deck: z.string().trim().max(120).optional(),
-  locale: z.enum(["uz", "en"]).default("uz"),
+  locale: z.enum(LOCALES).default("uz"),
   /**
    * "deep": smaller parts studied closely, harder exam-level questions, and
    * every card checked against the material afterwards (fixed or dropped).
@@ -296,7 +297,7 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
   const deep = a.depth === "deep";
   const size = deep ? DEEP_CHUNK : CHUNK;
   const maxParts = deep ? DEEP_MAX_PARTS : MAX_PARTS;
-  await gate(ctx, "ask");
+  await gate(ctx, "cards");
   const per = Math.floor(MAX_MATERIAL / a.resourceIds.length);
   const mats = await Promise.all(a.resourceIds.map((id) => material(ctx, id, per)));
   const existing = await withUser(db, ctx, (tx) =>
@@ -420,13 +421,13 @@ export async function generateCards(ctx: AppContext, raw: unknown) {
 export const improveInput = z.object({
   deck: z.string().trim().min(1).max(120),
   instruction: z.string().trim().max(800).default(""),
-  locale: z.enum(["uz", "en"]).default("uz"),
+  locale: z.enum(LOCALES).default("uz"),
 });
 
 /** Rewrites a deck's cards to be sharper (review progress is kept). */
 export async function improveCards(ctx: AppContext, raw: unknown) {
   const a = improveInput.parse(raw);
-  await gate(ctx, "ask");
+  await gate(ctx, "cards");
   const cards = await withUser(db, ctx, (tx) =>
     tx
       .select()

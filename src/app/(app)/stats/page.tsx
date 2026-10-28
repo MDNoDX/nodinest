@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { fmtMinutes } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { getCollectionStats } from "@/server/stats";
+import { asLocale, intlTag, pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -33,9 +34,9 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
   const fastHref = (mode: "days" | "pace") =>
     `/stats?${new URLSearchParams({ ...(year ? { year: String(year) } : {}), ...(mode === "pace" ? { fast: "pace" } : {}) })}`;
   const tot = s.totals;
-  const nf = new Intl.NumberFormat(locale === "uz" ? "uz-UZ" : "en-US");
+  const nf = new Intl.NumberFormat(intlTag(asLocale(locale)));
   const monthNames = Array.from({ length: 12 }, (_, i) =>
-    new Intl.DateTimeFormat(locale === "uz" ? "uz-Latn-UZ" : "en-GB", {
+    new Intl.DateTimeFormat(intlTag(asLocale(locale)), {
       month: "short",
       timeZone: "UTC",
     }).format(new Date(Date.UTC(2020, i, 1))),
@@ -293,7 +294,11 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
               <HBarList
                 items={s.topics.map((c) => ({
                   key: c.id,
-                  label: locale === "uz" ? c.name_uz : c.name_en,
+                  label: pickName(asLocale(locale), {
+                    uz: c.name_uz,
+                    ru: c.name_ru,
+                    en: c.name_en,
+                  }),
                   value: c.n,
                   href: `/library?category=${c.id}`,
                 }))}

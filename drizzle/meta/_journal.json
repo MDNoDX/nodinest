@@ -190,6 +190,34 @@
       "when": 1793113581917,
       "tag": "0026_book_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793183561326,
+      "tag": "0027_telegram_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793184302201,
+      "tag": "0028_storage_i18n",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793186351569,
+      "tag": "0029_premium",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793186816286,
+      "tag": "0030_social",
+      "breakpoints": true
     }
   ]
 }

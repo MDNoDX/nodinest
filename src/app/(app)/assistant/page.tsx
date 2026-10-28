@@ -8,8 +8,8 @@ import { PageHeader } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { aiAvailability, getConversation, listConversations } from "@/server/ai/assistant";
-import { getAiSettings } from "@/server/settings";
 import { peekRateLimit } from "@/server/rate-limit";
+import { limitsFor } from "@/server/premium";
 
 export const dynamic = "force-dynamic";
 // Confirmed actions may continue in the background (a book PDF: chapters, audiobook).
@@ -22,10 +22,10 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
   const { ctx, db, user } = await pageContext();
   const t = await getTranslations("assistant");
   const c = sp((await searchParams).c);
-  const [convs, avail, settings, conv] = await Promise.all([
+  const [convs, avail, plan, conv] = await Promise.all([
     listConversations(ctx),
     aiAvailability(user.isSuperadmin),
-    getAiSettings(db),
+    limitsFor(ctx),
     c && /^[0-9a-f-]{36}$/i.test(c) ? getConversation(ctx, c) : Promise.resolve(null),
   ]);
   const messages: ChatMessage[] =
@@ -107,7 +107,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
           initialActions={actions}
           available={avail.available}
           unavailableReason={avail.reason}
-          dailyLimit={user.isSuperadmin ? null : settings.dailyLimitPerUser}
+          dailyLimit={user.isSuperadmin ? null : plan.aiDaily}
           usedToday={user.isSuperadmin ? 0 : await peekRateLimit(db, `ai:${user.id}`, 86_400)}
           userId={user.id}
         />

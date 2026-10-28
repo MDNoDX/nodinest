@@ -29,6 +29,7 @@ import {
   resourceRef,
   resourceRefSchema,
 } from "./helpers";
+import { asLocale } from "@/i18n/config";
 
 export const PERSONAL_TOOLS = {
   // ─── Act: personal ──────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ export const PERSONAL_TOOLS = {
         focus: a.focus ?? "",
         deck: a.deck,
         depth: a.deep ? "deep" : "standard",
-        locale: env.locale === "en" ? "en" : "uz",
+        locale: asLocale(env.locale),
       });
       return {
         created: out.created,
@@ -233,7 +234,7 @@ export const PERSONAL_TOOLS = {
       const out = await improveCards(ctx, {
         deck: a.deck,
         instruction: a.instruction ?? "",
-        locale: env.locale === "en" ? "en" : "uz",
+        locale: asLocale(env.locale),
       });
       return { ...out, href: `/review?deck=${encodeURIComponent(a.deck)}` };
     },

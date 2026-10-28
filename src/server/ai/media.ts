@@ -9,11 +9,11 @@ import { extractText } from "unpdf";
 import { db, withUser, type AppContext } from "@/db";
 import { AppError } from "@/lib/errors";
 import { enforceRateLimit } from "../rate-limit";
-import { getAiSettings } from "../settings";
 import { readFileBytes } from "../storage";
 import { generate, isAiConfigured, uploadToGemini } from "./gemini";
 import { files } from "@/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { limitsFor } from "../premium";
 
 export type AttachmentInfo = { fileId: string; name: string; mime: string; size: number };
 
@@ -95,8 +95,8 @@ export async function transcribeAudio(ctx: AppContext, fileId: string): Promise<
   const [info] = await describeFiles(ctx, [fileId]);
   if (!info || !/^(audio|video)\//.test(info.mime)) throw new AppError("NOT_FOUND");
   if (!ctx.superadminAccount) {
-    const s = await getAiSettings(db);
-    await enforceRateLimit(db, `ai:${ctx.userId}`, s.dailyLimitPerUser, 86_400);
+    const plan = await limitsFor(ctx);
+    await enforceRateLimit(db, `ai:${ctx.userId}`, plan.aiDaily, 86_400);
   }
   const f = await readFileBytes(ctx, fileId);
   if (!f) throw new AppError("NOT_FOUND");

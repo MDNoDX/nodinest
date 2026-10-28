@@ -5,14 +5,16 @@ import { after } from "next/server";
 import { getLocale } from "next-intl/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { withUser } from "@/db";
+import { db, withUser } from "@/db";
 import { user } from "@/db/schema";
-import { isLocale, LOCALE_COOKIE } from "@/i18n/config";
+import { isLocale, LOCALE_COOKIE, asLocale } from "@/i18n/config";
 import { ADMIN_MODE_COOKIE } from "@/lib/auth/session";
 import { isValidTimeZone } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { LEARNING_STATUSES } from "@/lib/validation";
 import { deleteAccount } from "@/server/account";
+import { saveProfile, usernameFree } from "@/server/profile";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { analyzeAudiobook, resetAudiobook } from "@/server/audiobook";
 import { findStructure } from "@/server/book-structure";
 import { indexFromFile, indexFromUrl } from "@/server/booktext";
@@ -90,7 +92,7 @@ export async function indexFileAction(resourceId: string, fileId: string) {
     const r = await indexFromFile(ctx, rid, id.parse(fileId));
     // A new PDF: the audiobook is prepared again, in the background (deep analysis).
     await resetAudiobook(ctx, rid);
-    const locale = (await getLocale()) === "en" ? "en" : "uz";
+    const locale = asLocale(await getLocale());
     // Then: its chapters (bookmarks + headings), then the audiobook's deep analysis.
     after(async () => {
       await findStructure(ctx, rid, locale).catch(() => null);
@@ -255,14 +257,12 @@ export async function setAdminModeAction(on: boolean) {
   });
 }
 
-export async function saveProfileAction(input: { name: string; timezone: string }) {
+export async function saveTimezoneAction(timezone: string) {
   return run(async ({ ctx, db }) => {
-    const p = z
-      .object({ name: z.string().trim().min(1).max(100), timezone: z.string().max(64) })
-      .parse(input);
-    if (!isValidTimeZone(p.timezone)) throw new AppError("VALIDATION", "invalid_timezone");
+    const tz = z.string().max(64).parse(timezone);
+    if (!isValidTimeZone(tz)) throw new AppError("VALIDATION", "invalid_timezone");
     await withUser(db, ctx, (tx) =>
-      tx.update(user).set({ name: p.name, timezone: p.timezone }).where(eq(user.id, ctx.userId)),
+      tx.update(user).set({ timezone: tz }).where(eq(user.id, ctx.userId)),
     );
     revalidatePath("/", "layout");
   });
@@ -272,5 +272,20 @@ export async function deleteAccountAction(confirm: string) {
   return run(async ({ ctx }) => {
     if (confirm.trim().toLocaleUpperCase() !== "DELETE") throw new AppError("VALIDATION");
     await deleteAccount(ctx);
+  });
+}
+
+export async function checkUsernameAction(name: string) {
+  return run(async ({ ctx }) => {
+    await enforceRateLimit(db, `username:${ctx.userId}`, 120, 600);
+    return usernameFree(z.string().max(40).parse(name), ctx.userId);
+  });
+}
+
+export async function saveFullProfileAction(input: unknown) {
+  return run(async ({ ctx }) => {
+    const username = await saveProfile(ctx, input);
+    revalidatePath("/", "layout");
+    return username;
   });
 }

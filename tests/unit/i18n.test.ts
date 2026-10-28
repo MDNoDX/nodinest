@@ -2,7 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import en from "../../messages/en.json";
+import ru from "../../messages/ru.json";
 import uz from "../../messages/uz.json";
+import { toNewUzMessage } from "@/lib/uz-latin";
 
 function keys(obj: object, prefix = ""): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -21,12 +23,45 @@ function walk(dir: string): string[] {
 }
 
 describe("i18n catalogs", () => {
-  it("Uzbek and English have identical keys", () => {
+  it("Uzbek, Russian and English have identical keys", () => {
     expect(keys(uz).sort()).toEqual(keys(en).sort());
+    expect(keys(ru).sort()).toEqual(keys(en).sort());
+  });
+  it("placeholders and tags match English in every language", () => {
+    const sig = (s: string) =>
+      [
+        ...new Set(
+          [
+            ...s.matchAll(/(?<!(?:=\d+|zero|one|two|few|many|other)\s?)\{(\w+)\s*[,}]|<\/?(\w+)>/g),
+          ].map((m) => m[1] ?? m[2]),
+        ),
+      ]
+        .sort()
+        .join(",");
+    const get = (cat: object, k: string) =>
+      k.split(".").reduce<unknown>((o, p) => (o as Record<string, unknown>)[p], cat) as string;
+    const bad: string[] = [];
+    for (const k of keys(en))
+      for (const [name, cat] of [
+        ["uz", uz],
+        ["ru", ru],
+      ] as const)
+        if (sig(get(cat, k)) !== sig(get(en, k))) bad.push(`${name}:${k}`);
+    expect(bad).toEqual([]);
+  });
+  it("Uzbek uses the 2026 Latin alphabet (no oʻ gʻ sh ch)", () => {
+    const old = keys(uz).filter((k) => {
+      const v = k
+        .split(".")
+        .reduce<unknown>((o, p) => (o as Record<string, unknown>)[p], uz) as string;
+      return toNewUzMessage(v) !== v;
+    });
+    expect(old).toEqual([]);
   });
   it("no empty translations", () => {
     for (const [name, cat] of [
       ["uz", uz],
+      ["ru", ru],
       ["en", en],
     ] as const) {
       const flat = keys(cat);

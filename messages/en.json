@@ -112,7 +112,8 @@
     "notesShort": "Notes",
     "ai": "AI",
     "more": "Menu",
-    "guide": "Guide"
+    "guide": "Guide",
+    "community": "Community"
   },
   "theme": {
     "label": "Theme",
@@ -122,7 +123,8 @@
   },
   "locale": {
     "label": "Language",
-    "uz": "O‘zbekcha",
+    "uz": "Özbekça",
+    "ru": "Русский",
     "en": "English"
   },
   "auth": {
@@ -403,7 +405,7 @@
     "editionDateHint": "Year your edition was published.",
     "coverHint": "Paste a link or upload an image.",
     "findOnline": "Find online",
-    "findOnlineHint": "Type a title or ISBN — cover and details fill in automatically.",
+    "findOnlineHint": "Type one of these three — the title, cover, author and other details fill in by themselves. Then check and save.",
     "searchingOnline": "Searching…",
     "pickResult": "Use",
     "noOnlineResults": "Nothing found.",
@@ -445,7 +447,18 @@
     "pdfHint": "Add the PDF to read the book right here: contents, questions to the AI, quotes and notes, the audiobook. The AI analyses the whole book.",
     "pdfReady": "PDF uploaded — its text is read after saving",
     "pdfIndexed": "The PDF’s text is ready — you can read the book now. Chapters and the audiobook analysis are being prepared in the background.",
-    "addMenu": "Add"
+    "addMenu": "Add",
+    "find": {
+      "name": "Title or author",
+      "nameHint": "Type the book’s title, with the author if needed — found in Google Books and Open Library.",
+      "isbn": "ISBN",
+      "isbnHint": "The 10 or 13 digit number under the barcode on the back — the most exact way.",
+      "link": "A link",
+      "linkHint": "Paste a YouTube video, a Wikipedia article, a bookshop page (Goodreads, Amazon…) or any article page.",
+      "try": "Try: {example}"
+    },
+    "legalPdf": "Upload only a legal copy (bought, allowed by the author or free to share). The book, its text and audiobook are for you only — do not share them on Telegram or anywhere else.",
+    "legalPdfMore": "Details"
   },
   "record": {
     "status": "Status",
@@ -1011,7 +1024,8 @@
       "delete": "Delete (with confirmation)"
     },
     "noArchived": "Nothing archived.",
-    "modeHint": "Admin mode is off: the site works like a regular account. Turn it on with the top-right switch."
+    "modeHint": "Admin mode is off: the site works like a regular account. Turn it on with the top-right switch.",
+    "ads": "Ads"
   },
   "upload": {
     "choose": "Upload",
@@ -1045,7 +1059,8 @@
     "pageBody": "An unexpected error occurred. Your data is safe.",
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for doesn't exist or you don't have access.",
-    "goHome": "Go to dashboard"
+    "goHome": "Go to dashboard",
+    "PREMIUM_REQUIRED": "This is a Premium feature. See Settings → Premium."
   },
   "validation": {
     "required": "This field is required.",
@@ -1171,7 +1186,8 @@
     "inNotes": "In notes",
     "openNote": "Open note",
     "removeNoteMark": "Remove highlight",
-    "quoteShort": "Quote"
+    "quoteShort": "Quote",
+    "today": "Today: +{n} words ✍️"
   },
   "dates": {
     "kind": "Date kind",
@@ -1471,7 +1487,12 @@
     "uploadAudio": "Upload an audio file",
     "uploading": "Uploading… {pct}%",
     "audioFile": "Audio file",
-    "changeSource": "Change"
+    "changeSource": "Change",
+    "wProofread": "✓ Spelling & grammar",
+    "proofTooLong": "The chapter is long — select the part to check (up to 4000 characters).",
+    "applyFixes": "Apply the fixes",
+    "proofChanges": "{n} word(s) corrected (green)",
+    "proofClean": "No mistakes found 👍"
   },
   "review": {
     "title": "Review",
@@ -1573,7 +1594,10 @@
     },
     "inboxEmpty": "No messages yet.",
     "contactShort": "Contact",
-    "catalogExplain": "When you change an entry someone else added to the shared catalog, your change lands here as a suggestion and is applied once the admin approves it. Entries you added yourself you edit directly."
+    "catalogExplain": "When you change an entry someone else added to the shared catalog, your change lands here as a suggestion and is applied once the admin approves it. Entries you added yourself you edit directly.",
+    "answer": "Admin’s answer",
+    "botTitle": "Telegram bot",
+    "botHint": "Write a suggestion — the answer comes to the bot too"
   },
   "tour": {
     "label": "Guide",
@@ -1601,7 +1625,7 @@
     "readTitle": "3. Read or listen",
     "readBody": "A book with its PDF gets “Read” and “Audiobook” buttons. While reading, select text: “Quote”, “Note” or “Ask AI”.",
     "guideTitle": "The full guide",
-    "guideBody": "Every section explained in plain words. Learn from here whenever you like. Enjoy!",
+    "guideBody": "The full guide lives in Settings: every section explained in plain words. Learn from there whenever you like. Enjoy!",
     "openGuide": "Open the guide"
   },
   "write": {
@@ -1659,7 +1683,23 @@
       }
     },
     "storageFull": "Your space is almost full: {used} / {quota} MB",
-    "storageFullBody": "Save your books to your computer via “Download → With audio and video” (web book or EPUB). Then remove big audio and video files you no longer need from the text to free space."
+    "storageFullBody": "Save your books to your computer via “Download → With audio and video” (web book or EPUB). Then remove big audio and video files you no longer need from the text to free space.",
+    "continue": "Continue writing",
+    "lastEdited": "Where you left off",
+    "goalLeft": "{n} words to your goal",
+    "goalDone": "Goal reached! 🎉",
+    "todayWords": "+{n} words today",
+    "edit": "Edit",
+    "editTitle": "Book details",
+    "save": "Save",
+    "actions": "Actions",
+    "more": "More",
+    "howTitle": "How it works",
+    "how1": "Pick a template — chapters and guiding questions are ready.",
+    "how2": "Speak or type: the AI asks questions and shapes the text like a book.",
+    "how3": "When ready, download it as PDF, Word or EPUB.",
+    "words": "{n} words",
+    "updated": "edited {date}"
   },
   "duration": {
     "minutes": "Minutes",
@@ -1756,7 +1796,10 @@
     "sleepMin": "In {n} minutes",
     "sleepChapter": "End of chapter",
     "textDraft": "The book’s text. Speakers are marked in colour once the voice is ready.",
-    "betaHint": "In testing: voices are made within Google’s free limit, a few parts a day. Finished parts are kept."
+    "betaHint": "In testing: voices are made within Google’s free limit, a few parts a day. Finished parts are kept.",
+    "preview": "Listen",
+    "previewHint": "Hear how this voice reads a passage of the book",
+    "previewLimit": "Today’s sample limit is used up (12 a day)."
   },
   "reader": {
     "title": "Read the book",
@@ -1874,5 +1917,144 @@
     "termsTitle": "Terms of use",
     "updated": "Updated: {date}",
     "back": "Sign-in page"
+  },
+  "profile": {
+    "photo": "Upload a photo",
+    "removePhoto": "Remove photo",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "username": "Username",
+    "usernameHint": "3–30 Latin letters, digits or “_”, starting with a letter. Others know you by it.",
+    "taken": "This name is taken — pick another.",
+    "invalid": "Only a–z, 0–9 and “_”, starting with a letter (at least 3).",
+    "saved": "Profile saved",
+    "save": "Save"
+  },
+  "welcome": {
+    "title": "Welcome!",
+    "subtitle": "Let’s set up your profile in a minute — then you start right away.",
+    "language": "Language",
+    "start": "Get started"
+  },
+  "premium": {
+    "subtitle": "More AI, audiobooks, AI questions and no ads.",
+    "active": "Premium is active",
+    "until": "Valid until {date}",
+    "free": "Free",
+    "perDay": "{n} a day",
+    "day": "day",
+    "hours": "{n} h",
+    "minutes": "{n} min",
+    "rowAi": "AI requests",
+    "rowAudiobook": "Audiobooks",
+    "rowCards": "AI study questions",
+    "rowListen": "Video / audio notes",
+    "rowAds": "Ads",
+    "adsYes": "yes",
+    "adsNo": "no",
+    "rowBadge": "Premium badge",
+    "perMonth": "so‘m / month",
+    "notReady": "Payment methods are not set up yet. Coming soon!",
+    "howTitle": "How to get it",
+    "step1": "Transfer {sum} so‘m to the card below or with Payme / Click.",
+    "copy": "Copy",
+    "copied": "Card number copied",
+    "step2": "After paying, send this form:",
+    "step3": "The admin checks the payment and confirms it (usually within a few hours) — Premium turns on and the bot tells you.",
+    "months": "Period",
+    "monthsN": "{n} month(s)",
+    "method": "Method",
+    "card": "Card",
+    "amount": "Amount sent (so‘m)",
+    "noteLabel": "Note",
+    "notePlaceholder": "Last 4 card digits, time…",
+    "submit": "I have paid",
+    "sent": "Thank you! Request sent — Premium turns on once confirmed.",
+    "myRequests": "My requests",
+    "status": {
+      "pending": "Waiting",
+      "approved": "Confirmed",
+      "rejected": "Rejected"
+    },
+    "settingsTitle": "Premium",
+    "settingsBody": "More AI, audiobooks and no ads.",
+    "open": "Details"
+  },
+  "premiumAdmin": {
+    "requests": "Payment requests",
+    "noRequests": "No requests yet.",
+    "approve": "Confirm",
+    "reject": "Reject",
+    "saved": "Saved",
+    "enabled": "Premium is on (when off, everyone gets the Premium limits)",
+    "price": "Monthly price (so‘m)",
+    "card": "Card number",
+    "cardHolder": "Card holder",
+    "note": "Extra note (on the payment page)",
+    "free": "Free",
+    "premium": "Premium",
+    "aiDaily": "AI requests / day",
+    "listenMinutes": "Video/audio notes, minutes / day",
+    "audiobook": "Audiobooks",
+    "studyCards": "AI study questions",
+    "ads": "Ads are shown",
+    "save": "Save"
+  },
+  "ads": {
+    "label": "Ad"
+  },
+  "adsAdmin": {
+    "hint": "Ads are shown to free users as a small card at the end of the home page and under the side menu (not on Premium). Clicks are counted.",
+    "enabled": "Ads are on",
+    "title": "Title",
+    "url": "Link",
+    "text": "Text",
+    "image": "Image link",
+    "active": "Active",
+    "place_home": "Home page",
+    "place_sidebar": "Side menu",
+    "clicks": "{n} clicks",
+    "remove": "Remove",
+    "preview": "Preview",
+    "add": "Add an ad",
+    "saved": "Saved"
+  },
+  "social": {
+    "title": "Community",
+    "subtitle": "Find other learners, follow them and see their public lessons.",
+    "searchPlaceholder": "Name or @username…",
+    "results": "Results",
+    "nobody": "No public profile found.",
+    "yourProfile": "Your profile:",
+    "feed": "What the people you follow are reading",
+    "feedEmpty": "Nothing yet",
+    "feedEmptyBody": "Find someone and press “Follow” — their public lessons appear here.",
+    "followingTitle": "Following",
+    "follow": "Follow",
+    "following": "Following",
+    "followersN": "{n} followers",
+    "followingN": "{n} following",
+    "itemsN": "{n} public items",
+    "editProfile": "Edit profile",
+    "privateTitle": "This profile is private",
+    "privateBody": "Its owner keeps it to themselves.",
+    "noPublic": "No public items yet",
+    "noPublicSelf": "On a book’s page press “Private” to make it public.",
+    "library": "Public lessons",
+    "selfPrivateNote": "Your profile is private: others cannot see it. You can open it in Settings.",
+    "public": "Public",
+    "private": "Private",
+    "publicHint": "Shown on your profile — press to hide",
+    "privateHint": "Only you see it — press to make it public",
+    "profileIsPrivate": "Public, but your profile is private — nobody sees it yet",
+    "visibilityTitle": "Profile visibility",
+    "privateProfile": "Private profile",
+    "privateProfileHint": "Everything is visible only to you.",
+    "publicProfile": "Public profile",
+    "publicProfileHint": "Others can find you and see the items you mark public. Notes, write-ups and files stay private anyway.",
+    "bio": "A few words about you",
+    "save": "Save",
+    "saved": "Saved",
+    "viewProfile": "View my profile"
   }
 }

@@ -68,7 +68,7 @@ export default async function LoginPage({
           </div>
           <LoginPanel
             googleEnabled={authProviders.google}
-            telegramBotId={authProviders.telegramBotId}
+            telegramEnabled={authProviders.telegram}
             devEnabled={authProviders.devLogin}
             next={next}
           />

@@ -25,10 +25,15 @@ const CATEGORIES: [slug: string, uz: string, en: string][] = [
 ];
 
 async function main() {
-  const sql = postgres(process.env.EU_DATABASE_URL_UNPOOLED || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!, {
-    max: 1,
-    onnotice: () => {},
-  });
+  const sql = postgres(
+    process.env.EU_DATABASE_URL_UNPOOLED ||
+      process.env.DATABASE_URL_UNPOOLED ||
+      process.env.DATABASE_URL!,
+    {
+      max: 1,
+      onnotice: () => {},
+    },
+  );
   let i = 0;
   for (const [slug, uz, en] of CATEGORIES) {
     await sql`insert into nodinest.categories (slug, name_uz, name_en, sort_order) values (${slug}, ${uz}, ${en}, ${i++})

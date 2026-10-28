@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stretchPauses } from "@/lib/audio-pauses";
+import { mapIndex, quietMiddles, stretchPauses, stretchPausesMapped } from "@/lib/audio-pauses";
 
 const rate = 24000;
 const tone = (ms: number) =>
@@ -41,5 +41,19 @@ describe("stretchPauses", () => {
     const longer = stretchPauses(words, rate);
     expect(Array.from(longer.subarray(0, 100))).toEqual(Array.from(words.subarray(0, 100)));
     expect(Array.from(longer.subarray(-100))).toEqual(Array.from(words.subarray(-100)));
+  });
+});
+
+describe("line timings", () => {
+  it("finds the pauses and follows them through the stretching", () => {
+    const pcm = join(tone(600), silence(300), tone(600));
+    const [mid] = quietMiddles(pcm, rate);
+    expect(Math.abs(mid / rate - 0.75)).toBeLessThan(0.02);
+    const { pcm: out, inserts } = stretchPausesMapped(pcm, rate);
+    expect(out.length).toBeGreaterThan(pcm.length);
+    // A point after the pause moves by exactly the silence added before it.
+    const after = rate * 1.0;
+    expect(mapIndex(inserts, after)).toBe(after + (out.length - pcm.length));
+    expect(mapIndex(inserts, 100)).toBe(100);
   });
 });

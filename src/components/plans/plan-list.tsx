@@ -15,6 +15,7 @@ import type { FieldErrors } from "@/lib/errors";
 import { fmtDay } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import type { ResourceType } from "@/lib/validation";
+import { type Locale } from "@/i18n/config";
 
 type Plan = {
   id: string;
@@ -32,7 +33,7 @@ type Plan = {
 /** "Start on this day, finish on that day" — nothing more. */
 export function PlanList({ plans, today }: { plans: Plan[]; today: string }) {
   const t = useTranslations();
-  const locale = useLocale() as "uz" | "en";
+  const locale = useLocale() as Locale;
   const { pending, exec } = useAction();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [title, setTitle] = useState("");

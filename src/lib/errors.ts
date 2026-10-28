@@ -15,6 +15,7 @@ export type ErrorCode =
   | "STORAGE_UNAVAILABLE"
   | "URL_BLOCKED"
   | "FETCH_FAILED"
+  | "PREMIUM_REQUIRED"
   | "INTERNAL";
 
 export class AppError extends Error {
@@ -58,7 +59,9 @@ export function toActionError(err: unknown): Extract<ActionResult, { ok: false }
     (err as { code?: string })?.code;
   if (pgCode === "23505") return { ok: false, code: "CONFLICT" };
   if (pgCode === "42501") return { ok: false, code: "FORBIDDEN" };
-  // Never leak internals; log a redacted line server-side.
+  // Never leak internals; log a redacted line server-side and report the whole
+  // error to the admin channel (hook set by src/instrumentation.ts, server only).
+  globalThis.__nnReport?.(err, { where: "action / api" });
   console.error("[nodinest] internal error:", err instanceof Error ? err.message : "unknown");
   return { ok: false, code: "INTERNAL" };
 }

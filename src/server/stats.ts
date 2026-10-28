@@ -99,15 +99,16 @@ export async function getCollectionStats(
       id: string;
       name_uz: string;
       name_en: string;
+      name_ru: string | null;
       n: number;
     }>(sql`
-      select cat.id, cat.name_uz, cat.name_en, count(distinct lr.resource_id)::int as n
+      select cat.id, cat.name_uz, cat.name_en, cat.name_ru, count(distinct lr.resource_id)::int as n
       from nodinest.learning_records lr
       join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
       join nodinest.resource_categories rc on rc.resource_id = r.id
       join nodinest.categories cat on cat.id = rc.category_id
       where lr.user_id = ${ctx.userId} and lr.status = 'completed' ${yearFilter}
-      group by cat.id, cat.name_uz, cat.name_en
+      group by cat.id, cat.name_uz, cat.name_en, cat.name_ru
       order by n desc limit 8`);
 
     const [longest] = await tx.execute<{ id: string; title: string; pages: number }>(sql`

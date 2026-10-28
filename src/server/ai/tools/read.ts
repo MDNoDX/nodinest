@@ -24,6 +24,7 @@ import { universalSearch } from "../../search";
 import { getCollectionStats } from "../../stats";
 import { importUrlMetadata } from "../../url-import";
 import { str, int, obj, def, resolveResource, resourceRef, resourceRefSchema } from "./helpers";
+import { asLocale } from "@/i18n/config";
 
 export const READ_TOOLS = {
   // ─── Read: library ──────────────────────────────────────────────────────
@@ -361,7 +362,7 @@ export const READ_TOOLS = {
       "Find a person (author/scholar) on Wikipedia: summary (often with birth/death dates), portrait image URL and source URL.",
     parameters: obj({ name: str("Person name") }, ["name"]),
     args: z.object({ name: z.string().trim().min(1).max(200) }),
-    run: async (_ctx, a, env) => lookupPerson(a.name, env.locale === "en" ? "en" : "uz"),
+    run: async (_ctx, a, env) => lookupPerson(a.name, asLocale(env.locale)),
   }),
   read_url: def({
     perm: "read_web",

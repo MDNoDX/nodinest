@@ -44,7 +44,7 @@ export function Pwa() {
   return (
     <div
       role="status"
-      className="bg-warning fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-4 sm:rounded-full"
+      className="bg-warning fixed inset-x-0 bottom-[var(--bottom-nav,0px)] z-50 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-[calc(var(--bottom-nav,0px)+1rem)] sm:rounded-full"
     >
       <CloudOff className="size-4" /> {t("banner")}
     </div>

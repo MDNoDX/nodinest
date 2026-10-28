@@ -8,6 +8,8 @@ export function Toaster() {
     <Sonner
       theme={resolvedTheme === "dark" ? "dark" : "light"}
       position="bottom-right"
+      // Above the phone tab bar.
+      mobileOffset={{ bottom: "calc(var(--bottom-nav, 0px) + 16px)" }}
       closeButton
       toastOptions={{
         classNames: {

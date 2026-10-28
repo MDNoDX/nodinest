@@ -27,6 +27,7 @@ import { generate, isAiConfigured } from "./ai/gemini";
 import { langRule } from "./ai/study";
 import { loadBookPages } from "./booktext";
 import { readFileBytes } from "./storage";
+import { type Locale } from "@/i18n/config";
 
 export type OutlineItem = { title: string; page: number; level: number };
 export type Chapter = {
@@ -166,7 +167,7 @@ const norm = (s: string) =>
 export async function findStructure(
   ctx: AppContext,
   resourceId: string,
-  locale: "uz" | "en",
+  locale: Locale,
 ): Promise<Structure> {
   const [src] = await withUser(db, ctx, (tx) =>
     tx

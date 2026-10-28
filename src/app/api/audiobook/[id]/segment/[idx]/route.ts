@@ -22,12 +22,14 @@ export async function GET(
     const p = await params;
     const id = z.string().uuid().parse(p.id);
     const idx = z.coerce.number().int().min(0).max(100_000).parse(p.idx);
-    const { mp3, seconds } = await segmentAudio(toCtx(u), id, idx);
+    const { mp3, seconds, marks } = await segmentAudio(toCtx(u), id, idx);
     return new NextResponse(new Uint8Array(mp3), {
       headers: {
         "content-type": "audio/mpeg",
         "cache-control": "private, max-age=31536000, immutable",
         "x-nn-seconds": seconds.toFixed(2),
+        // When each script line starts (s); the player highlights by it.
+        "x-nn-marks": marks.join(","),
         "x-content-type-options": "nosniff",
       },
     });

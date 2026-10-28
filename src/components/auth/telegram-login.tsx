@@ -1,11 +1,10 @@
 "use client";
-import { Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Loader2, RefreshCw, Smartphone } from "lucide-react";
+import QRCode from "qrcode";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-
-const NEXT_KEY = "nn-login-next";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 /** Telegram's paper-plane mark. */
 export function TelegramIcon() {
@@ -20,75 +19,131 @@ export function TelegramIcon() {
   );
 }
 
-/** Sends the user to Telegram to confirm the sign-in; Telegram returns to /login/telegram. */
-export function telegramLogin(botId: string, next: string) {
-  try {
-    sessionStorage.setItem(NEXT_KEY, next);
-  } catch {
-    /* ignore */
-  }
-  const origin = window.location.origin;
-  const u = new URL("https://oauth.telegram.org/auth");
-  u.searchParams.set("bot_id", botId);
-  u.searchParams.set("origin", origin);
-  u.searchParams.set("request_access", "write");
-  u.searchParams.set("return_to", `${origin}/login/telegram`);
-  window.location.assign(u.toString());
-}
+type Start = { code: string; link: string; app: string; expiresIn: number };
+const isPhone = () =>
+  typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-function decode(hash: string): Record<string, unknown> | null {
-  const m = /tgAuthResult=([^&]+)/.exec(hash);
-  if (!m) return null;
-  try {
-    let b = decodeURIComponent(m[1]).replace(/-/g, "+").replace(/_/g, "/");
-    while (b.length % 4) b += "=";
-    const json = new TextDecoder().decode(Uint8Array.from(atob(b), (c) => c.charCodeAt(0)));
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
+/**
+ * "Continue with Telegram": a code is confirmed in the site's bot (no phone
+ * number, no SMS). Phones jump straight into the Telegram app; computers show
+ * a QR code and a button. The dialog waits and signs in by itself.
+ */
+export function TelegramLogin({ next, disabled }: { next: string; disabled?: boolean }) {
+  const t = useTranslations("auth.tg");
+  const [open, setOpen] = useState(false);
+  const [start, setStart] = useState<Start | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "wait" | "expired" | "error" | "ok">("idle");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-/** Back from Telegram: post the signed data, then go on (or show what went wrong). */
-export function TelegramReturn() {
-  const t = useTranslations("auth");
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const data = decode(window.location.hash);
-    history.replaceState(null, "", window.location.pathname);
-    let next = "/resume";
-    try {
-      const n = sessionStorage.getItem(NEXT_KEY);
-      if (n && /^\/(?![/\\])/.test(n)) next = n;
-      sessionStorage.removeItem(NEXT_KEY);
-    } catch {
-      /* ignore */
-    }
-    if (!data) {
-      queueMicrotask(() => setFailed(true));
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  const begin = useCallback(async () => {
+    stop();
+    setState("wait");
+    setStart(null);
+    setQr(null);
+    const r = await fetch("/api/auth/telegram/start", { method: "POST" }).catch(() => null);
+    if (!r?.ok) {
+      setState("error");
       return;
     }
-    void fetch("/api/auth/telegram/callback", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    })
-      .then((r) => {
-        if (r.ok) window.location.replace(next);
-        else setFailed(true);
-      })
-      .catch(() => setFailed(true));
-  }, []);
-  return failed ? (
-    <div className="card flex max-w-sm flex-col items-center gap-3 p-6 text-center">
-      <p className="font-medium">{t("failed")}</p>
-      <Button asChild>
-        <Link href="/login">{t("signIn")}</Link>
+    const s = (await r.json()) as Start;
+    setStart(s);
+    void QRCode.toDataURL(s.link, { margin: 1, width: 360 }).then(setQr, () => {});
+    if (isPhone()) window.location.href = s.app;
+    const until = Date.now() + s.expiresIn * 1000;
+    const poll = async () => {
+      if (Date.now() > until) return setState("expired");
+      const p = await fetch("/api/auth/telegram/poll", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: s.code }),
+      }).catch(() => null);
+      const d = p?.ok ? ((await p.json()) as { state: string }) : { state: "pending" };
+      if (d.state === "ok") {
+        setState("ok");
+        window.location.replace(next);
+        return;
+      }
+      if (d.state === "gone") return setState("expired");
+      timer.current = setTimeout(() => void poll(), document.hidden ? 3000 : 1500);
+    };
+    timer.current = setTimeout(() => void poll(), 1500);
+  }, [next]);
+
+  // Stop waiting when the page goes away.
+  useEffect(() => stop, []);
+
+  return (
+    <>
+      <Button
+        size="lg"
+        variant="outline"
+        disabled={disabled}
+        onClick={() => {
+          setOpen(true);
+          void begin();
+        }}
+      >
+        <TelegramIcon /> {t("button")}
       </Button>
-    </div>
-  ) : (
-    <p className="text-muted flex items-center gap-2 text-sm">
-      <Loader2 className="size-4 animate-spin" /> {t("telegramSigningIn")}
-    </p>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) {
+            stop();
+            setState("idle");
+          }
+        }}
+      >
+        <DialogContent title={t("title")} description={t("body")} closeLabel={t("close")}>
+          <div className="mt-2 flex flex-col items-center gap-4 text-center">
+            {state === "expired" || state === "error" ? (
+              <>
+                <p className="text-muted text-sm">
+                  {state === "expired" ? t("expired") : t("error")}
+                </p>
+                <Button onClick={() => void begin()}>
+                  <RefreshCw /> {t("again")}
+                </Button>
+              </>
+            ) : state === "ok" ? (
+              <p className="flex items-center gap-2 text-sm">
+                <Loader2 className="size-4 animate-spin" /> {t("signingIn")}
+              </p>
+            ) : (
+              <>
+                {qr ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={qr}
+                    alt={t("qr")}
+                    className="size-44 rounded-xl border bg-white p-2 max-sm:hidden"
+                  />
+                ) : (
+                  <div className="bg-surface-2 grid size-44 place-items-center rounded-xl max-sm:hidden">
+                    <Loader2 className="text-muted size-6 animate-spin" />
+                  </div>
+                )}
+                <p className="text-muted text-sm max-sm:hidden">{t("scan")}</p>
+                <Button asChild size="lg" className="w-full" disabled={!start}>
+                  <a href={start?.link ?? "#"} target="_blank" rel="noopener noreferrer">
+                    <Smartphone /> {t("open")}
+                  </a>
+                </Button>
+                <p className="text-muted flex items-center gap-2 text-xs">
+                  <Loader2 className="size-3.5 animate-spin" /> {t("waiting")}
+                </p>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

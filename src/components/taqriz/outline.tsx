@@ -10,8 +10,11 @@ export function Outline({
   activePos,
   onGo,
   onAdd,
+  showWords,
 }: {
   chapters: Chapter[];
+  /** Book mode: words per chapter. */
+  showWords?: boolean;
   activePos: number | null;
   onGo: (pos: number) => void;
   onAdd: () => void;
@@ -45,7 +48,12 @@ export function Outline({
                       className="bg-primary absolute top-1.5 bottom-1.5 left-1 w-[3px] rounded-full"
                     />
                   )}
-                  <span className="line-clamp-2">{c.text}</span>
+                  <span className="line-clamp-2 flex-1">{c.text}</span>
+                  {showWords && (
+                    <span className="text-muted shrink-0 text-[11px] font-normal tabular-nums">
+                      {c.words}
+                    </span>
+                  )}
                 </button>
               </li>
             );

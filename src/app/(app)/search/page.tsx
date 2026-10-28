@@ -16,6 +16,7 @@ import {
   type GroupResult,
   type SearchGroup,
 } from "@/server/search";
+import { pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -96,7 +97,10 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
     <>
       <PageHeader section="search" title={t("search.title")} />
       <SearchControls
-        categories={cats.map((c) => ({ id: c.id, name: locale === "uz" ? c.nameUz : c.nameEn }))}
+        categories={cats.map((c) => ({
+          id: c.id,
+          name: pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn }),
+        }))}
       />
       {filters.resourceId && (
         <p className="text-muted -mt-2 mb-4 flex items-center gap-2 text-sm">

@@ -22,6 +22,8 @@ import {
   toolsForGemini,
   type ToolName,
 } from "./tools";
+import { aiLanguage, asLocale } from "@/i18n/config";
+import { limitsFor } from "../premium";
 
 const MAX_ROUNDS = 8;
 const MAX_MESSAGE_CHARS = 6000;
@@ -51,7 +53,7 @@ function systemInstruction(locale: string, timeZone: string, context: string) {
     hourCycle: "h23",
   }).format(new Date());
   return `You are the NodiNote assistant: a precise, careful manager of the user's personal library — "Darsxona" in Uzbek — of books, courses, videos, lectures, articles and podcasts, their taqriz write-ups, notes, quotations, collections, ratings, plans and goals.
-Now: ${now} (${timeZone}). Reply in ${locale === "en" ? "English" : "Uzbek (Latin script)"} unless the user writes in another language.
+Now: ${now} (${timeZone}). Reply in ${aiLanguage(asLocale(locale))} unless the user writes in another language.
 
 THE USER CONFIRMS EVERY CHANGE:
 - Every write tool only creates a PROPOSAL card; nothing changes until the user presses "Tasdiqlash". After proposing, say briefly what you proposed and that it awaits confirmation — never say it is done.
@@ -193,9 +195,13 @@ export async function runAssistant(
   // The superadmin account is never limited by the app (only by Google's quota).
   if (!ctx.superadminAccount) {
     await enforceRateLimit(db, `aiburst:${ctx.userId}`, 8, 60);
-    const daily = await hitRateLimit(db, `ai:${ctx.userId}`, settings.dailyLimitPerUser, 86_400);
+    const plan = await limitsFor(ctx);
+    const daily = await hitRateLimit(db, `ai:${ctx.userId}`, plan.aiDaily, 86_400);
     if (!daily.allowed)
-      throw new AppError("RATE_LIMITED", undefined, { resetAt: daily.resetAt.toISOString() });
+      throw new AppError("RATE_LIMITED", undefined, {
+        resetAt: daily.resetAt.toISOString(),
+        premium: plan.premium,
+      });
   } else {
     await hitRateLimit(db, `ai:${ctx.userId}`, Number.MAX_SAFE_INTEGER, 86_400);
   }
@@ -395,7 +401,9 @@ export async function runAssistant(
       reply =
         input.locale === "en"
           ? `${n === 1 ? "Here is my proposal" : `Here are ${n} proposals`} — confirm or reject on the card${n === 1 ? "" : "s"} below.`
-          : `${n === 1 ? "Taklif tayyor" : `${n} ta taklif tayyor`} — quyidagi kartada tasdiqlang yoki rad eting.`;
+          : input.locale === "ru"
+            ? `${n === 1 ? "Предложение готово" : `Готово предложений: ${n}`} — подтвердите или отклоните на карточке ниже.`
+            : `${n === 1 ? "Taklif tayyor" : `${n} ta taklif tayyor`} — quyidagi kartada tasdiqlang yoki rad eting.`;
       break;
     }
   }
@@ -409,11 +417,17 @@ export async function runAssistant(
           : actions.length
             ? "Please review the proposals below."
             : "I couldn't complete that request. Please try rephrasing it."
-        : done
-          ? `Bajarildi: ${done} ta amal. Tafsilotlar pastda.`
-          : actions.length
-            ? "Quyidagi takliflarni ko‘rib chiqing va tasdiqlang."
-            : "Bu so‘rovni bajara olmadim. Iltimos, boshqacha ifodalab ko‘ring.";
+        : input.locale === "ru"
+          ? done
+            ? `Выполнено действий: ${done}. Подробности ниже.`
+            : actions.length
+              ? "Проверьте и подтвердите предложения ниже."
+              : "Не удалось выполнить запрос. Попробуйте сформулировать иначе."
+          : done
+            ? `Bajarildi: ${done} ta amal. Tafsilotlar pastda.`
+            : actions.length
+              ? "Quyidagi takliflarni körib çiqing va tasdiqlang."
+              : "Bu sörovni bajara olmadim. Iltimos, boşqaça ifodalab köring.";
   }
 
   await withUser(db, ctx, async (tx) => {

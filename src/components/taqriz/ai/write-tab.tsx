@@ -21,7 +21,47 @@ type WriteAction =
   | "nextChapter"
   | "polish"
   | "interviewQuestion"
-  | "interviewWrite";
+  | "interviewWrite"
+  | "proofread";
+
+const REPLACING: WriteAction[] = ["improve", "polish", "proofread"];
+
+/** The chapter around the cursor as a range (heading excluded), for proofreading. */
+function chapterRange(editor: Editor) {
+  const at = editor.state.selection.from;
+  let from = 0;
+  let to = editor.state.doc.content.size;
+  editor.state.doc.forEach((n, pos) => {
+    if (n.type.name !== "heading") return;
+    if (pos <= at) from = pos + n.nodeSize;
+    else if (to === editor.state.doc.content.size && pos > at) to = pos;
+  });
+  const text = editor.state.doc.textBetween(from, to, "\n").trim();
+  return text ? { from, to, text } : null;
+}
+
+/** Words of the corrected text, marked where they differ from the original. */
+function diffWords(before: string, after: string) {
+  const a = before.split(/\s+/).filter(Boolean);
+  const b = after.split(/(\s+)/);
+  const words = b.filter((w) => w.trim());
+  if (a.length * words.length > 900_000) return b.map((w) => ({ w, changed: false }));
+  // Longest common subsequence of words (small texts only).
+  const dp = Array.from({ length: a.length + 1 }, () => new Uint16Array(words.length + 1));
+  for (let i = a.length - 1; i >= 0; i--)
+    for (let j = words.length - 1; j >= 0; j--)
+      dp[i][j] = a[i] === words[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const keep = new Set<number>();
+  for (let i = 0, j = 0; i < a.length && j < words.length;)
+    if (a[i] === words[j]) {
+      keep.add(j);
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  let k = 0;
+  return b.map((w) => (w.trim() ? { w, changed: !keep.has(k++) } : { w, changed: false }));
+}
 
 /** The taqriz as plain text with "## " chapter headings (context for the AI). */
 function docText(editor: Editor) {
@@ -77,8 +117,12 @@ export function WriteTab({
     const { from, to } = editor.state.selection;
     const selected = from !== to ? editor.state.doc.textBetween(from, to, "\n").trim() : "";
     if ((action === "improve" || action === "polish") && !selected) return toast(t("selectFirst"));
+    // Proofreading: the selection, else the chapter around the cursor.
+    const chapter = action === "proofread" && !selected ? chapterRange(editor) : null;
+    if (action === "proofread" && !selected && (!chapter || chapter.text.length > 4000))
+      return toast(t(chapter ? "proofTooLong" : "selectFirst"));
     setBusy(action);
-    const sel = selected ? { from, to, text: selected } : null;
+    const sel = selected ? { from, to, text: selected } : chapter;
     const r = await streamAi<{ used: { notes: number; transcript: string | null } }>(
       "write",
       {
@@ -87,7 +131,7 @@ export function WriteTab({
         mode,
         instruction,
         doc: docText(editor),
-        selection: selected.slice(0, 4000),
+        selection: (sel?.text ?? "").slice(0, 4000),
         ...extra,
       },
       // Show the draft while it is being written.
@@ -124,6 +168,7 @@ export function WriteTab({
   const chips: [WriteAction, string][] =
     mode === "book"
       ? [
+          ["proofread", t("wProofread")],
           ["outline", t("bOutline")],
           ["intro", t("bIntro")],
           ["nextChapter", t("bNextChapter")],
@@ -132,6 +177,7 @@ export function WriteTab({
           ["conclusion", t("bConclusion")],
         ]
       : [
+          ["proofread", t("wProofread")],
           ["outline", t("wOutline")],
           ["intro", t("wIntro")],
           ["continue", t("wContinue")],
@@ -224,11 +270,15 @@ export function WriteTab({
       {res && (
         <div className="border-border flex flex-col gap-2 rounded-lg border p-3">
           <div className="text-primary text-xs font-medium">{res.label}</div>
-          <MdView text={res.text} />
+          {res.action === "proofread" && res.sel && !busy ? (
+            <ProofView before={res.sel.text} after={res.text} />
+          ) : (
+            <MdView text={res.text} />
+          )}
           <div className={cn("flex flex-wrap gap-1", busy && "hidden")}>
-            {(res.action === "improve" || res.action === "polish") && res.sel ? (
+            {REPLACING.includes(res.action) && res.sel ? (
               <SmallBtn onClick={replace} icon={<Check />}>
-                {t("replaceSelection")}
+                {res.action === "proofread" ? t("applyFixes") : t("replaceSelection")}
               </SmallBtn>
             ) : (
               <>
@@ -268,6 +318,29 @@ export function WriteTab({
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The corrected text with every changed word highlighted, and how many. */
+function ProofView({ before, after }: { before: string; after: string }) {
+  const t = useTranslations("taqrizAi");
+  const parts = diffWords(before, after);
+  const n = parts.filter((p) => p.changed).length;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs font-medium">{n ? t("proofChanges", { n }) : t("proofClean")}</p>
+      <p className="font-serif text-[15px] leading-relaxed whitespace-pre-wrap">
+        {parts.map((p, i) =>
+          p.changed ? (
+            <mark key={i} className="rounded bg-[var(--c-emerald)]/20 px-0.5 text-inherit">
+              {p.w}
+            </mark>
+          ) : (
+            <span key={i}>{p.w}</span>
+          ),
+        )}
+      </p>
     </div>
   );
 }

@@ -5,8 +5,20 @@
 const APOSTROPHES = /[ʻʼ‘’`´ʹ']/g;
 const APOSTROPHE_CHAR = new RegExp(`^${APOSTROPHES.source}$`);
 
+/**
+ * Lower case, the 2026 letters folded onto the old spelling (ş → sh, ç → ch,
+ * ö → o, ğ → g) so both alphabets find each other, apostrophes removed.
+ */
 export function normalizeText(input: string): string {
-  return input.toLowerCase().replace(APOSTROPHES, "").replace(/\s+/g, " ").trim();
+  return input
+    .toLowerCase()
+    .replace(/ş/g, "sh")
+    .replace(/ç/g, "ch")
+    .replace(/ö/g, "o")
+    .replace(/ğ/g, "g")
+    .replace(APOSTROPHES, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Splits a query into safe search tokens (letters/digits only). */

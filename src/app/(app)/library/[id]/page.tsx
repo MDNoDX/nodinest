@@ -38,6 +38,8 @@ import { getResourceDetail, getResourceHeader } from "@/server/catalog";
 import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
 import { AddMenu } from "@/components/library/add-menu";
+import { VisibilityToggle } from "@/components/social/visibility-toggle";
+import { pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 // Uploading a PDF starts the audiobook analysis in the background (after the response).
@@ -197,6 +199,13 @@ export default async function ResourcePage({
                 <Badge tone={d.record.status === "completed" ? "success" : "primary"}>
                   {statusLabel(d.record.status)}
                 </Badge>
+              )}
+              {d.record && (
+                <VisibilityToggle
+                  resourceId={r.id}
+                  initial={d.record.visibility === "public"}
+                  profilePublic={user.profilePublic}
+                />
               )}
             </div>
             <h1 className="mt-2 text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
@@ -509,7 +518,7 @@ export default async function ResourcePage({
                       style={hueStyle(hueFor(c.id))}
                       className="chip rounded-full px-2.5 py-1 text-xs font-medium hover:underline"
                     >
-                      {locale === "uz" ? c.nameUz : c.nameEn}
+                      {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
                     </Link>
                   ))}
                   {d.tags.map((tg) => (

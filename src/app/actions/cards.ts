@@ -15,10 +15,11 @@ import {
   updateCard,
 } from "@/server/study-cards";
 import { run } from "./_run";
+import { asLocale } from "@/i18n/config";
 
 const id = z.string().uuid();
 const deck = z.string().trim().min(1).max(120);
-const loc = async () => ((await getLocale()) === "en" ? "en" : "uz");
+const loc = async () => asLocale(await getLocale());
 
 export async function generateCardsAction(input: unknown) {
   return run(async ({ ctx }) => {

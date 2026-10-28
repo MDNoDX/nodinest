@@ -7,13 +7,13 @@ import {
   FolderHeart,
   Home,
   Inbox,
-  LifeBuoy,
   NotebookPen,
   PenLine,
   Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  UsersRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -40,9 +40,9 @@ export const NAV_PRIMARY: NavItem[] = [
 
 export const NAV_SECONDARY: NavItem[] = [
   { href: "/assistant", key: "assistant", icon: Sparkles },
+  { href: "/community", key: "community", icon: UsersRound, includes: ["/u"] },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },
-  { href: "/guide", key: "guide", icon: LifeBuoy },
   { href: "/settings", key: "settings", icon: Settings },
   { href: "/admin", key: "admin", icon: ShieldCheck, admin: true },
 ];

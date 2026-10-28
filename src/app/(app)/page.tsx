@@ -35,6 +35,9 @@ import { getCollectionStats } from "@/server/stats";
 import { withBookText } from "@/server/reader";
 import { StartPath } from "@/components/onboarding/start-path";
 import { getStartSteps } from "@/server/onboarding";
+import { asLocale, intlTag } from "@/i18n/config";
+import { AdCard } from "@/components/ads/ad-card";
+import { adFor } from "@/server/ads";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +87,7 @@ export default async function DashboardPage() {
     listDecks(ctx),
     getStartSteps(ctx),
   ]);
+  const homeAd = await adFor(ctx, "home");
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
   const reading = records.filter((r) => r.status === "in_progress").slice(0, 6);
@@ -95,7 +99,7 @@ export default async function DashboardPage() {
   const finished = records.filter((r) => r.status === "completed").slice(0, 18);
   const yearGoal = goals.find((g) => g.status === "active" && g.period === "year");
   const s = stats.totals;
-  const nf = new Intl.NumberFormat(locale === "uz" ? "uz-UZ" : "en-US");
+  const nf = new Intl.NumberFormat(intlTag(asLocale(locale)));
   const hours = Math.round(s.media_seconds / 360) / 10;
   const counters = [
     {
@@ -466,6 +470,11 @@ export default async function DashboardPage() {
           )}
         </aside>
       </div>
+      {homeAd && (
+        <div className="mt-8 max-w-xl">
+          <AdCard ad={homeAd} label={t("ads.label")} />
+        </div>
+      )}
     </>
   );
 }

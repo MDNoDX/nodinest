@@ -16,7 +16,10 @@ const fullBleed = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">$
 
 /** macOS icon grid: the rounded square sits inside 824/1024 with a soft shadow. */
 function macIcon() {
-  const body = svg.replace(/^<svg[^>]*>/, "").replace("</svg>", "").replace(/<title>.*?<\/title>/, "");
+  const body = svg
+    .replace(/^<svg[^>]*>/, "")
+    .replace("</svg>", "")
+    .replace(/<title>.*?<\/title>/, "");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-opacity="0.28"/></filter></defs><g filter="url(#s)"><svg x="100" y="92" width="824" height="824" viewBox="0 0 48 48">${body}</svg></g></svg>`;
 }
 

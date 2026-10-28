@@ -4,6 +4,8 @@
  * tour). Kept here rather than in messages/*.json: it is long prose, not UI
  * labels. Both languages must keep the same section ids.
  */
+import { ru } from "./guide-ru";
+
 export type GuideItem = { title: string; text: string; tip?: string };
 export type GuideSection = {
   id: string;
@@ -18,22 +20,22 @@ const uz: GuideSection[] = [
   {
     id: "start",
     icon: "rocket",
-    title: "Boshlash: 3 qadam",
+    title: "Boşlaş: 3 qadam",
     intro:
-      "NodiNote — o‘qigan, ko‘rgan va o‘rgangan hamma narsangiz uchun shaxsiy daftar. Boshlash uchun shu uch qadam yetarli.",
+      "NodiNote — öqigan, körgan va örgangan hamma narsangiz uçun şaxsiy daftar. Boşlaş uçun şu uç qadam yetarli.",
     items: [
       {
-        title: "1. Kitob qo‘shing",
-        text: "«Manba qo‘shish» tugmasini bosing. Nomini yozing yoki havolasini qo‘ying (YouTube, kitob sahifasi) — ma’lumotlar o‘zi to‘ldiriladi. Kitob bo‘lsa, uning PDF faylini ham qo‘shing.",
+        title: "1. Kitob qöşing",
+        text: "«Manba qöşiş» tugmasini bosing. Nomini yozing yoki havolasini qöying (YouTube, kitob sahifasi) — ma’lumotlar özi töldiriladi. Kitob bölsa, uning PDF faylini ham qöşing.",
       },
       {
-        title: "2. O‘qing yoki tinglang",
-        text: "PDF qo‘shilgan kitob sahifasida «O‘qish» va «Audiokitob» tugmalari paydo bo‘ladi. AI kitobni boshidan oxirigacha tahlil qilib, boblarini PDF’dagidek ajratadi.",
+        title: "2. Öqing yoki tinglang",
+        text: "PDF qöşilgan kitob sahifasida «Öqiş» va «Audiokitob» tugmalari paydo böladi. AI kitobni boşidan oxirigaça tahlil qilib, boblarini PDF’dagidek ajratadi.",
       },
       {
         title: "3. Muhim joylarni saqlang",
-        text: "O‘qiyotganda matnni belgilang: «Iqtibos» — chiroyli fikrlar uchun, «Qaydnoma» — o‘z fikringiz bilan. Keyin «Takrorlash» bo‘limida AI ulardan savollar tuzib, eslab qolishga yordam beradi.",
-        tip: "AI yordamchiga kitob PDF’ini tashlab «shu kitobni qo‘sh» desangiz, hammasini o‘zi qiladi — siz faqat tasdiqlaysiz.",
+        text: "Öqiyotganda matnni belgilang: «Iqtibos» — çiroyli fikrlar uçun, «Qaydnoma» — öz fikringiz bilan. Keyin «Takrorlaş» bölimida AI ulardan savollar tuzib, eslab qolişga yordam beradi.",
+        tip: "AI yordamçiga kitob PDF’ini taşlab «şu kitobni qöş» desangiz, hammasini özi qiladi — siz faqat tasdiqlaysiz.",
       },
     ],
   },
@@ -42,65 +44,65 @@ const uz: GuideSection[] = [
     icon: "library",
     title: "Darsxona",
     intro:
-      "Kitoblar, videolar, ma’ruzalar, kurslar, maqolalar va podkastlaringiz. Har bir foydalanuvchining darsxonasi o‘ziniki — boshqalar ko‘rmaydi.",
+      "Kitoblar, videolar, ma’ruzalar, kurslar, maqolalar va podkastlaringiz. Har bir foydalanuvçining darsxonasi öziniki — boşqalar körmaydi.",
     items: [
       {
-        title: "Manba qo‘shish",
-        text: "Turini tanlang, nomini yozing. Havola qo‘ysangiz (YouTube, Wikipedia, kitob sahifasi) muqova, muallif, davomiylik o‘zi olinadi. Kitobning ISBN yoki nomi bo‘yicha internetdan ham qidirish mumkin.",
+        title: "Manba qöşiş",
+        text: "Turini tanlang, nomini yozing. Havola qöysangiz (YouTube, Wikipedia, kitob sahifasi) muqova, muallif, davomiylik özi olinadi. Kitobning ISBN yoki nomi böyiça internetdan ham qidiriş mumkin.",
       },
       {
-        title: "Holat: Rejada → O‘qiyapman → O‘qidim",
-        text: "Kitob sahifasining o‘ng tomonidagi «Mening o‘qishim» kartasida holatni, bahoni (10 dan) va boshlagan/tugatgan sanalarni belgilang. Sana o‘rniga faqat yil yoki oyni ham yozish mumkin.",
+        title: "Holat: Rejada → Öqiyapman → Öqidim",
+        text: "Kitob sahifasining öng tomonidagi «Mening öqişim» kartasida holatni, bahoni (10 dan) va boşlagan/tugatgan sanalarni belgilang. Sana örniga faqat yil yoki oyni ham yoziş mumkin.",
       },
       {
-        title: "Saralash va guruhlash",
-        text: "Darsxonada turi, janri, holati, o‘qilgan yili yoki yozilgan yili bo‘yicha saralang va guruhlang.",
+        title: "Saralaş va guruhlaş",
+        text: "Darsxonada turi, janri, holati, öqilgan yili yoki yozilgan yili böyiça saralang va guruhlang.",
       },
       {
-        title: "Shaxslar, nashriyot va kanallar",
-        text: "Darsxona ichidagi yorliqlarda mualliflar, ma’ruzachilar, nashriyotlar va YouTube kanallar. Har birining sahifasida undan nimalarni o‘rganganingiz ko‘rinadi.",
+        title: "Şaxslar, naşriyot va kanallar",
+        text: "Darsxona içidagi yorliqlarda mualliflar, ma’ruzaçilar, naşriyotlar va YouTube kanallar. Har birining sahifasida undan nimalarni örganganingiz körinadi.",
       },
       {
         title: "Dublikatlar",
-        text: "Bitta kitob ikki marta qo‘shilsa, «Dublikatlar» sahifasi ularni topib, qaydlaringizni yo‘qotmasdan birlashtiradi.",
+        text: "Bitta kitob ikki marta qöşilsa, «Dublikatlar» sahifasi ularni topib, qaydlaringizni yöqotmasdan birlaştiradi.",
       },
     ],
-    link: { href: "/library", label: "Darsxonani ochish" },
+    link: { href: "/library", label: "Darsxonani oçiş" },
   },
   {
     id: "reading",
     icon: "book-open",
-    title: "Kitobni o‘qish",
+    title: "Kitobni öqiş",
     intro:
-      "Kitobning PDF faylini qo‘shsangiz, uni saytning o‘zida qulay shaklda o‘qiysiz. Tahrirlash yo‘q — faqat o‘qish, belgilash va o‘rganish.",
+      "Kitobning PDF faylini qöşsangiz, uni saytning özida qulay şaklda öqiysiz. Tahrirlaş yöq — faqat öqiş, belgilaş va örganiş.",
     items: [
       {
         title: "Mundarija",
-        text: "Boblar PDF’dagidek: o‘z mundarijasi bo‘lsa — aynan o‘sha nomlar bilan (masalan, «Chapter 1 · BRAN»). Xarita va rasmlar o‘z joyida, asl ko‘rinishida chiqadi.",
+        text: "Boblar PDF’dagidek: öz mundarijasi bölsa — aynan öşa nomlar bilan (masalan, «Chapter 1 · BRAN»). Xarita va rasmlar öz joyida, asl körinişida çiqadi.",
       },
       {
         title: "Iqtibos va qaydnoma",
-        text: "Matnni belgilang — menyu chiqadi. «Iqtibos» iqtiboslaringizga sahifasi bilan saqlanadi (ko‘k rang). «Qaydnoma»da o‘z fikringizni ham yozasiz (sariq rang). Keyin ular kitobda belgilangan holda turadi.",
+        text: "Matnni belgilang — menyu çiqadi. «Iqtibos» iqtiboslaringizga sahifasi bilan saqlanadi (kök rang). «Qaydnoma»da öz fikringizni ham yozasiz (sariq rang). Keyin ular kitobda belgilangan holda turadi.",
       },
       {
-        title: "AI’dan so‘rash",
-        text: "Tushunmagan so‘z yoki joyni belgilab «AI’dan so‘rash»ni bosing: ma’nosi, tarjimasi, kim va qayer ekanligi tushuntiriladi. Kitob haqida umumiy savol ham berishingiz mumkin. AI siz o‘qiyotgan joydan keyingi voqealarni aytmaydi.",
+        title: "AI’dan söraş",
+        text: "Tuşunmagan söz yoki joyni belgilab «AI’dan söraş»ni bosing: ma’nosi, tarjimasi, kim va qayer ekanligi tuşuntiriladi. Kitob haqida umumiy savol ham berişingiz mumkin. AI siz öqiyotgan joydan keyingi voqealarni aytmaydi.",
       },
       {
-        title: "Ko‘rinish (Aa)",
-        text: "Fon (oq, sepiya, tun), shrift, harf o‘lchami, qator oralig‘i va matn kengligini o‘zingizga moslang. Ko‘zni charchatmaslik uchun kechqurun «Tun» yoki «Sepiya» tavsiya qilinadi.",
+        title: "Köriniş (Aa)",
+        text: "Fon (oq, sepiya, tun), şrift, harf ölçami, qator oraliği va matn kengligini özingizga moslang. Közni çarçatmaslik uçun keçqurun «Tun» yoki «Sepiya» tavsiya qilinadi.",
       },
       {
         title: "Qidiruv va belgilar",
-        text: "Yon paneldagi «Qidiruv» kitob ichidan so‘zni topadi, «Belgilar» esa shu kitobdagi barcha iqtibos va qaydlaringiz — bosilsa, o‘sha sahifaga o‘tadi.",
+        text: "Yon paneldagi «Qidiruv» kitob içidan sözni topadi, «Belgilar» esa şu kitobdagi barça iqtibos va qaydlaringiz — bosilsa, öşa sahifaga ötadi.",
       },
       {
-        title: "Internetsiz o‘qish",
-        text: "«Internetsiz o‘qish uchun saqlash» kitob matnini qurilmaga yuklaydi — yo‘lda, internet bo‘lmasa ham o‘qiysiz.",
+        title: "Internetsiz öqiş",
+        text: "«Internetsiz öqiş uçun saqlaş» kitob matnini qurilmaga yuklaydi — yölda, internet bölmasa ham öqiysiz.",
       },
       {
         title: "Qayerda qolganingiz",
-        text: "O‘qigan sahifangiz o‘zi saqlanadi va «Mening o‘qishim»dagi progressga yoziladi. Bosh sahifadagi «Davom etish» tugmasi aynan o‘sha joyni ochadi.",
+        text: "Öqigan sahifangiz özi saqlanadi va «Mening öqişim»dagi progressga yoziladi. Boş sahifadagi «Davom etiş» tugmasi aynan öşa joyni oçadi.",
       },
     ],
   },
@@ -109,23 +111,23 @@ const uz: GuideSection[] = [
     icon: "headphones",
     title: "Audiokitob",
     intro:
-      "AI kitobni ovoz chiqarib o‘qib beradi: hikoyachi va har bir qahramon o‘z ovozida, shoshilmasdan, tabiiy pauzalar bilan.",
+      "AI kitobni ovoz çiqarib öqib beradi: hikoyaçi va har bir qahramon öz ovozida, şoşilmasdan, tabiiy pauzalar bilan.",
     items: [
       {
-        title: "Tayyorlash",
-        text: "Kitob sahifasida «Audiokitob» → «Tayyorlash». AI butun kitobni o‘qib chiqadi: janri, ohangi, qahramonlari (jinsi, yoshi, gapirish uslubi) va qiyin so‘zlar talaffuzi. Bu 1–5 daqiqa oladi.",
+        title: "Tayyorlaş",
+        text: "Kitob sahifasida «Audiokitob» → «Tayyorlaş». AI butun kitobni öqib çiqadi: janri, ohangi, qahramonlari (jinsi, yoşi, gapiriş uslubi) va qiyin sözlar talaffuzi. Bu 1–5 daqiqa oladi.",
       },
       {
-        title: "Tinglash",
-        text: "Ovoz qismma-qism tayyorlanadi: birinchisi 20–60 soniya, keyingilari siz tinglab turganingizda oldindan tayyorlanadi. Tayyor qismlar qurilmangizda saqlanadi.",
+        title: "Tinglaş",
+        text: "Ovoz qismma-qism tayyorlanadi: birinçisi 20–60 soniya, keyingilari siz tinglab turganingizda oldindan tayyorlanadi. Tayyor qismlar qurilmangizda saqlanadi.",
       },
       {
         title: "Tezlik, uyqu taymeri, ovozlar",
-        text: "Sukut bo‘yicha tezlik 0,9× — tinch hikoya. Uyqu taymeri ma’lum vaqtdan keyin yoki bob oxirida to‘xtatadi. «Ovozlar» bo‘limida istalgan qahramonning ovozini almashtirish mumkin.",
+        text: "Sukut böyiça tezlik 0,9× — tinç hikoya. Uyqu taymeri ma’lum vaqtdan keyin yoki bob oxirida töxtatadi. «Ovozlar» bölimida istalgan qahramonning ovozini almaştiriş mumkin.",
       },
       {
         title: "Limit",
-        text: "Ovoz Google’ning bepul tarifida yaratiladi: butun sayt uchun kuniga taxminan 1–2 soat audio. Limit tugasa, ertaga davom etadi; tayyor qismlar yo‘qolmaydi.",
+        text: "Ovoz Google’ning bepul tarifida yaratiladi: butun sayt uçun kuniga taxminan 1–2 soat audio. Limit tugasa, ertaga davom etadi; tayyor qismlar yöqolmaydi.",
       },
     ],
   },
@@ -134,11 +136,11 @@ const uz: GuideSection[] = [
     icon: "pen-line",
     title: "Taqriz",
     intro:
-      "Har bir kitob yoki video uchun o‘z fikringizni yozadigan joy — bo‘limlar, iqtiboslar va AI yordami bilan.",
+      "Har bir kitob yoki video uçun öz fikringizni yozadigan joy — bölimlar, iqtiboslar va AI yordami bilan.",
     items: [
       {
-        title: "Yozish",
-        text: "Kitob sahifasida «Taqriz». Yozganingiz o‘zi saqlanadi (internet uzilsa ham yo‘qolmaydi). Matnni belgilab «Bob qilish» bossangiz — u bo‘lim sarlavhasiga aylanadi va chapdagi mundarijada chiqadi.",
+        title: "Yoziş",
+        text: "Kitob sahifasida «Taqriz». Yozganingiz özi saqlanadi (internet uzilsa ham yöqolmaydi). Matnni belgilab «Bob qiliş» bossangiz — u bölim sarlavhasiga aylanadi va çapdagi mundarijada çiqadi.",
       },
       {
         title: "❝ Iqtibos va 📝 Qaydnoma",
@@ -146,14 +148,14 @@ const uz: GuideSection[] = [
       },
       {
         title: "AI paneli",
-        text: "O‘ngdagi panelda AI: belgilangan joyni tushuntiradi, yozishga yordam beradi, video yoki audiodan matn chiqaradi (jonli yoki to‘liq transkript).",
+        text: "Öngdagi panelda AI: belgilangan joyni tuşuntiradi, yozişga yordam beradi, video yoki audiodan matn çiqaradi (jonli yoki töliq transkript).",
       },
       {
-        title: "Video bilan ishlash",
-        text: "Video yoki audio pastki pleerda sahifalar almashsa ham o‘ynab turadi. Alt+T — taqrizga hozirgi vaqtni qo‘yadi. Yozayotganingizda pleer o‘zi to‘xtab turadi.",
+        title: "Video bilan işlaş",
+        text: "Video yoki audio pastki pleerda sahifalar almaşsa ham öynab turadi. Alt+T — taqrizga hozirgi vaqtni qöyadi. Yozayotganingizda pleer özi töxtab turadi.",
       },
       {
-        title: "Yuklab olish",
+        title: "Yuklab oliş",
         text: "PDF, Word, Markdown, oddiy matn yoki audio-videolari bilan birga (veb-kitob ZIP yoki EPUB).",
       },
     ],
@@ -161,37 +163,37 @@ const uz: GuideSection[] = [
   {
     id: "write",
     icon: "feather",
-    title: "Kitob yozish",
+    title: "Kitob yoziş",
     intro:
-      "O‘z kitobingizni yozing — masalan, hayotingiz, oilangiz tarixi yoki bilimingiz haqida. Avlodlarga qoladigan eng qimmatli kitob.",
+      "Öz kitobingizni yozing — masalan, hayotingiz, oilangiz tarixi yoki bilimingiz haqida. Avlodlarga qoladigan eng qimmatli kitob.",
     items: [
       {
-        title: "Shablonlar",
-        text: "«Hayotim», «Oila tarixi», «Bilim kitobi», «Hikoyalar», «Sayohat kundaligi» — har birida tayyor boblar va yo‘naltiruvchi savollar bor.",
+        title: "Şablonlar",
+        text: "«Hayotim», «Oila tarixi», «Bilim kitobi», «Hikoyalar», «Sayohat kundaligi» — har birida tayyor boblar va yönaltiruvçi savollar bor.",
       },
       {
         title: "AI intervyu",
-        text: "AI bob mavzusida savol beradi, siz yozasiz yoki gapirasiz — javobingiz chiroyli kitob matniga aylanadi. Yozishni bilmaydigan keksalar uchun ham qulay.",
+        text: "AI bob mavzusida savol beradi, siz yozasiz yoki gapirasiz — javobingiz çiroyli kitob matniga aylanadi. Yozişni bilmaydigan keksalar uçun ham qulay.",
       },
       {
         title: "Ovoz va video",
-        text: "Audio yoki video qo‘shib, uni matnga aylantirish mumkin. Kitobni rasm, audio va videolari bilan yuklab olasiz.",
+        text: "Audio yoki video qöşib, uni matnga aylantiriş mumkin. Kitobni rasm, audio va videolari bilan yuklab olasiz.",
       },
     ],
-    link: { href: "/write", label: "Kitob yozishni boshlash" },
+    link: { href: "/write", label: "Kitob yozişni boşlaş" },
   },
   {
     id: "notes",
     icon: "notebook",
     title: "Qaydlar va iqtiboslar",
-    intro: "O‘qish va tinglash paytida saqlagan barcha fikrlaringiz bir joyda.",
+    intro: "Öqiş va tinglaş paytida saqlagan barça fikrlaringiz bir joyda.",
     items: [
       {
-        title: "Qo‘shish",
-        text: "O‘qish yoki taqriz sahifasida matnni belgilab, yoki shu bo‘limda «Yangi qayd» orqali. Iqtibosga muallif va sahifani ham yozing.",
+        title: "Qöşiş",
+        text: "Öqiş yoki taqriz sahifasida matnni belgilab, yoki şu bölimda «Yangi qayd» orqali. Iqtibosga muallif va sahifani ham yozing.",
       },
       {
-        title: "Qidirish va teglar",
+        title: "Qidiriş va teglar",
         text: "Teglar bilan guruhlang, yuqoridagi qidiruv bilan bir zumda toping (⌘K / Ctrl+K).",
       },
     ],
@@ -199,68 +201,123 @@ const uz: GuideSection[] = [
   {
     id: "review",
     icon: "brain",
-    title: "Takrorlash (yodlash)",
+    title: "Takrorlaş (yodlaş)",
     intro:
-      "O‘qiganingiz esdan chiqmasligi uchun: AI eng muhim savollarni tuzadi, tizim esa ularni unutishingizdan sal oldin qayta so‘raydi.",
+      "Öqiganingiz esdan çiqmasligi uçun: AI eng muhim savollarni tuzadi, tizim esa ularni unutişingizdan sal oldin qayta söraydi.",
     items: [
       {
-        title: "Savol tuzish",
-        text: "Manbalarni tanlang. «Oddiy» — tez; «Chuqur» — imtihon darajasida, har bir javob manbaga solishtirib tekshiriladi. Sonini ham tanlashingiz mumkin (masalan, 100).",
+        title: "Savol tuziş",
+        text: "Manbalarni tanlang. «Oddiy» — tez; «Çuqur» — imtihon darajasida, har bir javob manbaga soliştirib tekşiriladi. Sonini ham tanlaşingiz mumkin (masalan, 100).",
       },
       {
-        title: "Takrorlash",
-        text: "Har kuni bir necha daqiqa: savolni o‘qing, javobni eslang, o‘zingizni «Qayta / Qiyin / Yaxshi / Oson» deb baholang. Yaxshi bilganlaringiz kamroq, qiyinlari tez-tez chiqadi.",
+        title: "Takrorlaş",
+        text: "Har kuni bir neça daqiqa: savolni öqing, javobni eslang, özingizni «Qayta / Qiyin / Yaxşi / Oson» deb baholang. Yaxşi bilganlaringiz kamroq, qiyinlari tez-tez çiqadi.",
       },
     ],
-    link: { href: "/review", label: "Takrorlashni ochish" },
+    link: { href: "/review", label: "Takrorlaşni oçiş" },
   },
   {
     id: "assistant",
     icon: "sparkles",
-    title: "AI yordamchi",
+    title: "AI yordamçi",
     intro:
-      "Saytning aqlli yordamchisi: oddiy til bilan nima kerakligini ayting. U hech narsani o‘zboshimchalik bilan o‘zgartirmaydi — har bir ish uchun tasdiq kartasi chiqaradi.",
+      "Saytning aqlli yordamçisi: oddiy til bilan nima kerakligini ayting. U heç narsani özboşimçalik bilan özgartirmaydi — har bir iş uçun tasdiq kartasi çiqaradi.",
     items: [
       {
         title: "Nimalarni qila oladi",
-        text: "Kitob qo‘shish (rasm yoki PDF’dan ham), holat va baho qo‘yish, qayd va iqtibos yozish, savol tuzish, to‘plam yaratish, kitob ichidan qidirish va iqtibos topish, statistikani aytish, audiokitob tayyorlash.",
+        text: "Kitob qöşiş (rasm yoki PDF’dan ham), holat va baho qöyiş, qayd va iqtibos yoziş, savol tuziş, töplam yaratiş, kitob içidan qidiriş va iqtibos topiş, statistikani aytiş, audiokitob tayyorlaş.",
       },
       {
-        title: "Tasdiqlash",
-        text: "Har bir o‘zgarish karta bo‘lib chiqadi: «Tasdiqlash» bossangizgina bajariladi. Bir nechta bo‘lsa — «Hammasini tasdiqlash».",
+        title: "Tasdiqlaş",
+        text: "Har bir özgariş karta bölib çiqadi: «Tasdiqlaş» bossangizgina bajariladi. Bir neçta bölsa — «Hammasini tasdiqlaş».",
       },
       {
         title: "Kunlik limit",
-        text: "AI bepul tarifda ishlaydi, shuning uchun har bir foydalanuvchiga kunlik so‘rovlar soni cheklangan. Limit ertasi kuni yangilanadi.",
+        text: "AI bepul tarifda işlaydi, şuning uçun har bir foydalanuvçiga kunlik sörovlar soni çeklangan. Limit ertasi kuni yangilanadi.",
       },
     ],
-    link: { href: "/assistant", label: "AI yordamchini ochish" },
+    link: { href: "/assistant", label: "AI yordamçini oçiş" },
   },
   {
     id: "more",
     icon: "layers",
-    title: "Boshqa bo‘limlar",
-    intro: "Kamroq ishlatiladigan, lekin foydali joylar.",
+    title: "Boşqa bölimlar",
+    intro: "Kamroq işlatiladigan, lekin foydali joylar.",
     items: [
       {
-        title: "To‘plamlar",
-        text: "O‘z ro‘yxatlaringiz: «Top 10 kitob», «Yozda o‘qiyman»… Tartiblangan ro‘yxatda o‘rinlarni ham belgilaysiz.",
+        title: "Töplamlar",
+        text: "Öz röyxatlaringiz: «Top 10 kitob», «Yozda öqiyman»… Tartiblangan röyxatda örinlarni ham belgilaysiz.",
       },
       {
         title: "Rejalar va maqsadlar",
-        text: "Masalan, «yiliga 24 kitob» yoki «oyiga 1000 sahifa». Progress o‘zi hisoblanadi.",
+        text: "Masalan, «yiliga 24 kitob» yoki «oyiga 1000 sahifa». Progress özi hisoblanadi.",
       },
       {
-        title: "Ko‘rsatkichlar",
-        text: "Necha kitob, sahifa va soat; eng tez o‘qilganlar; yillar bo‘yicha diagrammalar.",
+        title: "Körsatkiçlar",
+        text: "Neça kitob, sahifa va soat; eng tez öqilganlar; yillar böyiça diagrammalar.",
       },
       {
         title: "Takliflar",
-        text: "Adminga xabar yozing: taklif, xato yoki savol. Telegram orqali ham bog‘lanish mumkin.",
+        text: "Adminga xabar yozing: taklif, xato yoki savol. Telegram orqali ham boğlaniş mumkin.",
       },
       {
         title: "Sozlamalar",
-        text: "Til, vaqt mintaqasi, klaviatura tugmalari, pleer sozlamalari, fayllar uchun joy va shu qo‘llanmani qayta ko‘rish.",
+        text: "Til, vaqt mintaqasi, klaviatura tugmalari, pleer sozlamalari, fayllar uçun joy va şu qöllanmani qayta köriş.",
+      },
+    ],
+  },
+  {
+    id: "community",
+    icon: "users",
+    title: "Hamjamiyat",
+    intro: "Boşqa öquvçilarni kuzating, öqituvçi öquvçilarining faoliyatini körib tursin.",
+    items: [
+      {
+        title: "Profil — yopiq yoki oçiq",
+        text: "Sukut böyiça profilingiz yopiq: hamma narsa faqat sizga körinadi. Sozlamalar → Profil körinişi böliminda uni oçiq qilsangiz, boşqalar sizni ism yoki @username böyiça topadi.",
+        tip: "Profilni yopsangiz, hamma narsa darhol yaşiriladi.",
+      },
+      {
+        title: "Darslikni oçiq qiliş",
+        text: "Kitob sahifasida «Yopiq / Oçiq» tugmasi bor. Oçiq darslik profilingizda nomi, holati va bahosi bilan körinadi. Qaydlar, taqrizlar va fayllar hech qaçon körinmaydi.",
+      },
+      {
+        title: "Kuzatiş va özingizga olish",
+        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari Hamjamiyat sahifasida çiqadi. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
+      },
+    ],
+    link: { href: "/community", label: "Hamjamiyatni oçiş" },
+  },
+  {
+    id: "premium",
+    icon: "badge",
+    title: "Premium",
+    intro: "Köproq AI, audiokitoblar va reklamasiz ish.",
+    items: [
+      {
+        title: "Nimalar kiradi",
+        text: "Premium’da kuniga köproq AI sörovi, audiokitob tayyorlaş, AI takrorlaş savollari, uzunroq video/audio konspekt va reklamasiz ekran bor. Aniq limitlar Premium sahifasida yozilgan.",
+      },
+      {
+        title: "Qanday ulanadi",
+        text: "Premium sahifasidagi kartaga yoki Payme / Click orqali tölang, keyin «Tölov qildim» formasini yuboring. Admin tekşirgaç Premium özi yoqiladi va ismingiz yonida kök belgi paydo böladi.",
+      },
+    ],
+    link: { href: "/premium", label: "Premium sahifasi" },
+  },
+  {
+    id: "telegram",
+    icon: "send",
+    title: "Telegram bot",
+    intro: "@nodinest_bot — kiriş, takliflar va javoblar uçun.",
+    items: [
+      {
+        title: "Telegram orqali kiriş",
+        text: "Kiriş sahifasida «Telegram orqali kiriş»ni bosing: bot oçiladi, «Tasdiqlaş»ni bosasiz — tamom. Telefon raqami yoki SMS kod kerak emas.",
+      },
+      {
+        title: "Botga yozing",
+        text: "Botga istalgan taklif yoki savolni yozing — u adminga boradi, javob esa botga va saytdagi Takliflar böliminga keladi.",
       },
     ],
   },
@@ -271,36 +328,36 @@ const uz: GuideSection[] = [
     intro: "Sizning ma’lumotlaringiz — faqat sizniki.",
     items: [
       {
-        title: "Kim nimani ko‘radi",
-        text: "Darsxonangiz, qaydlaringiz, taqrizlaringiz, kitob matnlari va o‘qish holatingizni faqat siz ko‘rasiz. Hatto sayt administratori ham shaxsiy qaydlaringizni o‘qiy olmaydi.",
+        title: "Kim nimani köradi",
+        text: "Darsxonangiz, qaydlaringiz, taqrizlaringiz, kitob matnlari va öqiş holatingizni faqat siz körasiz. Hatto sayt administratori ham şaxsiy qaydlaringizni öqiy olmaydi.",
       },
       {
         title: "Fayllar",
-        text: "Yuklagan PDF, rasm, audio va videolaringiz yopiq omborda saqlanadi va faqat sizga ochiladi. Chiqqaningizda qurilmadagi nusxalar tozalanadi.",
+        text: "Yuklagan PDF, rasm, audio va videolaringiz yopiq omborda saqlanadi va faqat sizga oçiladi. Çiqqaningizda qurilmadagi nusxalar tozalanadi.",
       },
     ],
   },
   {
     id: "faq",
     icon: "help",
-    title: "Ko‘p beriladigan savollar",
+    title: "Köp beriladigan savollar",
     intro: "",
     items: [
       {
-        title: "PDF’dan matn chiqmadi — nega?",
-        text: "PDF skaner qilingan (rasm) bo‘lsa, unda matn yo‘q. Bunday kitobni audiokitob sifatida tinglash mumkin — AI uni rasmdan o‘qiydi.",
+        title: "PDF’dan matn çiqmadi — nega?",
+        text: "PDF skaner qilingan (rasm) bölsa, unda matn yöq. Bunday kitobni audiokitob sifatida tinglaş mumkin — AI uni rasmdan öqiydi.",
       },
       {
         title: "Audiokitob «limit tugadi» deyapti",
-        text: "Bepul ovoz limiti butun sayt uchun kunlik. Ertaga davom etadi; tayyor qismlar saqlangan.",
+        text: "Bepul ovoz limiti butun sayt uçun kunlik. Ertaga davom etadi; tayyor qismlar saqlangan.",
       },
       {
         title: "Telefonda ilova bormi?",
-        text: "Saytni telefon brauzerida oching va «Bosh ekranga qo‘shish»ni bosing — ilova kabi ishlaydi. Mac uchun alohida ilova ham bor.",
+        text: "Saytni telefon brauzerida oçing va «Boş ekranga qöşiş»ni bosing — ilova kabi işlaydi. Mac uçun alohida ilova ham bor.",
       },
       {
-        title: "Qo‘llanmani qayta ko‘rish",
-        text: "Sozlamalar → «Qo‘llanmani qayta ko‘rish» tanishtiruvni qayta boshlaydi. Bu sahifa esa doim menyuda «Qo‘llanma» nomi bilan turadi.",
+        title: "Qöllanmani qayta köriş",
+        text: "Sozlamalar → «Qöllanmani qayta köriş» taniştiruvni qayta boşlaydi. Bu sahifa esa doim menyuda «Qöllanma» nomi bilan turadi.",
       },
     ],
   },
@@ -554,6 +611,61 @@ const en: GuideSection[] = [
     ],
   },
   {
+    id: "community",
+    icon: "users",
+    title: "Community",
+    intro: "Follow other learners; a teacher can follow students’ progress.",
+    items: [
+      {
+        title: "Profile — private or public",
+        text: "Your profile is private by default: everything is visible only to you. Make it public in Settings → Profile visibility and others can find you by name or @username.",
+        tip: "Make the profile private again and everything is hidden at once.",
+      },
+      {
+        title: "Making a lesson public",
+        text: "A book’s page has a “Private / Public” button. Public items show on your profile with their title, status and rating. Notes, write-ups and files are never shown.",
+      },
+      {
+        title: "Follow and take it yourself",
+        text: "Press “Follow” on someone’s profile — what they read next appears on the Community page. Open a book you like and pick a status: it joins your own library.",
+      },
+    ],
+    link: { href: "/community", label: "Open Community" },
+  },
+  {
+    id: "premium",
+    icon: "badge",
+    title: "Premium",
+    intro: "More AI, audiobooks and no ads.",
+    items: [
+      {
+        title: "What is included",
+        text: "Premium has more AI requests a day, audiobooks, AI study questions, longer video/audio notes and no ads. The exact limits are on the Premium page.",
+      },
+      {
+        title: "How to get it",
+        text: "Pay to the card on the Premium page or with Payme / Click, then send the “I have paid” form. Once the admin checks it, Premium turns on and a blue tick appears next to your name.",
+      },
+    ],
+    link: { href: "/premium", label: "The Premium page" },
+  },
+  {
+    id: "telegram",
+    icon: "send",
+    title: "Telegram bot",
+    intro: "@nodinest_bot — sign-in, suggestions and answers.",
+    items: [
+      {
+        title: "Sign in with Telegram",
+        text: "Press “Continue with Telegram” on the sign-in page: the bot opens, you press “Confirm” — done. No phone number or SMS code.",
+      },
+      {
+        title: "Write to the bot",
+        text: "Send any suggestion or question to the bot — it goes to the admin, and the answer comes back to the bot and to Suggestions on the site.",
+      },
+    ],
+  },
+  {
     id: "privacy",
     icon: "shield",
     title: "Privacy",
@@ -596,5 +708,5 @@ const en: GuideSection[] = [
 ];
 
 export function guideFor(locale: string): GuideSection[] {
-  return locale === "en" ? en : uz;
+  return locale === "en" ? en : locale === "ru" ? ru : uz;
 }

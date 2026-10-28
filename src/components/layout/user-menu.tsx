@@ -10,6 +10,8 @@ import { setLocaleAction } from "@/app/actions/personal";
 import { clearOfflineData } from "@/components/pwa/pwa";
 import { authClient } from "@/lib/auth/client";
 import { Avatar } from "@/components/ui/avatar";
+import { LOCALES } from "@/i18n/config";
+import { PremiumBadge } from "@/components/premium/premium-badge";
 
 const item =
   "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-surface-2";
@@ -17,7 +19,14 @@ const item =
 export function UserMenu({
   user,
 }: {
-  user: { name: string; email: string; image: string | null; role: string };
+  user: {
+    name: string;
+    email: string;
+    image: string | null;
+    role: string;
+    username?: string | null;
+    premium?: boolean;
+  };
 }) {
   const t = useTranslations();
   const { theme, setTheme } = useTheme();
@@ -37,8 +46,12 @@ export function UserMenu({
           className="border-border bg-surface animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
         >
           <div className="px-2 py-2">
-            <div className="truncate text-sm font-semibold">{user.name}</div>
-            <div className="text-muted truncate text-xs">{user.email}</div>
+            <div className="flex items-center gap-1 truncate text-sm font-semibold">
+              {user.name} {user.premium && <PremiumBadge />}
+            </div>
+            <div className="text-muted truncate text-xs">
+              {user.username ? `@${user.username}` : user.email}
+            </div>
           </div>
           <M.Separator className="bg-border my-1 h-px" />
           <M.Label className="text-muted px-2 pt-1 pb-0.5 text-xs">{t("theme.label")}</M.Label>
@@ -63,7 +76,7 @@ export function UserMenu({
           ))}
           <M.Separator className="bg-border my-1 h-px" />
           <M.Label className="text-muted px-2 pt-1 pb-0.5 text-xs">{t("locale.label")}</M.Label>
-          {(["uz", "en"] as const).map((l) => (
+          {LOCALES.map((l) => (
             <M.Item
               key={l}
               className={item}
@@ -85,6 +98,11 @@ export function UserMenu({
           <M.Item asChild className={item}>
             <Link href="/settings">
               <Settings className="text-muted size-4" /> {t("nav.settings")}
+            </Link>
+          </M.Item>
+          <M.Item asChild className={item}>
+            <Link href="/premium">
+              <PremiumBadge /> Premium
             </Link>
           </M.Item>
           <M.Item

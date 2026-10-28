@@ -4,6 +4,7 @@
  * light italic prompts the author replaces with their own text.
  */
 import type { DocNode, WriteupDoc } from "./writeup-doc";
+import { type Locale } from "@/i18n/config";
 
 export const BOOK_TEMPLATES = [
   "memoir",
@@ -19,91 +20,88 @@ type Chapter = { title: string; prompts: string[] };
 
 const UZ: Record<BookTemplate, Chapter[]> = {
   memoir: [
-    { title: "So‘zboshi", prompts: ["Nega bu kitobni yozyapsiz? Uni kim o‘qishini xohlaysiz?"] },
+    { title: "Sözboşi", prompts: ["Nega bu kitobni yozyapsiz? Uni kim öqişini xohlaysiz?"] },
     {
       title: "Bolaligim",
       prompts: [
-        "Qayerda, qanday oilada tug‘ilgansiz?",
-        "Eng birinchi eslab qolgan voqeangiz qaysi?",
-        "Bolaligingizdagi uy, ko‘cha, hidlar va tovushlar…",
+        "Qayerda, qanday oilada tuğilgansiz?",
+        "Eng birinçi eslab qolgan voqeangiz qaysi?",
+        "Bolaligingizdagi uy, köça, hidlar va tovuşlar…",
       ],
     },
     {
       title: "Oilam",
       prompts: [
         "Ota-onangiz, bobo-buvilaringiz qanday insonlar edi?",
-        "Oilangizdan o‘rgangan eng muhim saboq?",
+        "Oilangizdan örgangan eng muhim saboq?",
       ],
     },
     {
-      title: "Maktab va o‘qish yillari",
-      prompts: [
-        "Sizga ta’sir qilgan ustoz kim?",
-        "O‘sha yillardagi do‘stlaringiz va orzularingiz…",
-      ],
+      title: "Maktab va öqiş yillari",
+      prompts: ["Sizga ta’sir qilgan ustoz kim?", "Öşa yillardagi döstlaringiz va orzularingiz…"],
     },
     {
-      title: "Ish va kasbim",
+      title: "Iş va kasbim",
       prompts: [
         "Kasbingizni qanday tanladingiz?",
-        "Faxrlanadigan ishingiz va eng qiyin sinovingiz…",
+        "Faxrlanadigan işingiz va eng qiyin sinovingiz…",
       ],
     },
     {
-      title: "Sinovlar va burilishlar",
+      title: "Sinovlar va burilişlar",
       prompts: [
-        "Hayotingizni o‘zgartirgan qaror yoki voqea?",
-        "Qiyin paytda sizni nima ushlab turdi?",
+        "Hayotingizni özgartirgan qaror yoki voqea?",
+        "Qiyin paytda sizni nima uşlab turdi?",
       ],
     },
     {
       title: "Hayotdan saboqlarim",
       prompts: [
-        "Yoshlarga qanday maslahat bergan bo‘lardingiz?",
-        "Endi boshqacha qilgan bo‘lardingiz nimani?",
+        "Yoşlarga qanday maslahat bergan bölardingiz?",
+        "Endi boşqaça qilgan bölardingiz nimani?",
       ],
     },
-    { title: "Kelajakka maktub", prompts: ["Farzand va nevaralaringizga nima demoqchisiz?"] },
+    { title: "Kelajakka maktub", prompts: ["Farzand va nevaralaringizga nima demoqçisiz?"] },
   ],
   family: [
     {
       title: "Oilamiz ildizlari",
-      prompts: ["Ajdodlaringiz qayerdan bo‘lgan? Qanday kasb qilishgan?"],
+      prompts: ["Ajdodlaringiz qayerdan bölgan? Qanday kasb qilişgan?"],
     },
-    { title: "Bobo va buvilar", prompts: ["Ular haqida qanday hikoyalar eshitgansiz?"] },
-    { title: "Ota-onam", prompts: ["Ular qanday tanishgan? Hayot yo‘llari qanday bo‘lgan?"] },
+    { title: "Bobo va buvilar", prompts: ["Ular haqida qanday hikoyalar eşitgansiz?"] },
+    { title: "Ota-onam", prompts: ["Ular qanday tanişgan? Hayot yöllari qanday bölgan?"] },
     { title: "Oilaviy an’analar", prompts: ["Bayramlar, taomlar, urf-odatlar…"] },
-    { title: "Unutilmas voqealar", prompts: ["Oila davrasida eng ko‘p aytiladigan hikoya qaysi?"] },
+    { title: "Unutilmas voqealar", prompts: ["Oila davrasida eng köp aytiladigan hikoya qaysi?"] },
     {
       title: "Avlodlarga meros",
-      prompts: ["Oilangiz qadriyatlaridan nimani saqlab qolish kerak?"],
+      prompts: ["Oilangiz qadriyatlaridan nimani saqlab qoliş kerak?"],
     },
   ],
   knowledge: [
-    { title: "Kirish", prompts: ["Bu kitob kim uchun va qanday muammoni hal qiladi?"] },
-    { title: "Asosiy tushunchalar", prompts: ["O‘quvchi avval nimani bilishi kerak?"] },
-    { title: "Amaliy qism", prompts: ["Bosqichma-bosqich qo‘llanma, misollar…"] },
+    { title: "Kiriş", prompts: ["Bu kitob kim uçun va qanday muammoni hal qiladi?"] },
+    { title: "Asosiy tuşunçalar", prompts: ["Öquvçi avval nimani bilişi kerak?"] },
+    { title: "Amaliy qism", prompts: ["Bosqiçma-bosqiç qöllanma, misollar…"] },
     {
-      title: "Ko‘p uchraydigan xatolar",
-      prompts: ["Qayerda adashishadi va qanday oldini olish mumkin?"],
+      title: "Köp uçraydigan xatolar",
+      prompts: ["Qayerda adaşişadi va qanday oldini oliş mumkin?"],
     },
     { title: "Xulosa", prompts: ["Eng muhim 5 ta fikr…"] },
   ],
   stories: [
     {
       title: "1-hikoya",
-      prompts: ["Qahramon kim? U nimani xohlaydi va unga nima to‘sqinlik qiladi?"],
+      prompts: ["Qahramon kim? U nimani xohlaydi va unga nima tösqinlik qiladi?"],
     },
-    { title: "2-hikoya", prompts: ["Voqea qayerda va qachon bo‘lib o‘tadi?"] },
-    { title: "3-hikoya", prompts: ["Hikoyaning yakuni o‘quvchida qanday his qoldirsin?"] },
+    { title: "2-hikoya", prompts: ["Voqea qayerda va qaçon bölib ötadi?"] },
+    { title: "3-hikoya", prompts: ["Hikoyaning yakuni öquvçida qanday his qoldirsin?"] },
   ],
   travel: [
-    { title: "Yo‘lga chiqish", prompts: ["Qayerga, nega va kim bilan bordingiz?"] },
-    { title: "Birinchi taassurotlar", prompts: ["Odamlar, ko‘chalar, taomlar…"] },
+    { title: "Yölga çiqiş", prompts: ["Qayerga, nega va kim bilan bordingiz?"] },
+    { title: "Birinçi taassurotlar", prompts: ["Odamlar, köçalar, taomlar…"] },
     { title: "Unutilmas kunlar", prompts: ["Eng yorqin lahzangiz qaysi?"] },
     {
-      title: "Safar menga nima o‘rgatdi",
-      prompts: ["Qaytgach nimani boshqacha ko‘ra boshladingiz?"],
+      title: "Safar menga nima örgatdi",
+      prompts: ["Qaytgaç nimani boşqaça köra boşladingiz?"],
     },
   ],
   blank: [{ title: "1-bob", prompts: [] }],
@@ -186,9 +184,89 @@ const EN: Record<BookTemplate, Chapter[]> = {
   blank: [{ title: "Chapter 1", prompts: [] }],
 };
 
+const RU: Record<BookTemplate, Chapter[]> = {
+  memoir: [
+    { title: "Предисловие", prompts: ["Зачем вы пишете эту книгу? Кто, по-вашему, её прочтёт?"] },
+    {
+      title: "Моё детство",
+      prompts: [
+        "Где и в какой семье вы родились?",
+        "Какое ваше самое первое воспоминание?",
+        "Дом, улица, запахи и звуки вашего детства…",
+      ],
+    },
+    {
+      title: "Моя семья",
+      prompts: [
+        "Какими людьми были ваши родители, бабушки и дедушки?",
+        "Самый важный урок, который дала вам семья?",
+      ],
+    },
+    {
+      title: "Школьные годы",
+      prompts: ["Какой учитель повлиял на вас?", "Ваши друзья и мечты тех лет…"],
+    },
+    {
+      title: "Работа и профессия",
+      prompts: ["Как вы выбрали своё дело?", "Чем вы гордитесь и что было труднее всего…"],
+    },
+    {
+      title: "Испытания и повороты",
+      prompts: [
+        "Решение или событие, изменившее вашу жизнь?",
+        "Что поддерживало вас в трудное время?",
+      ],
+    },
+    {
+      title: "Уроки жизни",
+      prompts: ["Что бы вы посоветовали молодым?", "Что бы вы сделали иначе сейчас?"],
+    },
+    {
+      title: "Письмо в будущее",
+      prompts: ["Что вы хотите сказать детям и внукам?"],
+    },
+  ],
+  family: [
+    { title: "Наши корни", prompts: ["Откуда родом ваши предки? Чем они занимались?"] },
+    { title: "Бабушки и дедушки", prompts: ["Какие истории вы о них слышали?"] },
+    { title: "Мои родители", prompts: ["Как они познакомились? Какой была их жизнь?"] },
+    { title: "Семейные традиции", prompts: ["Праздники, блюда, обычаи…"] },
+    {
+      title: "Незабываемые моменты",
+      prompts: ["Какую историю чаще всего рассказывают на семейных встречах?"],
+    },
+    { title: "Наследие для потомков", prompts: ["Какие семейные ценности важно сохранить?"] },
+  ],
+  knowledge: [
+    { title: "Введение", prompts: ["Для кого эта книга и какую задачу она решает?"] },
+    { title: "Главные понятия", prompts: ["Что читателю нужно знать в первую очередь?"] },
+    { title: "На практике", prompts: ["Пошаговое руководство, примеры…"] },
+    { title: "Частые ошибки", prompts: ["Где люди ошибаются и как этого избежать?"] },
+    { title: "Заключение", prompts: ["5 самых важных мыслей…"] },
+  ],
+  stories: [
+    {
+      title: "Рассказ 1",
+      prompts: ["Кто герой? Чего он хочет и что ему мешает?"],
+    },
+    { title: "Рассказ 2", prompts: ["Где и когда это происходит?"] },
+    { title: "Рассказ 3", prompts: ["Какое чувство должен оставить финал?"] },
+  ],
+  travel: [
+    { title: "В путь", prompts: ["Куда, зачем и с кем вы поехали?"] },
+    { title: "Первые впечатления", prompts: ["Люди, улицы, еда…"] },
+    { title: "Незабываемые дни", prompts: ["Самый яркий момент?"] },
+    {
+      title: "Чему научило путешествие",
+      prompts: ["Что вы видите иначе после возвращения?"],
+    },
+  ],
+  blank: [{ title: "Глава 1", prompts: [] }],
+};
+
 /** The starting document of a new book (chapters + italic guiding prompts). */
-export function templateDoc(template: BookTemplate, locale: "uz" | "en"): WriteupDoc {
-  const chapters = (locale === "en" ? EN : UZ)[template];
+export function templateDoc(template: BookTemplate, locale: Locale): WriteupDoc {
+  const chapters = { uz: UZ, ru: RU, en: EN }[locale][template];
   const content: DocNode[] = [];
   for (const c of chapters) {
     content.push({
@@ -206,6 +284,6 @@ export function templateDoc(template: BookTemplate, locale: "uz" | "en"): Writeu
   return { type: "doc", content };
 }
 
-export function templateChapters(template: BookTemplate, locale: "uz" | "en") {
-  return (locale === "en" ? EN : UZ)[template].map((c) => c.title);
+export function templateChapters(template: BookTemplate, locale: Locale) {
+  return { uz: UZ, ru: RU, en: EN }[locale][template].map((c) => c.title);
 }

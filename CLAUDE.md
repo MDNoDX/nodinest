@@ -15,7 +15,7 @@ src/
   db/                  schema.ts (Drizzle), client.ts (createDb, withUser), index.ts (app db)
   lib/                 pure helpers (validation, normalize, durations, dates, writeup-doc, hues, net/*)
   components/          ui/ primitives, layout/, feature folders
-  i18n/ + messages/    next-intl (cookie-based locale, uz default). Keys must exist in BOTH files.
+  i18n/ + messages/    next-intl: uz (default) | ru | en, cookie else browser language. Keys in ALL 3 files.
 drizzle/               SQL migrations. 0001_search_rls.sql is hand-written (FTS, trigram, RLS).
 tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 ```
@@ -139,6 +139,33 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   adding services, cookies or data. Settings → delete account (`server/account.ts`: DB cascade +
   Blob files; never the superadmin). Vercel Web Analytics (`components/pwa/analytics.tsx`, ids
   stripped from URLs) — enable it in the Vercel dashboard.
+- Telegram (`server/monitor/*`, `server/bot/*`, bot @nodinest_bot, env TELEGRAM_BOT_TOKEN +
+  TELEGRAM_ADMIN_CHAT_ID): webhook `/api/telegram/webhook` (secret header derived from the token);
+  setup with `scripts/telegram-setup.ts`. The admin channel gets suggestions (reply to answer → bot +
+  Takliflar), new users, every server error with stack (instrumentation.ts → report.ts, deduped),
+  AI-paused notices, Premium payments (✅/❌ buttons, channel admins only) and the daily summary
+  (Vercel cron `/api/cron/daily`, CRON_SECRET). Commands in the channel: /stat /hammaga /arxiv /test.
+- Telegram sign-in = bot confirmation (`server/telegram-login.ts`, plugin `lib/auth/telegram.ts`):
+  code bound to an httpOnly cookie of the browser, confirmed with a button in the bot, one use.
+- Big files (> 2 MB) move from Vercel Blob to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
+  ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
+  with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
+- Profiles: `/welcome` (language, photo, first/last name, unique username — required before the
+  app), Settings → profile. Social (`server/social.ts`, `/community`, `/u/[username]`): everything
+  private by default; public profile + per-item visibility; follows. Never expose notes, write-ups,
+  files or book text of others.
+- Premium (`server/premium.ts`, `/premium`, Admin → Premium): manual payments (card / Payme /
+  Click) confirmed by the admin; plan limits (aiDaily, audiobook, studyCards, listenMinutes, ads)
+  are admin settings; `gate()` in ai/study.ts and `limitsFor()` enforce them (PREMIUM_REQUIRED).
+- Ads (`server/ads.ts`, Admin → Ads): labelled cards at the end of the home page and under the side
+  menu, free plan only, clicks counted through `/api/ads/[id]`.
+- Audiobook voices: language from the analysis → `speechLanguage()` (languageCode + native
+  pronunciation style), strong emotions, no breathing; age-aware voices (AGE_VOICES); voice
+  samples `/api/audiobook/[id]/preview` (12 a day). The player highlights lines by `x-nn-marks`
+  (exact line start times from the server).
+- Taqriz / book AI panel: "Imlo va grammatika" (proofread: selection or current chapter, changed
+  words highlighted, one click to apply).
+- Legal pages must forbid pirated PDFs and sharing books / audiobooks (also shown under uploads).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
@@ -149,7 +176,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `normalizeText()` (TS).
 - Client components cannot receive functions from server components (pass preformatted
   strings, e.g. `BarChart` takes `display`). Shared defaults for forms live in `*-value.ts`.
-- New UI strings: add to `messages/uz.json` AND `messages/en.json` (unit test enforces parity).
+- New UI strings: add to `messages/uz.json`, `ru.json` AND `en.json` (unit test enforces parity and
+  placeholders). Uzbek is written in the **2026 Latin alphabet** (law OʻRQ–1184: Ö Ğ Ş Ç instead of
+  Oʻ Gʻ Sh Ch; "ng" is not a separate letter): write it so, or run `npx tsx scripts/uz-latin.ts
+  messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fails on old letters.
+  Missing Russian: `GEMINI_API_KEY=… node scripts/translate-ru.mjs` (fills keys still in English).
+  Search folds both alphabets (nn_norm / normalizeText: ş→sh ç→ch ö→o ğ→g). AI prompts take the
+  answer language from `aiLanguage(locale)` (i18n/config.ts).
 
 ## Rendering model
 

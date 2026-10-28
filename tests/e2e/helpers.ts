@@ -21,8 +21,9 @@ export async function signUp(page: Page, u: { name: string; email: string; passw
   await page.getByLabel("Ism").fill(u.name);
   await page.getByLabel("Email").fill(u.email);
   await page.getByLabel("Parol").fill(u.password);
-  await page.getByRole("button", { name: "Lokal hisob yaratish" }).click();
-  await expect(page).toHaveURL("/");
+  await page.getByRole("button", { name: "Lokal hisob yaratiş" }).click();
+  await finishWelcome(page);
+  await expect(page).toHaveURL("/", { timeout: 30_000 });
 }
 
 export async function signIn(page: Page, u: { email: string; password: string; name?: string }) {
@@ -38,9 +39,10 @@ export async function signIn(page: Page, u: { email: string; password: string; n
   await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
   await page.getByLabel("Email").fill(u.email);
   await page.getByLabel("Parol").fill(u.password);
-  await page.getByRole("button", { name: "Kirish", exact: true }).click();
+  await page.getByRole("button", { name: "Kiriş", exact: true }).click();
   // Signing in continues where the user stopped (/resume), or the home page.
   await expect(page).not.toHaveURL(/\/login/);
+  await finishWelcome(page);
 }
 
 /** Test-only privileged helper (the app itself never grants roles this way). */
@@ -48,4 +50,15 @@ export async function makeSuperadmin(email: string) {
   const sql = postgres(E2E_DB, { max: 1, onnotice: () => {} });
   await sql`update nodinest."user" set role = 'superadmin' where email = ${email}`;
   await sql.end();
+}
+
+/** First sign-in: the profile step (a free username is suggested) → "Boşlaş". */
+export async function finishWelcome(page: Page) {
+  const start = page.getByRole("button", { name: "Boşlaş" });
+  const nav = page.getByRole("navigation", { name: "Asosiy navigatsiya" });
+  await expect(start.or(nav).first()).toBeVisible({ timeout: 30_000 });
+  if (!(await start.isVisible())) return;
+  await expect(start).toBeEnabled({ timeout: 30_000 });
+  await start.click();
+  await expect(nav).toBeVisible({ timeout: 30_000 });
 }

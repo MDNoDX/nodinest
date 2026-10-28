@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { deleteFile, registerUpload, storageUsage, USER_QUOTA_BYTES } from "@/server/storage";
+import { deleteFile, registerUpload, storageUsage, userQuotaBytes } from "@/server/storage";
 import { run } from "./_run";
 
 export async function registerUploadAction(input: {
@@ -28,5 +28,5 @@ export async function deleteFileAction(fileId: string) {
 
 /** How much of the upload quota is used (for the "space is full" hint). */
 export async function storageStatusAction() {
-  return run(async ({ ctx }) => ({ used: await storageUsage(ctx), quota: USER_QUOTA_BYTES }));
+  return run(async ({ ctx }) => ({ used: await storageUsage(ctx), quota: userQuotaBytes() }));
 }

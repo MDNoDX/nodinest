@@ -11,6 +11,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { Input } from "@/components/ui/input";
 import { fmtBytes } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
+import { LegalPdfNote } from "./legal-pdf-note";
 
 type Source = {
   kind: "file" | "url";
@@ -130,6 +131,7 @@ export function ReadingPanel({
           exec(() => indexFileAction(resourceId, fileId), { onSuccess: () => router.refresh() })
         }
       />
+      <LegalPdfNote />
 
       <div className="bg-surface-2 rounded-xl p-3.5">
         <div className="flex items-center gap-2 text-sm font-semibold">

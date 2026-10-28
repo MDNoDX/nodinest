@@ -126,6 +126,10 @@ export async function generate(
         },
         null,
       );
+      const { tgSend } = await import("@/server/monitor/telegram");
+      await tgSend(
+        `⏸ <b>AI töxtatildi</b>: barça Gemini modellarining kunlik bepul limiti tugadi. ${Math.round(quotaDelay / 60_000)} daqiqadan keyin qayta ishlaydi.`,
+      );
     } catch {
       /* best effort */
     }
@@ -311,6 +315,8 @@ export async function speak(
     timeoutMs?: number;
     /** How to say it, e.g. "Read as an unhurried, warm audiobook narrator:" */
     style?: string;
+    /** BCP-47 language of the text ("uz-UZ", "ru-RU", "en-US"): native pronunciation. */
+    languageCode?: string;
   } = {},
 ): Promise<{ pcm: Int16Array; rate: number }> {
   const speakers = [...new Set(lines.map((l) => l.speaker))];
@@ -338,7 +344,7 @@ export async function speak(
             ],
     },
   ];
-  const speechConfig = single
+  const voices = single
     ? { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceOf(speakers[0]) } } }
     : {
         multiSpeakerVoiceConfig: {
@@ -348,16 +354,24 @@ export async function speak(
           })),
         },
       };
+  // A model that does not know the language code is asked once more without it.
+  const noLang = new Set<string>();
+  const speechConfigFor = (model: string) =>
+    opts.languageCode && !noLang.has(model)
+      ? { ...voices, languageCode: opts.languageCode }
+      : voices;
   let sawQuota = false;
   const now = Date.now();
   const models = ttsModels();
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
-  for (const model of ready.length ? ready : models) {
+  const order = ready.length ? ready : models;
+  for (let k = 0; k < order.length; k++) {
+    const model = order[k];
     try {
       const res = await generateWith(
         model,
         contentsFor(model),
-        { responseModalities: ["AUDIO"], speechConfig },
+        { responseModalities: ["AUDIO"], speechConfig: speechConfigFor(model) },
         opts.timeoutMs ?? 90_000,
       );
       const part = res.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
@@ -375,6 +389,11 @@ export async function speak(
       )
         continue;
       if (err instanceof ApiError && err.status === 400) {
+        if (opts.languageCode && !noLang.has(model) && /language/i.test(err.message)) {
+          noLang.add(model);
+          k--; // same model again, without the language code
+          continue;
+        }
         console.error("[nodinest] tts rejected:", err.message.slice(0, 200));
         continue;
       }

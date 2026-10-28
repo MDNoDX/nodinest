@@ -41,7 +41,14 @@ function subscribeSidebar(cb: () => void) {
 
 const WIDE_RE = /^\/library\/[^/]+\/taqriz/;
 
-type ShellUser = { name: string; email: string; image: string | null; role: "user" | "superadmin" };
+type ShellUser = {
+  name: string;
+  email: string;
+  image: string | null;
+  role: "user" | "superadmin";
+  username?: string | null;
+  premium?: boolean;
+};
 
 function isActive(pathname: string, item: NavItem) {
   const hit = (href: string) =>
@@ -123,8 +130,11 @@ export function AppShell({
   pendingSuggestions,
   timerSlot,
   aiDailyLimit,
+  sideAd,
   children,
 }: {
+  /** An ad card at the bottom of the side menu (free plan), or null. */
+  sideAd?: React.ReactNode;
   /** Daily AI requests for this account; null = unlimited (superadmin). */
   aiDailyLimit: number | null;
   user: ShellUser;
@@ -192,6 +202,7 @@ export function AppShell({
           pathname={pathname}
           badge={badge}
         />
+        {sideAd && !collapsed && !mobile && <div className="mt-auto px-1 pb-1">{sideAd}</div>}
       </nav>
       {!mobile && (
         <div className={cn("border-border border-t p-2", collapsed && "flex justify-center")}>

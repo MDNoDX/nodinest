@@ -20,6 +20,7 @@ import {
 import type { DocMark, DocNode } from "@/lib/writeup-doc";
 import type { ExportItem } from "./data";
 import { facts, fmtWhen, labels, type Labels, type Loc } from "./labels";
+import { intlTag } from "@/i18n/config";
 
 const FONTS = path.join(process.cwd(), "src/server/export/fonts");
 let registered = false;
@@ -462,7 +463,7 @@ export async function renderPdf(
   registerFonts();
   const t = labels(opts.loc);
   const totalWords = items.reduce((a, it) => a + it.words, 0);
-  const today = new Intl.DateTimeFormat(opts.loc === "uz" ? "uz-Latn-UZ" : "en-GB", {
+  const today = new Intl.DateTimeFormat(intlTag(opts.loc), {
     dateStyle: "long",
     timeZone: opts.timeZone,
   }).format(new Date());

@@ -29,6 +29,7 @@ import {
   str,
   uuid,
 } from "./helpers";
+import { asLocale } from "@/i18n/config";
 
 const describe = (ctx: Parameters<typeof describeResources>[0], ids: string[]) =>
   describeResources(
@@ -36,7 +37,7 @@ const describe = (ctx: Parameters<typeof describeResources>[0], ids: string[]) =
     ids.map((id) => ({ id, score: 1, reason: "source" })),
   );
 
-const loc = (l: string) => (l === "en" ? "en" : "uz");
+const loc = (l: string) => asLocale(l);
 
 export const BOOK_TOOLS = {
   add_book_pdf: def({

@@ -67,6 +67,7 @@ import {
   readDraft,
   readOutline,
   subscribeOutline,
+  todayWords,
   writeDraft,
   type Draft,
   type SaveState,
@@ -775,6 +776,7 @@ export function TaqrizEditor({
   };
 
   const chapters = info?.chapters ?? [];
+  const today = book && info ? todayWordsSafe(resource.id, info.words) : 0;
   const status =
     state === "saving" ? (
       <>
@@ -795,7 +797,13 @@ export function TaqrizEditor({
     ) : null;
 
   const outline = (
-    <Outline chapters={chapters} activePos={activePos} onGo={goTo} onAdd={addChapter} />
+    <Outline
+      chapters={chapters}
+      activePos={activePos}
+      onGo={goTo}
+      onAdd={addChapter}
+      showWords={book}
+    />
   );
 
   return (
@@ -964,6 +972,11 @@ export function TaqrizEditor({
             </div>
           </div>
         ) : null}
+        {book && today > 0 && (
+          <p className="px-4 pb-3 text-xs font-medium text-[var(--c-emerald)] tabular-nums">
+            {t("today", { n: today })}
+          </p>
+        )}
         <div className="text-muted px-4 pb-2 text-[11px] font-semibold tracking-wide uppercase">
           {book ? t("chapters") : t("contents")}
         </div>
@@ -1336,4 +1349,9 @@ export function TaqrizEditor({
       <YouTubeDialog open={ytOpen} onOpenChange={setYtOpen} onInsert={insertYouTube} />
     </div>
   );
+}
+
+/** todayWords during render: only after hydration (localStorage). */
+function todayWordsSafe(id: string, words: number) {
+  return typeof window === "undefined" ? 0 : todayWords(id, words);
 }

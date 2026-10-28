@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useDebounced } from "@/lib/hooks";
 import { intervalLabel, schedule, type Grade } from "@/lib/srs";
+import { asLocale } from "@/i18n/config";
 
 type Deck = {
   deck: string;
@@ -642,7 +643,7 @@ const GRADES: { g: Grade; key: string; cls: string }[] = [
 function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => void }) {
   const t = useTranslations("review");
   const te = useTranslations("errors");
-  const locale = useLocale() === "en" ? "en" : "uz";
+  const locale = asLocale(useLocale());
   const router = useRouter();
   const [revealed, setRevealed] = useState(false);
   const [attempt, setAttempt] = useState("");

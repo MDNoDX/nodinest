@@ -1,30 +1,32 @@
 /** Strings and formatting for exported files (uz / en). */
 import { readingFormat } from "@/lib/reading-date";
 import { formatPartialDate } from "@/lib/dates";
+import { intlTag } from "@/i18n/config";
 import type { ExportItem } from "./data";
+import { type Locale } from "@/i18n/config";
 
-export type Loc = "uz" | "en";
+export type Loc = Locale;
 
 const L = {
   uz: {
     myWriteups: "Taqrizlarim",
     writeup: "Taqriz",
-    transcript: "To‘liq matn",
+    transcript: "Töliq matn",
     book: "Kitob",
     konspekt: "Konspekt",
     contents: "Mundarija",
     books: (n: number) => `${n} ta manba`,
-    words: (n: number) => `${n.toLocaleString("uz-UZ")} so‘z`,
+    words: (n: number) => `${n.toLocaleString("uz-UZ")} söz`,
     exportedOn: "Yuklab olingan sana",
     original: "Yozilgan",
-    edition: "Nashr",
-    release: "Chiqqan",
-    publisher: "Nashriyot",
+    edition: "Naşr",
+    release: "Çiqqan",
+    publisher: "Naşriyot",
     pages: "Sahifalar",
     duration: "Davomiyligi",
     where: "Qayerda",
     rating: "Baho",
-    started: "Boshladim",
+    started: "Boşladim",
     finished: "Tugatdim",
     opinion: "Qisqa fikr",
     notes: "Qaydlar va iqtiboslar",
@@ -38,7 +40,7 @@ const L = {
       planned: "Rejada",
       in_progress: "Jarayonda",
       completed: "Tugatilgan",
-      paused: "To‘xtatilgan",
+      paused: "Töxtatilgan",
     } as Record<string, string>,
     types: {
       book: "Kitob",
@@ -48,7 +50,7 @@ const L = {
       interview: "Suhbat",
       article: "Maqola",
       podcast: "Podkast",
-      other: "Boshqa",
+      other: "Boşqa",
     } as Record<string, string>,
     minutes: (m: number) => (m >= 60 ? `${Math.floor(m / 60)} soat ${m % 60} daq.` : `${m} daq.`),
   },
@@ -98,6 +100,52 @@ const L = {
     } as Record<string, string>,
     minutes: (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`),
   },
+  ru: {
+    myWriteups: "Мои рецензии",
+    writeup: "Рецензия",
+    transcript: "Расшифровка",
+    book: "Книга",
+    konspekt: "Конспект",
+    contents: "Содержание",
+    books: (n: number) => `${n} шт.`,
+    words: (n: number) => `${n.toLocaleString("ru-RU")} слов`,
+    exportedOn: "Дата выгрузки",
+    original: "Написано",
+    edition: "Издание",
+    release: "Вышло",
+    publisher: "Издательство",
+    pages: "Страниц",
+    duration: "Длительность",
+    where: "Где",
+    rating: "Оценка",
+    started: "Начал(а)",
+    finished: "Закончил(а)",
+    opinion: "Кратко",
+    notes: "Заметки и цитаты",
+    page: "с.",
+    noText: "Рецензия ещё не написана.",
+    audio: "Аудиозапись",
+    video: "Видео",
+    file: "Файл",
+    image: "Изображение",
+    status: {
+      planned: "В планах",
+      in_progress: "В процессе",
+      completed: "Завершено",
+      paused: "На паузе",
+    } as Record<string, string>,
+    types: {
+      book: "Книга",
+      course: "Курс",
+      video: "Видео",
+      lecture: "Лекция",
+      interview: "Интервью",
+      article: "Статья",
+      podcast: "Подкаст",
+      other: "Другое",
+    } as Record<string, string>,
+    minutes: (m: number) => (m >= 60 ? `${Math.floor(m / 60)} ч ${m % 60} мин` : `${m} мин`),
+  },
 };
 export const labels = (loc: Loc) => L[loc];
 export type Labels = (typeof L)["uz"];
@@ -105,7 +153,7 @@ export type Labels = (typeof L)["uz"];
 export function fmtWhen(d: Date | null, precision: string | null, loc: Loc, timeZone: string) {
   if (!d) return null;
   const o = readingFormat(precision);
-  return new Intl.DateTimeFormat(loc === "uz" ? "uz-Latn-UZ" : "en-GB", {
+  return new Intl.DateTimeFormat(intlTag(loc), {
     timeZone,
     ...o,
     ...(o.dateStyle ? { dateStyle: "long" as const } : {}),

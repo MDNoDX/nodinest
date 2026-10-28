@@ -25,6 +25,7 @@ export const SECTION_HUE: Record<string, Hue> = {
   review: "rose",
   write: "violet",
   guide: "teal",
+  community: "violet",
   journal: "teal",
   plans: "emerald",
   search: "sky",

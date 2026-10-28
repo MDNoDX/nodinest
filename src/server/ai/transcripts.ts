@@ -25,6 +25,7 @@ import { readFileBytes } from "../storage";
 import { describeFiles } from "./media";
 import { generate, uploadToGemini } from "./gemini";
 import { clock, factsText, gate, langRule, resourceFacts } from "./study";
+import { aiLanguage, asLocale } from "@/i18n/config";
 
 /** Short clips keep transcripts verbatim (long ones get summarised or blocked). */
 const SEGMENT = { transcript: 90, notes: 300 } as const;
@@ -223,13 +224,11 @@ async function study(ctx: AppContext, r: typeof transcripts.$inferSelect, locale
         "a glossary of every proper name, place, book, technical or religious term and foreign (Arabic, Persian, …) phrase that is spoken, written the way it should be spelled in a careful text (Uzbek: standard modern Latin orthography with o‘, g‘, ʼ; Arabic phrases in conventional Uzbek Latin transliteration), with a short note when useful;",
         `and an outline of the talk's main sections: the second (from the start of the recording, at most ${Math.floor(span)}) where each begins and a short title ${
           r.mode === "notes"
-            ? locale === "en"
-              ? "in English"
-              : "in Uzbek (Latin)"
+            ? `in ${aiLanguage(asLocale(locale))}`
             : "in the language that is spoken"
         }.`,
         "Never invent anything that is not in the recording.",
-        `Write the topic and glossary notes ${locale === "en" ? "in English" : "in Uzbek (Latin)"}; keep glossary terms in their proper spelling.`,
+        `Write the topic and glossary notes in ${aiLanguage(asLocale(locale))}; keep glossary terms in their proper spelling.`,
       ].join("\n"),
       temperature: 0,
       mediaResolution: MediaResolution.MEDIA_RESOLUTION_LOW,
@@ -258,7 +257,7 @@ async function study(ctx: AppContext, r: typeof transcripts.$inferSelect, locale
                   type: Type.STRING,
                   description:
                     r.mode === "notes"
-                      ? `Short title in ${locale === "en" ? "English" : "Uzbek (Latin)"}`
+                      ? `Short title in ${aiLanguage(asLocale(locale))}`
                       : "Short title in the spoken language",
                 },
               },
@@ -336,7 +335,7 @@ async function writeSegment(
             .join(
               ", ",
             )}. Right before each one's first sentence put a heading line "## <short title>" written in ${
-            r.mode === "notes" ? (locale === "en" ? "English" : "Uzbek (Latin)") : spoken
+            r.mode === "notes" ? aiLanguage(asLocale(locale)) : spoken
           } (translate the title if needed); no other headings.`
         : "Do not add headings.",
     ];

@@ -13,13 +13,14 @@ import { BOOK_TEMPLATES, templateDoc } from "@/lib/book-templates";
 import { AppError } from "@/lib/errors";
 import { docToPlain, sanitizeDoc } from "@/lib/writeup-doc";
 import { applyCreateResource, parseResource } from "./catalog";
+import { LOCALES } from "@/i18n/config";
 
 export const ownBookInput = z.object({
   title: z.string().trim().min(1).max(300),
   subtitle: z.string().trim().max(1000).nullish(),
   template: z.enum(BOOK_TEMPLATES).default("blank"),
   goalWords: z.number().int().min(100).max(2_000_000).nullish(),
-  locale: z.enum(["uz", "en"]).default("uz"),
+  locale: z.enum(LOCALES).default("uz"),
 });
 
 export async function createOwnBook(ctx: AppContext, raw: unknown) {
@@ -115,6 +116,23 @@ export async function setOwnBookGoal(ctx: AppContext, id: string, goal: number |
       .set({ goalWords: g, updatedAt: new Date() })
       .where(and(eq(ownBooks.resourceId, id), eq(ownBooks.userId, ctx.userId))),
   );
+}
+
+/** Title, subtitle and word goal of one's own book. */
+export async function updateOwnBook(ctx: AppContext, id: string, raw: unknown) {
+  const a = ownBookInput.pick({ title: true, subtitle: true, goalWords: true }).parse(raw);
+  const book = await getOwnBook(ctx, id);
+  if (!book) throw new AppError("NOT_FOUND");
+  await withUser(db, ctx, async (tx) => {
+    await tx
+      .update(resources)
+      .set({ title: a.title, description: a.subtitle ?? null, updatedAt: new Date() })
+      .where(and(eq(resources.id, id), eq(resources.createdBy, ctx.userId)));
+    await tx
+      .update(ownBooks)
+      .set({ goalWords: a.goalWords ?? null, updatedAt: new Date() })
+      .where(and(eq(ownBooks.resourceId, id), eq(ownBooks.userId, ctx.userId)));
+  });
 }
 
 export async function deleteOwnBook(ctx: AppContext, id: string) {

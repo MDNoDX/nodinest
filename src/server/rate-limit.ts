@@ -37,7 +37,7 @@ export async function enforceRateLimit(
 /** Opportunistic cleanup of expired windows (called occasionally). */
 export async function pruneRateLimits(database: Database): Promise<void> {
   await database.execute(
-    sql`delete from nodinest.rate_limits where window_start < now() - interval '2 days'`,
+    sql`delete from nodinest.rate_limits where window_start < now() - interval '2 days' and key not like 'adclick:%'`,
   );
 }
 

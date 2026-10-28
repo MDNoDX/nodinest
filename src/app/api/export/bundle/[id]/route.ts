@@ -8,6 +8,7 @@ import { labels } from "@/server/export/labels";
 import { getOwnBook } from "@/server/own-books";
 import { enforceRateLimit } from "@/server/rate-limit";
 import { apiError, apiUser, json } from "../../../_utils";
+import { asLocale } from "@/i18n/config";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .parse((await params).id);
     const kind = z.enum(BUNDLE_KINDS).parse(req.nextUrl.searchParams.get("kind") ?? "zip");
     await enforceRateLimit(db, `export:${user.id}`, 40, 3600);
-    const loc = user.locale === "en" ? "en" : "uz";
+    const loc = asLocale(user.locale);
     const [item] = await loadExport(ctx, { resourceIds: [id], covers: false });
     if (!item?.doc) throw new AppError("NOT_FOUND", "nothing_to_export");
     const own = await getOwnBook(ctx, id);

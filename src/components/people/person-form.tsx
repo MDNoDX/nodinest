@@ -323,7 +323,7 @@ export function PersonForm({
         </section>
       )}
 
-      <div className="border-border bg-background/90 sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+      <div className="border-border bg-background/90 sticky bottom-[var(--bottom-nav,0px)] z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <p className="text-muted text-xs">
           {isAdmin ? t("resource.newSubtitleAdmin") : t("resource.newSubtitleUser")}
         </p>

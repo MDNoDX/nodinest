@@ -19,6 +19,15 @@ export type CurrentUser = {
   name: string;
   email: string;
   image: string | null;
+  /** NULL until chosen at /welcome (the app sends the user there first). */
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  /** Premium is active (premium_until in the future). */
+  isPremium: boolean;
+  premiumUntil: Date | null;
+  profilePublic: boolean;
+  bio: string | null;
   /**
    * EFFECTIVE role. A superadmin account works as a regular user until it
    * switches "admin mode" on (cookie); only then is this "superadmin".
@@ -40,6 +49,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       name: user.name,
       email: user.email,
       image: user.image,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      premiumUntil: user.premiumUntil,
+      profilePublic: user.profilePublic,
+      bio: user.bio,
       role: user.role,
       status: user.status,
       locale: user.locale,
@@ -54,7 +69,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // The cookie can only *narrow* privileges: it never grants a role the DB
   // didn't, so it is safe to read from the client.
   const adminMode = isSuperadmin && (await cookies()).get(ADMIN_MODE_COOKIE)?.value === "1";
-  return { ...rest, role: adminMode ? "superadmin" : "user", isSuperadmin, adminMode };
+  const isPremium = !!rest.premiumUntil && rest.premiumUntil > new Date();
+  return { ...rest, isPremium, role: adminMode ? "superadmin" : "user", isSuperadmin, adminMode };
 });
 
 /** For pages/layouts: redirects to /login when signed out. */

@@ -27,9 +27,10 @@ import { generate, speak, uploadToGemini } from "./ai/gemini";
 import { factsText, gate, langRule, resourceFacts } from "./ai/study";
 import { findStructure, getStructure } from "./book-structure";
 import { loadBookPages } from "./booktext";
+import { enforceRateLimit } from "./rate-limit";
 import { reflow } from "@/lib/reflow";
 import { readFileBytes } from "./storage";
-import { stretchPauses } from "@/lib/audio-pauses";
+import { mapIndex, quietMiddles, stretchPausesMapped } from "@/lib/audio-pauses";
 import {
   cleanLines,
   cleanPages,
@@ -41,6 +42,7 @@ import {
   runs,
   type ScriptLine,
 } from "@/lib/audiobook-plan";
+import { type Locale } from "@/i18n/config";
 
 // ─── Voices ──────────────────────────────────────────────────────────────────
 
@@ -78,6 +80,24 @@ export const VOICES = {
   Sulafat: { g: "f", d: "warm" },
 } as const;
 export type VoiceName = keyof typeof VOICES;
+
+/** Voices that suit an age, best first (children: light, young voices). */
+const AGE_VOICES: Record<string, Partial<Record<"m" | "f", VoiceName[]>>> = {
+  child: {
+    f: ["Leda", "Laomedeia", "Zephyr", "Autonoe"],
+    m: ["Puck", "Sadachbia", "Fenrir", "Achird"],
+  },
+  young: {
+    f: ["Aoede", "Leda", "Autonoe", "Zephyr", "Callirrhoe"],
+    m: ["Puck", "Achird", "Zubenelgenubi", "Sadachbia", "Umbriel"],
+  },
+  elderly: {
+    f: ["Gacrux", "Vindemiatrix", "Sulafat", "Achernar"],
+    m: ["Algenib", "Rasalgethi", "Schedar", "Charon"],
+  },
+};
+/** Not picked automatically (still selectable by hand). */
+const NO_AUTO = new Set<VoiceName>(["Enceladus"]);
 const isVoice = (v: unknown): v is VoiceName => typeof v === "string" && v in VOICES;
 const VOICE_LIST = Object.entries(VOICES)
   .map(([n, v]) => `${n} (${v.g === "m" ? "male" : "female"}, ${v.d})`)
@@ -245,7 +265,7 @@ async function moreCast(
   body: string,
   n: number,
   total: number,
-  locale: "uz" | "en",
+  locale: Locale,
 ) {
   const res = await generate(
     [
@@ -340,13 +360,26 @@ function cleanAnalysis(raw: Record<string, unknown>, pages: number): Analysis {
    * else a free voice of that gender; when a big cast has used them all, the
    * least used one of that gender (never the narrator's).
    */
-  const pick = (v: unknown, g: string, narratorVoice?: VoiceName): VoiceName => {
+  const pick = (
+    v: unknown,
+    g: string,
+    narratorVoice?: VoiceName,
+    age: string = "unknown",
+  ): VoiceName => {
     const want = g === "female" ? "f" : g === "male" ? "m" : null;
     const fits = (n: VoiceName) => !want || VOICES[n].g === want;
-    let out: VoiceName | undefined = isVoice(v) && fits(v) && !used.has(v) ? v : undefined;
-    out ??= (Object.keys(VOICES) as VoiceName[]).find((n) => fits(n) && !used.has(n));
+    // Breathy voices sound like sighing in long reading: never chosen by itself.
+    const auto = (n: VoiceName) => fits(n) && !NO_AUTO.has(n);
+    const byAge = (AGE_VOICES[age]?.[want ?? "f"] ?? []).filter((n) => fits(n) && !used.has(n));
+    let out: VoiceName | undefined =
+      isVoice(v) && fits(v) && !used.has(v) && !NO_AUTO.has(v) && (!byAge.length || age === "adult")
+        ? v
+        : undefined;
+    out ??= byAge[0];
+    out ??= isVoice(v) && fits(v) && !used.has(v) && !NO_AUTO.has(v) ? v : undefined;
+    out ??= (Object.keys(VOICES) as VoiceName[]).find((n) => auto(n) && !used.has(n));
     out ??= (Object.keys(VOICES) as VoiceName[])
-      .filter((n) => fits(n) && n !== narratorVoice)
+      .filter((n) => auto(n) && n !== narratorVoice)
       .sort((a, b) => (uses.get(a) ?? 0) - (uses.get(b) ?? 0))[0];
     out ??= want === "f" ? "Sulafat" : "Charon";
     used.add(out);
@@ -371,7 +404,7 @@ function cleanAnalysis(raw: Record<string, unknown>, pages: number): Analysis {
         role: str(c.role, 300),
         description: str(c.description, 600),
         speech: str(c.speech, 300),
-        voice: pick(c.voice, gender, narrator),
+        voice: pick(c.voice, gender, narrator, String(c.age)),
       };
     })
     .filter((c) => c.name && c.name.toLowerCase() !== "narrator")
@@ -410,7 +443,7 @@ function cleanAnalysis(raw: Record<string, unknown>, pages: number): Analysis {
  * Reads the whole book and prepares it for narration. Re-running replaces the
  * analysis (and the cached scripts).
  */
-export async function analyzeAudiobook(ctx: AppContext, resourceId: string, locale: "uz" | "en") {
+export async function analyzeAudiobook(ctx: AppContext, resourceId: string, locale: Locale) {
   await gate(ctx, "ask");
   const started = Date.now();
   const facts = await resourceFacts(ctx, resourceId);
@@ -834,6 +867,18 @@ function encodeMp3(pcm: Int16Array, rate: number) {
   return Buffer.concat(out.map((b) => Buffer.from(b.buffer, b.byteOffset, b.byteLength)));
 }
 
+/** The book's language (from the analysis) → how the speech model should say it. */
+export function speechLanguage(language: string | null | undefined) {
+  const l = (language ?? "").toLowerCase();
+  if (/uzbek|o.?zbek|ўзбек|узбек/.test(l)) return { code: "uz-UZ", name: "Uzbek" };
+  if (/russian|рус/.test(l)) return { code: "ru-RU", name: "Russian" };
+  if (/english|ingliz|англ/.test(l)) return { code: "en-US", name: "English" };
+  if (/turkish|turk/.test(l)) return { code: "tr-TR", name: "Turkish" };
+  if (/kazakh/.test(l)) return { code: "kk-KZ", name: "Kazakh" };
+  if (/arabic/.test(l)) return { code: "ar-XA", name: "Arabic" };
+  return null;
+}
+
 /** MP3 of segment `idx`, voiced with the book's cast. */
 export async function segmentAudio(ctx: AppContext, resourceId: string, idx: number) {
   await gate(ctx, "audiobook");
@@ -842,14 +887,21 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
   for (const c of a.characters) voice.set(c.name, c.voice);
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;
   const groups = runs(lines);
-  const style =
-    `Read this as a professional audiobook narrator: unhurried, warm and expressive, with natural pauses between sentences and a longer pause between paragraphs; give each character their own feeling. ${a.narration.style ?? ""}`.trim();
+  const lang = speechLanguage(a.language);
+  const style = [
+    `Read this as a professional ${lang?.name ?? ""} audiobook narrator${lang ? `, in ${lang.name} with a native speaker's pronunciation and intonation (never a foreign accent)` : ""}.`,
+    "Be strongly expressive: live every emotion of the text — joy, fear, anger, grief, tenderness, irony — and give each character their own voice and feeling; dialogue sounds like real people talking.",
+    "Keep a calm, clear pace with pauses between sentences. Do NOT add breathing, sighs, gasps, laughter or any other sounds that are not words of the text.",
+    a.narration.style ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   // A few requests at once; the order of the pieces is kept.
   const pieces: { pcm: Int16Array; rate: number }[] = new Array(groups.length);
   for (let i = 0; i < groups.length; i += 3)
     await Promise.all(
       groups.slice(i, i + 3).map(async (g, j) => {
-        pieces[i + j] = await speak(g, voiceOf, { style });
+        pieces[i + j] = await speak(g, voiceOf, { style, languageCode: lang?.code });
       }),
     );
   const rate = pieces[0]?.rate ?? 24000;
@@ -857,15 +909,101 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
   const gap = new Int16Array(Math.round(rate * 0.55));
   const total = pieces.reduce((n, p) => n + p.pcm.length + gap.length, 0);
   const pcm = new Int16Array(total);
+  // Where each script line starts (samples). Pieces are exact; inside a piece
+  // by its share of characters, moved onto the nearest pause of the voice.
+  // (Long lines may be split over pieces, so lines are found by character.)
+  const spans: { c0: number; c1: number; a0: number; a1: number; quiet: number[] }[] = [];
   let at = 0;
-  for (const p of pieces) {
+  let c = 0;
+  pieces.forEach((p, k) => {
     pcm.set(p.pcm, at);
+    const n = groups[k].reduce((s, l) => s + l.text.length, 0);
+    spans.push({
+      c0: c,
+      c1: c + n,
+      a0: at,
+      a1: at + p.pcm.length,
+      quiet: quietMiddles(p.pcm, rate),
+    });
+    c += n;
     at += p.pcm.length + gap.length;
+  });
+  const starts: number[] = [];
+  let cl = 0;
+  for (const l of lines) {
+    const sp = spans.find((x) => cl < x.c1) ?? spans.at(-1);
+    if (sp) {
+      const share = sp.c1 > sp.c0 ? Math.max(0, cl - sp.c0) / (sp.c1 - sp.c0) : 0;
+      let est = Math.round(share * (sp.a1 - sp.a0));
+      if (est > 0 && sp.quiet.length) {
+        const near = sp.quiet.reduce((b, q) => (Math.abs(q - est) < Math.abs(b - est) ? q : b));
+        if (Math.abs(near - est) < rate * 1.5) est = near;
+      }
+      starts.push(sp.a0 + est);
+    }
+    cl += l.text.length;
   }
   // A human narrator's pacing: the model's own pauses at sentence ends and
   // commas are lengthened (no extra request, nothing re-spoken).
-  const paced = stretchPauses(pcm, rate);
-  return { mp3: encodeMp3(paced, rate), seconds: paced.length / rate };
+  const { pcm: paced, inserts } = stretchPausesMapped(pcm, rate);
+  const marks =
+    starts.length === lines.length
+      ? starts.map((s) => Math.round((mapIndex(inserts, s) / rate) * 100) / 100)
+      : [];
+  return { mp3: encodeMp3(paced, rate), seconds: paced.length / rate, marks };
+}
+
+/**
+ * A short sample of a voice reading this book (for choosing voices): a line
+ * the character says in an already prepared part, else the book's opening.
+ * Limited per day (speech requests are scarce on the free tier).
+ */
+export async function previewVoice(
+  ctx: AppContext,
+  resourceId: string,
+  voice: string,
+  speaker: string,
+) {
+  if (!isVoice(voice)) throw new AppError("VALIDATION", "voice");
+  await gate(ctx, "audiobook");
+  if (!ctx.superadminAccount) await enforceRateLimit(db, `abpreview:${ctx.userId}`, 12, 86_400);
+  const r = await getRow(ctx, resourceId);
+  if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
+  const a = r.analysis as Analysis;
+  let text = "";
+  if (speaker !== "narrator") {
+    const rows = await withUser(db, ctx, (tx) =>
+      tx
+        .select({ script: audiobookScripts.script })
+        .from(audiobookScripts)
+        .where(eq(audiobookScripts.audiobookId, r.id))
+        .limit(40),
+    );
+    for (const row of rows) {
+      const line = (row.script as ScriptLine[]).find(
+        (l) => l.speaker === speaker && l.text.length > 25,
+      );
+      if (line) {
+        text = line.text;
+        break;
+      }
+    }
+  }
+  if (!text) {
+    const seg = segmentPreview(ctx, resourceId, Math.min(1, (r.plan as Plan).segs.length - 1));
+    text = ((await seg).lines.map((l) => l.text).join(" ") || a.summary).slice(0, 600);
+  }
+  // About ten seconds: whole sentences up to ~220 characters.
+  const cut = text.slice(0, 260);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+  const sample = (end > 60 ? cut.slice(0, end + 1) : cut).trim();
+  const lang = speechLanguage(a.language);
+  const { pcm, rate } = await speak([{ speaker: "x", text: sample }], () => voice, {
+    languageCode: lang?.code,
+    style: `Read this as an expressive ${lang?.name ?? ""} audiobook narrator, with native pronunciation. No breathing or other sounds.`,
+    timeoutMs: 45_000,
+  });
+  return encodeMp3(pcm, rate);
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────

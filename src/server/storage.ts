@@ -8,12 +8,23 @@
  * Without BLOB_READ_WRITE_TOKEN uploads are disabled; URL fields still work.
  */
 import "server-only";
+import { later } from "./later";
 import { del, get, head } from "@vercel/blob";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { files } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { enforceRateLimit } from "./rate-limit";
+import {
+  MOVE_FROM_BYTES,
+  deleteParts,
+  moveToTelegram,
+  partsSize,
+  readParts,
+  streamParts,
+  tgStorageReady,
+  type TgPart,
+} from "./tg-storage";
 
 export type UploadPurpose = "cover" | "portrait" | "attachment" | "media";
 
@@ -45,7 +56,9 @@ export const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 export const MEDIA_MAX_BYTES = 30 * 1024 * 1024;
 /** Videos in a taqriz / own book (they count toward the user's quota). */
 export const VIDEO_MAX_BYTES = 150 * 1024 * 1024;
-export const USER_QUOTA_BYTES = 900 * 1024 * 1024;
+const BLOB_QUOTA_BYTES = 900 * 1024 * 1024;
+/** Per-user space: much more once big files live in Telegram. */
+export const userQuotaBytes = () => (tgStorageReady() ? 5 * 1024 * 1024 * 1024 : BLOB_QUOTA_BYTES);
 
 export function attachmentMaxBytes() {
   const mb = Number(process.env.UPLOAD_MAX_MB ?? 50);
@@ -112,7 +125,7 @@ export async function authorizeUpload(
   )
     throw new AppError("VALIDATION", "file_too_large");
   await enforceRateLimit(db, `upload:${ctx.userId}`, 60, 3600);
-  if ((await storageUsage(ctx)) + payload.size > USER_QUOTA_BYTES)
+  if ((await storageUsage(ctx)) + payload.size > userQuotaBytes())
     throw new AppError("VALIDATION", "quota_exceeded");
   return {
     allowedContentTypes: allowedTypes(payload.purpose),
@@ -168,6 +181,8 @@ export async function registerUpload(
       .returning({ id: files.id }),
   );
   if (!row) throw new AppError("CONFLICT");
+  // Big files go on to the Telegram store (Blob stays small and free).
+  if (meta.size > MOVE_FROM_BYTES && tgStorageReady()) later(() => moveToTelegram(row.id));
   return { fileId: row.id, url: `/api/files/${row.id}` };
 }
 
@@ -183,19 +198,32 @@ async function readableFile(ctx: AppContext, fileId: string) {
   return f;
 }
 
-/** Streams a file the actor may read. */
-export async function openFile(ctx: AppContext, fileId: string) {
+/**
+ * Streams a file the actor may read. Files moved to Telegram can be read in
+ * byte ranges (`range` = [start, end] inclusive), so video seeking works.
+ */
+export async function openFile(ctx: AppContext, fileId: string, range?: [number, number?]) {
   const f = await readableFile(ctx, fileId);
   if (!f) return null;
-  const res = await get(f.path, { access: "private" });
-  if (!res || !res.stream) return null;
-  return {
-    stream: res.stream,
+  const base = {
     contentType: f.mimeType,
     name: f.originalName,
     size: f.sizeBytes,
     purpose: f.purpose,
   };
+  if (f.bucket === "telegram" && Array.isArray(f.tgParts)) {
+    const parts = f.tgParts as TgPart[];
+    const size = partsSize(parts);
+    if (range) {
+      const start = Math.min(range[0], size - 1);
+      const end = Math.min(range[1] ?? size - 1, size - 1);
+      return { ...base, size, stream: streamParts(parts, start, end), range: { start, end, size } };
+    }
+    return { ...base, size, stream: streamParts(parts) };
+  }
+  const res = await get(f.path, { access: "private" });
+  if (!res || !res.stream) return null;
+  return { ...base, stream: res.stream };
 }
 
 /** Full bytes of the actor's own file (used for PDF text extraction). */
@@ -205,6 +233,8 @@ export async function readFileBytes(
 ): Promise<{ bytes: Uint8Array; mime: string } | null> {
   const f = await readableFile(ctx, fileId);
   if (!f) return null;
+  if (f.bucket === "telegram" && Array.isArray(f.tgParts))
+    return { bytes: await readParts(f.tgParts as TgPart[]), mime: f.mimeType };
   const res = await get(f.path, { access: "private" });
   if (!res?.stream) return null;
   const buf = await new Response(res.stream).arrayBuffer();
@@ -220,9 +250,11 @@ export async function deleteFile(ctx: AppContext, fileId: string) {
       .returning(),
   );
   if (!f) throw new AppError("NOT_FOUND");
-  await del(f.path).catch(() => {
-    /* metadata already marked deleted */
-  });
+  if (f.bucket === "telegram" && Array.isArray(f.tgParts)) await deleteParts(f.tgParts as TgPart[]);
+  else
+    await del(f.path).catch(() => {
+      /* metadata already marked deleted */
+    });
 }
 
 export async function listAttachments(ctx: AppContext, resourceId: string) {
