@@ -15,6 +15,10 @@ import * as schema from "@/db/schema";
 import { bootstrapSuperadmin, isUserSuspended, seedNewUser } from "./bootstrap";
 import { isDevLoginEnabled } from "./dev-login";
 import { notifyNewUser } from "@/server/monitor/events";
+import { emailOTP } from "better-auth/plugins/email-otp";
+import { eq, sql } from "drizzle-orm";
+import { codeMail, mailConfigured, sendMail } from "@/server/mail";
+import { hitRateLimit } from "@/server/rate-limit";
 import { telegram } from "./telegram";
 
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
@@ -93,7 +97,35 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [...(telegramEnabled ? [telegram()] : []), nextCookies()],
+  plugins: [
+    ...(telegramEnabled ? [telegram()] : []),
+    ...(mailConfigured()
+      ? [
+          emailOTP({
+            otpLength: 6,
+            expiresIn: 600,
+            allowedAttempts: 3,
+            storeOTP: "hashed",
+            async sendVerificationOTP({ email, otp, type }) {
+              if (type !== "sign-in") return;
+              const e = email.toLowerCase();
+              // The superadmin account signs in with Google only.
+              const [u] = await db
+                .select({ role: schema.user.role, locale: schema.user.locale })
+                .from(schema.user)
+                .where(eq(sql`lower(${schema.user.email})`, e));
+              if (u?.role === "superadmin") return;
+              if (!(await hitRateLimit(db, `otp:${e}`, 5, 3600)).allowed) return;
+              const m = codeMail(otp, u?.locale ?? "uz");
+              await sendMail({ to: e, ...m }).catch((err) =>
+                console.error("[nodinest] mail failed:", err instanceof Error ? err.message : err),
+              );
+            },
+          }),
+        ]
+      : []),
+    nextCookies(),
+  ],
 });
 
 export const authProviders = {
@@ -101,4 +133,6 @@ export const authProviders = {
   devLogin: isDevLoginEnabled(),
   /** Sign-in confirmed in the site's Telegram bot. */
   telegram: telegramEnabled,
+  /** Sign-in with a code sent by e-mail. */
+  email: mailConfigured(),
 };

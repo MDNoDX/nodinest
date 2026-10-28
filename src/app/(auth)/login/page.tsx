@@ -1,4 +1,4 @@
-import { BookOpen, ListTree, Sparkles, Trophy } from "lucide-react";
+import { Brain, Headphones, ListTree, Sparkles, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -31,10 +31,11 @@ export default async function LoginPage({
   if (await getCurrentUser()) redirect(next);
   const t = await getTranslations();
   const features = [
-    ["library", <BookOpen key="l" />, "indigo"],
-    ["taqriz", <ListTree key="k" />, "teal"],
-    ["stats", <Trophy key="s" />, "amber"],
+    ["audiobook", <Headphones key="h" />, "indigo"],
     ["assistant", <Sparkles key="a" />, "rose"],
+    ["taqriz", <ListTree key="k" />, "teal"],
+    ["review", <Brain key="r" />, "amber"],
+    ["community", <UsersRound key="c" />, "violet"],
   ] as const;
   return (
     <main className="relative grid min-h-dvh place-items-center overflow-hidden px-4 py-10">
@@ -69,6 +70,7 @@ export default async function LoginPage({
           <LoginPanel
             googleEnabled={authProviders.google}
             telegramEnabled={authProviders.telegram}
+            emailEnabled={authProviders.email}
             devEnabled={authProviders.devLogin}
             next={next}
           />

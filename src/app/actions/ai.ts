@@ -19,6 +19,7 @@ export async function askAssistantAction(input: {
   conversationId?: string | null;
   message: string;
   attachments?: string[];
+  mode?: "act" | "talk";
 }) {
   return run(async ({ ctx, user }) => {
     const p = z
@@ -26,6 +27,7 @@ export async function askAssistantAction(input: {
         conversationId: z.string().uuid().nullish(),
         message: z.string().trim().max(6000),
         attachments: z.array(z.string().uuid()).max(6).default([]),
+        mode: z.enum(["act", "talk"]).default("act"),
       })
       .refine((v) => v.message.length > 0 || v.attachments.length > 0)
       .parse(input);
@@ -33,6 +35,7 @@ export async function askAssistantAction(input: {
       conversationId: p.conversationId ?? null,
       message: p.message,
       attachments: p.attachments,
+      mode: p.mode,
       locale: await getLocale(),
       timeZone: user.timezone,
     });

@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 test("unauthenticated users are sent to login", async ({ page }) => {
   await page.goto("/library");
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("heading", { name: /NodiNote/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /kelibsiz/ })).toBeVisible();
 });
 
 test("sign up, Uzbek by default, switch to English, theme persists", async ({ page }) => {

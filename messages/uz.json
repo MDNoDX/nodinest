@@ -128,7 +128,7 @@
     "en": "English"
   },
   "auth": {
-    "signInTitle": "NodiNote’ga xuş kelibsiz",
+    "signInTitle": "Saytga xuş kelibsiz!",
     "signInSubtitle": "Şaxsiy darsxonangiz va öquv jurnalingiz. Davom etiş uçun kiring.",
     "withGoogle": "Google orqali kiriş",
     "googleMissing": "Google orqali kiriş hali sozlanmagan. GOOGLE_CLIENT_ID va GOOGLE_CLIENT_SECRET’ni örnating (docs/DEPLOYMENT.md).",
@@ -143,14 +143,23 @@
     "failed": "Kiriş amalga oşmadi. Ma’lumotlarni tekşirib, qayta urinib köring.",
     "privacyNote": "Qaydlaringiz, taqrizlaringiz va fikrlaringiz sukut böyiça şaxsiy.",
     "features": {
-      "library": "Kitob, kurs, video va maqolalar — muqovalari bilan bir joyda",
-      "stats": "Reytingli töplamlar va öqilgan sahifalar hisobi",
-      "assistant": "AI yordamçi: qöşadi, tartiblaydi, PDF içidan topadi",
-      "taqriz": "Har bir kitobga taqriz: erkin yozing yoki boblarga ajrating"
+      "audiobook": "PDF kitobingizni AI jonli ovozli audiokitobga aylantiradi",
+      "assistant": "AI yordamçi va halol suhbatdoş — öqiganlaringizni biladi",
+      "taqriz": "Kitob öqing, iqtibos va qaydlar oling, taqriz yozing",
+      "review": "Öqiganingizni unutmang: AI savollar va takrorlaş",
+      "community": "Öqituvçi va döstlaringizni kuzating"
     },
     "withTelegram": "Telegram orqali kiriş",
     "telegramSigningIn": "Telegram orqali kirilmoqda…",
-    "agree": "Kiriş orqali siz <terms>Foydalaniş şartlari</terms> va <privacy>Maxfiylik siyosati</privacy>ga rozilik bildirasiz."
+    "agree": "Kiriş orqali siz <terms>Foydalaniş şartlari</terms> va <privacy>Maxfiylik siyosati</privacy>ga rozilik bildirasiz.",
+    "withEmail": "Email orqali kod oliş",
+    "sendCode": "Kod yuboriş",
+    "code": "Emaildagi 6 xonali kod",
+    "codeSent": "Kod {email} manziliga yuborildi. Spam papkasini ham tekşiring.",
+    "verify": "Kiriş",
+    "or": "yoki",
+    "badCode": "Kod notöğri yoki eskirgan.",
+    "changeEmail": "Boşqa email"
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -840,7 +849,13 @@
     "bookPdfHint": "PDF kitobga biriktiriladi: matni ajratiladi, butun kitob böyiça boblar topiladi va audiokitob tahlil qilinadi (katta kitobda 1–5 daqiqa). Keyin kitobni saytda öqiysiz va tinglaysiz.",
     "audiobookHint": "AI butun kitobni öqib, qahramonlar ovozini tanlaydi (1–5 daqiqa).",
     "bookFromEarlier": "«{title}» — oldingi kartada qöşiladigan kitob",
-    "limitLeft": "Bepul xizmat: bugun {limit} ta sörovdan {left} tasi qoldi (har kuni yangilanadi)."
+    "limitLeft": "Bepul xizmat: bugun {limit} ta sörovdan {left} tasi qoldi (har kuni yangilanadi).",
+    "modeLabel": "Rejim",
+    "modeAct": "Yordamçi",
+    "modeActHint": "Saytda iş bajaradi: kitob qöşadi, savollar tuzadi — hammasi tasdiq bilan",
+    "modeTalk": "Suhbat",
+    "modeTalkHint": "Öqiganlaringiz haqida halol suhbatdoş",
+    "talkIntro": "Men Nodi — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: maqtamayman, kamçilikni ham oçiq aytaman."
   },
   "stats": {
     "title": "Körsatkiçlar",

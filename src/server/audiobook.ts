@@ -867,16 +867,44 @@ function encodeMp3(pcm: Int16Array, rate: number) {
   return Buffer.concat(out.map((b) => Buffer.from(b.buffer, b.byteOffset, b.byteLength)));
 }
 
-/** The book's language (from the analysis) → how the speech model should say it. */
+/** Languages the speech models know, with words that name them (English / native / Uzbek). */
+const SPEECH_LANGS: [RegExp, string, string][] = [
+  [/uzbek|o.?zbek|ўзбек|узбек/, "uz-UZ", "Uzbek"],
+  [/russian|рус|rus tili/, "ru-RU", "Russian"],
+  [/english|ingliz|англ/, "en-US", "English"],
+  [/arabic|arab|عرب/, "ar-EG", "Arabic"],
+  [/spanish|español|espanol|ispan|испан/, "es-ES", "Spanish"],
+  [/french|français|francais|fransuz|франц/, "fr-FR", "French"],
+  [/german|deutsch|nemis|немец/, "de-DE", "German"],
+  [/turkish|türk|turk|турец/, "tr-TR", "Turkish"],
+  [/kazakh|қазақ|qozoq|казах/, "kk-KZ", "Kazakh"],
+  [/kyrgyz|кыргыз|qirg/, "ky-KG", "Kyrgyz"],
+  [/tajik|тоҷик|tojik|таджик/, "tg-TJ", "Tajik"],
+  [/persian|farsi|fors|فارسی|перс/, "fa-IR", "Persian"],
+  [/ukrainian|україн|ukrain|украин/, "uk-UA", "Ukrainian"],
+  [/italian|italiano|italyan|итальян/, "it-IT", "Italian"],
+  [/portuguese|português|portugal|португ/, "pt-BR", "Portuguese"],
+  [/chinese|中文|xitoy|китай|mandarin/, "cmn-CN", "Chinese"],
+  [/japanese|日本|yapon|япон/, "ja-JP", "Japanese"],
+  [/korean|한국|koreys|корей/, "ko-KR", "Korean"],
+  [/hindi|हिन्दी|хинди/, "hi-IN", "Hindi"],
+  [/urdu|اردو/, "ur-PK", "Urdu"],
+  [/indonesian|bahasa/, "id-ID", "Indonesian"],
+  [/polish|polski|polyak|польск/, "pl-PL", "Polish"],
+  [/dutch|nederlands|голланд|нидерланд/, "nl-NL", "Dutch"],
+  [/azerbaijani|azərbaycan|ozarbayjon|азербайдж/, "az-AZ", "Azerbaijani"],
+];
+
+/**
+ * The book's language (from the analysis) → how the speech model says it: the
+ * BCP-47 code (when the model knows it) and the language's English name for
+ * the narrator's direction. Unknown languages still get their name.
+ */
 export function speechLanguage(language: string | null | undefined) {
   const l = (language ?? "").toLowerCase();
-  if (/uzbek|o.?zbek|ўзбек|узбек/.test(l)) return { code: "uz-UZ", name: "Uzbek" };
-  if (/russian|рус/.test(l)) return { code: "ru-RU", name: "Russian" };
-  if (/english|ingliz|англ/.test(l)) return { code: "en-US", name: "English" };
-  if (/turkish|turk/.test(l)) return { code: "tr-TR", name: "Turkish" };
-  if (/kazakh/.test(l)) return { code: "kk-KZ", name: "Kazakh" };
-  if (/arabic/.test(l)) return { code: "ar-XA", name: "Arabic" };
-  return null;
+  for (const [re, code, name] of SPEECH_LANGS) if (re.test(l)) return { code, name };
+  const name = (language ?? "").replace(/\(.*?\)/g, "").trim();
+  return name ? { code: undefined, name } : null;
 }
 
 /** MP3 of segment `idx`, voiced with the book's cast. */
@@ -890,6 +918,7 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
   const lang = speechLanguage(a.language);
   const style = [
     `Read this as a professional ${lang?.name ?? ""} audiobook narrator${lang ? `, in ${lang.name} with a native speaker's pronunciation and intonation (never a foreign accent)` : ""}.`,
+    "Keep the narration in that one language from start to end; a foreign word or quotation inside the text is said in its own language's pronunciation, then the narration goes on as before.",
     "Be strongly expressive: live every emotion of the text — joy, fear, anger, grief, tenderness, irony — and give each character their own voice and feeling; dialogue sounds like real people talking.",
     "Keep a calm, clear pace with pauses between sentences. Do NOT add breathing, sighs, gasps, laughter or any other sounds that are not words of the text.",
     a.narration.style ?? "",

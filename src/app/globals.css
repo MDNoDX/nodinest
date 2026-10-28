@@ -4,24 +4,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
-   Forest green identity, warm off-white surfaces, muted sand/gold accent,
-   charcoal-green dark theme. Contrast checked for WCAG AA on body text. */
+   "Ink & saffron": warm paper surfaces and ink text by day, deep ink (not
+   navy) by night; indigo for actions, the logo's saffron gold as the accent,
+   and a hue per section so the app is never one flat colour. Contrast is
+   checked for WCAG AA on body text in both themes. */
 :root {
-  --background: #f5f7fc;
-  --surface: #ffffff;
-  --surface-2: #eef2fa;
-  --surface-3: #e2e8f5;
-  --foreground: #0f172a;
-  --muted-foreground: #475166;
-  --border: #e1e6f0;
-  --border-strong: #c9d2e3;
-  --primary: #2459e0;
-  --primary-hover: #1c47b8;
+  --background: #f6f4ef;
+  --surface: #fffefb;
+  --surface-2: #f0ece4;
+  --surface-3: #e6e0d4;
+  --foreground: #1a1c29;
+  --muted-foreground: #585c6e;
+  --border: #e5dfd3;
+  --border-strong: #d2c9b8;
+  --primary: #4338ca;
+  --primary-hover: #3730a3;
   --primary-foreground: #ffffff;
-  --primary-soft: #e6eeff;
-  --accent: #b45309;
-  --accent-soft: #fef3c7;
-  --ring: #3b6ff0;
+  --primary-soft: #ebe9fe;
+  --accent: #b9650a;
+  --accent-soft: #fcefd6;
+  --ring: #6366f1;
   --success: #15803d;
   --success-soft: #dcfce7;
   --warning: #a16207;
@@ -31,39 +33,40 @@
   --info: #0369a1;
   --info-soft: #e0f2fe;
   /* Per resource-type / section hues (identity, never status). */
-  --c-blue: #2459e0;
-  --c-indigo: #5146e5;
+  --c-blue: #2563eb;
+  --c-indigo: #4f46e5;
   --c-violet: #7c3aed;
   --c-rose: #e11d48;
   --c-orange: #ea580c;
-  --c-amber: #d97706;
+  --c-amber: #c97a06;
   --c-teal: #0d9488;
   --c-emerald: #059669;
   --c-sky: #0284c7;
   --c-slate: #64748b;
-  --hero-from: #2459e0;
-  --hero-to: #7c3aed;
-  --shadow-color: 15 23 42;
+  --hero-from: #4f46e5;
+  --hero-via: #c026d3;
+  --hero-to: #f59e0b;
+  --shadow-color: 40 30 10;
   --radius: 0.875rem;
   color-scheme: light;
 }
 
 .dark {
-  --background: #0a0f1f;
-  --surface: #10172d;
-  --surface-2: #161f3b;
-  --surface-3: #1e2a4d;
-  --foreground: #e7ebf6;
-  --muted-foreground: #aeb7cf;
-  --border: #1f2a4a;
-  --border-strong: #2d3a63;
-  --primary: #6f9dff;
-  --primary-hover: #8fb3ff;
-  --primary-foreground: #0a0f1f;
-  --primary-soft: #18264f;
-  --accent: #fbbf24;
-  --accent-soft: #3a2b0d;
-  --ring: #6f9dff;
+  --background: #0d0e15;
+  --surface: #15161f;
+  --surface-2: #1c1e2a;
+  --surface-3: #262938;
+  --foreground: #ecebf3;
+  --muted-foreground: #a9abbd;
+  --border: #252836;
+  --border-strong: #353949;
+  --primary: #a5b4fc;
+  --primary-hover: #c7d2fe;
+  --primary-foreground: #12131c;
+  --primary-soft: #252749;
+  --accent: #f6c453;
+  --accent-soft: #3a2e10;
+  --ring: #a5b4fc;
   --success: #4ade80;
   --success-soft: #11301f;
   --warning: #facc15;
@@ -72,18 +75,19 @@
   --danger-soft: #3b1515;
   --info: #38bdf8;
   --info-soft: #0c2a3d;
-  --c-blue: #6f9dff;
-  --c-indigo: #8b85ff;
-  --c-violet: #b18cff;
-  --c-rose: #fb7192;
-  --c-orange: #fb923c;
-  --c-amber: #fbbf24;
-  --c-teal: #2dd4bf;
-  --c-emerald: #34d399;
-  --c-sky: #38bdf8;
-  --c-slate: #94a3b8;
-  --hero-from: #1d3a8f;
-  --hero-to: #4c1d95;
+  --c-blue: #7aa7ff;
+  --c-indigo: #9d97ff;
+  --c-violet: #c4a1ff;
+  --c-rose: #ff7a9c;
+  --c-orange: #ff9b5c;
+  --c-amber: #f6c453;
+  --c-teal: #39dccb;
+  --c-emerald: #4fdaa3;
+  --c-sky: #5cc8f5;
+  --c-slate: #a0aec0;
+  --hero-from: #3730a3;
+  --hero-via: #86198f;
+  --hero-to: #92400e;
   --shadow-color: 0 0 0;
   color-scheme: dark;
 }
@@ -254,8 +258,13 @@
         transparent 70%
       ),
       radial-gradient(
+        40rem 16rem at 60% -20%,
+        color-mix(in oklab, var(--hero-via) 14%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
         50rem 16rem at 100% 0%,
-        color-mix(in oklab, var(--hero-to) 18%, transparent),
+        color-mix(in oklab, var(--hero-to) 16%, transparent),
         transparent 70%
       );
   }

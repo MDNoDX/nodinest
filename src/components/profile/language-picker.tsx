@@ -6,9 +6,9 @@ import { setLocaleAction } from "@/app/actions/personal";
 import { cn } from "@/lib/cn";
 
 const LANGS = [
-  { code: "uz", label: "Özbekça", flag: "🇺🇿" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "uz", label: "Özbekça" },
+  { code: "ru", label: "Русский" },
+  { code: "en", label: "English" },
 ] as const;
 
 /** Three big buttons; the page switches language at once. */
@@ -38,8 +38,11 @@ export function LanguagePicker({ className }: { className?: string }) {
               : "border-border hover:bg-surface-2",
           )}
         >
-          <span className="text-2xl" aria-hidden>
-            {l.flag}
+          <span
+            aria-hidden
+            className="bg-surface-2 grid size-9 place-items-center rounded-lg text-xs font-bold tracking-wide uppercase"
+          >
+            {l.code}
           </span>
           {l.label}
         </button>

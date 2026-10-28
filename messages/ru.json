@@ -143,14 +143,23 @@
     "failed": "Не удалось войти. Проверьте данные и попробуйте снова.",
     "privacyNote": "Ваши заметки, рецензии и мысли по умолчанию приватны.",
     "features": {
-      "library": "Книги, курсы, видео и статьи — с обложками, в одном месте",
-      "stats": "Рейтинговые подборки и статистика прочитанных страниц",
+      "audiobook": "AI turns your PDF book into an audiobook with living voices",
       "assistant": "AI-ассистент: добавляет, упорядочивает и ищет внутри ваших PDF",
-      "taqriz": "Рецензия на каждую книгу: в свободной форме или по главам"
+      "taqriz": "Рецензия на каждую книгу: в свободной форме или по главам",
+      "review": "Don’t forget what you read: AI questions and spaced review",
+      "community": "Follow your teacher and friends"
     },
     "withTelegram": "Продолжить через Telegram",
     "telegramSigningIn": "Вход через Telegram…",
-    "agree": "Входя в систему, вы принимаете <terms>Условия использования</terms> и <privacy>Политику конфиденциальности</privacy>."
+    "agree": "Входя в систему, вы принимаете <terms>Условия использования</terms> и <privacy>Политику конфиденциальности</privacy>.",
+    "withEmail": "Get a code by e-mail",
+    "sendCode": "Send code",
+    "code": "6-digit code from the e-mail",
+    "codeSent": "A code was sent to {email}. Check the spam folder too.",
+    "verify": "Sign in",
+    "or": "or",
+    "badCode": "The code is wrong or expired.",
+    "changeEmail": "Other e-mail"
   },
   "dashboard": {
     "greetingMorning": "Доброе утро, {name}",
@@ -840,7 +849,13 @@
     "bookPdfHint": "The PDF is attached to the book: its text is read, the chapters of the whole book are found and the audiobook is analysed (1–5 minutes for a big book). Then you read and listen to it on the site.",
     "audiobookHint": "The AI reads the whole book and casts the characters’ voices (1–5 minutes).",
     "bookFromEarlier": "“{title}” — the book added by the card above",
-    "limitLeft": "Free service: {left} of {limit} requests left today (resets daily)."
+    "limitLeft": "Free service: {left} of {limit} requests left today (resets daily).",
+    "modeLabel": "Mode",
+    "modeAct": "Assistant",
+    "modeActHint": "Does things on the site: adds books, makes questions — always with your confirmation",
+    "modeTalk": "Talk",
+    "modeTalkHint": "An honest conversation partner about your learning",
+    "talkIntro": "I’m Nodi — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, and I’ll say plainly what could be better."
   },
   "stats": {
     "title": "Metrics",

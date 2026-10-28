@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
+import { EmailCode } from "./email-code";
 import { TelegramLogin } from "./telegram-login";
 import { LOCALES } from "@/i18n/config";
 
@@ -33,12 +34,15 @@ function GoogleIcon() {
 export function LoginPanel({
   googleEnabled,
   telegramEnabled = false,
+  emailEnabled = false,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
   /** Telegram sign-in (confirmed in the site's bot) is configured. */
   telegramEnabled?: boolean;
+  /** Sign-in with an e-mailed code is configured. */
+  emailEnabled?: boolean;
   devEnabled: boolean;
   /** Where to go after signing in (validated same-site path). */
   next?: string;
@@ -94,6 +98,15 @@ export function LoginPanel({
           <GoogleIcon /> {t("withGoogle")}
         </Button>
         {telegramEnabled && <TelegramLogin next={next} disabled={pending} />}
+        {emailEnabled && (
+          <>
+            <div className="text-muted flex items-center gap-3 text-xs">
+              <span className="bg-border h-px flex-1" /> {t("or")}{" "}
+              <span className="bg-border h-px flex-1" />
+            </div>
+            <EmailCode next={next} />
+          </>
+        )}
         {!googleEnabled && (
           <p className="bg-warning-soft text-warning rounded-lg p-3 text-xs">
             {t("googleMissing")}

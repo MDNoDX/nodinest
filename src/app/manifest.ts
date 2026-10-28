@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     display_override: ["window-controls-overlay", "standalone"],
     orientation: "any",
-    background_color: "#f5f7fc",
-    theme_color: "#2459e0",
+    background_color: "#f6f4ef",
+    theme_color: "#4338ca",
     categories: ["books", "education", "productivity"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

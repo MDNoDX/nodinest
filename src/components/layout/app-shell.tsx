@@ -8,7 +8,7 @@ import { Logo } from "@/components/brand/logo";
 import { MediaDockProvider } from "@/components/media/media-dock";
 import { OnboardingTour } from "@/components/onboarding/tour";
 import { cn } from "@/lib/cn";
-import { hueStyle } from "@/lib/hues";
+import { SECTION_HUE, hueStyle } from "@/lib/hues";
 import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
@@ -84,7 +84,7 @@ function NavList({
               aria-current={active ? "page" : undefined}
               title={collapsed ? t(item.key) : undefined}
               data-tour={`nav-${item.key}`}
-              style={hueStyle("blue")}
+              style={hueStyle(SECTION_HUE[item.key] ?? "indigo")}
               className={cn(
                 "group relative flex h-10 items-center gap-3 rounded-xl px-2 text-sm font-medium transition-colors",
                 active
@@ -103,7 +103,8 @@ function NavList({
                 aria-hidden
                 className={cn(
                   "grid size-7 shrink-0 place-items-center rounded-lg transition-colors",
-                  active ? "chip" : "text-muted group-hover:text-foreground",
+                  // Each section keeps its own colour; brighter when active or hovered.
+                  active ? "chip" : "text-[var(--hue)] opacity-75 group-hover:opacity-100",
                 )}
               >
                 <Icon className="size-[17px]" />

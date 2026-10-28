@@ -128,7 +128,7 @@
     "en": "English"
   },
   "auth": {
-    "signInTitle": "Welcome to NodiNote",
+    "signInTitle": "Welcome to NodiNote!",
     "signInSubtitle": "Your personal library and learning journal. Sign in to continue.",
     "withGoogle": "Continue with Google",
     "googleMissing": "Google sign-in is not configured yet. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (see docs/DEPLOYMENT.md).",
@@ -143,14 +143,23 @@
     "failed": "Sign-in failed. Check your details and try again.",
     "privacyNote": "Your notes, write-ups and reflections are private by default.",
     "features": {
-      "library": "Books, courses, videos and articles — with covers, in one place",
-      "stats": "Ranked collections and pages-read counts",
-      "assistant": "AI assistant: adds, organises, searches inside your PDFs",
-      "taqriz": "A write-up for every book: write freely or in chapters"
+      "audiobook": "AI turns your PDF book into an audiobook with living voices",
+      "assistant": "An AI assistant and an honest conversation partner who knows your reading",
+      "taqriz": "Read books, keep quotes and notes, write your review",
+      "review": "Don’t forget what you read: AI questions and spaced review",
+      "community": "Follow your teacher and friends"
     },
     "withTelegram": "Continue with Telegram",
     "telegramSigningIn": "Signing in with Telegram…",
-    "agree": "By signing in you agree to the <terms>Terms of use</terms> and the <privacy>Privacy policy</privacy>."
+    "agree": "By signing in you agree to the <terms>Terms of use</terms> and the <privacy>Privacy policy</privacy>.",
+    "withEmail": "Get a code by e-mail",
+    "sendCode": "Send code",
+    "code": "6-digit code from the e-mail",
+    "codeSent": "A code was sent to {email}. Check the spam folder too.",
+    "verify": "Sign in",
+    "or": "or",
+    "badCode": "The code is wrong or expired.",
+    "changeEmail": "Other e-mail"
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",
@@ -840,7 +849,13 @@
     "bookPdfHint": "The PDF is attached to the book: its text is read, the chapters of the whole book are found and the audiobook is analysed (1–5 minutes for a big book). Then you read and listen to it on the site.",
     "audiobookHint": "The AI reads the whole book and casts the characters’ voices (1–5 minutes).",
     "bookFromEarlier": "“{title}” — the book added by the card above",
-    "limitLeft": "Free service: {left} of {limit} requests left today (resets daily)."
+    "limitLeft": "Free service: {left} of {limit} requests left today (resets daily).",
+    "modeLabel": "Mode",
+    "modeAct": "Assistant",
+    "modeActHint": "Does things on the site: adds books, makes questions — always with your confirmation",
+    "modeTalk": "Talk",
+    "modeTalkHint": "An honest conversation partner about your learning",
+    "talkIntro": "I’m Nodi — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, and I’ll say plainly what could be better."
   },
   "stats": {
     "title": "Metrics",

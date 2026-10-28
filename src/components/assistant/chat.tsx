@@ -547,6 +547,22 @@ export function Chat({
     Object.fromEntries(initialActions.map((a) => [a.id, a])),
   );
   const [input, setInput] = useState("");
+  // "act" does things on the site (cards); "talk" is Suhbat — a conversation partner.
+  const [mode, setMode] = useState<"act" | "talk">(() => {
+    try {
+      return localStorage.getItem("nn:assistant-mode") === "talk" ? "talk" : "act";
+    } catch {
+      return "act";
+    }
+  });
+  const pickMode = (m: "act" | "talk") => {
+    setMode(m);
+    try {
+      localStorage.setItem("nn:assistant-mode", m);
+    } catch {
+      /* ignore */
+    }
+  };
   const [files, setFiles] = useState<Pending[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -609,6 +625,7 @@ export function Chat({
         conversationId,
         message: msg,
         attachments: att.map((a) => a.fileId),
+        mode,
       });
       if (!r.ok) {
         setError(te(r.code));
@@ -661,6 +678,38 @@ export function Chat({
 
   return (
     <div className="flex min-h-[60vh] flex-col">
+      <div
+        role="radiogroup"
+        aria-label={t("modeLabel")}
+        className="bg-surface-2 mb-4 grid w-full max-w-md grid-cols-2 gap-0.5 self-center rounded-xl p-0.5 text-sm"
+      >
+        {(
+          [
+            ["act", t("modeAct"), t("modeActHint")],
+            ["talk", t("modeTalk"), t("modeTalkHint")],
+          ] as const
+        ).map(([k, label, hint]) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={mode === k}
+            onClick={() => pickMode(k)}
+            title={hint}
+            className={cn(
+              "rounded-lg px-3 py-1.5 font-medium transition-colors",
+              mode === k
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {mode === "talk" && messages.length === 0 && (
+        <p className="text-muted mx-auto mb-4 max-w-md text-center text-sm">{t("talkIntro")}</p>
+      )}
       {!available && (
         <div className="bg-warning-soft text-warning mb-4 rounded-xl p-4 text-sm">{reasonText}</div>
       )}
