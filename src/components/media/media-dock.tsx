@@ -108,6 +108,8 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
   const [start, setStart] = useState({ at: 0, autoplay: true, n: 0 });
   const prefs = useDockPrefs();
   const mini = prefs.audioOnly;
+  // Phones: the video is folded away unless asked for (it would cover half the page).
+  const [phoneVideo, setPhoneVideo] = useState(false);
   const box = useRef<HTMLElement>(null);
   const [dragging, setDragging] = useState(false);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -455,9 +457,9 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
           aria-label={t("label")}
           style={pos ? { left: pos.x, top: pos.y } : undefined}
           className={cn(
-            "border-border bg-surface fixed z-40 w-[min(380px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-xl",
+            "border-border bg-surface fixed z-40 w-[min(380px,calc(100vw-1rem))] overflow-hidden rounded-2xl border shadow-xl",
             !pos &&
-              "right-3 bottom-3 sm:right-5 sm:bottom-5 lg:right-[calc(var(--ai-panel,0px)+1.25rem)]",
+              "right-2 bottom-2 sm:right-5 sm:bottom-5 lg:right-[calc(var(--ai-panel,0px)+1.25rem)]",
             dragging && "shadow-2xl select-none",
           )}
         >
@@ -474,7 +476,13 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
             <GripHorizontal className="size-4" />
           </div>
           {/* The element stays mounted when minimised, so playback never stops. */}
-          <div className={cn("relative bg-black", video ? (mini ? "h-0" : "aspect-video") : "h-0")}>
+          <div
+            className={cn(
+              "relative bg-black",
+              video ? (mini ? "h-0" : "aspect-video") : "h-0",
+              video && !mini && !phoneVideo && "max-sm:aspect-auto max-sm:h-0",
+            )}
+          >
             {s.kind === "youtube" ? (
               <iframe
                 key={`${keyOf(s)}#${start.n}`}
@@ -516,6 +524,17 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               >
                 {s.title}
               </Link>
+              {video && !mini && (
+                <button
+                  type="button"
+                  onClick={() => setPhoneVideo((v) => !v)}
+                  className="text-muted hover:text-foreground shrink-0 rounded-md p-1 sm:hidden"
+                  aria-label={phoneVideo ? t("hideVideo") : t("showVideo")}
+                  aria-pressed={phoneVideo}
+                >
+                  <Video className="size-4" />
+                </button>
+              )}
               <Link
                 href={`/library/${s.resourceId}/taqriz`}
                 className="text-muted hover:text-foreground shrink-0 rounded-md p-1"
@@ -582,7 +601,8 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
                 <Clock className="size-4" />
               </IconBtn>
             </div>
-            <div className="flex flex-wrap items-center gap-1">
+            {/* Keyboard extras: not on phones (no keyboard, and the room is needed). */}
+            <div className="flex flex-wrap items-center gap-1 max-sm:hidden">
               {video && (
                 <Chip
                   onClick={() => setDockPrefs({ audioOnly: !mini })}
@@ -608,7 +628,7 @@ export function MediaDockProvider({ children }: { children: React.ReactNode }) {
               </Chip>
             </div>
             {prefs.showKeys && (
-              <p className="text-muted text-[11px] leading-tight">
+              <p className="text-muted text-[11px] leading-tight max-sm:hidden">
                 {t("keys", {
                   k: kl("playPause"),
                   j: kl("back5"),

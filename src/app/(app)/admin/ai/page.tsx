@@ -1,7 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import { AiSettingsForm } from "@/components/admin/ai-settings-form";
 import { pageContext } from "@/lib/page";
 import { AI_TOOL_NAMES, getAiSettings } from "@/server/settings";
 import { aiModel, isAiConfigured } from "@/server/ai/gemini";
+
+export async function generateMetadata() {
+  return { title: (await getTranslations("admin"))("ai") };
+}
 
 export default async function AdminAi() {
   const { db } = await pageContext({ admin: true });

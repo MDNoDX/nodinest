@@ -7,6 +7,10 @@ import { pageContext } from "@/lib/page";
 import { canEditCatalog, getPersonSnapshot } from "@/server/catalog";
 import { isStorageConfigured } from "@/server/storage";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("common"))("edit") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function EditPersonPage({ params }: { params: Promise<{ id: string }> }) {

@@ -6,6 +6,10 @@ import { systemOverview } from "@/server/admin";
 import { aiAvailability } from "@/server/ai/assistant";
 import { isStorageConfigured } from "@/server/storage";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("admin") };
+}
+
 export default async function AdminOverview() {
   const { ctx, db } = await pageContext({ admin: true });
   const t = await getTranslations();

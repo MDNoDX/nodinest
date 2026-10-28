@@ -4,6 +4,10 @@ import { fmtDateTime } from "@/lib/format";
 import { pageContext, spInt, type SP } from "@/lib/page";
 import { listAudit } from "@/server/admin";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("admin"))("audit") };
+}
+
 export default async function AdminAudit({ searchParams }: { searchParams: SP }) {
   const { ctx, db, locale, tz } = await pageContext({ admin: true });
   const t = await getTranslations();

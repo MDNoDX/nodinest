@@ -44,6 +44,10 @@ describe("cross-user privacy", () => {
     expect(await getNote(db, bob, aliceNoteId)).toBeNull();
   });
 
+  it("even the superadmin (admin mode on) cannot read a private note", async () => {
+    expect(await getNote(db, admin, aliceNoteId)).toBeNull();
+  });
+
   it("another user cannot update or delete a private note by id", async () => {
     await expect(
       saveNote(db, bob, { kind: "note", body: "hijacked" }, aliceNoteId),

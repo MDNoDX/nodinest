@@ -5,7 +5,7 @@
  * reading progress of the user's Darsxona entry.
  */
 import "server-only";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { bookPages, bookTextSources, learningRecords, notes } from "@/db/schema";
@@ -145,4 +145,22 @@ export async function saveReadingPage(
         },
       }),
   );
+}
+
+/** Which of these resources have their text on the site (can be opened in the reader). */
+export async function withBookText(ctx: AppContext, ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const rows = await withUser(db, ctx, (tx) =>
+    tx
+      .selectDistinct({ id: bookTextSources.resourceId })
+      .from(bookTextSources)
+      .where(
+        and(
+          eq(bookTextSources.userId, ctx.userId),
+          eq(bookTextSources.status, "ready"),
+          inArray(bookTextSources.resourceId, ids),
+        ),
+      ),
+  );
+  return new Set(rows.map((r) => r.id));
 }

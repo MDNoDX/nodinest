@@ -6,6 +6,10 @@ import { withUser } from "@/db";
 import { resources } from "@/db/schema";
 import { pageContext, sp, type SP } from "@/lib/page";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("newNote") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function NewNotePage({ searchParams }: { searchParams: SP }) {

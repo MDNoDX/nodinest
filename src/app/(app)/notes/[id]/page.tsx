@@ -10,6 +10,10 @@ import { fmtDateTime } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { collectionsContaining, getNote, listCollections } from "@/server/notes";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("notes") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function NotePage({ params }: { params: Promise<{ id: string }> }) {

@@ -17,6 +17,7 @@ export function AdminToggle({ on }: { on: boolean }) {
       disabled={pending}
       onClick={() => exec(() => setAdminModeAction(!on))}
       title={on ? t("adminOn") : t("adminOff")}
+      aria-label={t("adminMode")}
       className={cn(
         "flex h-9 items-center gap-2 rounded-full border px-2.5 text-xs font-semibold transition-colors",
         on

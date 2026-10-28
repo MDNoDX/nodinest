@@ -5,6 +5,10 @@ import { fmtDate } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { listUsers } from "@/server/admin";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("admin"))("users") };
+}
+
 export default async function AdminUsers() {
   const { ctx, db, user, locale, tz } = await pageContext({ admin: true });
   const t = await getTranslations();

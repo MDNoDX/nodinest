@@ -1291,7 +1291,8 @@
     "keysToggle": "Tugmalar",
     "typePause": "Yozganda to‘xtasin",
     "typePauseHint": "Yoza boshlasangiz to‘xtaydi, {s} soniya yozmasangiz o‘zi davom etadi (2 soniya orqadan).",
-    "continueFrom": "{time} dan davom ettirish"
+    "continueFrom": "{time} dan davom ettirish",
+    "hideVideo": "Videoni yashirish"
   },
   "shortcuts": {
     "title": "Klaviatura tugmalari",
@@ -1775,6 +1776,7 @@
     "findingContents": "Mundarija tayyorlanmoqda… (AI butun kitobdan boblarni topyapti)",
     "original": "Asl sahifa",
     "hideOriginal": "Yopish",
-    "originalHint": "Sahifani PDF’dagi asl ko‘rinishida ko‘rish (rasmlar, jadval, bezaklar bilan)"
+    "originalHint": "Sahifani PDF’dagi asl ko‘rinishida ko‘rish (rasmlar, jadval, bezaklar bilan)",
+    "continue": "Davom etish"
   }
 }

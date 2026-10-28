@@ -1,6 +1,7 @@
 import {
   BookCheck,
   BookOpen,
+  BookOpenText,
   Brain,
   FileStack,
   GraduationCap,
@@ -31,6 +32,7 @@ import { listMyRecords } from "@/server/records";
 import { lastResume } from "@/server/resume";
 import { listDecks } from "@/server/study-cards";
 import { getCollectionStats } from "@/server/stats";
+import { withBookText } from "@/server/reader";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +84,11 @@ export default async function DashboardPage() {
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
   const reading = records.filter((r) => r.status === "in_progress").slice(0, 6);
+  // Books whose text is on the site open straight in the reader, where the user stopped.
+  const readable = await withBookText(
+    ctx,
+    reading.map((r) => r.resourceId),
+  );
   const finished = records.filter((r) => r.status === "completed").slice(0, 18);
   const yearGoal = goals.find((g) => g.status === "active" && g.period === "year");
   const s = stats.totals;
@@ -258,6 +265,14 @@ export default async function DashboardPage() {
                   {reading.map((r) => (
                     <li key={r.id}>
                       <ResourceCard r={r} />
+                      {readable.has(r.resourceId) && (
+                        <Link
+                          href={`/library/${r.resourceId}/read`}
+                          className="text-primary hover:bg-primary-soft mt-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm font-semibold"
+                        >
+                          <BookOpenText className="size-4" /> {t("reader.continue")}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

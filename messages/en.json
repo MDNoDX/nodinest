@@ -1291,7 +1291,8 @@
     "keysToggle": "Shortcuts",
     "typePause": "Pause while typing",
     "typePauseHint": "Pauses when you type and resumes {s} s after you stop (2 s back).",
-    "continueFrom": "Continue from {time}"
+    "continueFrom": "Continue from {time}",
+    "hideVideo": "Hide video"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -1775,6 +1776,7 @@
     "findingContents": "Preparing the contents… (the AI is finding the chapters in the whole book)",
     "original": "Original page",
     "hideOriginal": "Hide",
-    "originalHint": "See the page as printed in the PDF (pictures, tables, ornaments)"
+    "originalHint": "See the page as printed in the PDF (pictures, tables, ornaments)",
+    "continue": "Continue"
   }
 }

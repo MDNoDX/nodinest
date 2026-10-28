@@ -10,6 +10,10 @@ import { pageContext } from "@/lib/page";
 import { canEditCatalog, getResourceSnapshot, listCategories } from "@/server/catalog";
 import { isStorageConfigured } from "@/server/storage";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("common"))("edit") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function EditResourcePage({ params }: { params: Promise<{ id: string }> }) {

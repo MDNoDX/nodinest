@@ -79,6 +79,7 @@ export default async function ResourcePage({
   if (await getOwnBook(ctx, id)) redirect(`/write/${id}`);
   const r = d.resource;
   const isMedia = MEDIA_LIKE.includes(r.type);
+  const hasText = !isMedia && sources.some((x) => x.status === "ready");
   const youtube = d.identifiers.find((i) => i.scheme === "youtube")?.value;
   // Something to listen to / watch while writing: YouTube, a direct media link
   // or the user's own audio / video attachment.
@@ -273,18 +274,19 @@ export default async function ResourcePage({
                   </a>
                 </Button>
               )}
-              <Button asChild variant={isMedia && r.sourceUrl ? "outline" : "primary"}>
-                <Link href={`/library/${r.id}/taqriz`}>
-                  <NotebookPen /> {t("taqriz.title")}
-                </Link>
-              </Button>
-              {!isMedia && sources.some((s) => s.status === "ready") && (
-                <Button asChild variant="outline">
+              {/* A book with its text on the site: reading comes first. */}
+              {hasText && (
+                <Button asChild>
                   <Link href={`/library/${r.id}/read`}>
                     <BookOpenText /> {t("reader.read")}
                   </Link>
                 </Button>
               )}
+              <Button asChild variant={(isMedia && r.sourceUrl) || hasText ? "outline" : "primary"}>
+                <Link href={`/library/${r.id}/taqriz`}>
+                  <NotebookPen /> {t("taqriz.title")}
+                </Link>
+              </Button>
               {!isMedia && (
                 <Button asChild variant="outline">
                   <Link href={`/library/${r.id}/audiobook`}>

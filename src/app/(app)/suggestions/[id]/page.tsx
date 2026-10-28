@@ -7,6 +7,10 @@ import { fmtDateTime } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { getSuggestionForReview } from "@/server/suggestions";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("suggestions") };
+}
+
 export const dynamic = "force-dynamic";
 
 function show(v: unknown): string {

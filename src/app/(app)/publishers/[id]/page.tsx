@@ -11,6 +11,10 @@ import { fmtMinutes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { getPublisherDetail } from "@/server/publishers";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("publishers") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function PublisherPage({ params }: { params: Promise<{ id: string }> }) {

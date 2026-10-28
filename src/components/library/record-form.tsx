@@ -100,7 +100,7 @@ export function RecordForm({
       <div
         role="radiogroup"
         aria-label={t("record.quickStatus")}
-        className="grid grid-cols-3 gap-2"
+        className="@container grid grid-cols-3 gap-2"
       >
         {STATUSES.map(({ key, icon: Icon, hue }) => {
           const on = v.status === key;
@@ -120,13 +120,15 @@ export function RecordForm({
                 }))
               }
               className={cn(
-                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all",
+                // Narrow card: icon above the label; wide: side by side.
+                "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 text-xs font-medium transition-all @[26rem]:flex-row @[26rem]:gap-2 @[26rem]:px-3 @[26rem]:text-sm",
                 on
                   ? "chip hue-border ring-2 ring-[var(--hue)]/30"
                   : "border-border hover:bg-surface-2",
               )}
             >
-              <Icon className="size-4" style={{ color: "var(--hue)" }} /> {statusLabel(key)}
+              <Icon className="size-4" style={{ color: "var(--hue)" }} />
+              <span className="max-w-full truncate">{statusLabel(key)}</span>
             </button>
           );
         })}

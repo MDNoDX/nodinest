@@ -5,6 +5,10 @@ import { PageHeader } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { isStorageConfigured } from "@/server/storage";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("newPerson") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function NewPersonPage() {

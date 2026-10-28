@@ -4,6 +4,10 @@ import { Card, CardHeader } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { listPeople, listResources } from "@/server/catalog";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("admin"))("archive") };
+}
+
 export default async function AdminArchive() {
   const { ctx, db } = await pageContext({ admin: true });
   const t = await getTranslations();

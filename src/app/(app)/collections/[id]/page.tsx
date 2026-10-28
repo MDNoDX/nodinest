@@ -14,6 +14,10 @@ import { cn } from "@/lib/cn";
 import { pageContext } from "@/lib/page";
 import { getCollection } from "@/server/notes";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("nav"))("collections") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function CollectionPage({ params }: { params: Promise<{ id: string }> }) {

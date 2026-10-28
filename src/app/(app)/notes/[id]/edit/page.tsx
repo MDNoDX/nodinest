@@ -5,6 +5,10 @@ import { PageHeader } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { getNote } from "@/server/notes";
 
+export async function generateMetadata() {
+  return { title: (await getTranslations("common"))("edit") };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function EditNotePage({ params }: { params: Promise<{ id: string }> }) {

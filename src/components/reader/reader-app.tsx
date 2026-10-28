@@ -441,7 +441,13 @@ export function ReaderApp({
           >
             <Headphones className="size-4" />
           </Link>
-          <Button size="sm" variant={ai ? "secondary" : "outline"} onClick={() => setAi((v) => !v)}>
+          <Button
+            size="sm"
+            variant={ai ? "secondary" : "outline"}
+            onClick={() => setAi((v) => !v)}
+            aria-label={t("askAi")}
+            aria-pressed={ai}
+          >
             <Sparkles /> <span className="hidden sm:inline">{t("askAi")}</span>
           </Button>
         </div>
