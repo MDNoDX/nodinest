@@ -236,7 +236,7 @@ export function AppShell({
         </a>
         <aside
           className={cn(
-            "border-border bg-surface sticky top-0 hidden h-dvh shrink-0 border-r transition-[width] duration-200 lg:block",
+            "border-border bg-surface/70 sticky top-0 hidden h-dvh shrink-0 border-r backdrop-blur-xl transition-[width] duration-200 lg:block",
             collapsed ? "w-[64px]" : "w-[248px]",
           )}
         >

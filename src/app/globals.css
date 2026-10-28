@@ -48,6 +48,8 @@
   --hero-to: #f59e0b;
   --shadow-color: 40 30 10;
   --radius: 0.875rem;
+  /* Strength of the background colour washes. */
+  --wash: 16%;
   color-scheme: light;
 }
 
@@ -89,6 +91,7 @@
   --hero-via: #86198f;
   --hero-to: #92400e;
   --shadow-color: 0 0 0;
+  --wash: 42%;
   color-scheme: dark;
 }
 
@@ -186,7 +189,26 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    background: var(--background);
+    /* Soft colour washes in the corners (fixed, behind everything) so the page
+       is never a flat sheet — indigo top-left, fuchsia top-right, saffron below. */
+    background:
+      radial-gradient(
+        70rem 40rem at -10% -10%,
+        color-mix(in oklab, var(--hero-from) var(--wash), transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        60rem 36rem at 110% 0%,
+        color-mix(in oklab, var(--hero-via) var(--wash), transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        70rem 40rem at 50% 115%,
+        color-mix(in oklab, var(--hero-to) var(--wash), transparent),
+        transparent 60%
+      ),
+      var(--background);
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
