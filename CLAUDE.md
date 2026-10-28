@@ -159,6 +159,12 @@ Postgres.app at 127.0.0.1:5432 (user `mdnodx`): DBs `nodinest`, `nodinest_test`,
 `GEMINI_API_KEY` from `~/Library/Application Support/Nodogram/gemini.key` without writing it
 to the repo. Gemini free quotas are per model: `GEMINI_FALLBACK_MODELS` lists free fallbacks.
 
+Production runs in Frankfurt: `vercel.json` regions `fra1` + Neon EU project `nodinest-db-eu`
+(env `EU_DATABASE_URL[_UNPOOLED]`, production only; `src/db/index.ts` and the scripts prefer it).
+The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28; prod
+migrations run against EU automatically. Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin`
+(pg_dump 18) for dumps.
+
 **Warning:** `vercel link`, `vercel env pull` and `vercel blob create-store` overwrite
 `.env.local` with production values. Pull into a scratch file instead
 (`vercel env pull /tmp/x.env --environment=production`) and restore `.env.local` if touched.
