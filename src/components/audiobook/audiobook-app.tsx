@@ -8,6 +8,7 @@ import {
   Mic2,
   Pause,
   Play,
+  Square,
   RotateCcw,
   RotateCw,
   SkipBack,
@@ -28,7 +29,11 @@ import { cn } from "@/lib/cn";
 import type { Analysis, AudiobookView, ScriptLine } from "@/server/audiobook";
 
 type Res = { id: string; title: string; type: string; cover: string | null; authors: string };
-type Voice = { name: string; female: boolean; d: string };
+type Voice = { name: string; female: boolean; d: string; role?: string };
+
+/** One voice sample plays at a time, page-wide; a second press stops it. */
+const sample = { audio: null as HTMLAudioElement | null, id: "", urls: new Map<string, string>() };
+const SAMPLE_EVENT = "nn:voice-sample";
 
 const SPEEDS = [0.75, 0.85, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 /** An unhurried narrator by default; the listener's choice is kept (this device). */
@@ -54,7 +59,7 @@ function saveSpeed(v: number) {
   window.dispatchEvent(new Event(SPEED_KEY));
 }
 /** Audio made with an older pacing is made again (the URL changes). */
-const AUDIO_VERSION = "p2";
+const AUDIO_VERSION = "p3";
 const SLEEP = [15, 30, 45, 60] as const;
 const CACHE = "nn-audiobook";
 /** Stable colours for speakers (narrator stays neutral). */
@@ -448,13 +453,29 @@ function Ready({
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The highlight follows the voice every frame (timeupdate fires only ~4×/s).
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    const tick = () => {
+      const a = audio.current;
+      if (a)
+        setTime((t) =>
+          Math.abs(t.cur - a.currentTime) > 0.04 ? { cur: a.currentTime, dur: a.duration || 0 } : t,
+        );
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing]);
+
   // The line being read, estimated from the time (lines are spoken in order).
   const chars = lines?.map((l) => l.text.length) ?? [];
   const totalChars = chars.reduce((a, b) => a + b, 0) || 1;
   let current = -1;
   if (lines && !draft && marks.length === lines.length) {
     // Exact: the server measured where each line starts.
-    for (let i = 0; i < marks.length; i++) if (marks[i] <= time.cur + 0.12) current = i;
+    for (let i = 0; i < marks.length; i++) if (marks[i] <= time.cur + 0.05) current = i;
   } else if (lines && time.dur) {
     const target = (time.cur / time.dur) * totalChars;
     for (let i = 0, acc = 0; i < chars.length; i++) {
@@ -887,28 +908,61 @@ function CastCard({
 }) {
   const t = useTranslations("audiobook");
   const [busy, setBusy] = useState(false);
-  // A ~10 s sample of the chosen voice reading this book (kept by the browser).
+  const [playing, setPlaying] = useState(false);
+  const id = `${speaker}|${voice}`;
+  // Other cards stop when this one plays (and the other way round).
+  useEffect(() => {
+    const on = () => setPlaying(sample.id === id && !!sample.audio && !sample.audio.paused);
+    window.addEventListener(SAMPLE_EVENT, on);
+    return () => window.removeEventListener(SAMPLE_EVENT, on);
+  }, [id]);
+  const stop = () => {
+    sample.audio?.pause();
+    sample.audio = null;
+    sample.id = "";
+    window.dispatchEvent(new Event(SAMPLE_EVENT));
+  };
+  // A sentence or two of the book in this voice (made once, then kept).
   const listen = async () => {
+    if (playing) return stop();
+    stop();
     setBusy(true);
     try {
-      const r = await fetch(
-        `/api/audiobook/${resourceId}/preview?voice=${encodeURIComponent(voice)}&speaker=${encodeURIComponent(speaker)}`,
-      );
-      if (!r.ok) {
-        const code = ((await r.json().catch(() => ({}))) as { error?: string }).error;
-        toast.error(code === "RATE_LIMITED" ? t("previewLimit") : t("voiceFailed"));
-        return;
+      let url = sample.urls.get(id);
+      if (!url) {
+        const r = await fetch(
+          `/api/audiobook/${resourceId}/preview?voice=${encodeURIComponent(voice)}&speaker=${encodeURIComponent(speaker)}`,
+        );
+        if (!r.ok) {
+          const code = ((await r.json().catch(() => ({}))) as { error?: string }).error;
+          toast.error(
+            code === "RATE_LIMITED"
+              ? t("previewLimit")
+              : code === "PREMIUM_REQUIRED"
+                ? t("premiumOnly")
+                : t("voiceFailed"),
+          );
+          return;
+        }
+        url = URL.createObjectURL(await r.blob());
+        sample.urls.set(id, url);
       }
-      const url = URL.createObjectURL(await r.blob());
       const a = new Audio(url);
-      a.onended = () => URL.revokeObjectURL(url);
+      sample.audio = a;
+      sample.id = id;
+      a.onended = stop;
       await a.play();
+      window.dispatchEvent(new Event(SAMPLE_EVENT));
     } catch {
       toast.error(t("voiceFailed"));
     } finally {
       setBusy(false);
     }
   };
+  const roleOf = (v: Voice) => (v.role ? t(`role.${v.role}` as "role.man") : v.name);
+  const options = voices.some((v) => v.name === voice)
+    ? voices
+    : [{ name: voice, female: false, d: "" }, ...voices];
   return (
     <article
       className="card flex flex-col gap-2 p-4"
@@ -924,13 +978,15 @@ function CastCard({
         <span className="text-muted">{t("voice")}</span>
         <select
           value={voice}
-          onChange={(e) => onVoice(e.target.value)}
+          onChange={(e) => {
+            stop();
+            onVoice(e.target.value);
+          }}
           className="border-border-strong bg-surface h-8 min-w-0 flex-1 rounded-lg border px-2"
         >
-          {voices.map((v) => (
+          {options.map((v) => (
             <option key={v.name} value={v.name}>
-              {v.name} — {v.female ? t("female") : t("male")},{" "}
-              {t(`vd.${v.d.replace(/[^a-z]+/g, "_")}` as "vd.warm")}
+              {v.role ? `${roleOf(v)} · ${v.name}` : v.name}
             </option>
           ))}
         </select>
@@ -941,8 +997,14 @@ function CastCard({
           className="border-border hover:bg-surface-2 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs font-medium"
           title={t("previewHint")}
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-          {t("preview")}
+          {busy ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : playing ? (
+            <Square className="size-3.5 fill-current" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
+          {playing ? t("previewStop") : t("preview")}
         </button>
       </label>
     </article>

@@ -1,12 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { follow, setItemVisibility, setProfilePublic } from "@/server/social";
+import { follow, removeFollower, setItemVisibility, setProfilePublic } from "@/server/social";
 import { run } from "./_run";
 
 export async function followAction(userId: string, on: boolean) {
   return run(async ({ ctx }) => {
     await follow(ctx, userId, on);
-    revalidatePath("/profile");
+    revalidatePath("/u", "layout");
   });
 }
 
@@ -21,5 +21,12 @@ export async function setItemVisibilityAction(resourceId: string, pub: boolean) 
   return run(async ({ ctx }) => {
     await setItemVisibility(ctx, resourceId, pub);
     revalidatePath(`/library/${resourceId}`);
+  });
+}
+
+export async function removeFollowerAction(userId: string) {
+  return run(async ({ ctx }) => {
+    await removeFollower(ctx, userId);
+    revalidatePath("/u", "layout");
   });
 }

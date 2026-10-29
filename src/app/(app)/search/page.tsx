@@ -3,21 +3,18 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverTile } from "@/components/library/cover-tile";
 import { SearchControls } from "@/components/search/search-controls";
-import { PeopleSearch } from "@/components/social/people-search";
 import { Badge, EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { shortYear } from "@/lib/dates";
 import type { SnippetPart } from "@/lib/normalize";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
-import { listCategories } from "@/server/catalog";
 import {
   SEARCH_GROUPS,
   universalSearch,
   type GroupResult,
   type SearchGroup,
 } from "@/server/search";
-import { pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -39,7 +36,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 const all = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
 
 export default async function SearchPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db, locale } = await pageContext();
+  const { ctx, db } = await pageContext();
   const t = await getTranslations();
   const p = await searchParams;
   const q = (sp(p.q) ?? "").slice(0, 200);
@@ -68,10 +65,7 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
     page: spInt(p.page),
   };
   const browsing = !q.trim() && !!(genres.length || filters.resourceType || filters.status);
-  const [res, cats] = await Promise.all([
-    q.trim() || browsing ? universalSearch(db, ctx, filters) : Promise.resolve(null),
-    listCategories(db, ctx),
-  ]);
+  const res = q.trim() || browsing ? await universalSearch(db, ctx, filters) : null;
   const params = (o: Record<string, string | string[] | null>) => {
     const u = new URLSearchParams();
     const base: Record<string, string | string[] | null> = {
@@ -97,17 +91,8 @@ export default async function SearchPage({ searchParams }: { searchParams: SP })
   return (
     <>
       <PageHeader section="search" title={t("search.title")} />
-      <div className="card mb-6 p-4 sm:p-5">
-        <h2 className="mb-3 text-sm font-semibold">{t("social.peopleTitle")}</h2>
-        <PeopleSearch />
-      </div>
-      <h2 className="mb-3 text-sm font-semibold">{t("search.mineTitle")}</h2>
-      <SearchControls
-        categories={cats.map((c) => ({
-          id: c.id,
-          name: pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn }),
-        }))}
-      />
+      {/* Genre chips were noise here: genres are filtered in the Darsxona. */}
+      <SearchControls categories={[]} />
       {filters.resourceId && (
         <p className="text-muted -mt-2 mb-4 flex items-center gap-2 text-sm">
           <Badge tone="primary">{t("search.inOneBook")}</Badge>

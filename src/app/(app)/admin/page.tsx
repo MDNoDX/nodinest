@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Card, StatTile } from "@/components/ui/misc";
 import { fmtBytes } from "@/lib/format";
+import { PERM_HOME } from "@/lib/admin-perms";
+import { requireUser } from "@/lib/auth/session";
 import { pageContext } from "@/lib/page";
 import { systemOverview } from "@/server/admin";
 import { aiAvailability } from "@/server/ai/assistant";
@@ -11,6 +14,8 @@ export async function generateMetadata() {
 }
 
 export default async function AdminOverview() {
+  const me = await requireUser();
+  if (me.role !== "superadmin" && me.adminPerms.length) redirect(PERM_HOME[me.adminPerms[0]]);
   const { ctx, db } = await pageContext({ admin: true });
   const t = await getTranslations();
   const [o, ai] = await Promise.all([systemOverview(db, ctx), aiAvailability()]);

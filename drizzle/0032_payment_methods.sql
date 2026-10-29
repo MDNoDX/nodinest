@@ -1,0 +1,2 @@
+ALTER TABLE "nodinest"."payments" DROP CONSTRAINT "payments_method_chk";--> statement-breakpoint
+ALTER TABLE "nodinest"."payments" ADD CONSTRAINT "payments_method_chk" CHECK ("nodinest"."payments"."method" IN ('card', 'visa', 'payme', 'click', 'uzum'));

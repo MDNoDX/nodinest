@@ -95,7 +95,7 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "commandPalette": "Quick search",
-    "commandHint": "Search books, people, notes…",
+    "commandHint": "Books, notes or a username…",
     "signOut": "Sign out",
     "account": "Account",
     "newResource": "Add resource",
@@ -224,7 +224,8 @@
     "avgRating": "Average rating",
     "rated": "{count} rated",
     "continue": "Continue: {title}",
-    "dueReview": "{n} questions due"
+    "dueReview": "{n} questions due",
+    "allGoals": "All goals →"
   },
   "types": {
     "book": "Book",
@@ -697,7 +698,8 @@
       "categories": "Topics",
       "tags": "Tags",
       "booktext": "Book text",
-      "taqriz": "Write-ups"
+      "taqriz": "Write-ups",
+      "users": "Users"
     },
     "all": "Everything",
     "relevance": "Relevance",
@@ -872,7 +874,20 @@
     "modeActHint": "Does things on the site: adds books, makes questions — always with your confirmation",
     "modeTalk": "Talk",
     "modeTalkHint": "An honest conversation partner about your learning",
-    "talkIntro": "I’m Nodi — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, and I’ll say plainly what could be better."
+    "talkIntro": "I’m Nodi — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, and I’ll say plainly what could be better.",
+    "voiceTalk": "Voice talk",
+    "talkListening": "Listening…",
+    "talkThinking": "Thinking…",
+    "talkSpeaking": "Speaking — tap the sphere to cut in",
+    "talkPaused": "Microphone paused",
+    "talkTap": "Speak or tap the sphere",
+    "talkVoice": "Voice",
+    "voiceFemale": "Female voice",
+    "voiceMale": "Male voice",
+    "talkEnd": "End the talk",
+    "talkPause": "Mute the microphone",
+    "talkResume": "Unmute the microphone",
+    "voiceFailed": "Couldn’t answer. Please say it again."
   },
   "stats": {
     "title": "Metrics",
@@ -973,7 +988,8 @@
     "role": "Role",
     "roles": {
       "user": "User",
-      "superadmin": "Superadministrator"
+      "superadmin": "Superadministrator",
+      "admin": "Admin"
     },
     "preferences": "Preferences",
     "timezone": "Time zone",
@@ -993,7 +1009,12 @@
       "typeIt": "Type DELETE to confirm",
       "confirm": "Delete",
       "failed": "Could not delete the account. Please try again later."
-    }
+    },
+    "navOrder": "Menu order",
+    "navOrderHint": "Arrange the side menu sections the way you like (saved on this device).",
+    "navUp": "Move up",
+    "navDown": "Move down",
+    "navReset": "Restore the default order"
   },
   "admin": {
     "title": "Administration",
@@ -1057,7 +1078,16 @@
     },
     "noArchived": "Nothing archived.",
     "modeHint": "Admin mode is off: the site works like a regular account. Turn it on with the top-right switch.",
-    "ads": "Ads"
+    "ads": "Ads",
+    "permsTitle": "Permissions",
+    "permsSave": "Save",
+    "permsSaved": "Permissions saved.",
+    "perms": {
+      "payments": "Premium payments",
+      "ads": "Ads",
+      "feedback": "Messages to the admin",
+      "users": "Suspending users"
+    }
   },
   "upload": {
     "choose": "Upload",
@@ -1092,7 +1122,8 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for doesn't exist or you don't have access.",
     "goHome": "Go to dashboard",
-    "PREMIUM_REQUIRED": "This is a Premium feature. See Settings → Premium."
+    "PREMIUM_REQUIRED": "This is a Premium feature. See Settings → Premium.",
+    "INDECENT": "The text contains an inappropriate (obscene or extremist) word. Please change it."
   },
   "validation": {
     "required": "This field is required.",
@@ -1112,7 +1143,8 @@
     "self_parent": "A topic can't be its own parent.",
     "contributor_person_or_name": "Choose a person.",
     "generic": "Invalid value.",
-    "end_before_start": "End date must be after the start date."
+    "end_before_start": "End date must be after the start date.",
+    "indecent": "Inappropriate word — please change it."
   },
   "statusMedia": {
     "planned": "Planned",
@@ -1573,7 +1605,7 @@
     "tryAnswer": "Try answering first (optional) — it helps you remember.",
     "showAnswer": "Show answer",
     "yourAnswer": "Your answer",
-    "keysHint": "Space — answer · 1–4 — grade · Esc — exit",
+    "keysHint": "Space — show the answer · 1 — didn’t know · 2 — knew it · Esc — exit",
     "kind": {
       "recall": "Recall",
       "understanding": "Understanding",
@@ -1584,9 +1616,9 @@
       "date": "Date / year"
     },
     "grade": {
-      "again": "Again",
+      "again": "Didn't know",
       "hard": "Hard",
-      "good": "Good",
+      "good": "Knew it",
       "easy": "Easy"
     },
     "allImportant": "All (AI decides)",
@@ -1596,7 +1628,8 @@
     "deep": "Deep",
     "standardHint": "Quick: main ideas, facts and terms.",
     "deepHint": "Exam level: causes, comparisons, exact names, dates and numbers; every answer is checked against the source. Takes 1–4 minutes.",
-    "makingDeep": "Preparing in depth and checking…"
+    "makingDeep": "Preparing in depth and checking…",
+    "moreOptions": "More options"
   },
   "feedback": {
     "tabWrite": "Write to the admin",
@@ -1831,7 +1864,21 @@
     "betaHint": "In testing: voices are made within Google’s free limit, a few parts a day. Finished parts are kept.",
     "preview": "Listen",
     "previewHint": "Hear how this voice reads a passage of the book",
-    "previewLimit": "Today’s sample limit is used up (12 a day)."
+    "previewLimit": "Today’s sample limit is used up (12 a day).",
+    "role": {
+      "narrator_m": "Narrator (male)",
+      "narrator_f": "Narrator (female)",
+      "man": "Man",
+      "woman": "Woman",
+      "young_man": "Young man",
+      "young_woman": "Young woman",
+      "child": "Child",
+      "old_man": "Old man",
+      "old_woman": "Old woman",
+      "angry_man": "Angry man"
+    },
+    "previewStop": "Stop",
+    "premiumOnly": "Audiobooks are a Premium feature."
   },
   "reader": {
     "title": "Read the book",
@@ -1996,7 +2043,7 @@
     "months": "Period",
     "monthsN": "{n} month(s)",
     "method": "Method",
-    "card": "Card",
+    "card": "Uzcard / Humo",
     "amount": "Amount sent (so‘m)",
     "noteLabel": "Note",
     "notePlaceholder": "Last 4 card digits, time…",
@@ -2030,7 +2077,8 @@
     "audiobook": "Audiobooks",
     "studyCards": "AI study questions",
     "ads": "Ads are shown",
-    "save": "Save"
+    "save": "Save",
+    "visa": "Visa card number"
   },
   "ads": {
     "label": "Ad"
@@ -2089,6 +2137,19 @@
     "save": "Save",
     "saved": "Saved",
     "viewProfile": "View my profile",
-    "peopleTitle": "People on the site"
+    "peopleTitle": "People on the site",
+    "followersTitle": "Followers",
+    "followingListTitle": "Following",
+    "removeFollower": "Remove",
+    "removeFollowerConfirm": "Remove {name} from your followers?",
+    "removed": "Removed",
+    "noFollowers": "No followers yet",
+    "noFollowing": "Not following anyone yet",
+    "listPrivate": "This profile is private — its lists are hidden.",
+    "closeEdit": "Close",
+    "privateBadge": "Private profile",
+    "publicBadge": "Public profile",
+    "back": "Back to the profile",
+    "findPeople": "Find people"
   }
 }

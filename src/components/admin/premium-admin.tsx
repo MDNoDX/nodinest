@@ -26,9 +26,12 @@ type Payment = {
 export function PremiumAdmin({
   initial,
   payments,
+  canEdit = true,
 }: {
   initial: PremiumSettings;
   payments: Payment[];
+  /** Only the superadmin changes prices and plans (an admin decides payments). */
+  canEdit?: boolean;
 }) {
   const t = useTranslations("premiumAdmin");
   const [v, setV] = useState(initial);
@@ -88,123 +91,149 @@ export function PremiumAdmin({
         )}
       </section>
 
-      <form
-        className="card flex flex-col gap-5 p-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          exec(() => savePremiumSettingsAction(v), { success: t("saved") });
-        }}
-      >
-        <label className="flex items-center gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
-            className="size-4 accent-[var(--primary)]"
-            checked={v.enabled}
-            onChange={(e) => setV({ ...v, enabled: e.target.checked })}
-          />
-          {t("enabled")}
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("price")}>
-            {(p) => (
-              <Input
-                {...p}
-                type="number"
-                min={0}
-                value={v.priceMonth}
-                onChange={(e) => setV({ ...v, priceMonth: Number(e.target.value) })}
-              />
-            )}
-          </Field>
-          <Field label={t("card")}>
-            {(p) => (
-              <Input {...p} value={v.card} onChange={(e) => setV({ ...v, card: e.target.value })} />
-            )}
-          </Field>
-          <Field label={t("cardHolder")}>
-            {(p) => (
-              <Input
-                {...p}
-                value={v.cardHolder}
-                onChange={(e) => setV({ ...v, cardHolder: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label="Payme">
-            {(p) => (
-              <Input
-                {...p}
-                placeholder="https://payme.uz/…"
-                value={v.payme}
-                onChange={(e) => setV({ ...v, payme: e.target.value })}
-              />
-            )}
-          </Field>
-          <Field label="Click">
-            {(p) => (
-              <Input
-                {...p}
-                placeholder="https://my.click.uz/…"
-                value={v.click}
-                onChange={(e) => setV({ ...v, click: e.target.value })}
-              />
-            )}
-          </Field>
-        </div>
-        <Field label={t("note")} optional>
-          {(p) => (
-            <Textarea
-              {...p}
-              rows={2}
-              value={v.note}
-              onChange={(e) => setV({ ...v, note: e.target.value })}
+      {canEdit && (
+        <form
+          className="card flex flex-col gap-5 p-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            exec(() => savePremiumSettingsAction(v), { success: t("saved") });
+          }}
+        >
+          <label className="flex items-center gap-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--primary)]"
+              checked={v.enabled}
+              onChange={(e) => setV({ ...v, enabled: e.target.checked })}
             />
-          )}
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(["free", "premium"] as const).map((k) => (
-            <fieldset key={k} className="border-border flex flex-col gap-3 rounded-xl border p-4">
-              <legend className="px-1 text-sm font-semibold">{t(k)}</legend>
-              <Field label={t("aiDaily")}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={0}
-                    value={v[k].aiDaily}
-                    onChange={(e) => plan(k, { aiDaily: Number(e.target.value) })}
-                  />
-                )}
-              </Field>
-              <Field label={t("listenMinutes")}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="number"
-                    min={0}
-                    value={v[k].listenMinutes}
-                    onChange={(e) => plan(k, { listenMinutes: Number(e.target.value) })}
-                  />
-                )}
-              </Field>
-              {(["audiobook", "studyCards", "ads"] as const).map((f) => (
-                <label key={f} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-[var(--primary)]"
-                    checked={v[k][f]}
-                    onChange={(e) => plan(k, { [f]: e.target.checked })}
-                  />
-                  {t(f)}
-                </label>
-              ))}
-            </fieldset>
-          ))}
-        </div>
-        <Button type="submit" loading={pending} className="self-start">
-          {t("save")}
-        </Button>
-      </form>
+            {t("enabled")}
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={t("price")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="number"
+                  min={0}
+                  value={v.priceMonth}
+                  onChange={(e) => setV({ ...v, priceMonth: Number(e.target.value) })}
+                />
+              )}
+            </Field>
+            <Field label={t("card")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  value={v.card}
+                  onChange={(e) => setV({ ...v, card: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t("cardHolder")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  value={v.cardHolder}
+                  onChange={(e) => setV({ ...v, cardHolder: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t("visa")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  placeholder="4…"
+                  value={v.visa}
+                  onChange={(e) => setV({ ...v, visa: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Payme">
+              {(p) => (
+                <Input
+                  {...p}
+                  placeholder="https://payme.uz/…"
+                  value={v.payme}
+                  onChange={(e) => setV({ ...v, payme: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Click">
+              {(p) => (
+                <Input
+                  {...p}
+                  placeholder="https://my.click.uz/…"
+                  value={v.click}
+                  onChange={(e) => setV({ ...v, click: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Uzum">
+              {(p) => (
+                <Input
+                  {...p}
+                  placeholder="https://uzumbank.uz/…"
+                  value={v.uzum}
+                  onChange={(e) => setV({ ...v, uzum: e.target.value })}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t("note")} optional>
+            {(p) => (
+              <Textarea
+                {...p}
+                rows={2}
+                value={v.note}
+                onChange={(e) => setV({ ...v, note: e.target.value })}
+              />
+            )}
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(["free", "premium"] as const).map((k) => (
+              <fieldset key={k} className="border-border flex flex-col gap-3 rounded-xl border p-4">
+                <legend className="px-1 text-sm font-semibold">{t(k)}</legend>
+                <Field label={t("aiDaily")}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="number"
+                      min={0}
+                      value={v[k].aiDaily}
+                      onChange={(e) => plan(k, { aiDaily: Number(e.target.value) })}
+                    />
+                  )}
+                </Field>
+                <Field label={t("listenMinutes")}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="number"
+                      min={0}
+                      value={v[k].listenMinutes}
+                      onChange={(e) => plan(k, { listenMinutes: Number(e.target.value) })}
+                    />
+                  )}
+                </Field>
+                {(["audiobook", "studyCards", "ads"] as const).map((f) => (
+                  <label key={f} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[var(--primary)]"
+                      checked={v[k][f]}
+                      onChange={(e) => plan(k, { [f]: e.target.checked })}
+                    />
+                    {t(f)}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
+          </div>
+          <Button type="submit" loading={pending} className="self-start">
+            {t("save")}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

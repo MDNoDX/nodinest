@@ -8,14 +8,16 @@
  *    channel's members — the admin included — see only random bytes.
  *  • Reads stream the parts back in order; byte ranges fetch only the parts
  *    they need (video seeking).
- *  • The channel: TELEGRAM_STORAGE_CHAT_ID, else the admin channel (silent).
+ *  • The channel: TELEGRAM_STORAGE_CHAT_ID, else the private channel the bot
+ *    was last made an admin of (found by the webhook, app_settings
+ *    "tg_storage"), else the admin channel (silent).
  */
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { get } from "@vercel/blob";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { files } from "@/db/schema";
+import { appSettings, files } from "@/db/schema";
 import { tgRaw } from "./monitor/telegram";
 
 export const PART = 19 * 1024 * 1024;
@@ -32,9 +34,32 @@ export type TgPart = {
   /** IV and auth tag (base64). */
   iv: string;
   tag: string;
+  /** The channel it was stored in (older parts: the current storage channel). */
+  c?: string;
 };
 
+let found: { id: string | null; at: number } | null = null;
+/** A storage channel the bot was added to (webhook), cached for a minute. */
+async function foundChat() {
+  if (found && Date.now() - found.at < 60_000) return found.id;
+  const [row] = await db
+    .select({ v: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, "tg_storage"))
+    .catch(() => []);
+  const id = (row?.v as { chatId?: string } | undefined)?.chatId ?? null;
+  found = { id, at: Date.now() };
+  return id;
+}
+export function forgetStorageChat() {
+  found = null;
+}
+
 const chat = () => process.env.TELEGRAM_STORAGE_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
+const storageChat = async () =>
+  process.env.TELEGRAM_STORAGE_CHAT_ID ||
+  (await foundChat()) ||
+  process.env.TELEGRAM_ADMIN_CHAT_ID!;
 const key = () => {
   const k = process.env.TG_FILES_KEY;
   return k ? createHash("sha256").update(`nn-files:${k}`).digest() : null;
@@ -57,9 +82,10 @@ function open(data: Uint8Array, p: TgPart) {
 
 export async function upload(fileId: string, i: number, total: number, plain: Uint8Array) {
   const s = seal(plain);
+  const target = await storageChat();
   for (let attempt = 0; attempt < 3; attempt++) {
     const form = new FormData();
-    form.set("chat_id", chat()!);
+    form.set("chat_id", target);
     form.set("disable_notification", "true");
     form.set("caption", `#file ${fileId.slice(0, 8)} ${i + 1}/${total}`);
     form.set(
@@ -73,7 +99,14 @@ export async function upload(fileId: string, i: number, total: number, plain: Ui
       false,
     );
     if (r?.document)
-      return { f: r.document.file_id, m: r.message_id, n: plain.length, iv: s.iv, tag: s.tag };
+      return {
+        f: r.document.file_id,
+        m: r.message_id,
+        n: plain.length,
+        iv: s.iv,
+        tag: s.tag,
+        c: target,
+      };
     await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
   }
   throw new Error("telegram upload failed");
@@ -188,6 +221,15 @@ export async function moveToTelegram(fileId: string) {
   return true;
 }
 
+/** Stores bytes (e.g. a voiced audiobook part) in the Telegram store; its parts. */
+export async function putBytes(id: string, bytes: Uint8Array): Promise<TgPart[]> {
+  const total = Math.max(1, Math.ceil(bytes.length / PART));
+  const out: TgPart[] = [];
+  for (let i = 0; i < total; i++)
+    out.push(await upload(id, i, total, bytes.subarray(i * PART, (i + 1) * PART)));
+  return out;
+}
+
 /** Moves waiting big files (oldest first) within a time budget; returns how many. */
 export async function moveWaiting(budgetMs = 200_000, limit = 20) {
   if (!tgStorageReady()) return 0;
@@ -215,7 +257,7 @@ export async function moveWaiting(budgetMs = 200_000, limit = 20) {
 
 export async function deleteParts(parts: TgPart[]) {
   for (const p of parts)
-    await tgRaw("deleteMessage", { chat_id: chat(), message_id: p.m }).catch(() => null);
+    await tgRaw("deleteMessage", { chat_id: p.c ?? chat(), message_id: p.m }).catch(() => null);
 }
 
 /** The whole file (server-side reads: PDF text, audiobook, AI). */

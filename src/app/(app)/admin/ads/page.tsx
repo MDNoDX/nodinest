@@ -7,7 +7,7 @@ export async function generateMetadata() {
 }
 
 export default async function AdminAds() {
-  await pageContext({ admin: true });
+  await pageContext({ perm: "ads" });
   const [s, clicks] = await Promise.all([getAds(), clickCounts()]);
   return <AdsAdmin initial={s} clicks={clicks} />;
 }

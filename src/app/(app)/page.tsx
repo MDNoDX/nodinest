@@ -97,7 +97,10 @@ export default async function DashboardPage() {
     reading.map((r) => r.resourceId),
   );
   const finished = records.filter((r) => r.status === "completed").slice(0, 18);
-  const yearGoal = goals.find((g) => g.status === "active" && g.period === "year");
+  // The year's goal first; else the other active goals (week, month…) are shown.
+  const activeGoals = goals.filter((g) => g.status === "active");
+  const yearGoal = activeGoals.find((g) => g.period === "year");
+  const shownGoals = yearGoal ? [yearGoal] : activeGoals.slice(0, 3);
   const s = stats.totals;
   const nf = new Intl.NumberFormat(intlTag(asLocale(locale)));
   const hours = Math.round(s.media_seconds / 360) / 10;
@@ -375,23 +378,32 @@ export default async function DashboardPage() {
           <Card className="p-5" style={hueStyle("amber")}>
             <div className="flex items-center gap-2.5">
               <IconChip icon={<Target />} hue="amber" />
-              <h2 className="text-sm font-semibold">{t("dashboard.yearGoal", { year })}</h2>
+              <h2 className="text-sm font-semibold">
+                {yearGoal || !shownGoals.length
+                  ? t("dashboard.yearGoal", { year })
+                  : t("dashboard.goals")}
+              </h2>
             </div>
-            {yearGoal ? (
-              <div className="mt-4">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-3xl font-bold tabular-nums">{yearGoal.value}</span>
-                  <span className="text-muted text-sm">/ {yearGoal.target}</span>
-                </div>
-                <div className="mt-2">
-                  <ProgressBar
-                    value={yearGoal.value}
-                    max={yearGoal.target}
-                    label={yearGoal.title}
-                  />
-                </div>
-                <div className="text-muted mt-1.5 text-xs">{yearGoal.title}</div>
-              </div>
+            {shownGoals.length ? (
+              <ul className="mt-4 flex flex-col gap-4">
+                {shownGoals.map((g) => (
+                  <li key={g.id}>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-2xl font-bold tabular-nums">{g.value}</span>
+                      <span className="text-muted text-sm">/ {g.target}</span>
+                    </div>
+                    <div className="mt-2">
+                      <ProgressBar value={g.value} max={g.target} label={g.title} />
+                    </div>
+                    <div className="text-muted mt-1.5 text-xs">{g.title}</div>
+                  </li>
+                ))}
+                <li>
+                  <Link href="/plans" className="text-primary text-xs font-medium hover:underline">
+                    {t("dashboard.allGoals")}
+                  </Link>
+                </li>
+              </ul>
             ) : (
               <div className="mt-3">
                 <p className="text-muted text-sm">{t("dashboard.noYearGoal")}</p>

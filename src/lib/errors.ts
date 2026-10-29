@@ -17,6 +17,7 @@ export type ErrorCode =
   | "URL_BLOCKED"
   | "FETCH_FAILED"
   | "PREMIUM_REQUIRED"
+  | "INDECENT"
   | "INTERNAL";
 
 export class AppError extends Error {

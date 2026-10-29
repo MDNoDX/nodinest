@@ -7,6 +7,8 @@ import { FollowButton } from "@/components/social/follow-button";
 import { ItemGrid } from "@/components/social/item-grid";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ProfileEditor } from "@/components/social/profile-editor";
+import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { followingFeed, followingList, profileByUsername, publicItems } from "@/server/social";
@@ -21,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 /** /u/<username>: someone's public profile and public library. */
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const { ctx } = await pageContext();
+  const { ctx, user } = await pageContext();
   const t = await getTranslations("social");
   const p = await profileByUsername(ctx, decodeURIComponent(username));
   if (!p) notFound();
@@ -32,7 +34,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <header className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
+      <header className="card flex flex-col gap-4 p-5 sm:flex-row sm:flex-wrap sm:items-center sm:p-6">
         <Avatar name={p.name} image={p.image} className="size-20 text-2xl" />
         <div className="min-w-0 flex-1">
           <h1 className="flex items-center gap-1.5 text-2xl font-bold tracking-tight">
@@ -40,15 +42,29 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </h1>
           <p className="text-muted">@{p.username}</p>
           {p.bio && <p className="mt-2 max-w-xl text-sm leading-relaxed">{p.bio}</p>}
-          <p className="text-muted mt-2 text-sm">
-            {t("followersN", { n: p.followers })} · {t("followingN", { n: p.following })} ·{" "}
-            {t("itemsN", { n: items.length })}
+          <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <span>{t("itemsN", { n: items.length })}</span>
+            <Link href={`/u/${p.username}/followers`} className="hover:underline">
+              {t("followersN", { n: p.followers })}
+            </Link>
+            <Link href={`/u/${p.username}/following`} className="hover:underline">
+              {t("followingN", { n: p.following })}
+            </Link>
           </p>
         </div>
         {p.self ? (
-          <Button asChild variant="outline">
-            <Link href="/settings#profile">{t("editProfile")}</Link>
-          </Button>
+          <ProfileEditor
+            userId={user.id}
+            storage={isStorageConfigured()}
+            initial={{
+              firstName: user.firstName ?? user.name,
+              lastName: user.lastName ?? "",
+              username: user.username ?? "",
+              image: user.image,
+            }}
+            profilePublic={user.profilePublic}
+            bio={user.bio}
+          />
         ) : p.visible ? (
           <FollowButton userId={p.id} initial={p.isFollowing} />
         ) : null}
@@ -66,7 +82,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       {p.self && !p.profilePublic && <p className="text-muted text-sm">{t("selfPrivateNote")}</p>}
       {p.self && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold">{t("feed")}</h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">{t("feed")}</h2>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/search">{t("findPeople")}</Link>
+            </Button>
+          </div>
           {feed.length ? (
             <ItemGrid items={feed} by />
           ) : (

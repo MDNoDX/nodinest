@@ -5,6 +5,7 @@
  * none. Clicks go through /api/ads/<id> and are counted.
  */
 import "server-only";
+import { can } from "@/lib/admin-perms";
 import { eq, like, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, type AppContext } from "@/db";
@@ -51,7 +52,7 @@ export async function getAds(): Promise<AdsSettings> {
 }
 
 export async function saveAds(ctx: AppContext, raw: unknown) {
-  if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
+  if (!can(ctx, "ads")) throw new AppError("FORBIDDEN");
   const value = adsSchema.parse(raw);
   await db
     .insert(appSettings)

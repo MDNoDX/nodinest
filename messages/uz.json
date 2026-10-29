@@ -95,7 +95,7 @@
     "openMenu": "Menyuni oçiş",
     "closeMenu": "Menyuni yopiş",
     "commandPalette": "Tezkor qidiruv",
-    "commandHint": "Kitoblar, şaxslar, qaydlarni qidiring…",
+    "commandHint": "Kitob, qayd yoki username qidiring…",
     "signOut": "Çiqiş",
     "account": "Hisob",
     "newResource": "Manba qöşiş",
@@ -224,7 +224,8 @@
     "avgRating": "Örtaça baho",
     "rated": "{count} ta baholangan",
     "continue": "Davom ettiriş: {title}",
-    "dueReview": "Bugun {n} ta savol"
+    "dueReview": "Bugun {n} ta savol",
+    "allGoals": "Barça maqsadlar →"
   },
   "types": {
     "book": "Kitob",
@@ -697,7 +698,8 @@
       "categories": "Mavzular",
       "tags": "Teglar",
       "booktext": "Kitob matni",
-      "taqriz": "Taqrizlar"
+      "taqriz": "Taqrizlar",
+      "users": "Foydalanuvçilar"
     },
     "all": "Hammasi",
     "relevance": "Moslik",
@@ -872,7 +874,20 @@
     "modeActHint": "Saytda iş bajaradi: kitob qöşadi, savollar tuzadi — hammasi tasdiq bilan",
     "modeTalk": "Suhbat",
     "modeTalkHint": "Öqiganlaringiz haqida halol suhbatdoş",
-    "talkIntro": "Men Nodi — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: maqtamayman, kamçilikni ham oçiq aytaman."
+    "talkIntro": "Men Nodi — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: maqtamayman, kamçilikni ham oçiq aytaman.",
+    "voiceTalk": "Ovozli suhbat",
+    "talkListening": "Tinglayapman…",
+    "talkThinking": "Öylayapman…",
+    "talkSpeaking": "Gapiryapman — tugatiş uçun şarni bosing",
+    "talkPaused": "Mikrofon töxtatilgan",
+    "talkTap": "Gapiring yoki şarni bosing",
+    "talkVoice": "Ovoz",
+    "voiceFemale": "Ayol ovozi",
+    "voiceMale": "Erkak ovozi",
+    "talkEnd": "Suhbatni tugatiş",
+    "talkPause": "Mikrofonni töxtatiş",
+    "talkResume": "Mikrofonni yoqiş",
+    "voiceFailed": "Javob bölmadi. Qayta gapirib köring."
   },
   "stats": {
     "title": "Körsatkiçlar",
@@ -973,7 +988,8 @@
     "role": "Rol",
     "roles": {
       "user": "Foydalanuvçi",
-      "superadmin": "Boş administrator"
+      "superadmin": "Boş administrator",
+      "admin": "Administrator"
     },
     "preferences": "Afzalliklar",
     "timezone": "Vaqt mintaqasi",
@@ -993,7 +1009,12 @@
       "typeIt": "Tasdiqlaş uçun DELETE deb yozing",
       "confirm": "Öçiriş",
       "failed": "Hisobni öçirib bölmadi. Keyinroq urinib köring."
-    }
+    },
+    "navOrder": "Menyu tartibi",
+    "navOrderHint": "Çap menyudagi bölimlarni özingizga qulay tartibda joylaştiring (şu qurilmada saqlanadi).",
+    "navUp": "Yuqoriga",
+    "navDown": "Pastga",
+    "navReset": "Asl tartibga qaytariş"
   },
   "admin": {
     "title": "Boşqaruv",
@@ -1057,7 +1078,16 @@
     },
     "noArchived": "Arxivda heç narsa yöq.",
     "modeHint": "Admin rejimi öçiq: sayt oddiy foydalanuvçi kabi işlaydi. Yoqiş — öng yuqoridagi tugma.",
-    "ads": "Reklama"
+    "ads": "Reklama",
+    "permsTitle": "Huquqlar",
+    "permsSave": "Saqlaş",
+    "permsSaved": "Huquqlar saqlandi.",
+    "perms": {
+      "payments": "Premium tölovlari",
+      "ads": "Reklama",
+      "feedback": "Adminga xabarlar",
+      "users": "Foydalanuvçilarni bloklaş"
+    }
   },
   "upload": {
     "choose": "Yuklaş",
@@ -1092,7 +1122,8 @@
     "notFoundTitle": "Sahifa topilmadi",
     "notFoundBody": "Siz qidirayotgan sahifa mavjud emas yoki unga ruxsatingiz yöq.",
     "goHome": "Boş sahifaga ötiş",
-    "PREMIUM_REQUIRED": "Bu imkoniyat Premium’da. Sozlamalar → Premium böliminda batafsil."
+    "PREMIUM_REQUIRED": "Bu imkoniyat Premium’da. Sozlamalar → Premium böliminda batafsil.",
+    "INDECENT": "Matnda nojoiz (uyatsiz yoki ekstremistik) söz bor. Uni özgartiring."
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -1112,7 +1143,8 @@
     "self_parent": "Mavzu öziga ota böla olmaydi.",
     "contributor_person_or_name": "Şaxsni tanlang.",
     "generic": "Notöğri qiymat.",
-    "end_before_start": "Tugaş sanasi boşlanişdan keyin bölişi kerak."
+    "end_before_start": "Tugaş sanasi boşlanişdan keyin bölişi kerak.",
+    "indecent": "Nojoiz söz bor — özgartiring."
   },
   "statusMedia": {
     "planned": "Rejada",
@@ -1573,7 +1605,7 @@
     "tryAnswer": "Avval özingiz javob berib köring (ixtiyoriy) — şunda yaxşiroq eslab qolasiz.",
     "showAnswer": "Javobni körsatiş",
     "yourAnswer": "Sizning javobingiz",
-    "keysHint": "Böş joy — javob · 1–4 — baho · Esc — çiqiş",
+    "keysHint": "Böşliq — javobni körsatiş · 1 — bilmadim · 2 — bildim · Esc — çiqiş",
     "kind": {
       "recall": "Eslaş",
       "understanding": "Tuşuniş",
@@ -1584,9 +1616,9 @@
       "date": "Sana / yil"
     },
     "grade": {
-      "again": "Qayta",
+      "again": "Bilmadim",
       "hard": "Qiyin",
-      "good": "Yaxşi",
+      "good": "Bildim",
       "easy": "Oson"
     },
     "allImportant": "Hammasi (AI aniqlaydi)",
@@ -1596,7 +1628,8 @@
     "deep": "Çuqur",
     "standardHint": "Tez: asosiy ğoyalar, faktlar va atamalar.",
     "deepHint": "Imtihon darajasida: sabab-oqibat, taqqoslaş, aniq ism, sana va raqamlar; har bir javob manbaga soliştirib tekşiriladi. 1–4 daqiqa oladi.",
-    "makingDeep": "Çuqur tayyorlanmoqda va tekşirilmoqda…"
+    "makingDeep": "Çuqur tayyorlanmoqda va tekşirilmoqda…",
+    "moreOptions": "Qöşimça sozlamalar"
   },
   "feedback": {
     "tabWrite": "Adminga yoziş",
@@ -1831,7 +1864,21 @@
     "betaHint": "Sinov bosqiçida: ovoz Google’ning bepul limiti bilan tayyorlanadi, kuniga bir neça qism. Tayyor qismlar saqlanib qoladi.",
     "preview": "Tinglab köriş",
     "previewHint": "Şu ovoz kitobdan bir parçani qanday öqişini eşiting",
-    "previewLimit": "Bugungi namunalar limiti tugadi (kuniga 12 ta)."
+    "previewLimit": "Bugungi namunalar limiti tugadi (kuniga 12 ta).",
+    "role": {
+      "narrator_m": "Hikoyaçi (erkak)",
+      "narrator_f": "Hikoyaçi (ayol)",
+      "man": "Erkak",
+      "woman": "Ayol",
+      "young_man": "Yigit",
+      "young_woman": "Qiz",
+      "child": "Bola",
+      "old_man": "Çol",
+      "old_woman": "Kampir",
+      "angry_man": "Jahldor erkak"
+    },
+    "previewStop": "Töxtatiş",
+    "premiumOnly": "Audiokitob Premium’da."
   },
   "reader": {
     "title": "Kitobni öqiş",
@@ -1996,7 +2043,7 @@
     "months": "Muddat",
     "monthsN": "{n} oy",
     "method": "Usul",
-    "card": "Karta",
+    "card": "Uzcard / Humo",
     "amount": "Ötkazilgan summa (söm)",
     "noteLabel": "Izoh",
     "notePlaceholder": "Karta oxirgi 4 raqami, vaqti…",
@@ -2030,7 +2077,8 @@
     "audiobook": "Audiokitob",
     "studyCards": "AI takrorlaş savollari",
     "ads": "Reklama körsatiladi",
-    "save": "Saqlaş"
+    "save": "Saqlaş",
+    "visa": "Visa karta raqami"
   },
   "ads": {
     "label": "Reklama"
@@ -2066,7 +2114,7 @@
     "follow": "Kuzatiş",
     "following": "Kuzatyapsiz",
     "followersN": "{n} kuzatuvçi",
-    "followingN": "{n} kuzatyapti",
+    "followingN": "{n} kuzatilmoqda",
     "itemsN": "{n} ta oçiq darslik",
     "editProfile": "Profilni tahrirlaş",
     "privateTitle": "Bu profil yopiq",
@@ -2074,7 +2122,7 @@
     "noPublic": "Hali oçiq darslik yöq",
     "noPublicSelf": "Kitob sahifasida «Yopiq» tugmasini bosib, uni oçiq qiling.",
     "library": "Oçiq darsliklar",
-    "selfPrivateNote": "Profilingiz yopiq: boşqalar uni körmaydi. Sozlamalarda oçiş mumkin.",
+    "selfPrivateNote": "Profilingiz yopiq: boşqalar uni körmaydi. «Profilni tahrirlaş» orqali oçiş mumkin.",
     "public": "Oçiq",
     "private": "Yopiq",
     "publicHint": "Profilingizda körinadi — bosib yoping",
@@ -2089,6 +2137,19 @@
     "save": "Saqlaş",
     "saved": "Saqlandi",
     "viewProfile": "Profilimni köriş",
-    "peopleTitle": "Odamlar — saytdagi foydalanuvçilar"
+    "peopleTitle": "Odamlar — saytdagi foydalanuvçilar",
+    "followersTitle": "Kuzatuvçilar",
+    "followingListTitle": "Kuzatilayotganlar",
+    "removeFollower": "Olib taşlaş",
+    "removeFollowerConfirm": "{name} kuzatuvçilaringizdan olib taşlansinmi?",
+    "removed": "Olib taşlandi",
+    "noFollowers": "Hali kuzatuvçi yöq",
+    "noFollowing": "Hali heç kimni kuzatmayapti",
+    "listPrivate": "Bu profil yopiq — röyxatlar körinmaydi.",
+    "closeEdit": "Yopiş",
+    "privateBadge": "Yopiq profil",
+    "publicBadge": "Oçiq profil",
+    "back": "Profilga qaytiş",
+    "findPeople": "Odamlarni topiş"
   }
 }

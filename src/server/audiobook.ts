@@ -17,11 +17,18 @@
 import "server-only";
 import { Mp3Encoder } from "@breezystack/lamejs";
 import { Type } from "@google/genai";
-import { and, desc, eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
-import { audiobooks, audiobookScripts, bookTextSources } from "@/db/schema";
+import {
+  audioCache,
+  audiobooks,
+  audiobookScripts,
+  bookTextSources,
+  voiceSamples,
+} from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { generate, speak, uploadToGemini } from "./ai/gemini";
 import { factsText, gate, langRule, resourceFacts } from "./ai/study";
@@ -29,7 +36,9 @@ import { findStructure, getStructure } from "./book-structure";
 import { loadBookPages } from "./booktext";
 import { enforceRateLimit } from "./rate-limit";
 import { reflow } from "@/lib/reflow";
+import { later } from "./later";
 import { readFileBytes } from "./storage";
+import { putBytes, readParts, tgStorageReady, type TgPart } from "./tg-storage";
 import { mapIndex, quietMiddles, stretchPausesMapped } from "@/lib/audio-pauses";
 import {
   cleanLines,
@@ -81,27 +90,41 @@ export const VOICES = {
 } as const;
 export type VoiceName = keyof typeof VOICES;
 
-/** Voices that suit an age, best first (children: light, young voices). */
+/**
+ * The voices people actually choose from: one per role (narrator, man, woman,
+ * youth, child, old). Other Gemini voices still play if an older analysis
+ * picked them, but are no longer offered or chosen.
+ */
+export const VOICE_ROLES = [
+  { voice: "Charon", role: "narrator_m" },
+  { voice: "Sulafat", role: "narrator_f" },
+  { voice: "Orus", role: "man" },
+  { voice: "Kore", role: "woman" },
+  { voice: "Puck", role: "young_man" },
+  { voice: "Leda", role: "young_woman" },
+  { voice: "Zephyr", role: "child" },
+  { voice: "Algenib", role: "old_man" },
+  { voice: "Gacrux", role: "old_woman" },
+  { voice: "Fenrir", role: "angry_man" },
+] as const satisfies readonly { voice: VoiceName; role: string }[];
+const CURATED = VOICE_ROLES.map((v) => v.voice) as VoiceName[];
+
+/** Voices that suit an age, best first. */
 const AGE_VOICES: Record<string, Partial<Record<"m" | "f", VoiceName[]>>> = {
-  child: {
-    f: ["Leda", "Laomedeia", "Zephyr", "Autonoe"],
-    m: ["Puck", "Sadachbia", "Fenrir", "Achird"],
-  },
-  young: {
-    f: ["Aoede", "Leda", "Autonoe", "Zephyr", "Callirrhoe"],
-    m: ["Puck", "Achird", "Zubenelgenubi", "Sadachbia", "Umbriel"],
-  },
-  elderly: {
-    f: ["Gacrux", "Vindemiatrix", "Sulafat", "Achernar"],
-    m: ["Algenib", "Rasalgethi", "Schedar", "Charon"],
-  },
+  child: { f: ["Zephyr", "Leda"], m: ["Zephyr", "Puck"] },
+  young: { f: ["Leda", "Kore"], m: ["Puck", "Orus"] },
+  adult: { f: ["Kore", "Sulafat"], m: ["Orus", "Charon", "Fenrir"] },
+  elderly: { f: ["Gacrux", "Sulafat"], m: ["Algenib", "Charon"] },
 };
-/** Not picked automatically (still selectable by hand). */
-const NO_AUTO = new Set<VoiceName>(["Enceladus"]);
+/** Not picked automatically (still playable). */
+const NO_AUTO = new Set<VoiceName>(
+  (Object.keys(VOICES) as VoiceName[]).filter((v) => !CURATED.includes(v)),
+);
 const isVoice = (v: unknown): v is VoiceName => typeof v === "string" && v in VOICES;
-const VOICE_LIST = Object.entries(VOICES)
-  .map(([n, v]) => `${n} (${v.g === "m" ? "male" : "female"}, ${v.d})`)
-  .join("; ");
+const VOICE_LIST = VOICE_ROLES.map(
+  (r) =>
+    `${r.voice} (${VOICES[r.voice].g === "m" ? "male" : "female"}, ${r.role.replace("_", " ")}, ${VOICES[r.voice].d})`,
+).join("; ");
 
 // ─── Analysis ────────────────────────────────────────────────────────────────
 
@@ -370,17 +393,19 @@ function cleanAnalysis(raw: Record<string, unknown>, pages: number): Analysis {
     const fits = (n: VoiceName) => !want || VOICES[n].g === want;
     // Breathy voices sound like sighing in long reading: never chosen by itself.
     const auto = (n: VoiceName) => fits(n) && !NO_AUTO.has(n);
-    const byAge = (AGE_VOICES[age]?.[want ?? "f"] ?? []).filter((n) => fits(n) && !used.has(n));
+    const byAge = (AGE_VOICES[age === "unknown" ? "adult" : age]?.[want ?? "f"] ?? []).filter(
+      (n) => fits(n) && !used.has(n),
+    );
     let out: VoiceName | undefined =
       isVoice(v) && fits(v) && !used.has(v) && !NO_AUTO.has(v) && (!byAge.length || age === "adult")
         ? v
         : undefined;
     out ??= byAge[0];
     out ??= isVoice(v) && fits(v) && !used.has(v) && !NO_AUTO.has(v) ? v : undefined;
-    out ??= (Object.keys(VOICES) as VoiceName[]).find((n) => auto(n) && !used.has(n));
-    out ??= (Object.keys(VOICES) as VoiceName[])
-      .filter((n) => auto(n) && n !== narratorVoice)
-      .sort((a, b) => (uses.get(a) ?? 0) - (uses.get(b) ?? 0))[0];
+    out ??= CURATED.find((n) => auto(n) && !used.has(n));
+    out ??= CURATED.filter((n) => auto(n) && n !== narratorVoice).sort(
+      (a, b) => (uses.get(a) ?? 0) - (uses.get(b) ?? 0),
+    )[0];
     out ??= want === "f" ? "Sulafat" : "Charon";
     used.add(out);
     uses.set(out, (uses.get(out) ?? 0) + 1);
@@ -479,6 +504,66 @@ export async function analyzeAudiobook(ctx: AppContext, resourceId: string, loca
       })
       .returning({ id: audiobooks.id }),
   );
+  // Another reader prepared the very same book: take that analysis (and its
+  // speaker scripts) instead of asking the AI again.
+  const textHash = scanned
+    ? null
+    : createHash("sha256")
+        .update(pages.map((p) => p.content).join("\f"))
+        .digest("hex");
+  if (textHash) {
+    const [donor] = await db
+      .select({ id: audiobooks.id, analysis: audiobooks.analysis, plan: audiobooks.plan })
+      .from(audiobooks)
+      .where(
+        and(
+          eq(audiobooks.textHash, textHash),
+          eq(audiobooks.status, "ready"),
+          ne(audiobooks.id, row.id),
+        ),
+      )
+      .limit(1);
+    if (donor?.analysis && donor.plan) {
+      const a = donor.analysis as Analysis;
+      const plan = donor.plan as Plan;
+      const scripts = await db
+        .select({ idx: audiobookScripts.idx, script: audiobookScripts.script })
+        .from(audiobookScripts)
+        .where(eq(audiobookScripts.audiobookId, donor.id));
+      const start = Math.max(
+        0,
+        plan.segs.findIndex((x) => x[2] >= a.startPage),
+      );
+      await withUser(db, ctx, async (tx) => {
+        await tx.delete(audiobookScripts).where(eq(audiobookScripts.audiobookId, row.id));
+        if (scripts.length)
+          await tx
+            .insert(audiobookScripts)
+            .values(
+              scripts.map((x) => ({
+                audiobookId: row.id,
+                idx: x.idx,
+                userId: ctx.userId,
+                script: x.script,
+              })),
+            )
+            .onConflictDoNothing();
+        await tx
+          .update(audiobooks)
+          .set({
+            status: "ready",
+            analysis: a,
+            plan,
+            textHash,
+            positionIdx: start,
+            positionSec: 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(audiobooks.id, row.id));
+      });
+      return { id: row.id, segments: plan.segs.length };
+    }
+  }
   try {
     // Text books: the chapters were found once for the whole book (bookmarks + headings).
     const structure = scanned
@@ -598,6 +683,7 @@ export async function analyzeAudiobook(ctx: AppContext, resourceId: string, loca
           status: "ready",
           analysis,
           plan,
+          textHash,
           positionIdx: start,
           positionSec: 0,
           updatedAt: new Date(),
@@ -859,7 +945,7 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
   return { lines, page: seg[2], row: r, analysis: a };
 }
 
-function encodeMp3(pcm: Int16Array, rate: number) {
+export function encodeMp3(pcm: Int16Array, rate: number) {
   const enc = new Mp3Encoder(1, rate, 48);
   const out: Uint8Array[] = [];
   for (let i = 0; i < pcm.length; i += 1152) out.push(enc.encodeBuffer(pcm.subarray(i, i + 1152)));
@@ -914,6 +1000,43 @@ export async function segmentAudio(ctx: AppContext, resourceId: string, idx: num
   const voice = new Map<string, string>([["narrator", a.narration.voice]]);
   for (const c of a.characters) voice.set(c.name, c.voice);
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;
+  // The same lines in the same voices were voiced before (this or another
+  // reader of the same book): served from the store, no speech request.
+  const key = createHash("sha256")
+    .update(
+      JSON.stringify({
+        v: AUDIO_PIPELINE,
+        lines: lines.map((l) => [voiceOf(l.speaker), l.text]),
+        lang: a.language,
+        style: a.narration.style ?? "",
+      }),
+    )
+    .digest("hex");
+  const [hit] = await db.select().from(audioCache).where(eq(audioCache.key, key));
+  if (hit && tgStorageReady()) {
+    try {
+      const mp3 = Buffer.from(await readParts(hit.tgParts as TgPart[]));
+      return { mp3, seconds: hit.seconds, marks: (hit.marks as number[] | null) ?? [] };
+    } catch {
+      /* the stored copy is unreadable: voice it again below */
+    }
+  }
+  const made = await voiceSegment(lines, voiceOf, a);
+  if (tgStorageReady())
+    later(async () => {
+      const parts = await putBytes(`audio-${key.slice(0, 16)}`, made.mp3);
+      await db
+        .insert(audioCache)
+        .values({ key, tgParts: parts, seconds: made.seconds, marks: made.marks })
+        .onConflictDoNothing();
+    });
+  return made;
+}
+
+/** Bump when the voicing pipeline changes (style, pauses, timing): old copies are not reused. */
+const AUDIO_PIPELINE = 3;
+
+async function voiceSegment(lines: ScriptLine[], voiceOf: (s: string) => string, a: Analysis) {
   const groups = runs(lines);
   const lang = speechLanguage(a.language);
   const style = [
@@ -994,8 +1117,6 @@ export async function previewVoice(
   speaker: string,
 ) {
   if (!isVoice(voice)) throw new AppError("VALIDATION", "voice");
-  await gate(ctx, "audiobook");
-  if (!ctx.superadminAccount) await enforceRateLimit(db, `abpreview:${ctx.userId}`, 12, 86_400);
   const r = await getRow(ctx, resourceId);
   if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
   const a = r.analysis as Analysis;
@@ -1010,7 +1131,7 @@ export async function previewVoice(
     );
     for (const row of rows) {
       const line = (row.script as ScriptLine[]).find(
-        (l) => l.speaker === speaker && l.text.length > 25,
+        (l) => l.speaker === speaker && l.text.length > 20,
       );
       if (line) {
         text = line.text;
@@ -1019,20 +1140,44 @@ export async function previewVoice(
     }
   }
   if (!text) {
-    const seg = segmentPreview(ctx, resourceId, Math.min(1, (r.plan as Plan).segs.length - 1));
-    text = ((await seg).lines.map((l) => l.text).join(" ") || a.summary).slice(0, 600);
+    const plan = r.plan as Plan;
+    const first = Math.max(
+      0,
+      plan.segs.findIndex((x) => x[2] >= a.startPage),
+    );
+    text = (
+      (await segmentPreview(ctx, resourceId, first)).lines.map((l) => l.text).join(" ") || a.summary
+    ).slice(0, 600);
   }
-  // About ten seconds: whole sentences up to ~220 characters.
-  const cut = text.slice(0, 260);
-  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
-  const sample = (end > 60 ? cut.slice(0, end + 1) : cut).trim();
+  // One or two sentences (a few seconds), never the whole passage.
+  const sentences = text.match(/[^.!?…]+[.!?…]+["”»’]?\s*/g) ?? [text];
+  let sample = "";
+  for (const x of sentences) {
+    if (sample && (sample + x).length > 170) break;
+    sample += x;
+    if (sample.length > 60) break;
+  }
+  sample = (sample || text.slice(0, 170)).trim();
   const lang = speechLanguage(a.language);
+  // Made once per voice and text, then served to everyone.
+  const key = createHash("sha256")
+    .update(`${voice}|${lang?.code ?? ""}|${sample}`)
+    .digest("hex");
+  const [hit] = await db.select().from(voiceSamples).where(eq(voiceSamples.key, key));
+  if (hit) return Buffer.from(hit.mp3, "base64");
+  await gate(ctx, "audiobook");
+  if (!ctx.superadminAccount) await enforceRateLimit(db, `abpreview:${ctx.userId}`, 12, 86_400);
   const { pcm, rate } = await speak([{ speaker: "x", text: sample }], () => voice, {
     languageCode: lang?.code,
     style: `Read this as an expressive ${lang?.name ?? ""} audiobook narrator, with native pronunciation. No breathing or other sounds.`,
     timeoutMs: 45_000,
   });
-  return encodeMp3(pcm, rate);
+  const mp3 = encodeMp3(pcm, rate);
+  await db
+    .insert(voiceSamples)
+    .values({ key, mp3: mp3.toString("base64") })
+    .onConflictDoNothing();
+  return mp3;
 }
 
 // ─── Settings ────────────────────────────────────────────────────────────────
@@ -1056,7 +1201,7 @@ export async function setVoice(
   speaker: string,
   voice: string,
 ) {
-  if (!isVoice(voice)) throw new AppError("VALIDATION", "voice");
+  if (!isVoice(voice) || !CURATED.includes(voice)) throw new AppError("VALIDATION", "voice");
   const r = await getRow(ctx, resourceId);
   if (!r?.analysis) throw new AppError("NOT_FOUND");
   const a = r.analysis as Analysis;

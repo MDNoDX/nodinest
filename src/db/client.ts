@@ -17,6 +17,8 @@ export type AppContext = {
   role: "user" | "superadmin";
   /** The account is a superadmin (used for unlimited AI). */
   superadminAccount?: boolean;
+  /** Admin parts given by the superadmin (lib/admin-perms.ts). */
+  perms?: readonly string[];
 };
 
 export function createDb(url: string, opts: { max?: number } = {}): Database {

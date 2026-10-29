@@ -1,6 +1,6 @@
 "use client";
 import { comboLabel, getShortcuts, matches, useIsApple, useShortcuts } from "@/lib/shortcuts";
-import { BookOpen, FileText, Hash, Quote, Search, User } from "lucide-react";
+import { AtSign, BookOpen, FileText, Hash, Quote, Search, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +18,7 @@ type Hit = {
 };
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  users: AtSign,
   resources: BookOpen,
   people: User,
   quotes: Quote,

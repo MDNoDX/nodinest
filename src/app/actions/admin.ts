@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { archiveCategory, saveCategory, setUserRole, setUserStatus } from "@/server/admin";
+import { archiveCategory, saveCategory, setAdminPerms, setUserStatus } from "@/server/admin";
 import { aiSettingsSchema, saveAiSettings } from "@/server/settings";
 import { reviewSuggestion, withdrawSuggestion } from "@/server/suggestions";
 import { AppError } from "@/lib/errors";
@@ -40,9 +40,14 @@ export async function withdrawSuggestionAction(suggestionId: string) {
   });
 }
 
-export async function setUserRoleAction(userId: string, role: "user" | "superadmin") {
+export async function setAdminPermsAction(userId: string, perms: string[]) {
   return run(async ({ ctx, db }) => {
-    await setUserRole(db, ctx, id.parse(userId), z.enum(["user", "superadmin"]).parse(role));
+    await setAdminPerms(
+      db,
+      ctx,
+      id.parse(userId),
+      z.array(z.string().max(20)).max(10).parse(perms),
+    );
     revalidatePath("/admin/users");
   });
 }

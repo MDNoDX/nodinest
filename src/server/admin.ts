@@ -6,6 +6,7 @@
 import { and, count, desc, eq, ne, sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
 import { auditLogs, categories, user } from "@/db/schema";
+import { ADMIN_PERMS, can } from "@/lib/admin-perms";
 import { AppError } from "@/lib/errors";
 import { categoryInput, zodFieldErrors } from "@/lib/validation";
 import { audit } from "./audit";
@@ -15,13 +16,14 @@ function assertSuperadmin(ctx: AppContext) {
 }
 
 export async function listUsers(database: Database, ctx: AppContext) {
-  assertSuperadmin(ctx);
+  if (!can(ctx, "users")) throw new AppError("FORBIDDEN");
   return database
     .select({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      adminPerms: user.adminPerms,
       status: user.status,
       createdAt: user.createdAt,
       notes: sql<number>`(select count(*)::int from nodinest.notes n where n.user_id = "user"."id" and n.deleted_at is null)`,
@@ -68,14 +70,17 @@ export async function setUserStatus(
   targetId: string,
   status: "active" | "suspended",
 ) {
-  assertSuperadmin(ctx);
+  if (!can(ctx, "users")) throw new AppError("FORBIDDEN");
   if (targetId === ctx.userId) throw new AppError("CONFLICT", "self_suspend");
   await database.transaction(async (tx) => {
     const [before] = await tx
-      .select({ status: user.status })
+      .select({ status: user.status, role: user.role, perms: user.adminPerms })
       .from(user)
       .where(eq(user.id, targetId));
     if (!before) throw new AppError("NOT_FOUND");
+    // The superadmin can never be suspended; other admins only by the superadmin.
+    if (before.role === "superadmin") throw new AppError("FORBIDDEN", "superadmin");
+    if (before.perms.length && ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
     await tx.update(user).set({ status }).where(eq(user.id, targetId));
     if (status === "suspended")
       await tx.execute(sql`delete from nodinest.session where user_id = ${targetId}`);
@@ -84,8 +89,36 @@ export async function setUserStatus(
       action: "user.set_status",
       entityType: "user",
       entityId: targetId,
-      before,
+      before: { status: before.status },
       after: { status },
+    });
+  });
+}
+
+/** The superadmin gives (or takes back) parts of the admin to an account. */
+export async function setAdminPerms(
+  database: Database,
+  ctx: AppContext,
+  targetId: string,
+  perms: string[],
+) {
+  assertSuperadmin(ctx);
+  const next = ADMIN_PERMS.filter((p) => perms.includes(p));
+  await database.transaction(async (tx) => {
+    const [before] = await tx
+      .select({ role: user.role, perms: user.adminPerms })
+      .from(user)
+      .where(eq(user.id, targetId));
+    if (!before) throw new AppError("NOT_FOUND");
+    if (before.role === "superadmin") throw new AppError("CONFLICT", "superadmin");
+    await tx.update(user).set({ adminPerms: next }).where(eq(user.id, targetId));
+    await audit(tx, {
+      actorId: ctx.userId,
+      action: "user.set_perms",
+      entityType: "user",
+      entityId: targetId,
+      before: { perms: before.perms },
+      after: { perms: next },
     });
   });
 }

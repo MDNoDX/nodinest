@@ -21,7 +21,7 @@ export default async function SuggestionsPage({ searchParams }: { searchParams: 
   const { ctx, user, locale, tz } = await pageContext();
   const t = await getTranslations();
   const p = await searchParams;
-  const owner = !!user.isSuperadmin;
+  const owner = user.isSuperadmin || user.adminPerms.includes("feedback");
   const tab = sp(p.tab) === "inbox" && owner ? "inbox" : "write";
   const [mine, inbox] = await Promise.all([
     tab === "write" ? listMyFeedback(ctx) : Promise.resolve([]),

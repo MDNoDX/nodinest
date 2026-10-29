@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { files, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
+import { moderationIssue } from "@/lib/moderation";
 import { USERNAME_RE, normalizeUsername, usernameBase } from "@/lib/username";
 
 /** Names nobody may take (routes, roles, the brand). */
@@ -89,6 +90,8 @@ export const profileInput = z.object({
 export async function saveProfile(ctx: AppContext, raw: unknown) {
   const a = profileInput.parse(raw);
   const username = normalizeUsername(a.username);
+  if ([a.firstName, a.lastName, username].some((v) => moderationIssue(v)))
+    throw new AppError("INDECENT");
   if (!USERNAME_RE.test(username) || RESERVED.has(username))
     throw new AppError("VALIDATION", "username_invalid");
   if (!(await usernameFree(username, ctx.userId))) throw new AppError("CONFLICT", "username_taken");

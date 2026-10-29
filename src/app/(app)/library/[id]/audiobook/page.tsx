@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { AudiobookApp } from "@/components/audiobook/audiobook-app";
 import { coverSrc } from "@/components/library/cover";
 import { pageContext } from "@/lib/page";
-import { getAudiobook, hasBookText, VOICES } from "@/server/audiobook";
+import { getAudiobook, hasBookText, VOICE_ROLES, VOICES } from "@/server/audiobook";
 import { getResourceHeader } from "@/server/catalog";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,12 @@ export default async function AudiobookPage({ params }: { params: Promise<{ id: 
       }}
       view={view}
       hasText={text}
-      voices={Object.entries(VOICES).map(([name, v]) => ({ name, female: v.g === "f", d: v.d }))}
+      voices={VOICE_ROLES.map((r) => ({
+        name: r.voice,
+        female: VOICES[r.voice].g === "f",
+        d: VOICES[r.voice].d,
+        role: r.role,
+      }))}
     />
   );
 }

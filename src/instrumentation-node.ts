@@ -9,6 +9,9 @@ export function setupReporting() {
     original(...args);
     // toActionError reports the full error itself; this line is only its log copy.
     if (typeof args[0] === "string" && args[0].startsWith("[nodinest] internal error")) return;
+    // Node's own warnings (e.g. ExperimentalWarning) are not errors of the site.
+    const first = String(args[0] ?? "");
+    if (/ExperimentalWarning|DeprecationWarning|--trace-warnings/.test(first)) return;
     const err = args.find((a) => a instanceof Error);
     void reportError(err ?? format(...args), {
       where: "console.error",

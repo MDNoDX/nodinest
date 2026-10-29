@@ -1,4 +1,4 @@
-import { AppWindow, Keyboard, LifeBuoy, Lock } from "lucide-react";
+import { AppWindow, Keyboard, LifeBuoy, ListOrdered, Lock } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/charts/hbar-list";
 import { fmtBytes } from "@/lib/format";
 import { pageContext } from "@/lib/page";
 import { DeleteAccount } from "@/components/settings/delete-account";
+import { NavOrderSettings } from "@/components/settings/nav-order";
 import { ProfileVisibility } from "@/components/social/profile-visibility";
 import { PremiumBadge } from "@/components/premium/premium-badge";
 import { isStorageConfigured, storageUsage, userQuotaBytes } from "@/server/storage";
@@ -80,14 +81,21 @@ export default async function SettingsPage() {
                   <dd>{user.email}</dd>
                 </div>
               )}
-              <div>
-                <dt className="text-muted text-xs">{t("settings.role")}</dt>
-                <dd>
-                  <Badge tone={user.role === "superadmin" ? "accent" : "neutral"}>
-                    {t(`settings.roles.${user.role}`)}
-                  </Badge>
-                </dd>
-              </div>
+              {(user.isSuperadmin || user.adminPerms.length > 0) && (
+                <div>
+                  <dt className="text-muted text-xs">{t("settings.role")}</dt>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    <Badge tone="accent">
+                      {t(`settings.roles.${user.isSuperadmin ? "superadmin" : "admin"}`)}
+                    </Badge>
+                    {!user.isSuperadmin && (
+                      <span className="text-muted text-xs">
+                        {user.adminPerms.map((p) => t(`admin.perms.${p}`)).join(", ")}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              )}
             </dl>
             <EditProfile
               userId={user.id}
@@ -116,6 +124,12 @@ export default async function SettingsPage() {
           <CardHeader title={t("settings.appearance")} />
           <div className="px-5 pb-5">
             <AppearanceForm />
+          </div>
+        </Card>
+        <Card id="menu">
+          <CardHeader title={t("settings.navOrder")} icon={<ListOrdered />} hue="teal" />
+          <div className="px-5 pb-5">
+            <NavOrderSettings />
           </div>
         </Card>
         <Card id="shortcuts">

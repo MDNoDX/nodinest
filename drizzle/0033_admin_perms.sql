@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."user" ADD COLUMN "admin_perms" text[] DEFAULT '{}'::text[] NOT NULL;

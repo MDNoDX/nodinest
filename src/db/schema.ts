@@ -170,6 +170,11 @@ export const user = nodinest.table(
     bio: text("bio"),
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
+    /** Parts of the admin given by the superadmin (lib/admin-perms.ts). */
+    adminPerms: text("admin_perms")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     status: userStatus("status").notNull().default("active"),
     locale: text("locale").notNull().default("uz"),
     timezone: text("timezone").notNull().default("Asia/Tashkent"),
@@ -1165,12 +1170,17 @@ export const audiobooks = nodinest.table(
     plan: jsonb("plan"),
     /** Most pages have no text layer: segments are read from the page images. */
     scanned: boolean("scanned").notNull().default(false),
+    /** sha256 of the book's text: the same book of another user reuses the analysis. */
+    textHash: text("text_hash"),
     positionIdx: integer("position_idx").notNull().default(0),
     positionSec: real("position_sec").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("audiobooks_user_resource_uq").on(t.userId, t.resourceId)],
+  (t) => [
+    uniqueIndex("audiobooks_user_resource_uq").on(t.userId, t.resourceId),
+    index("audiobooks_text_hash_idx").on(t.textHash),
+  ],
 );
 
 /** The voiced script of one segment (who says what), kept so replays only cost speech. */
@@ -1262,7 +1272,7 @@ export const payments = nodinest.table(
     index("payments_status_idx").on(t.status, t.createdAt),
     index("payments_user_idx").on(t.userId),
     check("payments_status_chk", sql`${t.status} IN ('pending', 'approved', 'rejected')`),
-    check("payments_method_chk", sql`${t.method} IN ('card', 'payme', 'click')`),
+    check("payments_method_chk", sql`${t.method} IN ('card', 'visa', 'payme', 'click', 'uzum')`),
   ],
 );
 
@@ -1284,3 +1294,22 @@ export const follows = nodinest.table(
     check("follows_not_self", sql`${t.followerId} <> ${t.followeeId}`),
   ],
 );
+
+/**
+ * Voiced audiobook parts, by content (script lines + voices + pipeline version):
+ * made once, then served to everyone with the same book. MP3 in the Telegram store.
+ */
+export const audioCache = nodinest.table("audio_cache", {
+  key: text("key").primaryKey(),
+  tgParts: jsonb("tg_parts").notNull(),
+  seconds: real("seconds").notNull(),
+  marks: jsonb("marks"),
+  createdAt: createdAt(),
+});
+
+/** Short voice samples ("Listen" next to a voice), made once per voice + text. */
+export const voiceSamples = nodinest.table("voice_samples", {
+  key: text("key").primaryKey(),
+  mp3: text("mp3_base64").notNull(),
+  createdAt: createdAt(),
+});

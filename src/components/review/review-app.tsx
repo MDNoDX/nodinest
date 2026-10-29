@@ -92,20 +92,22 @@ export function ReviewApp({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center">
-        <span className="bg-primary-soft text-primary grid size-12 shrink-0 place-items-center rounded-2xl">
-          <Brain className="size-6" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-lg font-semibold">
-            {dueTotal ? t("dueToday", { n: dueTotal }) : t("allCaughtUp")}
+      {decks.length > 0 && (
+        <section className="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center">
+          <span className="bg-primary-soft text-primary grid size-12 shrink-0 place-items-center rounded-2xl">
+            <Brain className="size-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-semibold">
+              {dueTotal ? t("dueToday", { n: dueTotal }) : t("allCaughtUp")}
+            </div>
+            <p className="text-muted text-sm">{t("srsHint")}</p>
           </div>
-          <p className="text-muted text-sm">{t("srsHint")}</p>
-        </div>
-        <Button disabled={!dueTotal} onClick={() => void start(null)}>
-          <Play /> {t("startReview")}
-        </Button>
-      </section>
+          <Button disabled={!dueTotal} onClick={() => void start(null)}>
+            <Play /> {t("startReview")}
+          </Button>
+        </section>
+      )}
 
       <Maker preselect={preselect} onMade={(deck) => setExpanded(deck)} />
 
@@ -156,6 +158,7 @@ function Maker({
   const [deep, setDeep] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showHits, setShowHits] = useState(false);
+  const [more, setMore] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -266,93 +269,108 @@ function Maker({
           ))}
         </div>
       )}
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <div className="border-border-strong bg-surface flex h-10 shrink-0 items-center gap-2 rounded-lg border px-2.5">
-          <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={all}
-              onChange={(e) => setAll(e.target.checked)}
-              className="size-4 accent-[var(--primary)]"
-            />
-            {t("allImportant")}
-          </label>
-          <span className="bg-border h-5 w-px" />
-          <input
-            type="number"
-            min={1}
-            max={200}
-            inputMode="numeric"
-            value={count}
-            disabled={all}
-            onChange={(e) => {
-              setCount(e.target.value);
-              if (e.target.value) setAll(false);
-            }}
-            onFocus={() => setAll(false)}
-            placeholder={t("countPlaceholder")}
-            aria-label={t("count")}
-            className="w-20 bg-transparent text-sm tabular-nums outline-none disabled:opacity-50"
-          />
-        </div>
-        <input
-          value={focus}
-          onChange={(e) => setFocus(e.target.value)}
-          placeholder={t("focusPlaceholder")}
-          className="border-border-strong bg-surface h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm"
-        />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button disabled={!picked.length || busy} onClick={() => void make()}>
           {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
           {busy ? (deep ? t("makingDeep") : t("making")) : t("make")}
         </Button>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <div
-          role="radiogroup"
-          aria-label={t("depth")}
-          className="bg-surface-2 flex rounded-lg p-0.5 text-xs"
+        <button
+          type="button"
+          onClick={() => setMore((m) => !m)}
+          aria-expanded={more}
+          className="text-muted hover:text-foreground inline-flex items-center gap-1 text-xs font-medium"
         >
-          {([false, true] as const).map((d) => (
-            <button
-              key={String(d)}
-              type="button"
-              role="radio"
-              aria-checked={deep === d}
-              onClick={() => setDeep(d)}
-              className={cn(
-                "flex items-center gap-1 rounded-md px-2.5 py-1 font-medium",
-                deep === d
-                  ? "bg-surface text-foreground shadow-sm"
-                  : "text-muted hover:text-foreground",
-              )}
-            >
-              {d && <Layers className="size-3.5" />}
-              {d ? t("deep") : t("standard")}
-            </button>
-          ))}
-        </div>
-        {[20, 50, 100].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => {
-              setAll(false);
-              setCount(String(n));
-            }}
-            className={cn(
-              "rounded-full border px-2.5 py-0.5 text-xs tabular-nums",
-              !all && count === String(n)
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border text-muted hover:text-foreground",
-            )}
-          >
-            {n}
-          </button>
-        ))}
-        <p className="text-muted w-full text-xs sm:w-auto sm:flex-1">
-          {deep ? t("deepHint") : t("standardHint")}
-        </p>
+          <ChevronDown className={cn("size-3.5 transition-transform", more && "rotate-180")} />
+          {t("moreOptions")}
+        </button>
       </div>
+      {more && (
+        <>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <div className="border-border-strong bg-surface flex h-10 shrink-0 items-center gap-2 rounded-lg border px-2.5">
+              <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={all}
+                  onChange={(e) => setAll(e.target.checked)}
+                  className="size-4 accent-[var(--primary)]"
+                />
+                {t("allImportant")}
+              </label>
+              <span className="bg-border h-5 w-px" />
+              <input
+                type="number"
+                min={1}
+                max={200}
+                inputMode="numeric"
+                value={count}
+                disabled={all}
+                onChange={(e) => {
+                  setCount(e.target.value);
+                  if (e.target.value) setAll(false);
+                }}
+                onFocus={() => setAll(false)}
+                placeholder={t("countPlaceholder")}
+                aria-label={t("count")}
+                className="w-20 bg-transparent text-sm tabular-nums outline-none disabled:opacity-50"
+              />
+            </div>
+            <input
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              placeholder={t("focusPlaceholder")}
+              className="border-border-strong bg-surface h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm"
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div
+              role="radiogroup"
+              aria-label={t("depth")}
+              className="bg-surface-2 flex rounded-lg p-0.5 text-xs"
+            >
+              {([false, true] as const).map((d) => (
+                <button
+                  key={String(d)}
+                  type="button"
+                  role="radio"
+                  aria-checked={deep === d}
+                  onClick={() => setDeep(d)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-2.5 py-1 font-medium",
+                    deep === d
+                      ? "bg-surface text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground",
+                  )}
+                >
+                  {d && <Layers className="size-3.5" />}
+                  {d ? t("deep") : t("standard")}
+                </button>
+              ))}
+            </div>
+            {[20, 50, 100].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => {
+                  setAll(false);
+                  setCount(String(n));
+                }}
+                className={cn(
+                  "rounded-full border px-2.5 py-0.5 text-xs tabular-nums",
+                  !all && count === String(n)
+                    ? "border-primary bg-primary-soft text-primary"
+                    : "border-border text-muted hover:text-foreground",
+                )}
+              >
+                {n}
+              </button>
+            ))}
+            <p className="text-muted w-full text-xs sm:w-auto sm:flex-1">
+              {deep ? t("deepHint") : t("standardHint")}
+            </p>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -633,11 +651,10 @@ function CardEditor({
 
 // ── Review session ────────────────────────────────────────────────────────
 
+// Two answers are enough: "I didn't know" (comes back soon) / "I knew it".
 const GRADES: { g: Grade; key: string; cls: string }[] = [
   { g: 1, key: "again", cls: "border-danger/40 text-danger hover:bg-danger-soft" },
-  { g: 2, key: "hard", cls: "border-warning/40 text-warning hover:bg-warning-soft" },
   { g: 3, key: "good", cls: "border-success/40 text-success hover:bg-success-soft" },
-  { g: 4, key: "easy", cls: "border-primary/40 text-primary hover:bg-primary-soft" },
 ];
 
 function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => void }) {
@@ -646,7 +663,6 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
   const locale = asLocale(useLocale());
   const router = useRouter();
   const [revealed, setRevealed] = useState(false);
-  const [attempt, setAttempt] = useState("");
   const [busy, setBusy] = useState(false);
   const card = s.cards[s.i];
   const finished = !card;
@@ -671,7 +687,6 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
       const cards = g === 1 ? [...s.cards, { ...c, reps: 0 }] : s.cards;
       setS({ ...s, cards, i: s.i + 1, done: s.done + 1 });
       setRevealed(false);
-      setAttempt("");
       setBusy(false);
     },
     [s, setS, te],
@@ -686,9 +701,9 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
       if (!live.current.revealed && (e.key === " " || e.key === "Enter")) {
         e.preventDefault();
         setRevealed(true);
-      } else if (live.current.revealed && ["1", "2", "3", "4"].includes(e.key)) {
+      } else if (live.current.revealed && (e.key === "1" || e.key === "2")) {
         e.preventDefault();
-        void grade(Number(e.key) as Grade);
+        void grade(e.key === "1" ? 1 : 3);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -744,26 +759,11 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
           </span>
           <div className="text-xl leading-snug font-semibold">{card.question}</div>
           {!revealed ? (
-            <>
-              <textarea
-                value={attempt}
-                onChange={(e) => setAttempt(e.target.value)}
-                rows={3}
-                placeholder={t("tryAnswer")}
-                className="border-border-strong bg-surface rounded-lg border px-3 py-2 text-sm"
-              />
-              <Button className="self-start" onClick={() => setRevealed(true)}>
-                <Eye /> {t("showAnswer")}
-              </Button>
-            </>
+            <Button size="lg" className="mt-auto self-stretch" onClick={() => setRevealed(true)}>
+              <Eye /> {t("showAnswer")}
+            </Button>
           ) : (
             <>
-              {attempt.trim() && (
-                <div className="bg-surface-2/60 rounded-lg px-3 py-2 text-sm">
-                  <div className="text-muted mb-0.5 text-xs">{t("yourAnswer")}</div>
-                  <div className="whitespace-pre-line">{attempt}</div>
-                </div>
-              )}
               <div className="border-success/40 bg-success-soft/40 rounded-lg border px-4 py-3">
                 <div className="whitespace-pre-line">{card.answer}</div>
                 {card.explanation && (
@@ -771,20 +771,20 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
                 )}
                 {card.source && <div className="text-muted mt-1 text-xs italic">{card.source}</div>}
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {GRADES.map(({ g, key, cls }) => (
+              <div className="mt-auto grid grid-cols-2 gap-2">
+                {GRADES.map(({ g, key, cls }, i) => (
                   <button
                     key={g}
                     type="button"
                     disabled={busy}
                     onClick={() => void grade(g)}
                     className={cn(
-                      "flex flex-col items-center rounded-xl border px-2 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+                      "flex flex-col items-center rounded-xl border px-2 py-3 text-base font-semibold transition-colors disabled:opacity-50",
                       cls,
                     )}
                   >
                     <span>
-                      {g}. {t(`grade.${key}` as "grade.good")}
+                      {i + 1}. {t(`grade.${key}` as "grade.good")}
                     </span>
                     {!s.practice && (
                       <span className="text-muted text-xs font-normal tabular-nums">

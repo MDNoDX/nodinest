@@ -184,6 +184,7 @@ export async function saveGoalAction(input: unknown, goalId?: string | null) {
   return run(async ({ ctx, db }) => {
     const gid = await saveGoal(db, ctx, input, optId.parse(goalId) ?? undefined);
     revalidatePath("/plans");
+    revalidatePath("/"); // the home page's goal card
     revalidatePath("/");
     return gid;
   });
@@ -197,12 +198,14 @@ export async function setGoalStatusAction(goalId: string, status: string) {
       z.enum(["active", "achieved", "archived"]).parse(status),
     );
     revalidatePath("/plans");
+    revalidatePath("/");
   });
 }
 export async function deleteGoalAction(goalId: string) {
   return run(async ({ ctx, db }) => {
     await deleteGoal(db, ctx, id.parse(goalId));
     revalidatePath("/plans");
+    revalidatePath("/");
   });
 }
 export async function savePlanAction(input: unknown, planId?: string | null) {

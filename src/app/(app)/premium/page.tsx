@@ -73,8 +73,10 @@ export default async function PremiumPage() {
           price={s.priceMonth}
           card={s.card}
           cardHolder={s.cardHolder}
+          visa={s.visa}
           payme={s.payme}
           click={s.click}
+          uzum={s.uzum}
           note={s.note}
         />
         {mine.length > 0 && (

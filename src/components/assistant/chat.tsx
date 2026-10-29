@@ -3,9 +3,11 @@
 import {
   AlertTriangle,
   ArrowUp,
+  AudioLines,
   BookPlus,
   Check,
   CheckCheck,
+  FileText,
   FileType2,
   Loader2,
   Merge,
@@ -14,12 +16,11 @@ import {
   Square,
   Trash2,
   X,
-  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   askAssistantAction,
@@ -33,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { uploadMedia } from "@/lib/upload-media";
+import { VoiceTalk } from "./voice-talk";
 
 export type ChatMessage = {
   id: string;
@@ -569,6 +571,8 @@ export function Chat({
   const end = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const rec = useRecorder();
+  const [talking, setTalking] = useState(false);
+  const closeTalk = useCallback(() => setTalking(false), []);
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -709,6 +713,32 @@ export function Chat({
       </div>
       {mode === "talk" && messages.length === 0 && (
         <p className="text-muted mx-auto mb-4 max-w-md text-center text-sm">{t("talkIntro")}</p>
+      )}
+      {mode === "talk" && available && (
+        <button
+          type="button"
+          onClick={() => setTalking(true)}
+          className="mx-auto mb-5 flex items-center gap-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-transform hover:scale-[1.03]"
+        >
+          <AudioLines className="size-5" /> {t("voiceTalk")}
+        </button>
+      )}
+      {talking && (
+        <VoiceTalk
+          conversationId={conversationId}
+          onClose={closeTalk}
+          onTurn={(turn) => {
+            if (!conversationId) {
+              setConversationId(turn.conversationId);
+              router.replace(`/assistant?c=${turn.conversationId}`, { scroll: false });
+            }
+            setMessages((m) => [
+              ...m,
+              { id: `v-${Date.now()}`, role: "user", content: turn.heard },
+              { id: `vr-${Date.now()}`, role: "model", content: turn.reply },
+            ]);
+          }}
+        />
       )}
       {!available && (
         <div className="bg-warning-soft text-warning mb-4 rounded-xl p-4 text-sm">{reasonText}</div>

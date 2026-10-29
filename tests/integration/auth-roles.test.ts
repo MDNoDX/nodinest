@@ -2,7 +2,8 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { user } from "@/db/schema";
 import { bootstrapSuperadmin, parseSuperadminEmails } from "@/lib/auth/bootstrap";
-import { setUserRole, setUserStatus } from "@/server/admin";
+import { setAdminPerms, setUserRole, setUserStatus } from "@/server/admin";
+import { listPayments } from "@/server/premium";
 import { makeUser, testDb } from "../helpers/db";
 
 const db = testDb();
@@ -70,6 +71,31 @@ describe("superadmin bootstrap", () => {
     expect(await roleOf(u.userId)).toBe("superadmin");
     await setUserRole(db, admin, u.userId, "user");
     await expect(setUserStatus(db, admin, admin.userId, "suspended")).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  });
+
+  it("admins get only the parts the superadmin gave them; the superadmin is untouchable", async () => {
+    const boss = await makeUser(db, { role: "superadmin" });
+    const helper = await makeUser(db);
+    const other = await makeUser(db);
+    await expect(setAdminPerms(db, helper, other.userId, ["users"])).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await setAdminPerms(db, boss, helper.userId, ["users", "payments", "nonsense"]);
+    const [row] = await db.execute<{ p: string[] }>(
+      sql`select admin_perms as p from nodinest."user" where id = ${helper.userId}`,
+    );
+    expect([...row.p].sort()).toEqual(["payments", "users"]);
+    const asAdmin = { ...helper, perms: ["users", "payments"] };
+    await expect(listPayments(asAdmin)).resolves.toBeDefined();
+    await expect(listPayments(other)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await setUserStatus(db, asAdmin, other.userId, "suspended");
+    await setUserStatus(db, asAdmin, other.userId, "active");
+    await expect(setUserStatus(db, asAdmin, boss.userId, "suspended")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(setAdminPerms(db, boss, boss.userId, ["ads"])).rejects.toMatchObject({
       code: "CONFLICT",
     });
   });

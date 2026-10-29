@@ -3,6 +3,7 @@
  * Users see only their own (RLS); the superadmin reads and marks them.
  */
 import "server-only";
+import { can } from "@/lib/admin-perms";
 import { later } from "./later";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -49,7 +50,7 @@ export async function listMyFeedback(ctx: AppContext) {
 
 /** Admin inbox (the superadmin account). */
 export async function listAllFeedback(ctx: AppContext, status?: string | null) {
-  if (ctx.role !== "superadmin" && !ctx.superadminAccount) throw new AppError("FORBIDDEN");
+  if (!ctx.superadminAccount && !can(ctx, "feedback")) throw new AppError("FORBIDDEN");
   return db
     .select({
       id: feedback.id,
@@ -75,7 +76,7 @@ export async function setFeedbackStatus(
   id: string,
   status: "new" | "read" | "done",
 ) {
-  if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
+  if (!ctx.superadminAccount && !can(ctx, "feedback")) throw new AppError("FORBIDDEN");
   await db
     .update(feedback)
     .set({ status, updatedAt: new Date() })

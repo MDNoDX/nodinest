@@ -46,7 +46,12 @@ export function TelegramLogin({ next, disabled }: { next: string; disabled?: boo
     setState("wait");
     setStart(null);
     setQr(null);
-    const r = await fetch("/api/auth/telegram/start", { method: "POST" }).catch(() => null);
+    // Better Auth accepts only JSON POSTs (an empty one is 415).
+    const r = await fetch("/api/auth/telegram/start", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    }).catch(() => null);
     if (!r?.ok) {
       setState("error");
       return;

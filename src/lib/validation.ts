@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { dateBounds, isValidPartialDate } from "./dates";
+import { moderationIssue } from "./moderation";
 import { parseReadingDate, readingOrderOk } from "./reading-date";
 
 const trimmed = (max: number) => z.string().trim().max(max);
@@ -12,6 +13,18 @@ const optText = (max: number) =>
     .string()
     .trim()
     .max(max)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v : null));
+/** Shared catalog text others see: no obscene words (lib/moderation.ts). */
+const clean = (v: string | null | undefined) => !moderationIssue(v, { extremist: false });
+const pubText = (max: number) => trimmed(max).min(1, "required").refine(clean, "indecent");
+const optPub = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine(clean, "indecent")
     .optional()
     .nullable()
     .transform((v) => (v ? v : null));
@@ -107,10 +120,10 @@ const linkSchema = z.object({
 
 export const personInput = z
   .object({
-    fullName: trimmed(200).min(1, "required"),
+    fullName: pubText(200),
     aliases: z.array(trimmed(200).min(1)).max(20).default([]),
-    shortDescription: optText(300),
-    biography: optText(20_000),
+    shortDescription: optPub(300),
+    biography: optPub(20_000),
     birthDate: partialDate,
     deathDate: partialDate,
     nationality: optText(120),
@@ -142,9 +155,9 @@ export const contributorInput = z
 
 export const resourceInput = z.object({
   type: z.enum(RESOURCE_TYPES),
-  title: trimmed(400).min(1, "required"),
-  originalTitle: optText(400),
-  description: optText(20_000),
+  title: pubText(400),
+  originalTitle: optPub(400),
+  description: optPub(20_000),
   coverUrl: optUrl,
   coverFileId: uuid.optional().nullable(),
   language: optText(40),
@@ -292,7 +305,7 @@ export const planInput = z
   });
 
 export const publisherInput = z.object({
-  name: trimmed(200).min(1, "required"),
+  name: pubText(200),
   kind: z.enum(["publisher", "channel", "podcast", "website", "organization"]).default("publisher"),
   city: optText(120),
   country: optText(120),

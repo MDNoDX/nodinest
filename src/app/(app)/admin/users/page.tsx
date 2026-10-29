@@ -10,7 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function AdminUsers() {
-  const { ctx, db, user, locale, tz } = await pageContext({ admin: true });
+  const { ctx, db, user, locale, tz } = await pageContext({ perm: "users" });
   const t = await getTranslations();
   const users = await listUsers(db, ctx);
   return (
@@ -34,9 +34,20 @@ export default async function AdminUsers() {
                 <div className="text-muted text-xs">{u.email}</div>
               </td>
               <td className="px-4 py-2">
-                <Badge tone={u.role === "superadmin" ? "accent" : "neutral"}>
-                  {t(`settings.roles.${u.role}`)}
+                <Badge
+                  tone={
+                    u.role === "superadmin" ? "accent" : u.adminPerms.length ? "info" : "neutral"
+                  }
+                >
+                  {t(
+                    `settings.roles.${u.role === "superadmin" ? "superadmin" : u.adminPerms.length ? "admin" : "user"}`,
+                  )}
                 </Badge>
+                {u.role !== "superadmin" && u.adminPerms.length > 0 && (
+                  <div className="text-muted mt-1 text-xs">
+                    {u.adminPerms.map((p) => t(`admin.perms.${p}` as "admin.perms.ads")).join(", ")}
+                  </div>
+                )}
               </td>
               <td className="px-4 py-2">
                 <Badge tone={u.status === "active" ? "success" : "danger"}>
@@ -48,7 +59,14 @@ export default async function AdminUsers() {
               </td>
               <td className="text-muted px-4 py-2 text-xs">{fmtDate(u.createdAt, locale, tz)}</td>
               <td className="px-4 py-2">
-                <UserActions id={u.id} role={u.role} status={u.status} self={u.id === user.id} />
+                <UserActions
+                  id={u.id}
+                  role={u.role}
+                  perms={u.adminPerms}
+                  status={u.status}
+                  self={u.id === user.id}
+                  superadmin={ctx.role === "superadmin"}
+                />
               </td>
             </tr>
           ))}

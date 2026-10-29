@@ -11,13 +11,13 @@ import "server-only";
 import { after } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { account, botUsers, feedback, tgPosts } from "@/db/schema";
+import { account, appSettings, botUsers, feedback, tgPosts } from "@/db/schema";
 import { hitRateLimit } from "@/server/rate-limit";
 import { approveLogin, cancelLogin, pendingLogin, type TgUser } from "@/server/telegram-login";
 import { postFeedback } from "@/server/monitor/events";
 import { dailySummary } from "@/server/monitor/summary";
 import { esc, tgRaw, tgSend, tgTo } from "@/server/monitor/telegram";
-import { moveWaiting } from "@/server/tg-storage";
+import { forgetStorageChat, moveWaiting } from "@/server/tg-storage";
 import { decidePayment } from "@/server/premium";
 import { botText, langOf, type BotLang } from "./texts";
 
@@ -37,7 +37,11 @@ type Update = {
     data?: string;
     message?: { message_id: number; chat: { id: number } };
   };
-  my_chat_member?: { chat: { id: number; type: string }; new_chat_member: { status: string } };
+  my_chat_member?: {
+    chat: { id: number; type: string };
+    from?: { id: number };
+    new_chat_member: { status: string };
+  };
 };
 
 const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app";
@@ -309,7 +313,33 @@ export async function handleUpdate(u: Update) {
   if (u.message && u.message.chat.type === "private") await onPrivate(u.message);
   else if (u.callback_query) await onCallback(u.callback_query);
   else if (u.channel_post) await onChannel(u.channel_post);
-  else if (u.my_chat_member && u.my_chat_member.chat.type === "private") {
+  else if (
+    u.my_chat_member &&
+    u.my_chat_member.chat.type === "channel" &&
+    u.my_chat_member.new_chat_member.status === "administrator" &&
+    String(u.my_chat_member.chat.id) !== process.env.TELEGRAM_ADMIN_CHAT_ID &&
+    !process.env.TELEGRAM_STORAGE_CHAT_ID
+  ) {
+    // A new private channel for the files: from now on parts go there, not
+    // into the admin channel. Only an admin of the admin channel may set it.
+    const chatId = String(u.my_chat_member.chat.id);
+    const by = u.my_chat_member.from?.id;
+    const m = by
+      ? await tgRaw<{ status: string }>("getChatMember", {
+          chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID,
+          user_id: by,
+        })
+      : null;
+    if (!m || !["administrator", "creator"].includes(m.status)) return;
+    await db
+      .insert(appSettings)
+      .values({ key: "tg_storage", value: { chatId } })
+      .onConflictDoUpdate({ target: appSettings.key, set: { value: { chatId } } });
+    forgetStorageChat();
+    await tgSend(
+      "✅ Fayllar uçun kanal ulandi: endi «#file» xabarlari şu kanalga emas, yangi kanalga tuşadi.",
+    ).catch(() => null);
+  } else if (u.my_chat_member && u.my_chat_member.chat.type === "private") {
     const blocked = ["kicked", "left"].includes(u.my_chat_member.new_chat_member.status);
     await db.update(botUsers).set({ blocked }).where(eq(botUsers.tgId, u.my_chat_member.chat.id));
   }

@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Badge on "Takliflar": new messages to the admin (superadmin account).
   const ctx = toCtx(user);
   const [pending, plan, ad] = await Promise.all([
-    user.isSuperadmin
+    user.isSuperadmin || user.adminPerms.includes("feedback")
       ? db.select({ n: count() }).from(feedback).where(eq(feedback.status, "new"))
       : Promise.resolve([{ n: 0 }]),
     limitsFor(ctx),
@@ -35,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         email: user.email,
         image: user.image,
         role: user.role,
+        admin: user.role === "superadmin" || user.adminPerms.length > 0,
         username: user.username,
         premium: user.isPremium,
       }}

@@ -1,4 +1,5 @@
 "use server";
+import { can } from "@/lib/admin-perms";
 import { revalidatePath } from "next/cache";
 import { AppError } from "@/lib/errors";
 import { saveAds } from "@/server/ads";
@@ -23,7 +24,7 @@ export async function savePremiumSettingsAction(input: unknown) {
 
 export async function decidePaymentAction(id: string, approve: boolean) {
   return run(async ({ ctx, user }) => {
-    if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
+    if (!can(ctx, "payments")) throw new AppError("FORBIDDEN");
     const p = await decidePayment(id, approve, `site:${user.username ?? user.id}`);
     if (!p) throw new AppError("CONFLICT");
     revalidatePath("/admin/premium");

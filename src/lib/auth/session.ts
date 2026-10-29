@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db, type AppContext } from "@/db";
 import { user } from "@/db/schema";
+import { type AdminPerm, can, toPerms } from "@/lib/admin-perms";
 import { AppError } from "@/lib/errors";
 import { auth } from "./config";
 
@@ -35,6 +36,8 @@ export type CurrentUser = {
   role: "user" | "superadmin";
   /** The account itself is a superadmin (DB role), regardless of the mode. */
   isSuperadmin: boolean;
+  /** Admin parts given by the superadmin (empty for everyone else). */
+  adminPerms: AdminPerm[];
   adminMode: boolean;
   locale: string;
   timezone: string;
@@ -56,6 +59,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       profilePublic: user.profilePublic,
       bio: user.bio,
       role: user.role,
+      adminPerms: user.adminPerms,
       status: user.status,
       locale: user.locale,
       timezone: user.timezone,
@@ -63,14 +67,21 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .from(user)
     .where(eq(user.id, s.user.id));
   if (!u || u.status !== "active") return null;
-  const { status: _status, role, ...rest } = u;
+  const { status: _status, role, adminPerms, ...rest } = u;
   void _status;
   const isSuperadmin = role === "superadmin";
   // The cookie can only *narrow* privileges: it never grants a role the DB
   // didn't, so it is safe to read from the client.
   const adminMode = isSuperadmin && (await cookies()).get(ADMIN_MODE_COOKIE)?.value === "1";
   const isPremium = !!rest.premiumUntil && rest.premiumUntil > new Date();
-  return { ...rest, isPremium, role: adminMode ? "superadmin" : "user", isSuperadmin, adminMode };
+  return {
+    ...rest,
+    isPremium,
+    role: adminMode ? "superadmin" : "user",
+    isSuperadmin,
+    adminPerms: isSuperadmin ? [] : toPerms(adminPerms),
+    adminMode,
+  };
 });
 
 /** For pages/layouts: redirects to /login when signed out. */
@@ -83,6 +94,13 @@ export async function requireUser(): Promise<CurrentUser> {
 export async function requireSuperadminPage(): Promise<CurrentUser> {
   const u = await requireUser();
   if (u.role !== "superadmin") redirect("/");
+  return u;
+}
+
+/** A page of one admin part: the superadmin (admin mode) or an admin with it. */
+export async function requirePermPage(perm: AdminPerm): Promise<CurrentUser> {
+  const u = await requireUser();
+  if (!can(toCtx(u), perm)) redirect("/");
   return u;
 }
 
@@ -100,5 +118,5 @@ export async function requireSuperadminActor(): Promise<{ user: CurrentUser; ctx
 }
 
 export function toCtx(u: CurrentUser): AppContext {
-  return { userId: u.id, role: u.role, superadminAccount: u.isSuperadmin };
+  return { userId: u.id, role: u.role, superadminAccount: u.isSuperadmin, perms: u.adminPerms };
 }

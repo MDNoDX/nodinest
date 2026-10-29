@@ -7,9 +7,12 @@ import "server-only";
 import {
   ApiError,
   GoogleGenAI,
+  HarmBlockThreshold,
+  HarmCategory,
   type Content,
   type GenerateContentConfig,
   type GenerateContentResponse,
+  type SafetySetting,
 } from "@google/genai";
 import { db } from "@/db";
 import { AppError } from "@/lib/errors";
@@ -118,6 +121,7 @@ export async function generate(
   if (sawQuota && quotaDelay > 60_000) {
     try {
       const s = await getAiSettings(db);
+      const alreadyPaused = !!s.pausedUntil && new Date(s.pausedUntil) > new Date();
       await saveAiSettings(
         db,
         {
@@ -127,9 +131,11 @@ export async function generate(
         null,
       );
       const { tgSend } = await import("@/server/monitor/telegram");
-      await tgSend(
-        `⏸ <b>AI töxtatildi</b>: barça Gemini modellarining kunlik bepul limiti tugadi. ${Math.round(quotaDelay / 60_000)} daqiqadan keyin qayta ishlaydi.`,
-      );
+      // Once per pause, not for every request that hits the empty quota.
+      if (!alreadyPaused)
+        await tgSend(
+          `⏸ <b>AI töxtatildi</b>: barça Gemini modellarining kunlik bepul limiti tugadi. ${Math.round(quotaDelay / 60_000)} daqiqadan keyin qayta ishlaydi.`,
+        );
     } catch {
       /* best effort */
     }
@@ -138,6 +144,30 @@ export async function generate(
   if (sawQuota) throw new AppError("AI_QUOTA", "per_minute");
   throw new AppError("AI_UNAVAILABLE", "upstream");
 }
+
+/**
+ * Safety on every request: sexual content and hate are blocked early;
+ * harassment and danger only when clearly so (books and lectures may speak
+ * about war, crime or violence).
+ */
+const SAFETY: SafetySetting[] = [
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  },
+];
 
 /** One model with bounded exponential backoff for transient failures. */
 async function generateWith(
@@ -155,6 +185,7 @@ async function generateWith(
         model,
         contents,
         config: {
+          safetySettings: SAFETY,
           ...config,
           abortSignal: controller.signal,
           httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
@@ -221,6 +252,7 @@ export async function* generateStream(
         model,
         contents,
         config: {
+          safetySettings: SAFETY,
           ...config,
           abortSignal: controller.signal,
           httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
@@ -371,7 +403,12 @@ export async function speak(
       const res = await generateWith(
         model,
         contentsFor(model),
-        { responseModalities: ["AUDIO"], speechConfig: speechConfigFor(model) },
+        // Speech reads the book's own text aloud: the model's defaults apply.
+        {
+          responseModalities: ["AUDIO"],
+          speechConfig: speechConfigFor(model),
+          safetySettings: undefined,
+        },
         opts.timeoutMs ?? 90_000,
       );
       const part = res.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);

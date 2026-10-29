@@ -14,30 +14,41 @@ export function PaymentForm({
   price,
   card,
   cardHolder,
+  visa,
   payme,
   click,
+  uzum,
   note,
 }: {
   price: number;
   card: string;
   cardHolder: string;
+  visa: string;
   payme: string;
   click: string;
+  uzum: string;
   note: string;
 }) {
   const t = useTranslations("premium");
   const { pending, exec } = useAction();
   const [months, setMonths] = useState(1);
-  const [method, setMethod] = useState<"card" | "payme" | "click">(
-    card ? "card" : payme ? "payme" : "click",
-  );
+  type Method = "card" | "visa" | "payme" | "click" | "uzum";
+  const available = (
+    [
+      ["card", card],
+      ["visa", visa],
+      ["payme", payme],
+      ["click", click],
+      ["uzum", uzum],
+    ] as const
+  ).filter(([, v]) => v);
+  const [method, setMethod] = useState<Method>(available[0]?.[0] ?? "card");
   const [amount, setAmount] = useState(String(price));
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
   const nf = new Intl.NumberFormat("ru-RU");
 
-  if (!card && !payme && !click)
-    return <p className="card text-muted p-5 text-sm">{t("notReady")}</p>;
+  if (!available.length) return <p className="card text-muted p-5 text-sm">{t("notReady")}</p>;
 
   return (
     <section className="card flex flex-col gap-5 p-5 sm:p-6">
@@ -47,23 +58,8 @@ export function PaymentForm({
           <Step n={1} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <p>{t("step1", { sum: nf.format(price * months) })}</p>
-            {card && (
-              <div className="bg-surface-2 flex flex-wrap items-center gap-2 rounded-xl p-3">
-                <CreditCard className="text-muted size-4" />
-                <span className="font-mono text-base tracking-wider">{card}</span>
-                {cardHolder && <span className="text-muted">{cardHolder}</span>}
-                <button
-                  type="button"
-                  className="text-primary ml-auto inline-flex items-center gap-1 text-xs font-medium"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(card.replace(/\s+/g, ""));
-                    toast.success(t("copied"));
-                  }}
-                >
-                  <Copy className="size-3.5" /> {t("copy")}
-                </button>
-              </div>
-            )}
+            {card && <CardRow label={t("card")} number={card} holder={cardHolder} />}
+            {visa && <CardRow label="Visa" number={visa} holder={cardHolder} />}
             <div className="flex flex-wrap gap-2">
               {payme && (
                 <Button asChild variant="outline" size="sm">
@@ -76,6 +72,13 @@ export function PaymentForm({
                 <Button asChild variant="outline" size="sm">
                   <a href={click} target="_blank" rel="noopener noreferrer">
                     Click <ExternalLink />
+                  </a>
+                </Button>
+              )}
+              {uzum && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={uzum} target="_blank" rel="noopener noreferrer">
+                    Uzum <ExternalLink />
                   </a>
                 </Button>
               )}
@@ -130,11 +133,13 @@ export function PaymentForm({
                     <Select
                       {...p}
                       value={method}
-                      onChange={(e) => setMethod(e.target.value as typeof method)}
+                      onChange={(e) => setMethod(e.target.value as Method)}
                     >
-                      {card && <option value="card">{t("card")}</option>}
-                      {payme && <option value="payme">Payme</option>}
-                      {click && <option value="click">Click</option>}
+                      {available.map(([m]) => (
+                        <option key={m} value={m}>
+                          {m === "card" ? t("card") : LABEL[m]}
+                        </option>
+                      ))}
                     </Select>
                   )}
                 </Field>
@@ -177,6 +182,31 @@ export function PaymentForm({
         </li>
       </ol>
     </section>
+  );
+}
+
+const LABEL = { visa: "Visa", payme: "Payme", click: "Click", uzum: "Uzum" } as const;
+
+/** A card number to copy (spaces dropped on copy). */
+function CardRow({ label, number, holder }: { label: string; number: string; holder: string }) {
+  const t = useTranslations("premium");
+  return (
+    <div className="bg-surface-2 flex flex-wrap items-center gap-2 rounded-xl p-3">
+      <CreditCard className="text-muted size-4" />
+      <span className="text-muted text-xs">{label}</span>
+      <span className="font-mono text-base tracking-wider">{number}</span>
+      {holder && <span className="text-muted">{holder}</span>}
+      <button
+        type="button"
+        className="text-primary ml-auto inline-flex items-center gap-1 text-xs font-medium"
+        onClick={() => {
+          void navigator.clipboard?.writeText(number.replace(/\s+/g, ""));
+          toast.success(t("copied"));
+        }}
+      >
+        <Copy className="size-3.5" /> {t("copy")}
+      </button>
+    </div>
   );
 }
 

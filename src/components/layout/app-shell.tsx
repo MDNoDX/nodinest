@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { SECTION_HUE, hueStyle } from "@/lib/hues";
 import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
+import { sortByOrder, useNavOrder } from "@/lib/nav-order";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
@@ -46,6 +47,8 @@ type ShellUser = {
   email: string;
   image: string | null;
   role: "user" | "superadmin";
+  /** Sees the admin section (the superadmin in admin mode, or an admin). */
+  admin?: boolean;
   username?: string | null;
   premium?: boolean;
 };
@@ -170,7 +173,12 @@ export function AppShell({
     );
   }, [immersive]);
 
-  const secondary = NAV_SECONDARY.filter((i) => !i.admin || user.role === "superadmin");
+  const order = useNavOrder();
+  const primary = sortByOrder(NAV_PRIMARY, order);
+  const secondary = sortByOrder(
+    NAV_SECONDARY.filter((i) => !i.admin || user.admin),
+    order,
+  );
   const badge = { suggestions: pendingSuggestions };
 
   const sidebar = (mobile: boolean) => (
@@ -195,7 +203,7 @@ export function AppShell({
         )}
       </div>
       <nav aria-label={t("main")} className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-2">
-        <NavList items={NAV_PRIMARY} collapsed={collapsed && !mobile} pathname={pathname} />
+        <NavList items={primary} collapsed={collapsed && !mobile} pathname={pathname} />
         <div className="border-border mx-2 border-t" />
         <NavList
           items={secondary}

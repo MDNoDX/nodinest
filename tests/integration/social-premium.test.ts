@@ -58,6 +58,34 @@ describe("profiles and public items", () => {
 });
 
 describe("premium", () => {
+  it("lists followers / following and lets the owner remove a follower", async () => {
+    const { follow, followList, removeFollower, setProfilePublic } =
+      await import("@/server/social");
+    const owner = await makeUser(db);
+    const fan = await makeUser(db);
+    const stranger = await makeUser(db);
+    await withUsername(owner, `o${Date.now().toString(36)}`);
+    await withUsername(fan, `f${Date.now().toString(36)}`);
+    await setProfilePublic(owner, true, null);
+    await setProfilePublic(fan, true, "Salom");
+    await follow(fan, owner.userId, true);
+    expect((await followList(owner, owner.userId, "followers")).map((r) => r.id)).toEqual([
+      fan.userId,
+    ]);
+    expect((await followList(stranger, fan.userId, "following")).map((r) => r.id)).toEqual([
+      owner.userId,
+    ]);
+    // A private profile's lists are hidden from others.
+    await setProfilePublic(owner, false, null);
+    expect(await followList(stranger, owner.userId, "followers")).toEqual([]);
+    await removeFollower(owner, fan.userId);
+    expect(await followList(owner, owner.userId, "followers")).toEqual([]);
+    // Obscene bios are refused.
+    await expect(setProfilePublic(fan, true, "f.u.c.k")).rejects.toMatchObject({
+      code: "INDECENT",
+    });
+  });
+
   it("free limits until a payment is confirmed, then premium", async () => {
     const { decidePayment, limitsFor, requestPayment, requireFeature } =
       await import("@/server/premium");

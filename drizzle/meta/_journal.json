@@ -218,6 +218,27 @@
       "when": 1793186816286,
       "tag": "0030_social",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793203740148,
+      "tag": "0031_audio_cache",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793204095319,
+      "tag": "0032_payment_methods",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793204245507,
+      "tag": "0033_admin_perms",
+      "breakpoints": true
     }
   ]
 }

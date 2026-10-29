@@ -1,13 +1,18 @@
 import "server-only";
 import { getLocale } from "next-intl/server";
 import { db } from "@/db";
-import { requireSuperadminPage, requireUser, toCtx } from "@/lib/auth/session";
+import type { AdminPerm } from "@/lib/admin-perms";
+import { requirePermPage, requireSuperadminPage, requireUser, toCtx } from "@/lib/auth/session";
 import { dayKey } from "./dates";
 import type { Loc } from "./format";
 
 /** Common per-page context: user, RLS context, locale, user's "today". */
-export async function pageContext(opts: { admin?: boolean } = {}) {
-  const user = opts.admin ? await requireSuperadminPage() : await requireUser();
+export async function pageContext(opts: { admin?: boolean; perm?: AdminPerm } = {}) {
+  const user = opts.perm
+    ? await requirePermPage(opts.perm)
+    : opts.admin
+      ? await requireSuperadminPage()
+      : await requireUser();
   const locale = (await getLocale()) as Loc;
   const tz = user.timezone;
   return { user, ctx: toCtx(user), db, locale, tz, today: dayKey(new Date(), tz) };

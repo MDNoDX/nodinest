@@ -8,6 +8,7 @@
  * A confirmed payment extends `user.premium_until` by 30 days per month.
  */
 import "server-only";
+import { can } from "@/lib/admin-perms";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, type AppContext } from "@/db";
@@ -36,8 +37,11 @@ export const premiumSettingsSchema = z.object({
   priceMonth: z.coerce.number().int().min(0).max(100_000_000).default(25_000),
   card: z.string().trim().max(40).default(""),
   cardHolder: z.string().trim().max(80).default(""),
+  /** A Visa / Mastercard number (for payments from abroad). */
+  visa: z.string().trim().max(40).default(""),
   payme: z.string().trim().max(300).default(""),
   click: z.string().trim().max(300).default(""),
+  uzum: z.string().trim().max(300).default(""),
   note: z.string().trim().max(1000).default(""),
   free: limits.default({
     aiDaily: 5,
@@ -110,7 +114,7 @@ export async function requireFeature(ctx: AppContext, feature: "audiobook" | "st
 export const paymentInput = z.object({
   amount: z.coerce.number().int().min(1000).max(100_000_000),
   months: z.coerce.number().int().min(1).max(24),
-  method: z.enum(["card", "payme", "click"]),
+  method: z.enum(["card", "visa", "payme", "click", "uzum"]),
   note: z.string().trim().max(500).nullish(),
   receiptFileId: z.string().uuid().nullish(),
 });
@@ -227,7 +231,7 @@ export async function myPayments(ctx: AppContext) {
 }
 
 export async function listPayments(ctx: AppContext) {
-  if (ctx.role !== "superadmin") throw new AppError("FORBIDDEN");
+  if (!can(ctx, "payments")) throw new AppError("FORBIDDEN");
   return db
     .select({
       id: payments.id,

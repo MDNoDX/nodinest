@@ -12,6 +12,7 @@ import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { follows, learningRecords, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
+import { moderationIssue } from "@/lib/moderation";
 import { normalizeUsername } from "@/lib/username";
 import { normalizeText } from "@/lib/normalize";
 import { enforceRateLimit } from "./rate-limit";
@@ -147,6 +148,43 @@ export async function followingList(ctx: AppContext) {
     limit 200`);
 }
 
+/**
+ * Who follows a person / whom they follow (Instagram-style lists). Shown when
+ * the profile can be seen (public, or it is you); private accounts in the list
+ * appear only to their own owner's eyes — others see public profiles only.
+ */
+export async function followList(
+  ctx: AppContext,
+  userId: string,
+  which: "followers" | "following",
+) {
+  const id = z.string().uuid().parse(userId);
+  const [owner] = await db.select({ pub: user.profilePublic }).from(user).where(eq(user.id, id));
+  if (!owner || (!owner.pub && id !== ctx.userId)) return [];
+  const join = which === "followers" ? sql`u.id = f.follower_id` : sql`u.id = f.followee_id`;
+  const where = which === "followers" ? sql`f.followee_id = ${id}` : sql`f.follower_id = ${id}`;
+  return db.execute<PersonCard & { isFollowing: boolean; visible: boolean }>(sql`
+    select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
+      (select count(*)::int from nodinest.learning_records lr
+        where lr.user_id = u.id and lr.visibility = 'public') as items,
+      exists(select 1 from nodinest.follows m where m.follower_id = ${ctx.userId} and m.followee_id = u.id) as "isFollowing",
+      u.profile_public as visible
+    from nodinest.follows f
+    join nodinest."user" u on ${join}
+    where ${where} and u.status = 'active' and u.username is not null
+      and (u.profile_public or ${id} = ${ctx.userId})
+    order by f.created_at desc
+    limit 500`);
+}
+
+/** Removes someone from my followers (they can follow again while I am public). */
+export async function removeFollower(ctx: AppContext, followerId: string) {
+  const id = z.string().uuid().parse(followerId);
+  await db
+    .delete(follows)
+    .where(and(eq(follows.followerId, id), eq(follows.followeeId, ctx.userId)));
+}
+
 /** What the people I follow did lately with their public items. */
 export async function followingFeed(ctx: AppContext) {
   return db.execute<PublicItem & { name: string; username: string; image: string | null }>(sql`
@@ -165,6 +203,7 @@ export async function followingFeed(ctx: AppContext) {
 
 export async function setProfilePublic(ctx: AppContext, on: boolean, bio: string | null) {
   const b = z.string().trim().max(300).nullable().parse(bio);
+  if (moderationIssue(b)) throw new AppError("INDECENT");
   await withUser(db, ctx, (tx) =>
     tx
       .update(user)
