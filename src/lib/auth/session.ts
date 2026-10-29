@@ -29,6 +29,8 @@ export type CurrentUser = {
   premiumUntil: Date | null;
   profilePublic: boolean;
   bio: string | null;
+  /** Private phone number (only shown to the owner). */
+  phone: string | null;
   /**
    * EFFECTIVE role. A superadmin account works as a regular user until it
    * switches "admin mode" on (cookie); only then is this "superadmin".
@@ -58,6 +60,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       premiumUntil: user.premiumUntil,
       profilePublic: user.profilePublic,
       bio: user.bio,
+      phone: user.phone,
       role: user.role,
       adminPerms: user.adminPerms,
       status: user.status,

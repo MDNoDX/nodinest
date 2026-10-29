@@ -239,6 +239,27 @@
       "when": 1793204245507,
       "tag": "0033_admin_perms",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793280315029,
+      "tag": "0034_user_phone",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793280511297,
+      "tag": "0035_ai_memory",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793280661227,
+      "tag": "0036_roznoma",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@
  */
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { withUser, type AppContext, type Database } from "@/db/client";
-import { goals, plans, resources } from "@/db/schema";
+import { goalSteps, goals, plans, resources } from "@/db/schema";
 import { addDays, startOfWeekKey } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { goalInput, planInput, zodFieldErrors } from "@/lib/validation";
@@ -75,7 +75,7 @@ export function periodRange(
 export type GoalProgress = {
   id: string;
   title: string;
-  metric: "completed_resources" | "pages";
+  metric: "completed_resources" | "pages" | "steps";
   period: "day" | "week" | "month" | "year";
   target: number;
   resourceType: string | null;
@@ -84,6 +84,8 @@ export type GoalProgress = {
   value: number;
   from: string;
   to: string;
+  /** What the goal consists of (metric "steps"). */
+  steps: { id: string; title: string; done: boolean }[];
 };
 
 export async function listGoalsWithProgress(
@@ -98,8 +100,39 @@ export async function listGoalsWithProgress(
       .from(goals)
       .where(eq(goals.userId, ctx.userId))
       .orderBy(asc(goals.status), desc(goals.createdAt));
+    const allSteps = rows.length
+      ? await tx
+          .select({
+            id: goalSteps.id,
+            goalId: goalSteps.goalId,
+            title: goalSteps.title,
+            done: goalSteps.done,
+          })
+          .from(goalSteps)
+          .where(eq(goalSteps.userId, ctx.userId))
+          .orderBy(asc(goalSteps.position), asc(goalSteps.createdAt))
+      : [];
     const out: GoalProgress[] = [];
     for (const g of rows) {
+      const steps = allSteps.filter((s) => s.goalId === g.id);
+      if (g.metric === "steps") {
+        const [from, to] = periodRange(g.period, today);
+        out.push({
+          id: g.id,
+          title: g.title,
+          metric: "steps",
+          period: g.period,
+          target: Math.max(1, steps.length),
+          resourceType: null,
+          status: g.status,
+          note: g.note,
+          value: steps.filter((s) => s.done).length,
+          from,
+          to,
+          steps,
+        });
+        continue;
+      }
       const [from, to] = periodRange(g.period, today);
       const typeFilter = g.resourceType ? sql`and r.type = ${g.resourceType}` : sql``;
       const [r] = await tx.execute<{ n: number; pages: number }>(sql`
@@ -122,6 +155,7 @@ export async function listGoalsWithProgress(
         value: g.metric === "pages" ? r.pages : r.n,
         from,
         to,
+        steps,
       });
     }
     return out;

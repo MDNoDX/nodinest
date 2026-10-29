@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Dialog as D } from "radix-ui";
+import { PremiumBadge } from "@/components/premium/premium-badge";
+import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
 import { useDebounced } from "@/lib/hooks";
 
@@ -15,6 +17,9 @@ type Hit = {
   title: string;
   subtitle: string | null;
   kind: string | null;
+  /** Users: a Premium account and the picture. */
+  premium?: boolean;
+  image?: string | null;
 };
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -157,9 +162,20 @@ export function CommandPalette() {
                       i === active && "bg-surface-2",
                     )}
                   >
-                    <Icon className="text-muted size-4 shrink-0" />
+                    {h.group === "users" ? (
+                      <Avatar
+                        name={h.title}
+                        image={h.image ?? null}
+                        className="size-7 text-[11px]"
+                      />
+                    ) : (
+                      <Icon className="text-muted size-4 shrink-0" />
+                    )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{h.title}</span>
+                      <span className="flex items-center gap-1 truncate font-medium">
+                        <span className="truncate">{h.title}</span>
+                        {h.premium && <PremiumBadge />}
+                      </span>
                       {h.subtitle && (
                         <span className="text-muted block truncate text-xs">{h.subtitle}</span>
                       )}

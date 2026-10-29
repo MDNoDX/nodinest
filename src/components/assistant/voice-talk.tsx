@@ -24,7 +24,7 @@ const SILENCE_MS = 1300; // pause that ends the user's turn
 const MAX_MS = 45_000;
 
 /**
- * Live voice talk (like a phone call with Nodi): it listens, notices when you
+ * Live voice talk (like a phone call with Basira): it listens, notices when you
  * stop speaking, answers aloud, then listens again. Tap the sphere to cut the
  * answer short; the mic button pauses listening.
  */

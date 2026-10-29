@@ -26,7 +26,10 @@ export function apiError(err: unknown) {
             : e.code === "VALIDATION" || e.code === "INDECENT"
               ? 400
               : 500;
-  return NextResponse.json({ error: e.code }, { status, headers: { "cache-control": "no-store" } });
+  return NextResponse.json(
+    { error: e.code, premium: e.details?.premium },
+    { status, headers: { "cache-control": "no-store" } },
+  );
 }
 
 export function json(data: unknown) {

@@ -281,7 +281,7 @@ export type NoteInput = z.infer<typeof noteInput>;
 
 export const goalInput = z.object({
   title: trimmed(200).min(1, "required"),
-  metric: z.enum(["completed_resources", "pages"]),
+  metric: z.enum(["completed_resources", "pages", "steps"]),
   period: z.enum(["week", "month", "year"]),
   target: z.coerce.number().int().min(1).max(100_000),
   resourceType: z

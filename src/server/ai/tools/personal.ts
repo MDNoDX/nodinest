@@ -10,7 +10,9 @@ import { LEARNING_STATUSES, RESOURCE_TYPES, httpUrl } from "@/lib/validation";
 import { indexFromFile, indexFromUrl } from "../../booktext";
 import { getResourceDetail } from "../../catalog";
 import { writeToWriteup } from "../../writeups";
-import { saveGoal, savePlan } from "../../goals";
+import { dayKey } from "@/lib/dates";
+import { saveGoal } from "../../goals";
+import { createStepGoal, saveRoutine } from "../../roznoma";
 import { saveNote, toggleCollectionItem } from "../../notes";
 import { upsertLearningRecord } from "../../records";
 import {
@@ -320,49 +322,48 @@ export const PERSONAL_TOOLS = {
   create_plan: def({
     perm: "write_personal",
     mode: "confirm",
-    description: "Plan to read/watch something from one date to another (YYYY-MM-DD).",
+    description:
+      'Add an item to the user\'s Röznoma (daily planner): something done every day, on some weekdays (1=Mon…7=Sun) or once on a day (YYYY-MM-DD), with an optional amount ("20 bet") and time HH:MM (alarm).',
     parameters: obj(
       {
         planTitle: str("What"),
-        resourceId: str(""),
-        resourceTitle: str(""),
-        startOn: str("YYYY-MM-DD"),
-        endOn: str("YYYY-MM-DD"),
+        amount: str("How much, e.g. 20 pages / 10 minutes"),
+        time: str("HH:MM, optional"),
+        repeat: str("", { enum: ["daily", "weekly", "once"] }),
+        weekdays: arr(int("1=Mon…7=Sun"), "Weekly: the days"),
+        onDay: str("YYYY-MM-DD (repeat once)"),
       },
       ["planTitle"],
     ),
     args: z.object({
-      planTitle: z.string().trim().min(1).max(200),
-      resourceId: uuid.optional(),
-      resourceTitle: z.string().trim().max(400).optional(),
-      startOn: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/)
-        .optional(),
-      endOn: z
+      planTitle: z.string().trim().min(1).max(160),
+      amount: z.string().trim().max(60).optional(),
+      time: z.string().trim().max(5).optional(),
+      repeat: z.enum(["daily", "weekly", "once"]).default("daily"),
+      weekdays: z.array(z.number().int().min(1).max(7)).max(7).optional(),
+      onDay: z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
     }),
-    run: async (ctx, a) => {
-      const resourceId =
-        a.resourceId || a.resourceTitle
-          ? await resolveResource(ctx, { resourceId: a.resourceId, title: a.resourceTitle })
-          : null;
-      await savePlan(db, ctx, {
+    run: async (ctx, a, env) => {
+      await saveRoutine(ctx, {
         title: a.planTitle,
-        resourceId,
-        startOn: a.startOn,
-        endOn: a.endOn,
+        amount: a.amount || null,
+        time: a.time || null,
+        repeat: a.repeat,
+        weekdays: a.weekdays ?? [],
+        onDay: a.repeat === "once" ? (a.onDay ?? dayKey(new Date(), env.timeZone)) : null,
+        alarm: true,
       });
-      return { created: true, href: "/plans" };
+      return { created: true, href: "/plans?tab=plans" };
     },
   }),
   create_goal: def({
     perm: "write_personal",
     mode: "confirm",
     description:
-      "Create a goal: complete N resources or read N pages per week/month/year (optionally only one type).",
+      "Create a goal. Either what it consists of (steps: a list of things to tick off, e.g. a certificate: test → course → exam), or a number: complete N resources or read N pages per week/month/year.",
     parameters: obj(
       {
         goalTitle: str(""),
@@ -370,17 +371,23 @@ export const PERSONAL_TOOLS = {
         period: str("", { enum: ["week", "month", "year"] }),
         target: int(""),
         resourceType: str("", { enum: [...RESOURCE_TYPES] }),
+        steps: arr(str("A step"), "What the goal consists of"),
       },
-      ["goalTitle", "metric", "period", "target"],
+      ["goalTitle"],
     ),
     args: z.object({
       goalTitle: z.string().trim().min(1).max(200),
-      metric: z.enum(["completed_resources", "pages"]),
-      period: z.enum(["week", "month", "year"]),
-      target: z.number().int().min(1).max(100_000),
+      metric: z.enum(["completed_resources", "pages", "steps"]).optional(),
+      period: z.enum(["week", "month", "year"]).default("year"),
+      target: z.number().int().min(1).max(100_000).optional(),
       resourceType: z.enum(RESOURCE_TYPES).optional(),
+      steps: z.array(z.string().trim().min(1).max(200)).max(50).optional(),
     }),
     run: async (ctx, a) => {
+      if (a.steps?.length || !a.metric || a.metric === "steps" || !a.target) {
+        await createStepGoal(ctx, { title: a.goalTitle, steps: a.steps ?? [] });
+        return { created: true, href: "/plans?tab=goals" };
+      }
       await saveGoal(db, ctx, {
         title: a.goalTitle,
         metric: a.metric,

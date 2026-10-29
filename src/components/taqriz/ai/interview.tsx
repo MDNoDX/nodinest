@@ -2,11 +2,11 @@
 import { Loader2, MessageCircleQuestion, Mic, Square, Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { transcribeClipAction } from "@/app/actions/ai";
 import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { errorToast } from "@/lib/error-toast";
 
 const toB64 = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {
@@ -55,7 +55,7 @@ export function Interview({
       () => null,
     );
     setHearing(false);
-    if (!res || !res.ok) return toast.error(te(res && !res.ok ? res.code : "INTERNAL"));
+    if (!res || !res.ok) return errorToast(te, res && !res.ok ? res : "INTERNAL");
     setAnswer((a) => (a ? `${a}\n\n${res.data.text}` : res.data.text));
   };
   const recording = rec.state === "recording";

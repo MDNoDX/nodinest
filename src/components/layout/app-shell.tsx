@@ -7,11 +7,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
 import { MediaDockProvider } from "@/components/media/media-dock";
 import { OnboardingTour } from "@/components/onboarding/tour";
+import { AlarmWatcher } from "@/components/roznoma/alarm-watcher";
 import { cn } from "@/lib/cn";
 import { SECTION_HUE, hueStyle } from "@/lib/hues";
 import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
-import { sortByOrder, useNavOrder } from "@/lib/nav-order";
+import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
+import { useDragOrder } from "@/lib/use-drag-order";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
@@ -65,25 +67,48 @@ function NavList({
   pathname,
   onNavigate,
   badge,
+  onReorder,
 }: {
   items: NavItem[];
   collapsed: boolean;
   pathname: string;
   onNavigate?: () => void;
   badge?: Record<string, number>;
+  /** The group's new order (hrefs) after a drag. */
+  onReorder?: (hrefs: string[]) => void;
 }) {
   const t = useTranslations("nav");
+  const { list, shown, drag, start, swallowClick, dragged } = useDragOrder(
+    items,
+    (i) => i.href,
+    onReorder,
+  );
   return (
-    <ul className="flex flex-col gap-0.5">
-      {items.map((item) => {
+    <ul ref={list} className={cn("flex flex-col gap-0.5", drag && "select-none")}>
+      {shown.map((item) => {
         const active = isActive(pathname, item);
         const Icon = item.icon;
         const count = badge?.[item.key];
         return (
-          <li key={item.href}>
+          <li
+            key={item.href}
+            onPointerDown={(e) => start(e, items.indexOf(item))}
+            className={cn(
+              "rounded-xl transition-transform",
+              dragged === item.href && "bg-surface-2 ring-primary/40 scale-[1.03] shadow-lg ring-2",
+            )}
+          >
             <Link
               href={item.href}
-              onClick={onNavigate}
+              draggable={false}
+              onContextMenu={(e) => drag && e.preventDefault()}
+              onClick={(e) => {
+                if (swallowClick.current) {
+                  e.preventDefault();
+                  return;
+                }
+                onNavigate?.();
+              }}
               aria-current={active ? "page" : undefined}
               title={collapsed ? t(item.key) : undefined}
               data-tour={`nav-${item.key}`}
@@ -174,6 +199,9 @@ export function AppShell({
   }, [immersive]);
 
   const order = useNavOrder();
+  // Both groups are saved together (each keeps its own items).
+  const reorder = (a: string[] | NavItem[], b: string[] | NavItem[]) =>
+    writeNavOrder([...a, ...b].map((x) => (typeof x === "string" ? x : x.href)));
   const primary = sortByOrder(NAV_PRIMARY, order);
   const secondary = sortByOrder(
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
@@ -203,13 +231,19 @@ export function AppShell({
         )}
       </div>
       <nav aria-label={t("main")} className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-2">
-        <NavList items={primary} collapsed={collapsed && !mobile} pathname={pathname} />
+        <NavList
+          items={primary}
+          collapsed={collapsed && !mobile}
+          pathname={pathname}
+          onReorder={(h) => reorder(h, secondary)}
+        />
         <div className="border-border mx-2 border-t" />
         <NavList
           items={secondary}
           collapsed={collapsed && !mobile}
           pathname={pathname}
           badge={badge}
+          onReorder={(h) => reorder(primary, h)}
         />
         {sideAd && !collapsed && !mobile && <div className="mt-auto px-1 pb-1">{sideAd}</div>}
       </nav>
@@ -308,6 +342,7 @@ export function AppShell({
           />
         )}
         <OnboardingTour aiLimit={aiDailyLimit} />
+        <AlarmWatcher />
       </div>
     </MediaDockProvider>
   );

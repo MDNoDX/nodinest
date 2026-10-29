@@ -27,20 +27,25 @@ export type NavItem = {
   includes?: string[];
 };
 
+/**
+ * Default order: what a reader does every day first (home, the library, the
+ * AI, notes, review, plans), then making things; the rest below the line.
+ * Users can drag items to their own order (lib/nav-order.ts).
+ */
 export const NAV_PRIMARY: NavItem[] = [
   { href: "/", key: "dashboard", icon: Home },
-  { href: "/search", key: "search", icon: Search },
   { href: "/library", key: "library", icon: BookOpen, includes: ["/people", "/publishers"] },
-  { href: "/write", key: "write", icon: PenLine },
-  { href: "/collections", key: "collections", icon: FolderHeart },
+  { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/notes", key: "notes", icon: NotebookPen },
   { href: "/review", key: "review", icon: Brain },
   { href: "/plans", key: "plans", icon: CalendarCheck },
+  { href: "/collections", key: "collections", icon: FolderHeart },
+  { href: "/write", key: "write", icon: PenLine },
 ];
 
 export const NAV_SECONDARY: NavItem[] = [
-  { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/profile", key: "profile", icon: CircleUserRound, includes: ["/u", "/community"] },
+  { href: "/search", key: "search", icon: Search },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },
   { href: "/settings", key: "settings", icon: Settings },

@@ -16,6 +16,8 @@ export type ProfileValue = {
   lastName: string;
   username: string;
   image: string | null;
+  /** Shown (and saved) only when editing a profile, not at /welcome. */
+  phone?: string;
 };
 
 /**
@@ -78,6 +80,7 @@ export function ProfileForm({
               lastName: v.lastName || null,
               username: name,
               image: v.image,
+              ...(v.phone === undefined ? {} : { phone: v.phone || null }),
             }),
           { success: t("saved"), onSuccess: () => onSaved?.() },
         );
@@ -159,6 +162,22 @@ export function ProfileForm({
           </div>
         )}
       </Field>
+      {v.phone !== undefined && (
+        <Field label={t("phone")} optional hint={t("phoneHint")}>
+          {(p) => (
+            <Input
+              {...p}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              maxLength={24}
+              placeholder="+998 90 123 45 67"
+              value={v.phone}
+              onChange={(e) => setV({ ...v, phone: e.target.value.replace(/[^\d+\s()-]/g, "") })}
+            />
+          )}
+        </Field>
+      )}
       <p
         className={
           check === "taken" || check === "invalid" ? "text-danger -mt-3 text-xs" : "sr-only"

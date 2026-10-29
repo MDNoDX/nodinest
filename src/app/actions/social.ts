@@ -20,7 +20,8 @@ export async function setProfilePublicAction(on: boolean, bio: string | null) {
 export async function setItemVisibilityAction(resourceId: string, pub: boolean) {
   return run(async ({ ctx }) => {
     await setItemVisibility(ctx, resourceId, pub);
-    revalidatePath(`/library/${resourceId}`);
+    // The switch flips on the client at once; only profiles need fresh data.
+    revalidatePath("/u", "layout");
   });
 }
 

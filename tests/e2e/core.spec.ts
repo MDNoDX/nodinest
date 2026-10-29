@@ -17,7 +17,7 @@ test("sign up, Uzbek by default, switch to English, theme persists", async ({ pa
       .getByRole("navigation", { name: "Asosiy navigatsiya" })
       .getByRole("link", { name: "Darsxona" }),
   ).toBeVisible();
-  await page.goto("/settings");
+  await page.goto("/settings?tab=look");
   await page.getByRole("radio", { name: "English" }).click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await page.getByRole("radio", { name: "Dark" }).click();

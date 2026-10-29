@@ -83,7 +83,7 @@
     "collections": "Collections",
     "notes": "Notes & highlights",
     "journal": "Journal",
-    "plans": "Plans & goals",
+    "plans": "Röznoma",
     "search": "Search",
     "assistant": "AI assistant",
     "stats": "Metrics",
@@ -225,7 +225,10 @@
     "rated": "{count} rated",
     "continue": "Continue: {title}",
     "dueReview": "{n} questions due",
-    "allGoals": "All goals →"
+    "allGoals": "All goals →",
+    "goalsPlans": "Goals and plans",
+    "plansNext": "Next plans",
+    "openRoznoma": "Open Röznoma"
   },
   "types": {
     "book": "Book",
@@ -874,7 +877,7 @@
     "modeActHint": "Does things on the site: adds books, makes questions — always with your confirmation",
     "modeTalk": "Talk",
     "modeTalkHint": "An honest conversation partner about your learning",
-    "talkIntro": "I’m Nodi — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, and I’ll say plainly what could be better.",
+    "talkIntro": "I’m Basira — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, honest views.",
     "voiceTalk": "Voice talk",
     "talkListening": "Listening…",
     "talkThinking": "Thinking…",
@@ -1011,10 +1014,21 @@
       "failed": "Could not delete the account. Please try again later."
     },
     "navOrder": "Menu order",
-    "navOrderHint": "Arrange the side menu sections the way you like (saved on this device).",
+    "navOrderHint": "Press and hold a menu item, then drag it where you want (or use the arrows here). Saved on this device.",
     "navUp": "Move up",
     "navDown": "Move down",
-    "navReset": "Restore the default order"
+    "navReset": "Restore the default order",
+    "tabs": {
+      "profile": "Profile",
+      "premium": "Premium",
+      "look": "Look & language",
+      "menu": "Menu",
+      "keys": "Keyboard",
+      "app": "Install the app",
+      "storage": "Storage",
+      "privacy": "Privacy & account",
+      "help": "Guide"
+    }
   },
   "admin": {
     "title": "Administration",
@@ -1087,7 +1101,13 @@
       "ads": "Ads",
       "feedback": "Messages to the admin",
       "users": "Suspending users"
-    }
+    },
+    "insights": "Insights",
+    "insightsEmpty": "The AI has not learned about anyone yet.",
+    "insightsTop": "Most common interests",
+    "memLevel": "Level",
+    "memLanguage": "Language & vocabulary",
+    "memGoals": "Goals"
   },
   "upload": {
     "choose": "Upload",
@@ -1123,7 +1143,9 @@
     "notFoundBody": "The page you are looking for doesn't exist or you don't have access.",
     "goHome": "Go to dashboard",
     "PREMIUM_REQUIRED": "This is a Premium feature. See Settings → Premium.",
-    "INDECENT": "The text contains an inappropriate (obscene or extremist) word. Please change it."
+    "INDECENT": "The text contains an inappropriate (obscene or extremist) word. Please change it.",
+    "goPremium": "Get Premium",
+    "planLimit": "Today’s free limit is used up. Premium gives you much more each day."
   },
   "validation": {
     "required": "This field is required.",
@@ -1144,7 +1166,8 @@
     "contributor_person_or_name": "Choose a person.",
     "generic": "Invalid value.",
     "end_before_start": "End date must be after the start date.",
-    "indecent": "Inappropriate word — please change it."
+    "indecent": "Inappropriate word — please change it.",
+    "phone": "That is not a phone number. Example: +998 90 123 45 67"
   },
   "statusMedia": {
     "planned": "Planned",
@@ -1788,10 +1811,10 @@
     "part": "part {n} / {total}",
     "position": "Position",
     "prev": "Previous part",
-    "back15": "Back 15 seconds",
+    "back15": "5 seconds back",
     "play": "Listen",
     "pause": "Pause",
-    "fwd15": "Forward 15 seconds",
+    "fwd15": "5 seconds forward",
     "next": "Next part",
     "speed": "Speed",
     "making": "Preparing the voice… (20–60 s the first time)",
@@ -1872,13 +1895,19 @@
       "woman": "Woman",
       "young_man": "Young man",
       "young_woman": "Young woman",
-      "child": "Child",
       "old_man": "Old man",
       "old_woman": "Old woman",
-      "angry_man": "Angry man"
+      "angry_man": "Angry man",
+      "child_boy": "Boy",
+      "child_girl": "Girl"
     },
     "previewStop": "Stop",
-    "premiumOnly": "Audiobooks are a Premium feature."
+    "premiumOnly": "Audiobooks are a Premium feature.",
+    "voicesMode": "Voices",
+    "modeNarrator": "One narrator",
+    "modeCast": "Character voices",
+    "modeNarratorHint": "The book’s text in one voice, fast and exact (recommended)",
+    "modeCastHint": "Every character in their own voice (slower: the AI reads each part first)"
   },
   "reader": {
     "title": "Read the book",
@@ -2007,7 +2036,9 @@
     "taken": "This name is taken — pick another.",
     "invalid": "Only a–z, 0–9 and “_”, starting with a letter (at least 3).",
     "saved": "Profile saved",
-    "save": "Save"
+    "save": "Save",
+    "phone": "Phone number",
+    "phoneHint": "Optional. Only you see it — it is not shown on your profile."
   },
   "welcome": {
     "title": "Welcome!",
@@ -2103,13 +2134,13 @@
   "social": {
     "title": "Community",
     "subtitle": "Find other learners, follow them and see their public lessons.",
-    "searchPlaceholder": "Name or @username — one letter is enough…",
+    "searchPlaceholder": "Name or @username…",
     "results": "Results",
     "nobody": "No public profile found.",
     "yourProfile": "Your profile:",
     "feed": "What the people you follow are reading",
     "feedEmpty": "Nothing yet",
-    "feedEmptyBody": "Find people on the Search page and press “Follow” — their public lessons appear here.",
+    "feedEmptyBody": "Find people above and press “Follow” — their public items appear here.",
     "followingTitle": "Following",
     "follow": "Follow",
     "following": "Following",
@@ -2150,6 +2181,137 @@
     "privateBadge": "Private profile",
     "publicBadge": "Public profile",
     "back": "Back to the profile",
-    "findPeople": "Find people"
+    "findPeople": "Find people",
+    "statItems": "Public items",
+    "statFollowers": "Followers",
+    "statFollowing": "Following",
+    "findPeopleHint": "Type a name or username — find your friends and teachers."
+  },
+  "roznoma": {
+    "subtitle": "The day’s plan, goals and how the day went — in one place.",
+    "tab_day": "Day",
+    "tab_goals": "Goals",
+    "tab_plans": "Plans",
+    "tab_stats": "Insights",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "backToToday": "Back to today",
+    "mottoAdd": "Add a motto (optional)…",
+    "mottoPh": "e.g. Spend today so well that you remember it for years",
+    "todayPlan": "The day’s plan",
+    "doneOf": "{done} of {total} done",
+    "noItems": "No plan yet — add something below.",
+    "add": "Add",
+    "allDone": "All done! A great day 🎉",
+    "notePh": "How much? (optional, e.g. 35% or 1)",
+    "repeating": "Repeats",
+    "quickPh": "Add one thing for today…",
+    "dragHint": "To reorder: press and hold an item, then drag.",
+    "notifAsk": "Turn on notifications to be reminded on time",
+    "notifOn": "Notifications are on.",
+    "dayPage": "How the day went",
+    "dayPageHint": "Optional. Saving also writes it into your book “Röznoma {year}” in Write a book.",
+    "titlePh": "A title for the day",
+    "storyPh": "The day’s story: what happened, how you felt…",
+    "highlights": "To remember",
+    "highlightPh": "Add an event or a thought…",
+    "conclusion": "The day’s conclusion",
+    "lessonPh": "Lesson: what will I do differently tomorrow?",
+    "productive": "Productive",
+    "hoursShort": "h",
+    "better": "Better than yesterday?",
+    "yes": "Yes",
+    "no": "No",
+    "saveDay": "Save the day",
+    "logSaved": "Saved and written into the year’s journal.",
+    "openBook": "Open the book",
+    "newItem": "New item",
+    "editItem": "Edit item",
+    "itemTitle": "What to do",
+    "itemTitlePh": "e.g. Reading",
+    "amount": "How much",
+    "amountPh": "20 pages, 10 minutes, 5…",
+    "time": "Time",
+    "repeat": "How often",
+    "repeat_daily": "Every day",
+    "repeat_weekly": "Some weekdays",
+    "repeat_once": "One day",
+    "onDay": "Which day",
+    "weekdaysShort": "Mo,Tu,We,Th,Fr,Sa,Su",
+    "alarm": "Alarm at that time",
+    "save": "Save",
+    "saved": "Saved",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this item for good (with its past ticks)?",
+    "newGoal": "New goal",
+    "goalTitlePh": "Goal: e.g. get an IELTS 7.0 certificate",
+    "goalWhyPh": "Why does it matter? (optional)",
+    "goalStepsPh": "What does it consist of? One step per line:\nFind my level\nPrepare an hour a day\nRegister for the exam",
+    "ideas": "Ready ideas",
+    "goalCreated": "Goal added",
+    "stepsDone": "{done} of {total} steps",
+    "stepPh": "Add another step…",
+    "ideaBooksTitle": "Read 24 books a year",
+    "noRoutines": "No regular plan yet",
+    "noRoutinesBody": "Tap one of the ideas above or add your own.",
+    "statAverage": "Average done",
+    "statStreak": "Good days in a row",
+    "statProductive": "Productive time (30 days)",
+    "statBetter": "Better / worse than yesterday",
+    "statDaily": "How much was done each day (30 days)",
+    "statMissed": "Most often skipped",
+    "daysN": "{n, plural, one {# day} other {# days}}",
+    "alarmTitle": "Time ⏰",
+    "markDone": "Done",
+    "eodTitle": "The day is ending: {n} left",
+    "open": "Open",
+    "goalIdeas": [
+      {
+        "title": "Get a certificate",
+        "steps": [
+          "Find my level (a mock test)",
+          "Choose a course or a book",
+          "Prepare an hour a day",
+          "Register for the exam",
+          "Take the exam"
+        ]
+      },
+      {
+        "title": "Finish writing my book",
+        "steps": ["Plan the chapters", "Write 500 words a day", "Edit", "Publish"]
+      },
+      {
+        "title": "Learn a new language",
+        "steps": ["Level A1", "Level A2", "Level B1", "Talk with a native speaker"]
+      }
+    ],
+    "routineIdeas": [
+      {
+        "title": "Reading",
+        "amount": "20 pages",
+        "time": "21:00"
+      },
+      {
+        "title": "Review (questions)",
+        "amount": "10",
+        "time": "20:00"
+      },
+      {
+        "title": "Exercise",
+        "amount": "20 minutes",
+        "time": "07:00"
+      },
+      {
+        "title": "Language practice",
+        "amount": "30 minutes",
+        "time": "18:00"
+      },
+      {
+        "title": "Daily review and plans",
+        "amount": "10 minutes",
+        "time": "22:00"
+      }
+    ],
+    "numberGoal": "A number goal (books, pages)"
   }
 }

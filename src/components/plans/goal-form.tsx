@@ -10,9 +10,15 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { useAction } from "@/lib/use-action";
 import { RESOURCE_TYPES } from "@/lib/validation";
 
-export function GoalDialog() {
+export function GoalDialog({
+  defaultOpen = false,
+  label,
+}: {
+  defaultOpen?: boolean;
+  label?: string;
+}) {
   const t = useTranslations();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const { pending, exec } = useAction();
   const [v, setV] = useState({
     title: "",
@@ -26,8 +32,8 @@ export function GoalDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus /> {t("plans.newGoal")}
+        <Button variant={label ? "outline" : "primary"}>
+          <Plus /> {label ?? t("plans.newGoal")}
         </Button>
       </DialogTrigger>
       <DialogContent title={t("plans.newGoal")} closeLabel={t("common.close")}>

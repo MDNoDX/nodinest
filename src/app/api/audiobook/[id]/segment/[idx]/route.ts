@@ -13,7 +13,7 @@ export const maxDuration = 180;
  * The URL changes with every analysis and voice change, so the browser may keep it forever.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; idx: string }> },
 ) {
   try {
@@ -22,7 +22,8 @@ export async function GET(
     const p = await params;
     const id = z.string().uuid().parse(p.id);
     const idx = z.coerce.number().int().min(0).max(100_000).parse(p.idx);
-    const { mp3, seconds, marks } = await segmentAudio(toCtx(u), id, idx);
+    const cast = req.nextUrl.searchParams.get("cast") === "1";
+    const { mp3, seconds, marks } = await segmentAudio(toCtx(u), id, idx, { cast });
     return new NextResponse(new Uint8Array(mp3), {
       headers: {
         "content-type": "audio/mpeg",

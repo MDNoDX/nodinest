@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   searchCollectionCandidatesAction,
   toggleCollectionItemAction,
@@ -13,6 +12,7 @@ import { Cover, coverSrc } from "@/components/library/cover";
 import { cn } from "@/lib/cn";
 import { useDebounced } from "@/lib/hooks";
 import type { CollectionCandidate } from "@/server/notes";
+import { errorToast } from "@/lib/error-toast";
 
 /**
  * Adds things to a collection from inside it: search the library / catalog
@@ -50,7 +50,7 @@ export function CollectionAdder({ collectionId, empty }: { collectionId: string;
       !c.added,
     );
     setBusy(null);
-    if (!r.ok) return toast.error(te(r.code));
+    if (!r.ok) return errorToast(te, r);
     setRes(
       (cur) =>
         cur && {

@@ -28,6 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           full && { href: "/admin/archive", label: t("archive") },
           full && { href: "/admin/audit", label: t("audit") },
           full && { href: "/admin/ai", label: t("ai") },
+          full && { href: "/admin/insights", label: t("insights") },
           has("payments") && { href: "/admin/premium", label: "Premium" },
           has("ads") && { href: "/admin/ads", label: t("ads") },
           !full &&

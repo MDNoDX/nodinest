@@ -122,7 +122,10 @@ export const goalMetric = nodinest.enum("goal_metric", [
   "sessions",
   "completed_resources",
   "pages",
+  /** Progress = done steps / all steps (goal_steps). */
+  "steps",
 ]);
+export const routineRepeat = nodinest.enum("routine_repeat", ["daily", "weekly", "once"]);
 export const goalPeriod = nodinest.enum("goal_period", ["day", "week", "month", "year"]);
 export const goalStatus = nodinest.enum("goal_status", ["active", "achieved", "archived"]);
 export const suggestionOp = nodinest.enum("suggestion_op", ["create", "update", "archive"]);
@@ -168,6 +171,8 @@ export const user = nodinest.table(
     /** The profile (/u/<username>) and its public items can be seen by others. */
     profilePublic: boolean("profile_public").notNull().default(false),
     bio: text("bio"),
+    /** Optional, private: only the owner (and the site admin) sees it. */
+    phone: text("phone"),
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
     /** Parts of the admin given by the superadmin (lib/admin-perms.ts). */
@@ -741,6 +746,102 @@ export const goals = nodinest.table(
   (t) => [index("goals_user_idx").on(t.userId), check("goals_target_chk", sql`${t.target} > 0`)],
 );
 
+/** What a goal consists of (checked off one by one). */
+export const goalSteps = nodinest.table(
+  "goal_steps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    goalId: uuid("goal_id")
+      .notNull()
+      .references(() => goals.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    done: boolean("done").notNull().default(false),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("goal_steps_goal_idx").on(t.goalId)],
+);
+
+/**
+ * Röznoma: the things a user does regularly (every day, on some weekdays, or
+ * once on a day) — a name, how much ("20 bet", "10 daqiqa"), an optional time
+ * with an alarm, and their place in the day's list.
+ */
+export const routines = nodinest.table(
+  "routines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    amount: text("amount"),
+    /** "HH:MM" in the user's time zone, or NULL (any time of the day). */
+    time: text("time"),
+    repeat: routineRepeat("repeat").notNull().default("daily"),
+    /** Weekly: 1 = Monday … 7 = Sunday. */
+    weekdays: integer("weekdays")
+      .array()
+      .notNull()
+      .default(sql`'{}'::int[]`),
+    /** Once: the day it is for. */
+    onDay: date("on_day"),
+    position: integer("position").notNull().default(0),
+    alarm: boolean("alarm").notNull().default(true),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("routines_user_idx").on(t.userId)],
+);
+
+/** A routine checked off on a day (with an optional "how much": "35%", "1 ta"). */
+export const routineChecks = nodinest.table(
+  "routine_checks",
+  {
+    routineId: uuid("routine_id")
+      .notNull()
+      .references(() => routines.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.routineId, t.day] }),
+    index("routine_checks_user_day_idx").on(t.userId, t.day),
+  ],
+);
+
+/** The day's page in the Röznoma: motto, title, story, highlights and the conclusion. */
+export const dayLogs = nodinest.table(
+  "day_logs",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    motto: text("motto"),
+    title: text("title"),
+    story: text("story"),
+    highlights: text("highlights")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    lesson: text("lesson"),
+    productiveMinutes: integer("productive_minutes"),
+    /** Better than yesterday? NULL = not answered. */
+    better: boolean("better"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 /** Plans: scheduled learning activities. */
 export const plans = nodinest.table(
   "plans",
@@ -1275,6 +1376,21 @@ export const payments = nodinest.table(
     check("payments_method_chk", sql`${t.method} IN ('card', 'visa', 'payme', 'click', 'uzum')`),
   ],
 );
+
+/**
+ * What the AI companion remembers about a user from their talks (interests,
+ * level, way of speaking, goals, facts they told). Server-only (no policy):
+ * read by the AI for this user, and by the superadmin's insights page.
+ */
+export const aiMemory = nodinest.table("ai_memory", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  memory: jsonb("memory").notNull(),
+  /** Talk turns since the memory was last updated. */
+  pending: integer("pending").notNull().default(0),
+  updatedAt: updatedAt(),
+});
 
 /** Who follows whom (a teacher follows students, friends follow each other). */
 export const follows = nodinest.table(

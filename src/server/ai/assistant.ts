@@ -24,6 +24,8 @@ import {
 } from "./tools";
 import { aiLanguage, asLocale, uzScript } from "@/i18n/config";
 import { limitsFor } from "../premium";
+import { later } from "../later";
+import { getMemory, memoryText, noteTurn } from "./memory";
 
 const MAX_ROUNDS = 8;
 const MAX_MESSAGE_CHARS = 6000;
@@ -110,11 +112,17 @@ const NO_INTERNALS = `- Never talk about how NodiNote is built or run: its code,
  * library, ratings, notes, quotes, goals, study cards) and talks about it
  * honestly — not a flatterer.
  */
-function talkInstruction(locale: string, timeZone: string, profile: string, owner = false) {
+function talkInstruction(
+  locale: string,
+  timeZone: string,
+  profile: string,
+  owner = false,
+  memory = "",
+) {
   const now = new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "medium" }).format(
     new Date(),
   );
-  return `You are Nodi — the user's personal learning companion in NodiNote. Today is ${now}. Speak ${aiLanguage(asLocale(locale))} unless the user writes in another language.
+  return `You are Basira — the user's personal learning companion in NodiNote. Your name is Arabic (بصيرة): "insight, the inner sight that sees the truth of things" — live up to it. Today is ${now}. Speak ${aiLanguage(asLocale(locale))} unless the user writes in another language.
 
 WHO YOU ARE
 - A well-read, curious and warm conversation partner with your own opinions: a mix of a good mentor, a sharp book-club friend and an honest coach.
@@ -131,7 +139,14 @@ ${CONTENT_RULES}
 ${owner ? OWNER_TALK : NO_INTERNALS}
 
 WHAT YOU KNOW ABOUT THE USER
-${profile}`;
+${profile}
+
+WHAT YOU REMEMBER FROM EARLIER TALKS (private; use it naturally, never recite it or say you keep notes)
+${memory}
+
+GROW WITH THEM
+- Match their vocabulary and gradually enrich it: now and then use a precise, beautiful word (for Uzbek: rich literary Uzbek, proverbs and sayings where they fit) and explain it briefly if it may be new.
+- Remember what they care about and build on it in later talks; notice how their knowledge grows and raise the level with them.`;
 }
 
 /** A compact picture of the user's learning for "Suhbat" (only their own data). */
@@ -352,9 +367,13 @@ export async function runAssistant(
     conversationId = c.id;
   }
   const convId = conversationId;
-  const [history, context, earlier, fileParts] = await Promise.all([
+  const [history, [context, memory], earlier, fileParts] = await Promise.all([
     loadHistory(ctx, convId),
-    talk ? learnerProfile(ctx) : userContext(ctx),
+    talk
+      ? Promise.all([learnerProfile(ctx), getMemory(ctx.userId)]).then(
+          ([p, m]) => [p, memoryText(m)] as const,
+        )
+      : userContext(ctx).then((c) => [c, ""] as const),
     proposalsSoFar(ctx, convId),
     attachmentParts(ctx, attachments),
   ]);
@@ -389,7 +408,7 @@ export async function runAssistant(
     const t0 = Date.now();
     const res = await generate(contents, {
       systemInstruction: talk
-        ? talkInstruction(input.locale, input.timeZone, context, !!ctx.superadminAccount) +
+        ? talkInstruction(input.locale, input.timeZone, context, !!ctx.superadminAccount, memory) +
           (input.spoken ? SPOKEN : "")
         : systemInstruction(input.locale, input.timeZone, context + earlier),
       tools,
@@ -577,6 +596,8 @@ export async function runAssistant(
       .where(eq(aiConversations.id, convId));
   });
 
+  // The companion learns about the user from the talk (now and then).
+  if (talk) later(() => noteTurn(ctx, convId));
   return { conversationId: convId, reply, actions, trace };
 }
 

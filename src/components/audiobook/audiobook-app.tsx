@@ -27,6 +27,7 @@ import { PdfPage } from "@/components/reader/pdf-page";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { Analysis, AudiobookView, ScriptLine } from "@/server/audiobook";
+import { errorToast } from "@/lib/error-toast";
 
 type Res = { id: string; title: string; type: string; cover: string | null; authors: string };
 type Voice = { name: string; female: boolean; d: string; role?: string };
@@ -58,6 +59,39 @@ function saveSpeed(v: number) {
   }
   window.dispatchEvent(new Event(SPEED_KEY));
 }
+/**
+ * Voices: one narrator (default — the book's own words, fast, no AI script)
+ * or every character in their own voice. Kept per device.
+ */
+const CAST_KEY = "nn:abook-cast";
+function readCast() {
+  try {
+    return localStorage.getItem(CAST_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function subscribeCast(cb: () => void) {
+  window.addEventListener(CAST_KEY, cb);
+  return () => window.removeEventListener(CAST_KEY, cb);
+}
+function saveCast(v: boolean) {
+  try {
+    localStorage.setItem(CAST_KEY, v ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event(CAST_KEY));
+}
+/** Is this segment already in the browser (then it plays without asking the server)? */
+async function inBrowser(url: string) {
+  try {
+    return !!(await (await caches.open(CACHE)).match(url));
+  } catch {
+    return false;
+  }
+}
+
 /** Audio made with an older pacing is made again (the URL changes). */
 const AUDIO_VERSION = "p3";
 const SLEEP = [15, 30, 45, 60] as const;
@@ -240,6 +274,7 @@ function Ready({
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState({ cur: 0, dur: 0 });
   const speed = useSyncExternalStore(subscribeSpeed, readSpeed, () => 0.9);
+  const cast = useSyncExternalStore(subscribeCast, readCast, () => false);
   const setSpeed = saveSpeed;
   // Sleep timer: a time to stop at, or the end of the chapter.
   const [sleep, setSleep] = useState<number | "chapter" | null>(null);
@@ -260,8 +295,8 @@ function Ready({
 
   const segUrl = useCallback(
     (i: number) =>
-      `/api/audiobook/${resource.id}/segment/${i}?v=${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${AUDIO_VERSION}`,
-    [resource.id, analysis.rev, analysis.voiceRev],
+      `/api/audiobook/${resource.id}/segment/${i}?v=${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${AUDIO_VERSION}${cast ? "&cast=1" : ""}`,
+    [resource.id, analysis.rev, analysis.voiceRev, cast],
   );
   const blobFor = useCallback(
     (i: number) => {
@@ -295,6 +330,24 @@ function Ready({
     }).catch(() => {});
   }, [resource.id]);
 
+  /** The text of segment i (no AI: the book's own words, or the cached script). */
+  const script = useCallback(
+    (i: number, fast: boolean) =>
+      fetch(
+        `/api/audiobook/${resource.id}/script/${i}${fast ? `?fast=1${cast ? "" : "&plain=1"}` : ""}`,
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { lines: ScriptLine[]; draft?: boolean } | null) => {
+          if (d && live.current.idx === i) {
+            setLines(d.lines);
+            setDraft(!!d.draft);
+          }
+          return d;
+        })
+        .catch(() => null),
+    [resource.id, cast],
+  );
+
   /** Loads segment i into the player (and plays it if wanted). */
   const load = useCallback(
     async (i: number, play: boolean) => {
@@ -306,18 +359,7 @@ function Ready({
       setDraft(false);
       setMarks([]);
       // The text first (the book's own words at once), the voice after.
-      const script = (fast: boolean) =>
-        fetch(`/api/audiobook/${resource.id}/script/${i}${fast ? "?fast=1" : ""}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d: { lines: ScriptLine[]; draft?: boolean } | null) => {
-            if (d && live.current.idx === i) {
-              setLines(d.lines);
-              setDraft(!!d.draft);
-            }
-            return d;
-          })
-          .catch(() => null);
-      const first = script(true);
+      const first = script(i, true);
       try {
         const { blob, marks: m } = await blobFor(i);
         setMarks(m);
@@ -336,9 +378,10 @@ function Ready({
         }
         if (want.current) await a.play().catch(() => {});
         // Voicing made the speaker script: swap the plain text for it.
-        void first.then((d) => {
-          if (!d || d.draft) void script(false);
-        });
+        if (cast)
+          void first.then((d) => {
+            if (!d || d.draft) void script(i, false);
+          });
         // Make the next one while this one plays.
         if (i + 1 < view.segments) void blobFor(i + 1).catch(() => {});
       } catch (e) {
@@ -355,7 +398,7 @@ function Ready({
         if (live.current.idx === i) setLoading(false);
       }
     },
-    [blobFor, resource.id, speed, t, view.segments],
+    [blobFor, script, cast, speed, t, view.segments],
   );
 
   const go = (i: number, play = live.current.playing || want.current) => {
@@ -367,9 +410,14 @@ function Ready({
     savePos();
   };
 
-  // First segment: prepared at once (not played until asked).
+  // Opening the page costs nothing: the text is shown, and the voice is
+  // loaded only if this browser already has it (else it is made on ▶).
   useEffect(() => {
-    void load(live.current.idx, false);
+    const i = live.current.idx;
+    void inBrowser(segUrl(i)).then((has) => {
+      if (has) void load(i, false);
+      else void script(i, true);
+    });
     const map = urls.current;
     return () => {
       for (const u of map.values()) URL.revokeObjectURL(u);
@@ -380,6 +428,27 @@ function Ready({
   useEffect(() => {
     if (audio.current) audio.current.playbackRate = speed;
   }, [speed]);
+
+  // Narrator ↔ cast: the same place, in the other way of reading.
+  const castFirst = useRef(true);
+  useEffect(() => {
+    if (castFirst.current) {
+      castFirst.current = false;
+      return;
+    }
+    const a = audio.current;
+    const play = !!a && !a.paused;
+    if (a) {
+      startAt.current = a.currentTime;
+      a.pause();
+      a.removeAttribute("src");
+    }
+    for (const u of urls.current.values()) URL.revokeObjectURL(u);
+    urls.current.clear();
+    if (play) void load(live.current.idx, true);
+    else void script(live.current.idx, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cast]);
 
   // Save the place now and then, and when leaving.
   useEffect(() => {
@@ -436,18 +505,44 @@ function Ready({
     navigator.mediaSession.setActionHandler("pause", toggle);
     navigator.mediaSession.setActionHandler("previoustrack", () => go(live.current.idx - 1));
     navigator.mediaSession.setActionHandler("nexttrack", () => go(live.current.idx + 1));
-    navigator.mediaSession.setActionHandler("seekbackward", () => seek(-15));
-    navigator.mediaSession.setActionHandler("seekforward", () => seek(15));
+    navigator.mediaSession.setActionHandler("seekbackward", (d) => seek(-(d.seekOffset ?? 5)));
+    navigator.mediaSession.setActionHandler("seekforward", (d) => seek(d.seekOffset ?? 5));
+    try {
+      navigator.mediaSession.setActionHandler("seekto", (d) => {
+        const a = audio.current;
+        if (a && d.seekTime != null) a.currentTime = d.seekTime;
+      });
+    } catch {
+      /* not supported */
+    }
   });
+  // The lock screen's progress bar.
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !time.dur) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: time.dur,
+        position: Math.min(time.cur, time.dur),
+        playbackRate: speed,
+      });
+    } catch {
+      /* not supported */
+    }
+  }, [time.dur, Math.floor(time.cur), speed]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Space = play / pause (not while typing).
+  // Space = play / pause, ← / → = 5 s back / forward (not while typing).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
-      if (e.code !== "Space" || /input|textarea|select/i.test(el.tagName) || el.isContentEditable)
-        return;
-      e.preventDefault();
-      toggle();
+      if (/input|textarea|select/i.test(el.tagName) || el.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        toggle();
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        seek(e.key === "ArrowLeft" ? -5 : 5);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -494,7 +589,7 @@ function Ready({
 
   const changeVoice = async (speaker: string, voice: string) => {
     const r = await setVoiceAction(resource.id, speaker, voice);
-    if (!r.ok) return toast.error(te(r.code));
+    if (!r.ok) return errorToast(te, r);
     setAnalysis((a) => ({
       ...a,
       voiceRev: r.data,
@@ -584,12 +679,7 @@ function Ready({
               >
                 <SkipBack />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => seek(-15)}
-                aria-label={t("back15")}
-              >
+              <Button variant="ghost" size="icon" onClick={() => seek(-5)} aria-label={t("back15")}>
                 <RotateCcw />
               </Button>
               <button
@@ -606,7 +696,7 @@ function Ready({
                   <Play className="size-6 translate-x-0.5" />
                 )}
               </button>
-              <Button variant="ghost" size="icon" onClick={() => seek(15)} aria-label={t("fwd15")}>
+              <Button variant="ghost" size="icon" onClick={() => seek(5)} aria-label={t("fwd15")}>
                 <RotateCw />
               </Button>
               <Button
@@ -653,6 +743,28 @@ function Ready({
                 ))}
                 <option value="chapter">{t("sleepChapter")}</option>
               </select>
+            </div>
+            <div
+              role="radiogroup"
+              aria-label={t("voicesMode")}
+              className="bg-surface-2 mt-3 flex w-fit rounded-lg p-0.5 text-xs"
+            >
+              {([false, true] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  role="radio"
+                  aria-checked={cast === v}
+                  onClick={() => saveCast(v)}
+                  title={v ? t("modeCastHint") : t("modeNarratorHint")}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 font-medium",
+                    cast === v ? "bg-surface text-foreground shadow-sm" : "text-muted",
+                  )}
+                >
+                  {v ? t("modeCast") : t("modeNarrator")}
+                </button>
+              ))}
             </div>
             {loading && (
               <p className="text-muted mt-2 flex items-center gap-1.5 text-xs" aria-live="polite">
@@ -907,6 +1019,7 @@ function CastCard({
   hue: string | null;
 }) {
   const t = useTranslations("audiobook");
+  const te = useTranslations("errors");
   const [busy, setBusy] = useState(false);
   const [playing, setPlaying] = useState(false);
   const id = `${speaker}|${voice}`;
@@ -935,13 +1048,8 @@ function CastCard({
         );
         if (!r.ok) {
           const code = ((await r.json().catch(() => ({}))) as { error?: string }).error;
-          toast.error(
-            code === "RATE_LIMITED"
-              ? t("previewLimit")
-              : code === "PREMIUM_REQUIRED"
-                ? t("premiumOnly")
-                : t("voiceFailed"),
-          );
+          if (code === "PREMIUM_REQUIRED") return errorToast(te, code);
+          toast.error(code === "RATE_LIMITED" ? t("previewLimit") : t("voiceFailed"));
           return;
         }
         url = URL.createObjectURL(await r.blob());

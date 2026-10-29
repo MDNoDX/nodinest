@@ -52,7 +52,12 @@ export function toActionError(err: unknown): Extract<ActionResult, { ok: false }
       code: err.code,
       message: err.code === "VALIDATION" ? err.message : undefined,
       fieldErrors: err.details?.fieldErrors as FieldErrors | undefined,
-      details: err.code === "DUPLICATE" ? err.details : undefined,
+      details:
+        err.code === "DUPLICATE"
+          ? err.details
+          : err.code === "RATE_LIMITED" && err.details
+            ? { premium: err.details.premium, resetAt: err.details.resetAt }
+            : undefined,
     };
   }
   // Bad input that failed a zod schema: a validation error, not a crash.

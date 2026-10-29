@@ -20,7 +20,9 @@ export async function GET(
     const id = z.string().uuid().parse(p.id);
     const idx = z.coerce.number().int().min(0).max(100_000).parse(p.idx);
     // ?fast=1: never waits for the AI (the book's own text until the script exists).
-    if (req.nextUrl.searchParams.get("fast")) return json(await segmentPreview(toCtx(u), id, idx));
+    const sp = req.nextUrl.searchParams;
+    if (sp.get("fast"))
+      return json(await segmentPreview(toCtx(u), id, idx, { plain: sp.get("plain") === "1" }));
     const s = await segmentScript(toCtx(u), id, idx);
     return json({ lines: s.lines, page: s.page, draft: false });
   } catch (err) {

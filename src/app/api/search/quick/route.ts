@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
       title: p.name,
       subtitle: `@${p.username}`,
       kind: null,
+      premium: p.premium,
+      image: p.image,
     }));
     return json({ items: [...users, ...mine] });
   } catch (err) {

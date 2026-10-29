@@ -101,8 +101,9 @@ export const VOICE_ROLES = [
   { voice: "Orus", role: "man" },
   { voice: "Kore", role: "woman" },
   { voice: "Puck", role: "young_man" },
-  { voice: "Leda", role: "young_woman" },
-  { voice: "Zephyr", role: "child" },
+  { voice: "Autonoe", role: "young_woman" },
+  { voice: "Sadachbia", role: "child_boy" },
+  { voice: "Leda", role: "child_girl" },
   { voice: "Algenib", role: "old_man" },
   { voice: "Gacrux", role: "old_woman" },
   { voice: "Fenrir", role: "angry_man" },
@@ -111,8 +112,8 @@ const CURATED = VOICE_ROLES.map((v) => v.voice) as VoiceName[];
 
 /** Voices that suit an age, best first. */
 const AGE_VOICES: Record<string, Partial<Record<"m" | "f", VoiceName[]>>> = {
-  child: { f: ["Zephyr", "Leda"], m: ["Zephyr", "Puck"] },
-  young: { f: ["Leda", "Kore"], m: ["Puck", "Orus"] },
+  child: { f: ["Leda", "Autonoe"], m: ["Sadachbia", "Puck"] },
+  young: { f: ["Autonoe", "Kore"], m: ["Puck", "Orus"] },
   adult: { f: ["Kore", "Sulafat"], m: ["Orus", "Charon", "Fenrir"] },
   elderly: { f: ["Gacrux", "Sulafat"], m: ["Algenib", "Charon"] },
 };
@@ -841,7 +842,13 @@ async function bookText(ctx: AppContext, resourceId: string, id: string, rev: st
  * one, else the book's own text of the segment as narrator paragraphs (no AI).
  * Scanned books have no text before the AI reads the page: `lines` is empty then.
  */
-export async function segmentPreview(ctx: AppContext, resourceId: string, idx: number) {
+export async function segmentPreview(
+  ctx: AppContext,
+  resourceId: string,
+  idx: number,
+  /** Narrator mode: always the book's own text (the lines that are voiced). */
+  opts: { plain?: boolean } = {},
+) {
   const r = await getRow(ctx, resourceId);
   if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
   const plan = r.plan as Plan;
@@ -854,11 +861,39 @@ export async function segmentPreview(ctx: AppContext, resourceId: string, idx: n
       .from(audiobookScripts)
       .where(and(eq(audiobookScripts.audiobookId, r.id), eq(audiobookScripts.idx, idx))),
   );
-  if (cached) return { lines: cached.script as ScriptLine[], page: seg[2], draft: false };
-  if (plan.kind === "scan") return { lines: [] as ScriptLine[], page: seg[2], draft: true };
+  if (cached && !opts.plain)
+    return { lines: cached.script as ScriptLine[], page: seg[2], draft: false };
+  if (plan.kind === "scan") {
+    if (cached)
+      return {
+        lines: (cached.script as ScriptLine[]).map((l) => ({ ...l, speaker: "narrator" })),
+        page: seg[2],
+        draft: false,
+      };
+    return { lines: [] as ScriptLine[], page: seg[2], draft: true };
+  }
   const text = (await bookText(ctx, resourceId, r.id, a.rev, plan)).slice(seg[0], seg[1]);
   const lines = reflow(text).map((p) => ({ speaker: "narrator", text: p.text }));
-  return { lines, page: seg[2], draft: true };
+  // In narrator mode these ARE the voiced lines (marks match them).
+  return { lines, page: seg[2], draft: !opts.plain };
+}
+
+/**
+ * Narrator mode (the default): the book's own words, read by one voice — no
+ * AI script per segment, so it starts fast and never drops a word. Scanned
+ * books still need the AI to read the page (its script, all in one voice).
+ */
+async function narratorLines(ctx: AppContext, resourceId: string, idx: number) {
+  const r = await getRow(ctx, resourceId);
+  if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
+  const a = r.analysis as Analysis;
+  if ((r.plan as Plan).kind === "scan") {
+    const s = await segmentScript(ctx, resourceId, idx);
+    return { lines: s.lines.map((l) => ({ ...l, speaker: "narrator" })), analysis: a };
+  }
+  const { lines } = await segmentPreview(ctx, resourceId, idx, { plain: true });
+  if (!lines.length) throw new AppError("NOT_FOUND", "empty");
+  return { lines, analysis: a };
 }
 
 export async function segmentScript(ctx: AppContext, resourceId: string, idx: number) {
@@ -994,9 +1029,17 @@ export function speechLanguage(language: string | null | undefined) {
 }
 
 /** MP3 of segment `idx`, voiced with the book's cast. */
-export async function segmentAudio(ctx: AppContext, resourceId: string, idx: number) {
+export async function segmentAudio(
+  ctx: AppContext,
+  resourceId: string,
+  idx: number,
+  /** cast: each character in their own voice (an AI script per segment). */
+  opts: { cast?: boolean } = {},
+) {
   await gate(ctx, "audiobook");
-  const { lines, analysis: a } = await segmentScript(ctx, resourceId, idx);
+  const { lines, analysis: a } = opts.cast
+    ? await segmentScript(ctx, resourceId, idx)
+    : await narratorLines(ctx, resourceId, idx);
   const voice = new Map<string, string>([["narrator", a.narration.voice]]);
   for (const c of a.characters) voice.set(c.name, c.voice);
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;

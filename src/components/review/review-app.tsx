@@ -37,6 +37,7 @@ import { cn } from "@/lib/cn";
 import { useDebounced } from "@/lib/hooks";
 import { intervalLabel, schedule, type Grade } from "@/lib/srs";
 import { asLocale } from "@/i18n/config";
+import { errorToast } from "@/lib/error-toast";
 
 type Deck = {
   deck: string;
@@ -82,7 +83,7 @@ export function ReviewApp({
 
   const start = async (deck: string | null, practice = false) => {
     const r = practice ? await listCardsAction(deck!) : await dueCardsAction(deck);
-    if (!r.ok) return toast.error(te(r.code));
+    if (!r.ok) return errorToast(te, r);
     if (!r.data.length) return toast(t("nothingDue"));
     const cards = practice ? [...r.data].sort(() => Math.random() - 0.5) : r.data;
     setSession({ label: deck ?? t("allDecks"), cards, i: 0, practice, done: 0 });
@@ -185,7 +186,7 @@ function Maker({
       depth: deep ? "deep" : "standard",
     }).catch(() => null);
     setBusy(false);
-    if (!r || !r.ok) return toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+    if (!r || !r.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
     toast.success(t("made", { n: r.data.created, deck: r.data.deck }));
     if (r.data.thinMaterial) toast(t("thinMaterial"));
     setPicked([]);
@@ -454,7 +455,7 @@ function DeckCards({ deck }: { deck: string }) {
     setImproving(true);
     const r = await improveCardsAction(deck, instruction).catch(() => null);
     setImproving(false);
-    if (!r || !r.ok) return toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+    if (!r || !r.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
     toast.success(t("improved", { n: r.data.improved }));
     setInstruction("");
     void load();
@@ -523,7 +524,7 @@ function DeckCards({ deck }: { deck: string }) {
               onCancel={() => setEditing(null)}
               onSave={async (v) => {
                 const r = await updateCardAction(c.id, v);
-                if (!r.ok) return toast.error(te(r.code));
+                if (!r.ok) return errorToast(te, r);
                 setEditing(null);
                 void load();
               }}
@@ -567,7 +568,7 @@ function DeckCards({ deck }: { deck: string }) {
           onCancel={() => setAdding(false)}
           onSave={async (v) => {
             const r = await addCardAction(deck, v);
-            if (!r.ok) return toast.error(te(r.code));
+            if (!r.ok) return errorToast(te, r);
             setAdding(false);
             void load();
           }}
@@ -680,7 +681,7 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
         const r = await reviewCardAction(c.id, g).catch(() => null);
         if (!r || !r.ok) {
           setBusy(false);
-          return toast.error(te(r && !r.ok ? r.code : "INTERNAL"));
+          return errorToast(te, r && !r.ok ? r : "INTERNAL");
         }
       }
       // "Again" comes back at the end of this session.

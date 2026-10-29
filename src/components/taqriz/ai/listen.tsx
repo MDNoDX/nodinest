@@ -29,6 +29,7 @@ import { cn } from "@/lib/cn";
 import { markdownToNodes, type DocNode } from "@/lib/writeup-doc";
 import type { TranscriptInfo } from "@/server/ai/transcripts";
 import { MdView, SmallBtn } from "./shared";
+import { errorToast } from "@/lib/error-toast";
 /** Length of one listening segment (one AI request per segment). */
 const SEGMENT = 60;
 
@@ -204,7 +205,7 @@ function ListenTab({
         update(next.key, { status: "error", error: te(r.code) });
         if (r.code === "AI_QUOTA" || r.code === "RATE_LIMITED" || r.code === "AI_UNAVAILABLE") {
           setLive(false);
-          toast.error(te(r.code));
+          errorToast(te, r);
           return;
         }
       }
@@ -459,7 +460,7 @@ function FullTranscript({
               await new Promise((ok) => setTimeout(ok, 5000 * failures));
               continue;
             }
-            toast.error(te(code));
+            errorToast(te, code);
             break;
           }
           failures = 0;
@@ -487,7 +488,7 @@ function FullTranscript({
       durationSeconds: secs,
     });
     setWaiting(false);
-    if (!r.ok) return toast.error(te(r.code));
+    if (!r.ok) return errorToast(te, r);
     setList((cur) => [r.data, ...(cur ?? [])]);
     void run(r.data.id);
   };
@@ -506,7 +507,7 @@ function FullTranscript({
 
   const insert = async (id: string) => {
     const r = await transcriptTextAction(id);
-    if (!r.ok) return toast.error(te(r.code));
+    if (!r.ok) return errorToast(te, r);
     editor
       .chain()
       .insertContentAt(
@@ -711,7 +712,7 @@ function SourcePicker({
               resourceId,
             });
           } catch {
-            toast.error(te("INTERNAL"));
+            errorToast(te, "INTERNAL");
           } finally {
             setPct(null);
           }

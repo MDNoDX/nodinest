@@ -33,6 +33,7 @@ import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import { errorText, needsPremium } from "@/lib/error-toast";
 import { uploadMedia } from "@/lib/upload-media";
 import { VoiceTalk } from "./voice-talk";
 
@@ -566,7 +567,7 @@ export function Chat({
     }
   };
   const [files, setFiles] = useState<Pending[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; premium: boolean } | null>(null);
   const [pending, start] = useTransition();
   const end = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -632,7 +633,7 @@ export function Chat({
         mode,
       });
       if (!r.ok) {
-        setError(te(r.code));
+        setError({ text: errorText(te, r), premium: needsPremium(r) });
         return;
       }
       const d = r.data;
@@ -795,9 +796,17 @@ export function Chat({
           </div>
         )}
         {error && (
-          <p role="alert" className="bg-danger-soft text-danger rounded-lg p-3 text-sm">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="bg-danger-soft text-danger flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm"
+          >
+            <span className="flex-1">{error.text}</span>
+            {error.premium && (
+              <Button asChild size="sm">
+                <Link href="/premium">{te("goPremium")}</Link>
+              </Button>
+            )}
+          </div>
         )}
         <div ref={end} />
       </div>

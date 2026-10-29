@@ -17,7 +17,8 @@ import {
 } from "../../catalog";
 import { getWriteup } from "../../writeups";
 import { docToPlain } from "@/lib/writeup-doc";
-import { listGoalsWithProgress, listPlans } from "../../goals";
+import { listGoalsWithProgress } from "../../goals";
+import { getDay } from "../../roznoma";
 import { lookupBooks, lookupPerson } from "../../lookup";
 import { listCollections } from "../../notes";
 import { universalSearch } from "../../search";
@@ -294,14 +295,15 @@ export const READ_TOOLS = {
   get_goals_and_plans: def({
     perm: "read_library",
     mode: "read",
-    description: "The user's goals (with progress) and plans (date ranges).",
+    description:
+      "The user's goals (with progress and steps) and their Röznoma plan (what they do daily / weekly / on a day) with today's ticks.",
     parameters: obj({}),
     args: z.object({}),
     run: async (ctx, _a, env) => {
       const today = dayKey(new Date(), env.timeZone);
       const [g, p] = await Promise.all([
         listGoalsWithProgress(db, ctx, today, env.timeZone),
-        listPlans(db, ctx),
+        getDay(ctx, today, env.locale ?? "uz"),
       ]);
       return {
         goals: g
@@ -312,12 +314,13 @@ export const READ_TOOLS = {
             period: x.period,
             target: x.target,
             value: x.value,
+            steps: x.steps.map((s) => ({ title: s.title, done: s.done })),
           })),
-        plans: p.map((x) => ({
+        today: p.items.map((x) => ({
           title: x.title,
-          from: x.startOn,
-          to: x.endOn,
-          resource: x.resourceTitle,
+          amount: x.amount,
+          time: x.time,
+          repeat: x.repeat,
           done: x.done,
         })),
       };

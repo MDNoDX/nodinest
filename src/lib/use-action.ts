@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import type { ActionResult } from "./errors";
+import { errorToast } from "@/lib/error-toast";
 
 /**
  * Runs a server action with consistent pending/success/error feedback.
@@ -27,7 +28,7 @@ export function useAction() {
       try {
         r = await fn();
       } catch {
-        toast.error(te("INTERNAL"));
+        errorToast(te, "INTERNAL");
         return;
       }
       if (r.ok) {
@@ -36,7 +37,7 @@ export function useAction() {
         if (opts.refresh !== false) router.refresh();
       } else {
         const handled = opts.onError?.(r);
-        if (!handled) toast.error(te(r.code));
+        if (!handled) errorToast(te, r);
       }
     });
   }

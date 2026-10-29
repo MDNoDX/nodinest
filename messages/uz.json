@@ -83,7 +83,7 @@
     "collections": "Töplamlar",
     "notes": "Qaydlar va iqtiboslar",
     "journal": "Jurnal",
-    "plans": "Rejalar va maqsadlar",
+    "plans": "Röznoma",
     "search": "Qidiruv",
     "assistant": "AI yordamçi",
     "stats": "Körsatkiçlar",
@@ -225,7 +225,10 @@
     "rated": "{count} ta baholangan",
     "continue": "Davom ettiriş: {title}",
     "dueReview": "Bugun {n} ta savol",
-    "allGoals": "Barça maqsadlar →"
+    "allGoals": "Barça maqsadlar →",
+    "goalsPlans": "Maqsad va rejalar",
+    "plansNext": "Navbatdagi rejalar",
+    "openRoznoma": "Röznoma’ni oçiş"
   },
   "types": {
     "book": "Kitob",
@@ -874,7 +877,7 @@
     "modeActHint": "Saytda iş bajaradi: kitob qöşadi, savollar tuzadi — hammasi tasdiq bilan",
     "modeTalk": "Suhbat",
     "modeTalkHint": "Öqiganlaringiz haqida halol suhbatdoş",
-    "talkIntro": "Men Nodi — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: maqtamayman, kamçilikni ham oçiq aytaman.",
+    "talkIntro": "Men Basira — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: xuşomadsiz, halol fikrimni aytaman.",
     "voiceTalk": "Ovozli suhbat",
     "talkListening": "Tinglayapman…",
     "talkThinking": "Öylayapman…",
@@ -1011,10 +1014,21 @@
       "failed": "Hisobni öçirib bölmadi. Keyinroq urinib köring."
     },
     "navOrder": "Menyu tartibi",
-    "navOrderHint": "Çap menyudagi bölimlarni özingizga qulay tartibda joylaştiring (şu qurilmada saqlanadi).",
+    "navOrderHint": "Menyudagi bölimni bosib turing va kerakli joyga suring (yoki şu yerdagi strelkalar bilan). Tartib şu qurilmada saqlanadi.",
     "navUp": "Yuqoriga",
     "navDown": "Pastga",
-    "navReset": "Asl tartibga qaytariş"
+    "navReset": "Asl tartibga qaytariş",
+    "tabs": {
+      "profile": "Profil",
+      "premium": "Premium",
+      "look": "Köriniş va til",
+      "menu": "Menyu",
+      "keys": "Klaviatura",
+      "app": "Ilovani örnatiş",
+      "storage": "Xotira",
+      "privacy": "Maxfiylik va hisob",
+      "help": "Qöllanma"
+    }
   },
   "admin": {
     "title": "Boşqaruv",
@@ -1087,7 +1101,13 @@
       "ads": "Reklama",
       "feedback": "Adminga xabarlar",
       "users": "Foydalanuvçilarni bloklaş"
-    }
+    },
+    "insights": "Qiziqişlar",
+    "insightsEmpty": "AI hali heç kim haqida heç narsa örganmagan.",
+    "insightsTop": "Eng köp qiziqişlar",
+    "memLevel": "Daraja",
+    "memLanguage": "Til va söz boyligi",
+    "memGoals": "Maqsadlar"
   },
   "upload": {
     "choose": "Yuklaş",
@@ -1123,7 +1143,9 @@
     "notFoundBody": "Siz qidirayotgan sahifa mavjud emas yoki unga ruxsatingiz yöq.",
     "goHome": "Boş sahifaga ötiş",
     "PREMIUM_REQUIRED": "Bu imkoniyat Premium’da. Sozlamalar → Premium böliminda batafsil.",
-    "INDECENT": "Matnda nojoiz (uyatsiz yoki ekstremistik) söz bor. Uni özgartiring."
+    "INDECENT": "Matnda nojoiz (uyatsiz yoki ekstremistik) söz bor. Uni özgartiring.",
+    "goPremium": "Premium’ni oçiş",
+    "planLimit": "Bugungi bepul limit tugadi. Premium bilan kuniga ança köp foydalaniş mumkin."
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -1144,7 +1166,8 @@
     "contributor_person_or_name": "Şaxsni tanlang.",
     "generic": "Notöğri qiymat.",
     "end_before_start": "Tugaş sanasi boşlanişdan keyin bölişi kerak.",
-    "indecent": "Nojoiz söz bor — özgartiring."
+    "indecent": "Nojoiz söz bor — özgartiring.",
+    "phone": "Telefon raqami notöğri. Masalan: +998 90 123 45 67"
   },
   "statusMedia": {
     "planned": "Rejada",
@@ -1788,10 +1811,10 @@
     "part": "{n} / {total}-qism",
     "position": "Joyi",
     "prev": "Oldingi qism",
-    "back15": "15 soniya orqaga",
+    "back15": "5 soniya orqaga",
     "play": "Tinglaş",
     "pause": "Töxtatiş",
-    "fwd15": "15 soniya oldinga",
+    "fwd15": "5 soniya oldinga",
     "next": "Keyingi qism",
     "speed": "Tezlik",
     "making": "Ovoz tayyorlanmoqda… (birinçi marta 20–60 soniya)",
@@ -1872,13 +1895,19 @@
       "woman": "Ayol",
       "young_man": "Yigit",
       "young_woman": "Qiz",
-      "child": "Bola",
       "old_man": "Çol",
       "old_woman": "Kampir",
-      "angry_man": "Jahldor erkak"
+      "angry_man": "Jahldor erkak",
+      "child_boy": "Öğil bola",
+      "child_girl": "Qiz bola"
     },
     "previewStop": "Töxtatiş",
-    "premiumOnly": "Audiokitob Premium’da."
+    "premiumOnly": "Audiokitob Premium’da.",
+    "voicesMode": "Ovozlar",
+    "modeNarrator": "Bitta hikoyaçi",
+    "modeCast": "Qahramonlar ovozi bilan",
+    "modeNarratorHint": "Kitob matni bitta ovozda, tez va aniq (tavsiya etiladi)",
+    "modeCastHint": "Har bir qahramon öz ovozida (sekinroq: AI har qismni avval tahlil qiladi)"
   },
   "reader": {
     "title": "Kitobni öqiş",
@@ -2007,7 +2036,9 @@
     "taken": "Bu nom band — boşqasini tanlang.",
     "invalid": "Faqat a–z, 0–9 va «_», harf bilan boşlansin (kamida 3 ta belgi).",
     "saved": "Profil saqlandi",
-    "save": "Saqlaş"
+    "save": "Saqlaş",
+    "phone": "Telefon raqami",
+    "phoneHint": "Ixtiyoriy. Faqat sizga körinadi — profilingizda çiqmaydi."
   },
   "welcome": {
     "title": "Xuş kelibsiz!",
@@ -2103,13 +2134,13 @@
   "social": {
     "title": "Hamjamiyat",
     "subtitle": "Boşqa öquvçilarni toping, ularni kuzating va oçiq darsliklarini köring.",
-    "searchPlaceholder": "Ism yoki @username — bir harf yetarli…",
+    "searchPlaceholder": "Ism yoki @username…",
     "results": "Topilganlar",
     "nobody": "Oçiq profil topilmadi.",
     "yourProfile": "Sizning profilingiz:",
     "feed": "Kuzatayotganlaringiz nima öqiyapti",
     "feedEmpty": "Hali heç narsa yöq",
-    "feedEmptyBody": "Odamlarni Qidiruv sahifasida toping va «Kuzatiş»ni bosing — ularning oçiq darsliklari şu yerda çiqadi.",
+    "feedEmptyBody": "Yuqorida odamlarni toping va «Kuzatiş»ni bosing — ularning oçiq darsliklari şu yerda çiqadi.",
     "followingTitle": "Kuzatayotganlarim",
     "follow": "Kuzatiş",
     "following": "Kuzatyapsiz",
@@ -2150,6 +2181,142 @@
     "privateBadge": "Yopiq profil",
     "publicBadge": "Oçiq profil",
     "back": "Profilga qaytiş",
-    "findPeople": "Odamlarni topiş"
+    "findPeople": "Odamlarni topiş",
+    "statItems": "Oçiq darslik",
+    "statFollowers": "Kuzatuvçi",
+    "statFollowing": "Kuzatilmoqda",
+    "findPeopleHint": "Ism yoki username yozing — döstlaringiz va ustozlaringizni toping."
+  },
+  "roznoma": {
+    "subtitle": "Kun rejasi, maqsadlar va kun xulosasi — bir joyda.",
+    "tab_day": "Kun",
+    "tab_goals": "Maqsadlar",
+    "tab_plans": "Rejalar",
+    "tab_stats": "Tahlil",
+    "prevDay": "Oldingi kun",
+    "nextDay": "Keyingi kun",
+    "backToToday": "Bugunga qaytiş",
+    "mottoAdd": "Şior qöşiş (ixtiyoriy)…",
+    "mottoPh": "Masalan: Bugungi kuningni yillar ötsa ham esdan çiqmaydigan qilib ötkaz",
+    "todayPlan": "Kun rejasi",
+    "doneOf": "{done} / {total} bajarildi",
+    "noItems": "Hali reja yöq — pastdan bitta iş qöşing.",
+    "add": "Qöşiş",
+    "allDone": "Barçasi bajarildi! Ajoyib kun 🎉",
+    "notePh": "Qançasi? (ixtiyoriy, masalan 35% yoki 1 ta)",
+    "repeating": "Takrorlanadi",
+    "quickPh": "Bugun uçun bitta iş qöşing…",
+    "dragHint": "Tartibni özgartiriş: işni bosib turing va suring.",
+    "notifAsk": "Vaqti kelganda ogohlantiriş uçun bildiriş(notification)larni yoqing",
+    "notifOn": "Bildirişlar yoqildi.",
+    "dayPage": "Kun qanday ötdi",
+    "dayPageHint": "Ixtiyoriy. Saqlasangiz, «Kitob yoziş»dagi «Röznoma {year}» kitobiga ham yoziladi.",
+    "titlePh": "Kun sarlavhasi (masalan: Xoji ötiriş va yangi sovğalar)",
+    "storyPh": "Kunlik hikoya: nimalar böldi, nimalarni his qildingiz…",
+    "highlights": "Esda qoladiganlar",
+    "highlightPh": "Bitta voqea yoki fikr qöşing…",
+    "conclusion": "Kun xulosasi",
+    "lessonPh": "Bugungi xulosa: ertaga nimani boşqaça qilaman?",
+    "productive": "Unumli",
+    "hoursShort": "soat",
+    "better": "Keçagidan yaxşimi?",
+    "yes": "Ha",
+    "no": "Yöq",
+    "saveDay": "Kunni saqlaş",
+    "logSaved": "Saqlandi va yil kundaligiga yozildi.",
+    "openBook": "Kitobni oçiş",
+    "newItem": "Yangi iş",
+    "editItem": "Işni tahrirlaş",
+    "itemTitle": "Nima qilinadi",
+    "itemTitlePh": "Masalan: Kitob öqiş",
+    "amount": "Qançaligi",
+    "amountPh": "20 bet, 10 daqiqa, 5 ta…",
+    "time": "Vaqti",
+    "repeat": "Qançalik tez-tez",
+    "repeat_daily": "Har kuni",
+    "repeat_weekly": "Hafta kunlari",
+    "repeat_once": "Faqat bir kun",
+    "onDay": "Qaysi kun",
+    "weekdaysShort": "Du,Se,Ço,Pa,Ju,Şa,Ya",
+    "alarm": "Vaqtida budilnikdek ogohlantirsin",
+    "save": "Saqlaş",
+    "saved": "Saqlandi",
+    "delete": "Öçiriş",
+    "deleteConfirm": "Bu iş butunlay öçirilsinmi? (öçmişdagi belgilar ham)",
+    "newGoal": "Yangi maqsad",
+    "goalTitlePh": "Maqsad: masalan, IELTS 7.0 sertifikatini oliş",
+    "goalWhyPh": "Nega muhim? (ixtiyoriy)",
+    "goalStepsPh": "Nimalardan iborat? Har qatorda bitta qadam:\nDarajani aniqlaş\nHar kuni 1 soat tayyorlaniş\nImtihonga yoziliş",
+    "ideas": "Tayyor ğoyalar",
+    "goalCreated": "Maqsad qöşildi",
+    "stepsDone": "{done} / {total} qadam",
+    "stepPh": "Yana bir qadam qöşing…",
+    "ideaBooksTitle": "Yiliga 24 ta kitob öqiş",
+    "noRoutines": "Hali doimiy reja yöq",
+    "noRoutinesBody": "Yuqoridagi ğoyalardan birini bosing yoki özingiz qöşing.",
+    "statAverage": "Örtaça bajariliş",
+    "statStreak": "Ketma-ket yaxşi kunlar",
+    "statProductive": "Unumli vaqt (30 kun)",
+    "statBetter": "Keçagidan yaxşi / yomon",
+    "statDaily": "Har kuni qançasi bajarildi (30 kun)",
+    "statMissed": "Eng köp qoldirilganlar",
+    "daysN": "{n} kun",
+    "alarmTitle": "Vaqti keldi ⏰",
+    "markDone": "Bajarildi",
+    "eodTitle": "Kun tugayapti: {n} ta iş qoldi",
+    "open": "Oçiş",
+    "goalIdeas": [
+      {
+        "title": "Sertifikat oliş",
+        "steps": [
+          "Darajamni aniqlaş (sinov testi)",
+          "Kurs yoki kitob tanlaş",
+          "Har kuni 1 soat tayyorlaniş",
+          "Imtihonga yoziliş",
+          "Imtihonni topşiriş"
+        ]
+      },
+      {
+        "title": "Kitobimni yozib tugataş",
+        "steps": [
+          "Reja va boblarni tuziş",
+          "Har kuni 500 söz yoziş",
+          "Tahrir qiliş",
+          "Nusxa çiqariş"
+        ]
+      },
+      {
+        "title": "Yangi til örganiş",
+        "steps": ["A1 darajasi", "A2 darajasi", "B1 darajasi", "Ona tilida gaplaşuvçi bilan suhbat"]
+      }
+    ],
+    "routineIdeas": [
+      {
+        "title": "Kitob öqiş",
+        "amount": "20 bet",
+        "time": "21:00"
+      },
+      {
+        "title": "Takrorlaş (savollar)",
+        "amount": "10 ta",
+        "time": "20:00"
+      },
+      {
+        "title": "Sport",
+        "amount": "20 daqiqa",
+        "time": "07:00"
+      },
+      {
+        "title": "Til örganiş",
+        "amount": "30 daqiqa",
+        "time": "18:00"
+      },
+      {
+        "title": "Kunlik tahlil va rejalar",
+        "amount": "10 daqiqa",
+        "time": "22:00"
+      }
+    ],
+    "numberGoal": "Son bilan maqsad (kitob, bet)"
   }
 }

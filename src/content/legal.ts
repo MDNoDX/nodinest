@@ -38,6 +38,7 @@ const uzPrivacy: LegalDoc = {
         "Premium uçun tölov sörovida yozgan summa va izohingiz faqat admin tomonidan tekşiriladi; karta ma’lumotlaringiz saytga kiritilmaydi.",
         "Katalog (kitob, muallif, naşriyot yozuvlari) umumiy: siz qöşgan katalog yozuvini boşqalar ham köradi. Şaxsiy fikrlaringiz katalogga ötmaydi.",
         "AI imkoniyatlaridan foydalanganingizda yozgan savolingiz, tanlagan matn yoki yuborgan faylingiz javob tayyorlaş uçun AI xizmatiga (Google Gemini) yuboriladi. Juda şaxsiy ma’lumotni AI ga yubormang.",
+        "«Suhbat» rejimida AI suhbatdoşingiz sizni yaxşiroq tuşuniş uçun qisqa eslatma saqlaydi (qiziqişlaringiz, darajangiz, maqsadlaringiz). U faqat sizga javob berişda işlatiladi va boşqa foydalanuvçilarga körsatilmaydi; sayt administratori xizmat sifatini yaxşilaş uçun körişi mumkin. Hisobingizni öçirsangiz, u ham öçadi.",
       ],
     },
     {
@@ -83,6 +84,7 @@ const enPrivacy: LegalDoc = {
         "For Premium, the amount and note in your payment request are seen only by the admin; your card details are never entered on the site.",
         "The catalog (books, authors, publishers) is shared: catalog entries you add are visible to others. Your personal thoughts never go into the catalog.",
         "When you use AI features, your question, the selected text or the file you send goes to an AI service (Google Gemini) to prepare the answer. Do not send very personal data to the AI.",
+        "In “Talk” mode the AI companion keeps a short note to understand you better (your interests, level, goals). It is used only to answer you and is never shown to other users; the site administrator may see it to improve the service. Deleting your account deletes it too.",
       ],
     },
     {
@@ -186,6 +188,7 @@ const ruPrivacy: LegalDoc = {
         "Для Premium сумму и комментарий в заявке на оплату видит только администратор; данные карты на сайте не вводятся.",
         "Каталог (книги, авторы, издательства) общий: добавленные вами записи каталога видят и другие. Ваши личные мысли в каталог не попадают.",
         "Когда вы пользуетесь ИИ, ваш вопрос, выделенный текст или файл отправляются в ИИ-сервис (Google Gemini) для подготовки ответа. Не отправляйте ИИ очень личные данные.",
+        "В режиме «Беседа» ИИ-собеседник хранит короткую заметку, чтобы лучше вас понимать (интересы, уровень, цели). Она используется только для ответов вам и не показывается другим пользователям; администратор сайта может видеть её для улучшения сервиса. При удалении аккаунта она удаляется.",
       ],
     },
     {

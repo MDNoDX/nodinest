@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { markdownToNodes } from "@/lib/writeup-doc";
 import { Interview } from "./interview";
 import { MdView, SmallBtn } from "./shared";
+import { errorToast } from "@/lib/error-toast";
 // ── Write ──────────────────────────────────────────────────────────────────
 
 type WriteAction =
@@ -138,7 +139,7 @@ export function WriteTab({
       (text) => setRes({ action, label, text, used: { notes: 0, transcript: null }, sel }),
     );
     setBusy(null);
-    if (!r.ok) return toast.error(te(r.code as "INTERNAL"));
+    if (!r.ok) return errorToast(te, r);
     setRes({ action, label, text: r.text, used: r.meta.used, sel });
   };
 
@@ -204,7 +205,7 @@ export function WriteTab({
               () => {},
             );
             if (!r.ok) {
-              toast.error(te(r.code as "INTERNAL"));
+              errorToast(te, r);
               return null;
             }
             return r.text;

@@ -85,7 +85,17 @@ export const profileInput = z.object({
    * (e.g. the Google photo), or null to remove it.
    */
   image: z.string().trim().max(2000).nullish(),
+  /** Optional phone (private). undefined = unchanged, "" / null = removed. */
+  phone: z.string().trim().max(32).nullish(),
 });
+
+/** "+998 90 123-45-67" → "+998901234567"; null when empty; throws when not a phone. */
+export function normalizePhone(raw: string | null | undefined): string | null {
+  const s = (raw ?? "").replace(/[\s().-]/g, "");
+  if (!s) return null;
+  if (!/^\+?\d{9,15}$/.test(s)) throw new AppError("VALIDATION", "phone");
+  return s.startsWith("+") ? s : s.length === 9 ? `+998${s}` : `+${s}`;
+}
 
 export async function saveProfile(ctx: AppContext, raw: unknown) {
   const a = profileInput.parse(raw);
@@ -117,6 +127,7 @@ export async function saveProfile(ctx: AppContext, raw: unknown) {
         name: [first, last].filter(Boolean).join(" "),
         username,
         ...(keep ? {} : { image: a.image ?? null }),
+        ...(a.phone === undefined ? {} : { phone: normalizePhone(a.phone) }),
         updatedAt: new Date(),
       })
       .where(eq(user.id, ctx.userId)),
