@@ -1,9 +1,10 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { FastForward, Headphones, Loader2, Pause, Play, Rewind, X } from "lucide-react";
+import { Headphones, Loader2, Pause, Play, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAudiobook } from "./engine";
+import { SeekIcon } from "./seek-icon";
 
 /**
  * The book that is playing, in the top bar: it stays there on every page, so
@@ -51,7 +52,7 @@ export function HeaderPlayer({ className }: { className?: string }) {
         title={t("back15")}
         className={btn}
       >
-        <Rewind className="size-3.5 fill-current" />
+        <SeekIcon dir={-1} className="size-5" />
       </button>
       <button
         type="button"
@@ -74,7 +75,7 @@ export function HeaderPlayer({ className }: { className?: string }) {
         title={t("fwd15")}
         className={btn}
       >
-        <FastForward className="size-3.5 fill-current" />
+        <SeekIcon dir={1} className="size-5" />
       </button>
       <button type="button" onClick={close} aria-label={t("closePlayer")} className={btn}>
         <X className="size-3.5" />

@@ -2,7 +2,6 @@
 import {
   ArrowLeft,
   AudioLines,
-  FastForward,
   Gauge,
   Headphones,
   Loader2,
@@ -10,7 +9,6 @@ import {
   MoonStar,
   Pause,
   Play,
-  Rewind,
   SkipBack,
   SkipForward,
   Square,
@@ -33,6 +31,7 @@ import { cn } from "@/lib/cn";
 import type { AudiobookView } from "@/server/audiobook";
 import { errorToast } from "@/lib/error-toast";
 import { useAudiobook } from "./engine";
+import { SeekIcon } from "./seek-icon";
 
 type Res = { id: string; title: string; type: string; cover: string | null; authors: string };
 type Voice = { name: string; female: boolean; d: string; role?: string };
@@ -482,7 +481,7 @@ function Ready({
             title={t("back15")}
             className="ab-btn"
           >
-            <Rewind className="size-6 fill-current" />
+            <SeekIcon dir={-1} className="size-7" />
           </button>
           <span className="ab-ring" style={{ ["--pct" as string]: `${pct}%` }}>
             <button
@@ -507,7 +506,7 @@ function Ready({
             title={t("fwd15")}
             className="ab-btn"
           >
-            <FastForward className="size-6 fill-current" />
+            <SeekIcon dir={1} className="size-7" />
           </button>
           <button
             type="button"
