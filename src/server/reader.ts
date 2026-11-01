@@ -89,7 +89,7 @@ export async function readerPages(ctx: AppContext, resourceId: string, from: num
   const b = Math.min(a + 14, Math.max(a, Math.floor(to)));
   return withUser(db, ctx, (tx) =>
     tx
-      .select({ page: bookPages.page, content: bookPages.content })
+      .select({ page: bookPages.page, content: bookPages.content, blocks: bookPages.formatted })
       .from(bookPages)
       .where(
         and(

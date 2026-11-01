@@ -400,9 +400,11 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
           e.ctrlKey;
         if (!typing && !e.altKey) {
           const key = e.key.toLowerCase();
-          if (e.code === "Space" || key === "k") act = toggle;
-          else if (e.key === "ArrowLeft") act = () => seek(-5);
-          else if (e.key === "ArrowRight") act = () => seek(5);
+          // In the reader Space and the arrows turn the page.
+          const reading = !!document.documentElement.dataset.reader;
+          if (key === "k" || (e.code === "Space" && !reading)) act = toggle;
+          else if (e.key === "ArrowLeft" && !reading) act = () => seek(-5);
+          else if (e.key === "ArrowRight" && !reading) act = () => seek(5);
           else if (key === "j") act = () => seek(-10);
           else if (key === "l") act = () => seek(10);
           else if (e.key === ">" || e.key === "<")

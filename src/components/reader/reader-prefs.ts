@@ -3,27 +3,22 @@ import { useSyncExternalStore } from "react";
 
 /**
  * How the reader likes to read (this device): text size, typeface, line
- * spacing, column width and paper (theme). Kept in localStorage.
+ * spacing and paper (theme). Kept in localStorage.
  */
 export type ReaderPrefs = {
   size: number;
   family: "serif" | "sans";
   leading: 1.5 | 1.75 | 2;
-  width: "narrow" | "normal" | "wide";
   paper: "auto" | "white" | "sepia" | "night";
-  /** Long scroll, or two facing pages that turn (wide screens). */
-  layout: "scroll" | "book";
 };
 
 const KEY = "nn:reader-prefs";
 const EVENT = "nn:reader-prefs";
 export const DEFAULT_PREFS: ReaderPrefs = {
-  size: 19,
+  size: 18,
   family: "serif",
   leading: 1.75,
-  width: "normal",
   paper: "auto",
-  layout: "scroll",
 };
 
 let cache: { raw: string | null; value: ReaderPrefs } | null = null;
@@ -42,14 +37,12 @@ function read(): ReaderPrefs {
     // The older "text size only" setting carries over.
     const old = Number(localStorage.getItem("nn:reader-font"));
     value = {
-      size: p.size && p.size >= 14 && p.size <= 28 ? p.size : old >= 15 && old <= 26 ? old : 19,
+      size: p.size && p.size >= 14 && p.size <= 28 ? p.size : old >= 15 && old <= 26 ? old : 18,
       family: p.family === "sans" ? "sans" : "serif",
       leading: p.leading === 1.5 || p.leading === 2 ? p.leading : 1.75,
-      width: p.width === "narrow" || p.width === "wide" ? p.width : "normal",
       paper: (["white", "sepia", "night"] as const).includes(p.paper as "white")
         ? (p.paper as ReaderPrefs["paper"])
         : "auto",
-      layout: p.layout === "book" ? "book" : "scroll",
     };
   } catch {
     /* broken value: defaults */
@@ -149,9 +142,3 @@ export function paperVars(p: (typeof PAPER)[keyof typeof PAPER]) {
     color: p.fg,
   } as React.CSSProperties;
 }
-
-export const WIDTH: Record<ReaderPrefs["width"], string> = {
-  narrow: "34rem",
-  normal: "40rem",
-  wide: "48rem",
-};

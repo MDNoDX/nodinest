@@ -43,13 +43,7 @@ export default async function ReadPage({
   }
   const asked = Number(sp(q.page));
   const want = asked >= 1 ? asked : (data.lastPage ?? data.structure?.startPage ?? 1);
-  // The first page with text at or after the wanted one.
-  // Pages to open at: those with text, and picture-only pages (maps, plates) of the PDF.
-  const pictures = data.fileId
-    ? (data.structure?.images ?? []).filter((i) => i.textless).map((i) => i.page)
-    : [];
-  const open = [...new Set([...data.pages, ...pictures])].sort((a, b) => a - b);
-  const start = open.find((p) => p >= want) ?? open.at(-1) ?? 1;
+  const start = Math.max(1, Math.min(want, Math.max(data.totalPages, 1)));
   return (
     <ReaderApp
       resource={{ id, title: r.title, authors: r.authors ?? "" }}

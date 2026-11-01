@@ -783,44 +783,114 @@ a:focus-visible .cover-3d {
 html[data-reader-full] [data-shell] {
   display: none;
 }
-html[data-reader-full] .reader-bar {
-  top: 0;
+html[data-reader-full] main > div {
+  height: 100dvh;
 }
-html[data-reader-full] .book-frame {
-  height: calc(100dvh - 5.5rem);
+/* The book: one sheet per PDF page, facing pages on wide screens. */
+.book-stage {
+  perspective: 2400px;
 }
-/* Two facing pages. */
-.book-frame {
+.book-sheet {
   position: relative;
-  height: calc(100dvh - 9.5rem);
-  max-width: 76rem;
-  margin-inline: auto;
-  overflow: hidden;
-  perspective: 2200px;
-  background: linear-gradient(
-    90deg,
-    transparent calc(50% - 44px),
-    rgb(0 0 0 / 0.1) calc(50% - 2px),
-    rgb(0 0 0 / 0.2) 50%,
-    rgb(0 0 0 / 0.1) calc(50% + 2px),
-    transparent calc(50% + 44px)
-  );
-}
-.book-flow {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   height: 100%;
-  column-fill: auto;
+  padding: 1.1rem clamp(1.1rem, 4vw, 3.2rem) 0.8rem;
+  background: var(--surface);
+  overflow: hidden;
 }
-.book-flow p,
-.book-flow h2 {
-  break-inside: auto;
-  orphans: 2;
-  widows: 2;
+.book-sheet[data-sheet="left"] {
+  border-radius: 10px 0 0 10px;
+  box-shadow:
+    inset -34px 0 34px -30px rgb(0 0 0 / 0.28),
+    -2px 0 0 var(--surface-2),
+    -4px 0 0 var(--border);
 }
-.book-flow figure,
-.book-flow canvas,
-.book-flow img {
-  break-inside: avoid;
-  max-height: calc(100dvh - 12rem);
+.book-sheet[data-sheet="right"] {
+  border-radius: 0 10px 10px 0;
+  box-shadow:
+    inset 34px 0 34px -30px rgb(0 0 0 / 0.28),
+    2px 0 0 var(--surface-2),
+    4px 0 0 var(--border);
+}
+.book-sheet[data-sheet="one"] {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.book-head {
+  flex: none;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  height: 1.3rem;
+  font:
+    500 0.68rem/1.3rem system-ui,
+    sans-serif;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.book-body {
+  flex: 1;
+  min-height: 0;
+  margin: 0.5rem 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.book-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 1.3rem;
+  font:
+    500 0.72rem/1 system-ui,
+    sans-serif;
+  color: var(--muted-foreground);
+}
+.book-flip {
+  opacity: 0.6;
+}
+.book-flip:hover {
+  opacity: 1;
+}
+.book-p {
+  margin-bottom: 0.65em;
+  text-indent: 1.4em;
+  text-align: justify;
+  hyphens: auto;
+}
+.book-d {
+  margin-bottom: 0.45em;
+  padding-left: 1.4em;
+}
+.book-q {
+  margin: 0.8em 1.4em;
+  font-style: italic;
+  text-align: center;
+}
+.book-c {
+  margin-bottom: 0.5em;
+  text-align: center;
+}
+.book-h {
+  margin: 0.9em 0 0.7em;
+  font-size: 1.22em;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.book-pdf {
+  height: 100%;
+}
+.book-pdf canvas {
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  border: 0;
+  box-shadow: none;
 }
 .book-edge {
   position: absolute;
@@ -837,52 +907,48 @@ html[data-reader-full] .book-frame {
   pointer-events: none;
   transform-style: preserve-3d;
 }
-.book-left,
-.book-right {
+.book-stay-left,
+.book-stay-right,
+.book-leaf {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: calc(50% - 36px);
+  width: 50%;
 }
-.book-left {
+.book-stay-left {
   left: 0;
 }
-.book-right {
+.book-stay-right {
   right: 0;
 }
-.book-face {
-  overflow: hidden;
-  background: var(--background);
-}
-.book-sheet {
+.book-leaf {
   transform-style: preserve-3d;
-  animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.45, 0.05, 0.3, 1);
-  animation-fill-mode: both;
+  animation: 0.62s cubic-bezier(0.45, 0.05, 0.3, 1) both;
 }
-.book-sheet .book-face {
+.book-leaf > .book-sheet {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  box-shadow: inset 0 0 40px rgb(0 0 0 / 0.1);
 }
-.book-sheet .book-reverse {
+.book-leaf > .book-leaf-back {
   transform: rotateY(180deg);
 }
-.book-forward {
-  transform-origin: calc(-36px) center;
-  animation-name: book-forward;
+.book-leaf-next {
+  right: 0;
+  transform-origin: left center;
+  animation-name: book-next;
 }
-.book-back {
-  transform-origin: calc(100% + 36px) center;
-  animation-name: book-back;
+.book-leaf-prev {
+  left: 0;
+  transform-origin: right center;
+  animation-name: book-prev;
 }
-@keyframes book-forward {
+@keyframes book-next {
   to {
     transform: rotateY(-180deg);
   }
 }
-@keyframes book-back {
+@keyframes book-prev {
   to {
     transform: rotateY(180deg);
   }

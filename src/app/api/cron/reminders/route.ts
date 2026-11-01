@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { db } from "@/db";
+import { formatWaiting } from "@/server/book-format";
 import { hitRateLimit } from "@/server/rate-limit";
 import { sendReminders } from "@/server/roznoma";
 
@@ -22,5 +23,7 @@ export async function GET(req: NextRequest) {
   if (!trusted && !(await hitRateLimit(db, "cron-reminders", 1, 110)).allowed)
     return new Response("later", { status: 429 });
   const sent = await sendReminders();
+  // Books not laid out for reading go on a little with each run.
+  await formatWaiting().catch(() => {});
   return new Response(`ok ${sent}`);
 }

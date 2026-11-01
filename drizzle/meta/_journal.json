@@ -295,6 +295,13 @@
       "when": 1793524164783,
       "tag": "0041_types_journal",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793524706919,
+      "tag": "0042_book_layout",
+      "breakpoints": true
     }
   ]
 }

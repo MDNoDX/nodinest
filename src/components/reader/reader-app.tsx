@@ -1,47 +1,49 @@
 "use client";
-import {
-  ArrowLeft,
-  ChevronUp,
-  ExternalLink,
-  FileText,
-  Headphones,
-  ListTree,
-  Loader2,
-  Maximize,
-  Minimize,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Headphones, ListTree, Maximize, Minimize, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { saveNoteAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
+import { blocksFromParas, type BookBlock } from "@/lib/book-blocks";
 import { cn } from "@/lib/cn";
 import { marked, type Mark } from "@/lib/reader-marks";
-import { reflow, type Para } from "@/lib/reflow";
+import { reflow } from "@/lib/reflow";
 import type { ReaderData } from "@/server/reader";
 import { offlinePages } from "./offline";
 import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
-import { PAPER, paperVars, useReaderPrefs, WIDTH } from "./reader-prefs";
-import { useBookPages } from "./use-book-pages";
+import { PAPER, paperVars, useReaderPrefs } from "./reader-prefs";
 import { MarkMenu, NoteDialog, SelectionMenu, type Sel } from "./reader-selection";
 import { ReaderSettings } from "./reader-settings";
 import { ReaderSide, type SideTab } from "./reader-side";
 
 type Res = { id: string; title: string; authors: string };
-type Page = { page: number; paras: Para[]; picture?: boolean };
+type Page = { page: number; blocks: BookBlock[]; laidOut: boolean };
 
-const BATCH = 8;
+const AHEAD = 6;
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
+const useWide = () =>
+  useSyncExternalStore(
+    (cb) => {
+      const m = matchMedia("(min-width: 1024px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => matchMedia("(min-width: 1024px)").matches,
+    () => true,
+  );
+
 /**
- * Kitobni o'qish: the book's text reflowed for reading, with its own
- * contents, pictures drawn from the PDF, the user's quotes and notes, search,
- * offline copy and an AI companion. Display settings live in reader-prefs.
+ * Kitobni o'qish: the book page by page, numbered as in its PDF. Two facing
+ * pages that turn on wide screens, one page and a swipe on phones. Each page
+ * shows the laid-out text (server/book-format.ts) or, for pictures and scanned
+ * books, the PDF page itself. Quotes, notes, contents, search and the AI work
+ * on it as before.
  */
 export function ReaderApp({
   resource,
@@ -58,9 +60,10 @@ export function ReaderApp({
   const t = useTranslations("reader");
   const router = useRouter();
   const prefs = useReaderPrefs();
-  const [pages, setPages] = useState<Page[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [current, setCurrent] = useState(start);
+  const wide = useWide();
+  const total = Math.max(data.totalPages, data.pages.at(-1) ?? 1, 1);
+  const [pages, setPages] = useState<Record<number, Page>>({});
+  const [at, setAt] = useState(start);
   const [marks, setMarks] = useState<Mark[]>(data.marks);
   const [sel, setSel] = useState<Sel | null>(null);
   const [noteFor, setNoteFor] = useState<Sel | null>(null);
@@ -70,34 +73,27 @@ export function ReaderApp({
   const [term, setTerm] = useState("");
   const [ai, setAi] = useState(false);
   const [ask, setAsk] = useState<ReaderAsk | null>(null);
-  const [original, setOriginal] = useState<Set<number>>(new Set());
-  const main = useRef<HTMLDivElement>(null);
-  const bottom = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
-  const wide = useSyncExternalStore(
-    (cb) => {
-      const m = matchMedia("(min-width: 1024px)");
-      m.addEventListener("change", cb);
-      return () => m.removeEventListener("change", cb);
-    },
-    () => matchMedia("(min-width: 1024px)").matches,
-    () => false,
-  );
-  const bookMode = prefs.layout === "book" && wide && !ai;
+  const [original, setOriginal] = useState<Set<number>>(new Set());
+  const stage = useRef<HTMLDivElement>(null);
+  const turning = useRef(false);
+  const swipe = useRef<number | null>(null);
 
-  const textPages = data.pages;
-  // Picture-only pages (maps, plates, the cover) are drawn from the PDF itself.
-  const pictures = useMemo(
-    () =>
-      data.fileId
-        ? (data.structure?.images ?? []).filter((i) => i.textless).map((i) => i.page)
-        : [],
-    [data.fileId, data.structure],
-  );
-  const firstPage = Math.min(textPages[0] ?? 1, ...pictures);
-  const last = Math.max(textPages.at(-1) ?? 1, ...pictures);
   const chapters = useMemo(() => data.structure?.chapters ?? [], [data.structure]);
   const noise = useMemo(() => new Set(data.structure?.noise ?? []), [data.structure]);
+  const pictures = useMemo(
+    () =>
+      new Set(
+        data.fileId
+          ? (data.structure?.images ?? []).filter((i) => i.textless).map((i) => i.page)
+          : [],
+      ),
+    [data.fileId, data.structure],
+  );
+  // Facing pages: 1-2, 3-4…
+  const left = wide ? at - ((at - 1) % 2) : at;
+  const shown = wide ? [left, left + 1].filter((p) => p <= total) : [left];
+  const step = wide ? 2 : 1;
 
   useEffect(() => {
     if (!preparing) return;
@@ -105,9 +101,9 @@ export function ReaderApp({
     return () => clearInterval(timer);
   }, [preparing, router]);
 
-  const fetchPages = useCallback(
-    async (from: number, to: number): Promise<Page[]> => {
-      let raw: { page: number; content: string }[] = [];
+  const fetchRange = useCallback(
+    async (from: number, to: number) => {
+      let raw: { page: number; content: string; blocks?: BookBlock[] | null }[] = [];
       try {
         const r = await fetch(`/api/book/${resource.id}/pages?from=${from}&to=${to}`);
         if (!r.ok) throw new Error(String(r.status));
@@ -116,136 +112,92 @@ export function ReaderApp({
         // No network: the copy saved on this device (if any).
         raw = await offlinePages(resource.id, from, to);
       }
-      const got: Page[] = raw.map((p) => ({ page: p.page, paras: reflow(p.content, noise) }));
-      for (const pic of pictures)
-        if (pic >= from && pic <= to && !got.some((g) => g.page === pic))
-          got.push({ page: pic, paras: [], picture: true });
-      return got.sort((a, b) => a.page - b.page);
+      setPages((cur) => {
+        const next = { ...cur };
+        for (const p of raw)
+          next[p.page] = {
+            page: p.page,
+            blocks: p.blocks ?? blocksFromParas(reflow(p.content, noise)),
+            laidOut: !!p.blocks,
+          };
+        return next;
+      });
     },
-    [resource.id, noise, pictures],
+    [resource.id, noise],
   );
 
-  /** One more batch at the end (for the turning pages). */
-  const moreAtEnd = useCallback(async () => {
-    const end = pages.at(-1)?.page ?? 0;
-    if (!end || end >= last) return false;
-    const got = await fetchPages(end + 1, end + BATCH);
-    setPages((cur) => [...cur, ...got.filter((g) => !cur.some((c) => c.page === g.page))]);
-    return true;
-  }, [pages, last, fetchPages]);
-
-  const earlierRef = useRef<() => Promise<boolean>>(async () => false);
-  const book = useBookPages(bookMode, moreAtEnd, () => earlierRef.current());
-  const toSpread = useRef(book.spreadOf);
-  const goSpread = useRef(book.go);
+  // The pages in view and the next few are always at hand.
   useEffect(() => {
-    toSpread.current = book.spreadOf;
-    goSpread.current = book.go;
-  });
-  const bookOn = useRef(bookMode);
+    queueMicrotask(() => void fetchRange(Math.max(1, left - 2), Math.min(total, left + AHEAD)));
+  }, [left, total, fetchRange]);
+
+  // Pages not laid out yet are done around the reader, then shown.
+  const laying = useRef(false);
   useEffect(() => {
-    bookOn.current = bookMode;
-  }, [bookMode]);
+    if (data.scanned || laying.current) return;
+    if (!shown.some((p) => pages[p] && !pages[p].laidOut)) return;
+    laying.current = true;
+    void fetch(`/api/book/${resource.id}/format`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page: left }),
+    })
+      .then((r) => (r.ok ? fetchRange(left, Math.min(total, left + AHEAD)) : undefined))
+      .catch(() => {})
+      .finally(() => {
+        laying.current = false;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left, pages]);
 
-  /** Scrolls to `title` on `page` (or to the page itself). Only the window scrolls. */
-  const scrollTo = useCallback((page: number, title?: string) => {
-    requestAnimationFrame(() => {
-      const root = main.current;
-      if (!root) return;
-      const want = title ? norm(title).toLocaleLowerCase() : "";
-      const target =
-        (want &&
-          [
-            ...root.querySelectorAll<HTMLElement>(
-              `[data-page="${page}"] [data-para], [data-page="${page + 1}"] [data-para]`,
-            ),
-          ].find((el) =>
-            norm(el.textContent ?? "")
-              .toLocaleLowerCase()
-              .startsWith(want.slice(0, 30)),
-          )) ||
-        root.querySelector<HTMLElement>(`[data-page="${page}"]`);
-      if (target && bookOn.current) goSpread.current(toSpread.current(target));
-      else if (target)
-        window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 120 });
-    });
-  }, []);
+  const openAt = useCallback(
+    (page: number) => {
+      setDrawer(false);
+      setAt(Math.max(1, Math.min(total, page)));
+    },
+    [total],
+  );
 
-  /** Opens the book at `page` (at the chapter title there, if given). */
-  const openAt = async (page: number, title?: string) => {
-    setDrawer(false);
-    setLoading(true);
-    const got = await fetchPages(page, page + BATCH - 1);
-    setPages(got);
-    setLoading(false);
-    setCurrent(page);
-    scrollTo(page, title);
-  };
+  /** The turn: copies of the old and new pages swing over the spine. */
+  const turn = useCallback(
+    (dir: 1 | -1) => {
+      const next = left + dir * step;
+      if (next < 1 || next > total || turning.current) return;
+      setSel(null);
+      const box = stage.current;
+      const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!box || !wide || still) return setAt(next);
+      const copy = (side: string) =>
+        box.querySelector(`[data-sheet=${side}]`)?.cloneNode(true) as HTMLElement | undefined;
+      const oldL = copy("left");
+      const oldR = copy("right");
+      flushSync(() => setAt(next));
+      const newL = copy("left");
+      const newR = copy("right");
+      if (!oldL || !oldR || !newL || !newR) return;
+      turning.current = true;
+      const layer = document.createElement("div");
+      layer.className = "book-turn";
+      layer.setAttribute("aria-hidden", "true");
+      const sheet = document.createElement("div");
+      sheet.className = `book-leaf ${dir === 1 ? "book-leaf-next" : "book-leaf-prev"}`;
+      const front = dir === 1 ? oldR : oldL;
+      const back = dir === 1 ? newL : newR;
+      const stay = dir === 1 ? oldL : oldR;
+      stay.classList.add(dir === 1 ? "book-stay-left" : "book-stay-right");
+      back.classList.add("book-leaf-back");
+      sheet.append(front, back);
+      layer.append(stay, sheet);
+      box.appendChild(layer);
+      window.setTimeout(() => {
+        layer.remove();
+        turning.current = false;
+      }, 640);
+    },
+    [left, step, total, wide],
+  );
 
-  // Opens once: saving a quote refreshes the page's data, and the reader must
-  // stay where it is.
-  const opened = useRef(false);
-  useEffect(() => {
-    if (opened.current) return;
-    let alive = true;
-    void fetchPages(start, start + BATCH - 1).then((got) => {
-      if (!alive) return;
-      opened.current = true;
-      setPages(got);
-      setLoading(false);
-      scrollTo(start);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [fetchPages, scrollTo, start]);
-
-  // More pages as the reader scrolls down.
-  useEffect(() => {
-    const el = bottom.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      async ([e]) => {
-        if (!e.isIntersecting || loading) return;
-        const end = pages.at(-1)?.page ?? 0;
-        if (!end || end >= last) return;
-        setLoading(true);
-        const got = await fetchPages(end + 1, end + BATCH);
-        setPages((cur) =>
-          [...cur, ...got.filter((g) => !cur.some((c) => c.page === g.page))].slice(-40),
-        );
-        setLoading(false);
-      },
-      { rootMargin: "1200px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [pages, loading, last, fetchPages]);
-
-  // Turning back past the first loaded page.
-  useEffect(() => {
-    earlierRef.current = async () => {
-      const first = pages[0]?.page ?? 1;
-      if (first <= firstPage) return false;
-      const got = await fetchPages(Math.max(firstPage, first - BATCH), first - 1);
-      setPages((cur) => [...got, ...cur]);
-      await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 60)));
-      const el = main.current?.querySelector<HTMLElement>(`[data-page="${first}"]`);
-      if (el) goSpread.current(toSpread.current(el));
-      return true;
-    };
-  }, [pages, firstPage, fetchPages]);
-
-  // Full screen: the app's frame goes away and only the book stays.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (full) root.dataset.readerFull = "1";
-    else delete root.dataset.readerFull;
-    return () => {
-      delete root.dataset.readerFull;
-    };
-  }, [full]);
-  // Works as a calm mode even where the browser refuses real full screen (iPhone).
+  // Arrows, space and the page keys; F for full screen.
   const realFull = useRef(false);
   const toggleFull = useCallback(() => {
     setFull((on) => {
@@ -255,64 +207,57 @@ export function ReaderApp({
     });
   }, []);
   useEffect(() => {
-    const onChange = () => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as Element;
+      if (el.closest?.("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey || e.altKey)
+        return;
+      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        turn(1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        turn(-1);
+      } else if (e.key.toLowerCase() === "f") toggleFull();
+    };
+    const onFull = () => {
       if (document.fullscreenElement) realFull.current = true;
       else if (realFull.current) {
         realFull.current = false;
         setFull(false);
       }
     };
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as Element;
-      if (t.closest?.("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey || e.altKey)
-        return;
-      if (e.key.toLowerCase() === "f") toggleFull();
-    };
-    document.addEventListener("fullscreenchange", onChange);
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    document.addEventListener("fullscreenchange", onFull);
     return () => {
-      document.removeEventListener("fullscreenchange", onChange);
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("fullscreenchange", onFull);
     };
-  }, [toggleFull]);
+  }, [toggleFull, turn]);
 
-  const loadEarlier = async () => {
-    const first = pages[0]?.page ?? 1;
-    if (first <= 1) return;
-    const got = await fetchPages(Math.max(1, first - BATCH), first - 1);
-    const root = document.scrollingElement;
-    const before = root?.scrollHeight ?? 0;
-    setPages((cur) => [...got, ...cur].slice(0, 40));
-    requestAnimationFrame(() => {
-      if (root) root.scrollTop += root.scrollHeight - before;
-    });
-  };
-
-  // Which page is on screen → progress (saved now and then).
+  // Full screen: the app's frame goes away and only the book stays.
   useEffect(() => {
-    const root = main.current;
-    if (!root) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries)
-          if (e.isIntersecting) setCurrent(Number((e.target as HTMLElement).dataset.page));
-      },
-      { rootMargin: "-40% 0px -55% 0px" },
-    );
-    root.querySelectorAll("[data-page]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [pages]);
+    const root = document.documentElement;
+    root.dataset.reader = "1";
+    if (full) root.dataset.readerFull = "1";
+    else delete root.dataset.readerFull;
+    return () => {
+      delete root.dataset.reader;
+      delete root.dataset.readerFull;
+    };
+  }, [full]);
+
+  // The page reached is the reading progress (saved now and then).
   useEffect(() => {
     const timer = setTimeout(() => {
       void fetch(`/api/book/${resource.id}/progress`, {
         method: "POST",
         keepalive: true,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ page: current, total: data.totalPages || last }),
+        body: JSON.stringify({ page: left, total }),
       }).catch(() => {});
     }, 4000);
     return () => clearTimeout(timer);
-  }, [current, resource.id, data.totalPages, last]);
+  }, [left, resource.id, total]);
 
   // The selection menu follows the selected text.
   useEffect(() => {
@@ -320,12 +265,12 @@ export function ReaderApp({
       setTimeout(() => {
         const s = window.getSelection();
         const text = s?.toString().trim() ?? "";
-        if (!s || !text || !main.current?.contains(s.anchorNode)) return setSel(null);
+        if (!s || !text || !stage.current?.contains(s.anchorNode)) return setSel(null);
         const r = s.getRangeAt(0).getBoundingClientRect();
         const node = s.anchorNode instanceof Element ? s.anchorNode : s.anchorNode?.parentElement;
         setSel({
           text: norm(text).slice(0, 4000),
-          page: Number(node?.closest<HTMLElement>("[data-page]")?.dataset.page ?? current),
+          page: Number(node?.closest<HTMLElement>("[data-page]")?.dataset.page ?? left),
           context: norm(node?.closest("[data-para]")?.textContent ?? "").slice(0, 4000),
           x: r.left + r.width / 2,
           y: r.top,
@@ -339,12 +284,7 @@ export function ReaderApp({
       document.removeEventListener("keyup", onUp);
       document.removeEventListener("touchend", onUp);
     };
-  }, [current]);
-  useEffect(() => {
-    const hide = () => setSel(null);
-    window.addEventListener("scroll", hide, { passive: true });
-    return () => window.removeEventListener("scroll", hide);
-  }, []);
+  }, [left]);
 
   const save = async (kind: "quote" | "note", s: Sel, thought = "") => {
     const r = await saveNoteAction({
@@ -368,34 +308,14 @@ export function ReaderApp({
     });
   };
 
-  const chapterNow = useMemo(() => {
-    let c: (typeof chapters)[number] | null = null;
-    for (const ch of chapters) if (ch.page <= current) c = ch;
-    return c;
-  }, [chapters, current]);
-
-  if (data.scanned || !textPages.length)
-    return (
-      <section className="card mx-auto flex max-w-xl flex-col items-center gap-3 p-8 text-center">
-        <FileText className="text-primary size-10" />
-        <h1 className="text-xl font-semibold">{resource.title}</h1>
-        <p className="text-muted text-sm">{t("scanned")}</p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {data.fileId && (
-            <Button asChild variant="outline">
-              <a href={`/api/files/${data.fileId}`} target="_blank" rel="noopener">
-                <ExternalLink /> {t("openPdf")}
-              </a>
-            </Button>
-          )}
-          <Button asChild>
-            <Link href={`/library/${resource.id}/audiobook`}>
-              <Headphones /> {t("listen")}
-            </Link>
-          </Button>
-        </div>
-      </section>
-    );
+  const chapterOf = useCallback(
+    (page: number) => {
+      let c: (typeof chapters)[number] | null = null;
+      for (const ch of chapters) if (ch.page <= page) c = ch;
+      return c;
+    },
+    [chapters],
+  );
 
   const side = (
     <ReaderSide
@@ -403,77 +323,37 @@ export function ReaderApp({
       tab={tab}
       setTab={setTab}
       chapters={chapters}
-      current={chapterNow}
+      current={chapterOf(left)}
       preparing={preparing}
       marks={marks}
-      pages={textPages}
-      onOpen={(p, title) => void openAt(p, title)}
+      pages={data.pages}
+      onOpen={(p) => openAt(p)}
       term={term}
       setTerm={setTerm}
     />
   );
-  // Paper: the reading area's own colours (auto = the app's theme).
   const paper = prefs.paper === "auto" ? null : PAPER[prefs.paper];
-  const pageTitle = (p: number) =>
-    chapters
-      .filter((c) => c.page === p)
-      .map((c) => c.title)
-      .join(" · ");
+  const iconBtn = "rounded-full p-2 text-white/80 transition hover:bg-white/15 hover:text-white";
 
   return (
     <div
-      className="-mx-4 -my-6 min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8"
+      className="bg-background text-foreground -mx-4 -my-6 flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden sm:-mx-6 sm:-my-8"
       style={paper ? paperVars(paper) : undefined}
     >
-      {/* Top bar */}
-      <div
-        className={cn(
-          "reader-bar border-border bg-background/90 sticky top-14 z-20 flex items-center gap-1.5 border-b px-3 py-2 backdrop-blur sm:px-5",
-        )}
-      >
+      <div className="reader-bar flex items-center gap-2 px-3 py-2 sm:px-5">
         <Link
           href={`/library/${resource.id}`}
-          className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100"
+          className="hover:bg-surface-2 rounded-md p-1.5 opacity-70 hover:opacity-100"
           aria-label={t("back")}
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <button
-          type="button"
-          onClick={() => setDrawer(true)}
-          className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100 lg:hidden"
-          aria-label={t("contents")}
-        >
-          <ListTree className="size-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{resource.title}</p>
-          <p className="truncate text-xs opacity-60">
-            {chapterNow
-              ? `${chapterNow.title}${chapterNow.subtitle ? ` (${chapterNow.subtitle})` : ""} · `
-              : ""}
-            {t("pageOf", { n: current, total: data.totalPages || last })}
-          </p>
-        </div>
-        <ReaderSettings />
-        <button
-          type="button"
-          onClick={toggleFull}
-          className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100"
-          title={`${t(full ? "exitFull" : "fullScreen")} (F)`}
-          aria-label={t(full ? "exitFull" : "fullScreen")}
-          aria-pressed={full}
-        >
-          {full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-        </button>
-        <Link
-          href={`/library/${resource.id}/audiobook`}
-          className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100"
-          title={t("listen")}
-          aria-label={t("listen")}
-        >
-          <Headphones className="size-4" />
-        </Link>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold">{resource.title}</p>
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/library/${resource.id}/audiobook`}>
+            <Headphones /> {t("listen")}
+          </Link>
+        </Button>
         <Button
           size="sm"
           variant={ai ? "secondary" : "outline"}
@@ -484,216 +364,144 @@ export function ReaderApp({
           <Sparkles /> <span className="hidden sm:inline">{t("askAi")}</span>
         </Button>
       </div>
-      {/* Reading progress through the whole book */}
-      <div className="h-0.5 w-full bg-black/5" aria-hidden>
+
+      <div className="relative min-h-0 flex-1 px-3 pb-20 sm:px-6">
         <div
-          className="bg-primary h-full transition-[width] duration-500"
-          style={{
-            width: `${Math.min(100, (current / Math.max(1, data.totalPages || last)) * 100)}%`,
-          }}
-        />
-      </div>
-      <div className="flex">
-        {/* Side panel: always on wide screens (unless the AI needs the room), a drawer on phones */}
-        <aside
+          ref={stage}
           className={cn(
-            "border-border hidden w-72 shrink-0 border-r",
-            ai ? "2xl:block" : "lg:block",
-          )}
-        >
-          <div className="sticky top-[7.5rem] h-[calc(100dvh-8.5rem)] p-3">{side}</div>
-        </aside>
-        {drawer && (
-          <div
-            className="fixed inset-0 z-40 lg:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("contents")}
-          >
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setDrawer(false)}
-              aria-label={t("close")}
-            />
-            <div className="bg-surface text-foreground absolute inset-y-0 left-0 flex w-80 max-w-[88vw] flex-col p-3 shadow-xl">
-              <div className="mb-2 flex items-center">
-                <p className="text-sm font-semibold">{resource.title}</p>
-                <button
-                  type="button"
-                  onClick={() => setDrawer(false)}
-                  className="text-muted ml-auto p-1"
-                  aria-label={t("close")}
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1">{side}</div>
-            </div>
-          </div>
-        )}
-        <div
-          ref={main}
-          className={cn(
-            "min-w-0 flex-1 px-5 pt-6 sm:px-10",
-            bookMode ? "pb-3" : "pb-32",
+            "book-stage relative mx-auto h-full max-w-[84rem]",
+            wide && "grid grid-cols-2",
+            prefs.family === "serif" ? "font-serif" : "font-sans",
             ai && "lg:mr-[24rem]",
           )}
+          onTouchStart={(e) => {
+            swipe.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (swipe.current == null || window.getSelection()?.toString()) return;
+            const dx = e.changedTouches[0].clientX - swipe.current;
+            swipe.current = null;
+            if (Math.abs(dx) > 60) turn(dx < 0 ? 1 : -1);
+          }}
         >
-          <div
-            ref={bookMode ? book.frame : undefined}
-            className={cn(bookMode && "book-frame")}
-            style={bookMode ? { color: "var(--foreground)" } : undefined}
-          >
-            <article
-              ref={bookMode ? book.flow : undefined}
-              className={cn(
-                !bookMode && "mx-auto",
-                bookMode && "book-flow",
-                prefs.family === "serif" ? "font-serif" : "font-sans",
-              )}
-              style={{
-                fontSize: prefs.size,
-                lineHeight: prefs.leading,
-                ...(bookMode
-                  ? {
-                      columnWidth: (book.width - book.gap) / 2 || undefined,
-                      columnGap: book.gap,
-                      transform: `translateX(${-book.spread * book.step}px)`,
-                    }
-                  : { maxWidth: WIDTH[prefs.width] }),
-              }}
-              lang="und"
-            >
-              {!bookMode && (pages[0]?.page ?? 1) > firstPage && (
-                <div className="mb-6 text-center font-sans">
-                  <Button variant="ghost" size="sm" onClick={() => void loadEarlier()}>
-                    <ChevronUp /> {t("earlier")}
-                  </Button>
-                </div>
-              )}
-              {pages.map((p) => (
-                <section key={p.page} data-page={p.page} className="scroll-mt-32">
-                  <div className="my-6 flex items-center gap-3 font-sans text-xs tabular-nums opacity-50 select-none">
-                    <span className="h-px flex-1 bg-current opacity-30" /> {p.page}
-                    {data.fileId && !p.picture && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOriginal((cur) => {
-                            const n = new Set(cur);
-                            if (n.has(p.page)) n.delete(p.page);
-                            else n.add(p.page);
-                            return n;
-                          })
-                        }
-                        className="rounded px-1 hover:opacity-100"
-                        title={t("originalHint")}
-                      >
-                        {original.has(p.page) ? t("hideOriginal") : t("original")}
-                      </button>
-                    )}
-                    <span className="h-px flex-1 bg-current opacity-30" />
-                  </div>
-                  {data.fileId && (p.picture || original.has(p.page)) && (
-                    <figure className="my-4 font-sans">
-                      <PdfPage
-                        fileId={data.fileId}
-                        page={p.page}
-                        alt={
-                          pageTitle(p.page) ||
-                          t("pageOf", { n: p.page, total: data.totalPages || last })
-                        }
-                      />
-                      {p.picture && pageTitle(p.page) && (
-                        <figcaption className="mt-2 text-center text-sm opacity-60">
-                          {pageTitle(p.page)}
-                        </figcaption>
-                      )}
-                    </figure>
-                  )}
-                  {p.paras.map((para, i) =>
-                    para.heading ? (
-                      <h2
-                        key={i}
-                        data-para
-                        className="mt-8 mb-4 text-center font-sans text-[0.95em] font-semibold tracking-[0.12em] uppercase"
-                      >
-                        {para.text}
-                      </h2>
-                    ) : (
-                      <p key={i} data-para className="mb-[0.9em] indent-[1.5em]">
-                        {marked(para.text, marks, term).map((piece, k) =>
-                          typeof piece === "string" ? (
-                            piece
-                          ) : "hit" in piece ? (
-                            <mark
-                              key={k}
-                              className="rounded-sm bg-[var(--c-amber)]/35 text-inherit"
-                            >
-                              {piece.t}
-                            </mark>
-                          ) : (
-                            <mark
-                              key={k}
-                              onClick={(e) => {
-                                if (window.getSelection()?.toString()) return;
-                                setMarkMenu({ m: piece.m, x: e.clientX, y: e.clientY });
-                              }}
-                              className={cn(
-                                "cursor-pointer rounded-sm px-0.5 text-inherit",
-                                piece.m.kind === "quote"
-                                  ? "bg-primary-soft border-primary/50 border-b-2"
-                                  : "taqriz-note-mark",
-                              )}
-                            >
-                              {piece.t}
-                            </mark>
-                          ),
-                        )}
-                      </p>
-                    ),
-                  )}
-                </section>
-              ))}
-              <div ref={bottom} className="py-10 text-center font-sans">
-                {loading ? (
-                  <Loader2 className="mx-auto size-5 animate-spin opacity-50" />
-                ) : (pages.at(-1)?.page ?? 0) >= last ? (
-                  <p className="text-sm opacity-60">{t("theEnd")}</p>
-                ) : null}
-              </div>
-            </article>
-            {bookMode && (
-              <>
-                <button
-                  type="button"
-                  aria-label={t("prevPage")}
-                  onClick={() => void book.turn(-1)}
-                  className="book-edge left-0"
-                />
-                <button
-                  type="button"
-                  aria-label={t("nextPage")}
-                  onClick={() => void book.turn(1)}
-                  className="book-edge right-0"
-                />
-              </>
-            )}
-          </div>
-        </div>
-        {ai && (
-          <aside className="border-border bg-surface text-foreground fixed inset-x-0 top-14 bottom-0 z-30 border-l shadow-xl sm:left-auto sm:w-[24rem] lg:shadow-none">
-            <ReaderAi
-              resourceId={resource.id}
-              page={current}
-              ask={ask}
-              onClose={() => setAi(false)}
+          {shown.map((p, i) => (
+            <Sheet
+              key={p}
+              side={wide ? (i === 0 ? "left" : "right") : "one"}
+              n={p}
+              page={pages[p]}
+              head={wide && i === 0 ? resource.title : (chapterOf(p)?.title ?? "")}
+              picture={
+                !!data.fileId &&
+                (data.scanned ||
+                  pictures.has(p) ||
+                  original.has(p) ||
+                  pages[p]?.blocks.length === 0)
+              }
+              fileId={data.fileId}
+              canFlip={!!data.fileId && !pictures.has(p) && !data.scanned}
+              flipped={original.has(p)}
+              onFlip={() =>
+                setOriginal((cur) => {
+                  const n = new Set(cur);
+                  if (n.has(p)) n.delete(p);
+                  else n.add(p);
+                  return n;
+                })
+              }
+              size={prefs.size}
+              leading={prefs.leading}
+              marks={marks}
+              term={term}
+              onMark={(m, x, y) => setMarkMenu({ m, x, y })}
             />
-          </aside>
-        )}
+          ))}
+          {wide && shown.length === 1 && <div data-sheet="right" className="book-sheet" />}
+          <button
+            type="button"
+            aria-label={t("prevPage")}
+            onClick={() => turn(-1)}
+            className="book-edge left-0"
+          />
+          <button
+            type="button"
+            aria-label={t("nextPage")}
+            onClick={() => turn(1)}
+            className="book-edge right-0"
+          />
+        </div>
+
+        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-2">
+          <span className="rounded-full bg-black/80 px-4 py-2.5 text-sm font-medium text-white tabular-nums shadow-lg">
+            {shown.length > 1 ? `${shown[0]}-${shown[1]}` : shown[0]} / {total}
+          </span>
+          <div className="flex items-center gap-0.5 rounded-full bg-black/80 px-1.5 py-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => setDrawer(true)}
+              className={iconBtn}
+              aria-label={t("contents")}
+              title={t("contents")}
+            >
+              <ListTree className="size-[18px]" />
+            </button>
+            <button
+              type="button"
+              onClick={toggleFull}
+              className={iconBtn}
+              aria-label={t(full ? "exitFull" : "fullScreen")}
+              title={t(full ? "exitFull" : "fullScreen")}
+              aria-pressed={full}
+            >
+              {full ? <Minimize className="size-[18px]" /> : <Maximize className="size-[18px]" />}
+            </button>
+            <ReaderSettings className={iconBtn} />
+          </div>
+          <Link
+            href={`/library/${resource.id}`}
+            className="grid size-10 place-items-center rounded-full bg-black/80 text-white/80 shadow-lg transition hover:text-white"
+            aria-label={t("close")}
+            title={t("close")}
+          >
+            <X className="size-[18px]" />
+          </Link>
+        </div>
       </div>
 
+      {drawer && (
+        <div
+          className="fixed inset-0 z-40"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("contents")}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setDrawer(false)}
+            aria-label={t("close")}
+          />
+          <div className="bg-surface text-foreground absolute inset-y-0 left-0 flex w-80 max-w-[88vw] flex-col p-3 shadow-xl">
+            <div className="mb-2 flex items-center">
+              <p className="truncate text-sm font-semibold">{resource.title}</p>
+              <button
+                type="button"
+                onClick={() => setDrawer(false)}
+                className="text-muted ml-auto p-1"
+                aria-label={t("close")}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">{side}</div>
+          </div>
+        </div>
+      )}
+      {ai && (
+        <aside className="border-border bg-surface text-foreground fixed inset-x-0 top-14 bottom-0 z-30 border-l shadow-xl sm:left-auto sm:w-[24rem] lg:shadow-none">
+          <ReaderAi resourceId={resource.id} page={left} ask={ask} onClose={() => setAi(false)} />
+        </aside>
+      )}
       {sel && !noteFor && (
         <SelectionMenu
           sel={sel}
@@ -716,5 +524,118 @@ export function ReaderApp({
       )}
       {markMenu && <MarkMenu {...markMenu} onClose={() => setMarkMenu(null)} />}
     </div>
+  );
+}
+
+/** One page of the book, numbered as in the PDF; the text shrinks a little to fit it. */
+function Sheet({
+  side,
+  n,
+  page,
+  head,
+  picture,
+  fileId,
+  canFlip,
+  flipped,
+  onFlip,
+  size,
+  leading,
+  marks,
+  term,
+  onMark,
+}: {
+  side: "left" | "right" | "one";
+  n: number;
+  page?: Page;
+  head: string;
+  picture: boolean;
+  fileId: string | null;
+  canFlip: boolean;
+  flipped: boolean;
+  onFlip: () => void;
+  size: number;
+  leading: number;
+  marks: Mark[];
+  term: string;
+  onMark: (m: Mark, x: number, y: number) => void;
+}) {
+  const t = useTranslations("reader");
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = body.current;
+    if (!el) return;
+    const fit = () => {
+      for (let k = 1; k >= 0.72; k -= 0.03) {
+        el.style.fontSize = `${size * k}px`;
+        if (el.scrollHeight <= el.clientHeight + 1) break;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [size, leading, page, picture]);
+
+  const text = (s: string) =>
+    marked(s, marks, term).map((piece, k) =>
+      typeof piece === "string" ? (
+        piece
+      ) : "hit" in piece ? (
+        <mark key={k} className="rounded-sm bg-[var(--c-amber)]/35 text-inherit">
+          {piece.t}
+        </mark>
+      ) : (
+        <mark
+          key={k}
+          onClick={(e) => {
+            if (window.getSelection()?.toString()) return;
+            onMark(piece.m, e.clientX, e.clientY);
+          }}
+          className={cn(
+            "cursor-pointer rounded-sm px-0.5 text-inherit",
+            piece.m.kind === "quote"
+              ? "bg-primary-soft border-primary/50 border-b-2"
+              : "taqriz-note-mark",
+          )}
+        >
+          {piece.t}
+        </mark>
+      ),
+    );
+
+  return (
+    <section data-sheet={side} data-page={n} className="book-sheet">
+      <header className={cn("book-head", side === "right" && "text-right")}>{head}</header>
+      <div
+        ref={body}
+        className="book-body"
+        style={{ fontSize: size, lineHeight: leading }}
+        lang="und"
+      >
+        {picture && fileId ? (
+          <PdfPage fileId={fileId} page={n} alt={String(n)} className="book-pdf" />
+        ) : (
+          page?.blocks.map((b, i) =>
+            b.k === "h" ? (
+              <h2 key={i} data-para className="book-h">
+                {text(b.t)}
+              </h2>
+            ) : (
+              <p key={i} data-para className={`book-${b.k}`}>
+                {text(b.t)}
+              </p>
+            ),
+          )
+        )}
+      </div>
+      <footer className={cn("book-foot", side === "right" && "flex-row-reverse")}>
+        <span className="tabular-nums">{n}</span>
+        {canFlip && (
+          <button type="button" onClick={onFlip} title={t("originalHint")} className="book-flip">
+            {flipped ? t("hideOriginal") : t("original")}
+          </button>
+        )}
+      </footer>
+    </section>
   );
 }

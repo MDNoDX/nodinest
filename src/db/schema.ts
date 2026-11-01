@@ -14,6 +14,7 @@
  * live in the hand-written SQL migration (drizzle/0001_*.sql). See
  * docs/SCHEMA.md for design notes.
  */
+import type { BookBlock } from "@/lib/book-blocks";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -1118,6 +1119,8 @@ export const bookPages = nodinest.table(
       .references(() => resources.id, { onDelete: "cascade" }),
     page: integer("page").notNull(),
     content: text("content").notNull(),
+    /** The page laid out for reading (lib/book-blocks.ts); empty until it is done. */
+    formatted: jsonb("formatted").$type<BookBlock[]>(),
   },
   (t) => [
     index("book_pages_source_page_idx").on(t.sourceId, t.page),

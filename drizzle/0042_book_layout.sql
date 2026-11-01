@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."book_pages" ADD COLUMN "formatted" jsonb;

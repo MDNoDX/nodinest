@@ -4,6 +4,8 @@
  * (private to the owner, RLS) so search results can cite page numbers.
  */
 import "server-only";
+import { formatBook } from "./book-format";
+import { later } from "./later";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { extractText } from "unpdf";
 import { db, withUser, type AppContext } from "@/db";
@@ -139,6 +141,8 @@ export async function indexFromFile(ctx: AppContext, resourceId: string, fileId:
       await withUser(db, ctx, (tx) =>
         tx.update(bookTextSources).set({ outline }).where(eq(bookTextSources.id, sourceId)),
       );
+    // The reading layout starts at once and goes on in the background.
+    later(() => formatBook(ctx, resourceId, { budgetMs: 200_000 }));
     return { pages: pages.length };
   } catch (err) {
     await fail(
@@ -173,6 +177,8 @@ export async function indexFromUrl(ctx: AppContext, resourceId: string, url: str
               : htmlToText(new TextDecoder().decode(bytes), 2_000_000),
           );
     await storePages(ctx, sourceId, resourceId, pages);
+    // The reading layout starts at once and goes on in the background.
+    later(() => formatBook(ctx, resourceId, { budgetMs: 200_000 }));
     return { pages: pages.length };
   } catch (err) {
     await fail(

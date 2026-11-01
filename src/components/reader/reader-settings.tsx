@@ -47,21 +47,16 @@ function Choice<T extends string | number>({
   );
 }
 
-/** "Aa": paper, typeface, size, line spacing and column width of the reader. */
-export function ReaderSettings() {
+/** "Aa": paper, typeface, size, line spacing and the reader. */
+export function ReaderSettings({ className }: { className?: string }) {
   const t = useTranslations("reader");
   const p = useReaderPrefs();
   const set = (patch: Partial<ReaderPrefs>) => setReaderPrefs(patch);
   return (
     <P.Root>
       <P.Trigger asChild>
-        <button
-          type="button"
-          className="text-muted hover:text-foreground hover:bg-surface-2 rounded-md p-1.5"
-          aria-label={t("display")}
-          title={t("display")}
-        >
-          <Type className="size-4" />
+        <button type="button" className={className} aria-label={t("display")} title={t("display")}>
+          <Type className="size-[18px]" />
         </button>
       </P.Trigger>
       <P.Portal>
@@ -121,17 +116,6 @@ export function ReaderSettings() {
               </button>
             </div>
           </div>
-          <div className="max-lg:hidden">
-            <Choice
-              label={t("layout")}
-              value={p.layout}
-              onChange={(v) => set({ layout: v })}
-              options={[
-                { v: "scroll", label: t("layout_scroll") },
-                { v: "book", label: t("layout_book") },
-              ]}
-            />
-          </div>
           <Choice
             label={t("typeface")}
             value={p.family}
@@ -149,16 +133,6 @@ export function ReaderSettings() {
               { v: 1.5, label: "1,5" },
               { v: 1.75, label: "1,75" },
               { v: 2, label: "2" },
-            ]}
-          />
-          <Choice
-            label={t("width")}
-            value={p.width}
-            onChange={(v) => set({ width: v })}
-            options={[
-              { v: "narrow", label: t("width_narrow") },
-              { v: "normal", label: t("width_normal") },
-              { v: "wide", label: t("width_wide") },
             ]}
           />
         </P.Content>
