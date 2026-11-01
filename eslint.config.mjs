@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // The installed apps have their own tools.
+    "apps/**",
     // pdf.js worker + decoders copied by scripts/copy-pdfjs.mjs
     "public/pdfjs/**",
     "out/**",

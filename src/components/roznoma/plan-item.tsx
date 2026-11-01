@@ -97,11 +97,19 @@ export function PlanItem({
   const unit = it.amount?.replace(/^[\s\d.,]+/, "").trim() || "";
   const [value, setValue] = useState(it.value != null ? String(it.value) : "");
   const [why, setWhy] = useState(it.status === "skipped" ? (it.note2 ?? "") : "");
+  const [asking, setAsking] = useState(false);
   const score = itemScore(it);
   const hasSubs = it.subs.length > 0;
   const subsDone = it.subs.filter((s) => s.status === "done").length;
   const skipped = it.status === "skipped";
   const missed = past && !it.status;
+
+  const saveWhy = () => {
+    setAsking(false);
+    const note = why.trim() || null;
+    if (note !== (it.note2 ?? null)) onState({ status: "skipped", value: null, note2: note });
+    setOpen(false);
+  };
 
   const savePartial = (v: number) => {
     const full = target ? v >= target : v >= 100;
@@ -286,6 +294,18 @@ export function PlanItem({
               <Button size="sm" variant="ghost" onClick={onArchive}>
                 <Archive /> {t("offToday")}
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-pressed={skipped}
+                onClick={() => {
+                  // One press is enough; the reason is there for who wants it.
+                  if (!skipped) onState({ status: "skipped", value: null, note2: null });
+                  setAsking(true);
+                }}
+              >
+                <X /> {t("skipSave")}
+              </Button>
               {it.status && (
                 <Button
                   size="sm"
@@ -294,6 +314,7 @@ export function PlanItem({
                     onState({ status: null, value: null, note2: null });
                     setValue("");
                     setWhy("");
+                    setAsking(false);
                     setOpen(false);
                   }}
                 >
@@ -301,25 +322,19 @@ export function PlanItem({
                 </Button>
               )}
             </div>
-            <div className="flex gap-2">
+            {asking && (
               <Input
+                autoFocus
                 className="h-8"
                 maxLength={200}
                 placeholder={t("skipPh")}
+                aria-label={t("skipPh")}
                 value={why}
                 onChange={(e) => setWhy(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                onBlur={saveWhy}
               />
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  onState({ status: "skipped", value: null, note2: why.trim() || null });
-                  setOpen(false);
-                }}
-              >
-                <X /> {t("skipSave")}
-              </Button>
-            </div>
+            )}
           </div>
         </div>
       </div>

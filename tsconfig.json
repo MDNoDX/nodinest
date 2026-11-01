@@ -39,6 +39,7 @@
     ".next-e2e/dev/types/**/*.ts"
   ],
   "exclude": [
+    "apps",
     ".next-build",
     ".next-e2e",
     "node_modules"

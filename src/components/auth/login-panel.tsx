@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { loginAction } from "@/app/actions/account";
 import { authClient } from "@/lib/auth/client";
+import { isNativeApp, openSystemSignIn } from "@/lib/native";
 import { ForgotPassword } from "./forgot-password";
 import { LOCALES, localeKey } from "@/i18n/config";
 
@@ -63,7 +64,7 @@ export function LoginPanel({
   const [copied, setCopied] = useState(false);
   const inApp = useSyncExternalStore(
     () => () => {},
-    () => IN_APP.test(navigator.userAgent),
+    () => IN_APP.test(navigator.userAgent) && !isNativeApp(),
     () => false,
   );
   const hydrated = useSyncExternalStore(
@@ -75,6 +76,7 @@ export function LoginPanel({
   const google = () =>
     start(async () => {
       setError(null);
+      if (isNativeApp()) return void (await openSystemSignIn());
       const r = await authClient.signIn.social({
         provider: "google",
         callbackURL: next,

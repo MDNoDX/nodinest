@@ -1,8 +1,10 @@
-# NodiNest
+# Roznoma
+
+Loyiha xaritasi: [docs/README.md](docs/README.md). Ilovalar: [apps/README.md](apps/README.md).
 
 **Bilimlar uchun shaxsiy makon. — A home for everything you learn.**
 
-NodiNest is a bilingual (Uzbek Latin / English) personal knowledge library and learning
+Roznoma is a bilingual (Uzbek Latin / English) personal knowledge library and learning
 journal: books, videos, lectures, articles, podcasts and courses; the people behind them;
 your private notes and exact quotations; timed study sessions, goals and plans; universal
 search; insights from real data; and a Gemini-powered assistant that can only _propose_

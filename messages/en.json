@@ -2354,7 +2354,7 @@
     "close": "Close",
     "partialTitle": "How much was done",
     "partialSave": "Save",
-    "skipPh": "Not done: why (optional)",
+    "skipPh": "Why (optional)",
     "skipSave": "Not done",
     "skipped": "Not done",
     "clearState": "Clear the mark",

@@ -223,6 +223,13 @@ messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fai
   Search folds both alphabets (nn_norm / normalizeText: ş→sh ç→ch ö→o ğ→g). AI prompts take the
   answer language from `aiLanguage(locale)` (i18n/config.ts).
 
+## Installed apps (`apps/`, see apps/README.md)
+
+`apps/mobile` (Capacitor: iOS + Android), `apps/windows` (Electron), `apps/mac` (Swift). All open the
+live site; `lib/native.ts` + `components/pwa/native-bridge.tsx` add what only an app can do. Sign-in:
+`/app-login?from=mobile` → `roznoma://auth?code=` → `/api/app/handoff`. Alarms: `/api/roznoma/upcoming`
+→ local notifications. `docs/README.md` is the map of the repo.
+
 ## Rendering model
 
 `cacheComponents` is **off** on purpose: almost every route reads the session. Pages use
@@ -259,9 +266,9 @@ Icons: `node scripts/make-icons.mjs`. To test the SW locally use the `nodinest-p
 Files: Vercel Blob (private store `nodinest-files`), client upload via `/api/blob/upload`,
 served via `/api/files/[id]`. PDF text: `unpdf` → `book_pages` (FTS) in `server/booktext.ts`.
 
-## Mac app (`mac/`)
+## Mac app (`apps/mac/`)
 
-Native AppKit + WKWebView wrapper around the production site (`./mac/build.sh` → universal
+Native AppKit + WKWebView wrapper around the production site (`./apps/mac/build.sh` → universal
 `dist/NodiNest.app` + `dist/NodiNest-<ver>.dmg`, ad-hoc signed). Google blocks sign-in inside web
 views, so Google navigations open `ASWebAuthenticationSession` on `/app-login`, which returns
 `nodinest://auth?code=…` (one-time, hashed, 2 min — `server/app-handoff.ts`); the app redeems it

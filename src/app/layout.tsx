@@ -3,6 +3,7 @@ import { Inter, Source_Serif_4 } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { NativeBridge } from "@/components/pwa/native-bridge";
 import { Pwa } from "@/components/pwa/pwa";
 import { SiteAnalytics } from "@/components/pwa/analytics";
 import { Toaster } from "@/components/ui/toaster";
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
             <Toaster />
             <Pwa />
+            <NativeBridge />
             <SiteAnalytics />
           </NextIntlClientProvider>
         </ThemeProvider>

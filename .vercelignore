@@ -1,4 +1,6 @@
-.next-e2e
-.next
-dist
-mac/build
+apps
+docs
+marketing
+brand
+assets
+tests

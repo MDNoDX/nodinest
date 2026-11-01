@@ -1,0 +1,25 @@
+{
+  "name": "roznoma-windows",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Roznoma for Windows",
+  "author": "Roznoma",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "uz.roznoma.windows",
+    "productName": "Roznoma",
+    "files": ["main.js", "preload.js", "offline.html"],
+    "directories": { "output": "../../dist/windows" },
+    "win": { "icon": "icon.png", "target": "nsis" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Roznoma" },
+    "protocols": [{ "name": "Roznoma", "schemes": ["roznoma"] }]
+  }
+}
