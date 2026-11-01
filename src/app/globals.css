@@ -921,6 +921,10 @@ html[data-reader-full] main {
   border: 0;
   box-shadow: none;
 }
+.book-pdf > div {
+  height: 100%;
+  aspect-ratio: auto;
+}
 .book-zoomed .book-pdf {
   height: auto;
 }

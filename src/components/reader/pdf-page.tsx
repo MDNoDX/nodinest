@@ -7,16 +7,25 @@ import { cn } from "@/lib/cn";
 // One open document per file for the whole visit (pages are drawn from it).
 const docs = new Map<string, Promise<PDFDocumentProxy>>();
 
+/** The whole file, kept in the browser after the first time (wiped on sign-out). */
+async function pdfBytes(fileId: string) {
+  const url = `/api/files/${fileId}`;
+  const cache = await caches.open("nn-books").catch(() => null);
+  const hit = await cache?.match(url);
+  if (hit) return hit.arrayBuffer();
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(String(r.status));
+  await cache?.put(url, r.clone()).catch(() => {});
+  return r.arrayBuffer();
+}
+
 function openPdf(fileId: string) {
   let p = docs.get(fileId);
   if (!p) {
     p = Promise.all([
       import("pdfjs-dist"),
       // The file is fetched whole (our file route streams it; no range requests).
-      fetch(`/api/files/${fileId}`).then((r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.arrayBuffer();
-      }),
+      pdfBytes(fileId),
     ]).then(([pdfjs, data]) => {
       pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
       return pdfjs.getDocument({
