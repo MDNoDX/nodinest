@@ -1,8 +1,7 @@
 /**
  * Password sign-in by username, setting / changing the password, and the
- * devices (sessions) of an account: at most two at a time. The superadmin
- * account signs in with Google only (its role comes from the Google-verified
- * e-mail), so a password can never open it.
+ * devices (sessions) of an account: at most two at a time. The superadmin may
+ * have a password too; each such sign-in is reported to the owner's channel.
  */
 import "server-only";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
@@ -49,7 +48,7 @@ export async function loginWithPassword(login: string, password: string) {
     .from(user)
     .where(sql`lower(${user.username}) = ${name} or lower(${user.email}) = ${name}`)
     .limit(1);
-  if (!u || u.role === "superadmin" || password.length > 128) {
+  if (!u || password.length > 128) {
     // The same work as a real check, so timing does not tell who has an account.
     await (await auth.$context).password.hash(password.slice(0, 128));
     throw new AppError("VALIDATION", "bad_login");
@@ -59,19 +58,22 @@ export async function loginWithPassword(login: string, password: string) {
   } catch {
     throw new AppError("VALIDATION", "bad_login");
   }
+  // The owner's account: every password sign-in is reported.
+  if (u.role === "superadmin") {
+    const { esc, tgSend } = await import("@/server/monitor/telegram");
+    await tgSend(`🔐 <b>Bosh hisobga parol bilan kirildi</b> · IP ${esc(ip)}`).catch(() => null);
+  }
 }
 
 /** First password of an account (Google / e-mail code users). */
 export async function setFirstPassword(ctx: AppContext, password: string) {
   if (!passwordOk(password)) throw new AppError("VALIDATION", "weak_password");
-  if (ctx.superadminAccount) throw new AppError("FORBIDDEN", "superadmin");
   if (await hasPassword(ctx.userId)) throw new AppError("CONFLICT", "has_password");
   await auth.api.setPassword({ body: { newPassword: password }, headers: await headers() });
 }
 
 export async function changePassword(ctx: AppContext, current: string, next: string) {
   if (!passwordOk(next)) throw new AppError("VALIDATION", "weak_password");
-  if (ctx.superadminAccount) throw new AppError("FORBIDDEN", "superadmin");
   const h = await headers();
   if (!(await hitRateLimit(db, `pw-change:${ctx.userId}`, 8, 3600)).allowed)
     throw new AppError("RATE_LIMITED");

@@ -86,6 +86,16 @@ export const RESOURCE_TYPES = [
   "other",
 ] as const;
 export type ResourceType = (typeof RESOURCE_TYPES)[number];
+/** What people choose from: lectures and interviews are simply videos. */
+export const MAIN_TYPES: ResourceType[] = [
+  "book",
+  "course",
+  "article",
+  "video",
+  "podcast",
+  "file",
+  "other",
+];
 /** Books have their own details; every other type shares one simple set. */
 export const BOOK_LIKE: ResourceType[] = ["book", "file"];
 export const MEDIA_LIKE: ResourceType[] = [
@@ -155,7 +165,10 @@ export const contributorInput = z
   .refine((c) => !!c.personId !== !!c.newPersonName, "contributor_person_or_name");
 
 export const resourceInput = z.object({
-  type: z.enum(RESOURCE_TYPES),
+  // Lectures and interviews are videos now (the AI or an old form may still say so).
+  type: z
+    .enum(RESOURCE_TYPES)
+    .transform((t): ResourceType => (t === "lecture" || t === "interview" ? "video" : t)),
   title: pubText(400),
   originalTitle: optPub(400),
   description: optPub(20_000),

@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   ]);
   // Röznoma: today's plan (with ticks) and the goals, at a glance.
   await ensureDefaults(ctx, locale);
-  const todayPage = await getDay(ctx, today, locale);
+  const todayPage = await getDay(ctx, today);
   const homeAd = await adFor(ctx, "home");
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
   const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));

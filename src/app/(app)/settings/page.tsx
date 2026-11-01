@@ -232,11 +232,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               </div>
             </Card>
           )}
-          {tab === "security" && !user.isSuperadmin && (
+          {tab === "security" && (
             <Card>
               <CardHeader title={t("settings.security.password")} />
               <div className="px-5 pb-5">
-                <PasswordForm has={pw} login={user.username ?? user.email} />
+                <PasswordForm
+                  has={pw}
+                  login={user.username ?? user.email}
+                  canReset={!user.isSuperadmin}
+                />
               </div>
             </Card>
           )}

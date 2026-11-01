@@ -19,7 +19,7 @@ afterAll(async () => {
 
 describe("my library", () => {
   it("every type a user adds shows up in My library at once", async () => {
-    for (const type of ["lecture", "book", "video", "course", "podcast"] as const) {
+    for (const type of ["book", "video", "course", "podcast"] as const) {
       const r = await submitResource(db, user, { type, title: `Mine ${type} ${Date.now()}` });
       expect(r.mode).toBe("applied");
       const id = (r as { id: string }).id;

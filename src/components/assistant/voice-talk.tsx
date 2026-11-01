@@ -43,8 +43,9 @@ const SPEECH_START = 0.09; // loudness that counts as speaking
 const SPEECH_MIN_MS = 160; // shorter sounds are clicks, not speech
 const SILENCE_MS = 750; // pause that ends the user's turn
 const MAX_MS = 45_000;
-const BARGE_LEVEL = 0.26; // speaking over the answer stops it…
-const BARGE_MS = 220; // …after this long (the answer's own echo is quieter and shorter)
+const BARGE_LEVEL = 0.34; // speaking over the answer stops it…
+const BARGE_MS = 350; // …after this long; louder than the answer's own echo
+const BARGE_GRACE_MS = 700; // the speakers start: the mic hears them first
 
 /**
  * Live voice talk (like a phone call): it listens, notices when you stop
@@ -74,6 +75,12 @@ export function VoiceTalk({
     } catch {
       return "female";
     }
+  });
+
+  // The parent re-renders on every turn; none of that may restart the audio.
+  const cb = useRef({ onTurn, onClose, t, te });
+  useEffect(() => {
+    cb.current = { onTurn, onClose, t, te };
   });
 
   const r = useRef({
@@ -145,10 +152,12 @@ export function VoiceTalk({
     const x = r.current;
     window.clearInterval(x.barge);
     let since = 0;
+    const began = performance.now();
     x.barge = window.setInterval(() => {
-      if (x.muted) return;
       const now = performance.now();
-      if (rms(x.mic, x.buf) < BARGE_LEVEL) since = 0;
+      if (x.muted || now - began < BARGE_GRACE_MS) return;
+      // Only a voice clearly louder than what the speakers are playing.
+      if (rms(x.mic, x.buf) < Math.max(BARGE_LEVEL, rms(x.out, x.buf) * 0.9)) since = 0;
       else if (!since) since = now;
       else if (now - since > BARGE_MS) hush();
     }, 40);
@@ -161,6 +170,7 @@ export function VoiceTalk({
       x.decoding = x.decoding.then(async () => {
         const ctx = x.ctx;
         if (!ctx || turn !== x.turn || !x.out) return;
+        if (ctx.state === "suspended") await ctx.resume().catch(() => {});
         const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
         const buf = await ctx.decodeAudioData(bytes.buffer).catch(() => null);
         if (!buf || turn !== x.turn) return;
@@ -209,26 +219,11 @@ export function VoiceTalk({
     [watchBarge],
   );
 
-  /** A soft tick: "I heard you", before the answer is ready. */
-  const tick = useCallback(() => {
-    const ctx = r.current.ctx;
-    if (!ctx) return;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.frequency.value = 660;
-    g.gain.setValueAtTime(0.04, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.09);
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + 0.1);
-  }, []);
-
   /** Sends the recording and follows the answer as it arrives. */
   const ask = useCallback(
     async (blob: Blob) => {
       const x = r.current;
       setState("thinking");
-      tick();
       const turn = ++x.turn;
       const ac = new AbortController();
       x.abort = ac;
@@ -250,7 +245,8 @@ export function VoiceTalk({
       }).catch(() => null);
       if (x.closed || turn !== x.turn) return;
       const fail = (code?: string) => {
-        setError(code && te.has(code) ? te(code) : t("voiceFailed"));
+        const { t: tt, te: tte } = cb.current;
+        setError(code && tte.has(code) ? tte(code) : tt("voiceFailed"));
         setState("idle");
       };
       if (!res?.ok || !res.body) {
@@ -262,7 +258,7 @@ export function VoiceTalk({
       let reply = "";
       let spoken = false;
       const finish = (visuals: Visual[]) => {
-        if (x.conv) onTurn({ heard, reply, conversationId: x.conv, visuals });
+        if (x.conv) cb.current.onTurn({ heard, reply, conversationId: x.conv, visuals });
       };
       const handle = (e: Event) => {
         if (e.t === "heard") {
@@ -332,7 +328,7 @@ export function VoiceTalk({
       window.clearInterval(x.barge);
       if (!x.closed && turn === x.turn) void x.listen?.();
     },
-    [onTurn, play, playPcm, t, te, tick, watchBarge],
+    [play, playPcm, watchBarge],
   );
 
   const listen = useCallback(async () => {
@@ -420,7 +416,7 @@ export function VoiceTalk({
         x.stream = stream;
         const ctx = new AudioContext();
         x.ctx = ctx;
-        void ctx.resume();
+        await ctx.resume().catch(() => {});
         const an = ctx.createAnalyser();
         an.fftSize = 1024;
         ctx.createMediaStreamSource(stream).connect(an);
@@ -431,10 +427,10 @@ export function VoiceTalk({
         x.out = out;
         void listen();
       } catch {
-        setError(t("micDenied"));
+        setError(cb.current.t("micDenied"));
       }
     })();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && cb.current.onClose();
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
@@ -445,7 +441,7 @@ export function VoiceTalk({
       x.stream?.getTracks().forEach((tr) => tr.stop());
       void x.ctx?.close();
     };
-  }, [listen, onClose, stopAudio, t]);
+  }, [listen, stopAudio]);
 
   const interrupt = () => {
     const x = r.current;

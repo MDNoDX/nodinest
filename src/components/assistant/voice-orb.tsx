@@ -3,14 +3,6 @@ import { useEffect, useRef } from "react";
 
 export type OrbState = "idle" | "listening" | "thinking" | "speaking";
 
-/** Listening is cool, thinking violet, speaking warm: the state reads at a glance. */
-const PALETTE: Record<OrbState, number[]> = {
-  idle: [150, 130, 255],
-  listening: [70, 190, 255],
-  thinking: [170, 100, 255],
-  speaking: [255, 130, 40],
-};
-
 /**
  * A glowing sphere of particles (canvas 2D, no library). It turns slowly,
  * breathes while idle, swirls while thinking and ripples with the voice:
@@ -50,7 +42,7 @@ export function VoiceOrb({
     let rot = 0;
     let amp = 0;
     let spin = 0.004;
-    const col = [...PALETTE.idle];
+    const col = [255, 150, 30];
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const { width, height } = c.getBoundingClientRect();
@@ -66,10 +58,6 @@ export function VoiceOrb({
       const target = s === "speaking" || s === "listening" ? Math.min(1, lv() * 1.6) : 0;
       // Quick to rise with the voice, slower to fall.
       amp += (target - amp) * (target > amp ? 0.55 : 0.14);
-      const want = PALETTE[s];
-      col[0] += (want[0] - col[0]) * 0.08;
-      col[1] += (want[1] - col[1]) * 0.08;
-      col[2] += (want[2] - col[2]) * 0.08;
       spin += ((s === "thinking" ? 0.022 : s === "speaking" ? 0.008 : 0.004) - spin) * 0.05;
       t += reduce ? 0.004 : 0.016;
       rot += reduce ? spin * 0.25 : spin;

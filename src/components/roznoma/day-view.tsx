@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -22,16 +22,17 @@ import {
   saveRoutineAction,
   setArchivedAction,
   syncDayAction,
-  shiftHijriAction,
 } from "@/app/actions/roznoma";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
-import { dayPercent, productivePercent } from "@/lib/roznoma";
+import { uzScript } from "@/i18n/config";
+import { dayPercent, hijriDate, productivePercent } from "@/lib/roznoma";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
+import { Dictate } from "./dictate";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
@@ -80,8 +81,6 @@ export function DayView({
   day,
   today,
   dateLabel,
-  hijri,
-  hijriEdit,
   prevHref,
   nextHref,
   initialItems,
@@ -93,9 +92,6 @@ export function DayView({
   day: string;
   today: string;
   dateLabel: string;
-  hijri: string;
-  /** The owner can move the Hijri date a day for everyone. */
-  hijriEdit?: boolean;
   prevHref: string;
   nextHref: string;
   initialItems: DayItem[];
@@ -106,6 +102,9 @@ export function DayView({
   userId: string;
 }) {
   const t = useTranslations("roznoma");
+  const locale = useLocale();
+  // From the device's own date: no server and no network needed.
+  const hijri = uzScript(locale, hijriDate(day, locale));
   const te = useTranslations("errors");
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -257,26 +256,6 @@ export function DayView({
             {hijri && (
               <p className="text-muted flex items-center justify-center gap-1 text-xs font-medium">
                 <Moon className="size-3.5" /> {hijri}
-                {hijriEdit && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label={t("hijriBack")}
-                      className="hover:text-foreground px-1"
-                      onClick={() => void shiftHijriAction(-1).then(() => router.refresh())}
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t("hijriForward")}
-                      className="hover:text-foreground px-1"
-                      onClick={() => void shiftHijriAction(1).then(() => router.refresh())}
-                    >
-                      +
-                    </button>
-                  </>
-                )}
               </p>
             )}
             <h2 className="text-lg font-bold tracking-tight sm:text-xl">
@@ -472,6 +451,11 @@ export function DayView({
                 maxLength={20000}
                 placeholder={t("storyPh")}
                 onChange={(e) => setLog({ ...log, story: e.target.value || null })}
+              />
+              <Dictate
+                onText={(text) =>
+                  setLog((l) => ({ ...l, story: l.story ? `${l.story}\n\n${text}` : text }))
+                }
               />
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium">📌 {t("highlights")}</span>

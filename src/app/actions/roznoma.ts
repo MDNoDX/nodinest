@@ -13,7 +13,6 @@ import {
   setArchived,
   setGoalStep,
   syncDay,
-  shiftHijri,
 } from "@/server/roznoma";
 import { run } from "./_run";
 
@@ -106,13 +105,6 @@ export async function setGoalStepAction(stepId: string, done: boolean | null) {
 export async function resolveGoalAction(id: string, reached: boolean) {
   return run(async ({ ctx }) => {
     await resolveGoal(ctx, id, reached);
-    fresh();
-  });
-}
-
-export async function shiftHijriAction(delta: number) {
-  return run(async ({ ctx }) => {
-    await shiftHijri(ctx, delta > 0 ? 1 : -1);
     fresh();
   });
 }

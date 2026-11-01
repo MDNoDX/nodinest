@@ -288,6 +288,13 @@
       "when": 1793518469916,
       "tag": "0040_no_prayer",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793524164783,
+      "tag": "0041_types_journal",
+      "breakpoints": true
     }
   ]
 }

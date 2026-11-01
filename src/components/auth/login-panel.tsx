@@ -98,19 +98,6 @@ export function LoginPanel({
   return (
     <div className="card p-6 shadow-sm" data-hydrated={hydrated ? "true" : undefined}>
       <div className="flex flex-col gap-3">
-        <Button
-          size="lg"
-          variant="outline"
-          onClick={google}
-          disabled={!googleEnabled}
-          loading={pending && googleEnabled}
-        >
-          <GoogleIcon /> {t("withGoogle")}
-        </Button>
-        <div className="text-muted flex items-center gap-3 text-xs">
-          <span className="bg-border h-px flex-1" /> {t("or")}{" "}
-          <span className="bg-border h-px flex-1" />
-        </div>
         {forgot ? (
           <ForgotPassword
             onBack={() => setForgot(false)}
@@ -156,6 +143,23 @@ export function LoginPanel({
               {t("forgot")}
             </button>
           </form>
+        )}
+        {!forgot && (
+          <>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={google}
+              disabled={!googleEnabled}
+              loading={pending && googleEnabled}
+            >
+              <GoogleIcon /> {t("withGoogle")}
+            </Button>
+            <div className="text-muted flex items-center gap-3 text-xs">
+              <span className="bg-border h-px flex-1" /> {t("or")}{" "}
+              <span className="bg-border h-px flex-1" />
+            </div>
+          </>
         )}
         {emailEnabled && !forgot && (
           <>

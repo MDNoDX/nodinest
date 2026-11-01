@@ -74,11 +74,11 @@ const HIJRI_EN = [
 ];
 
 /**
- * "21 Jumodil avval 1448", or "" if unsupported. Umm al-Qura follows the real
- * moon (the tabular "civil" calendar was a day behind); `offset` days correct
- * it when the crescent was seen a day apart (set by the owner, see getDay).
+ * "21 Jumodil avval 1448", or "" if unsupported. Worked out on the device from
+ * its own date. Umm al-Qura follows the real moon (the tabular "civil" calendar
+ * was a day behind).
  */
-export function hijriDate(day: string, locale: string, offset = 0): string {
+export function hijriDate(day: string, locale: string): string {
   try {
     const [y, m, d] = day.split("-").map(Number);
     const parts = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
@@ -86,7 +86,7 @@ export function hijriDate(day: string, locale: string, offset = 0): string {
       month: "numeric",
       year: "numeric",
       timeZone: "UTC",
-    }).formatToParts(new Date(Date.UTC(y, m - 1, d + offset, 12)));
+    }).formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
     const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
     const hm = get("month");
     const names = locale === "ru" ? HIJRI_RU : locale === "en" ? HIJRI_EN : HIJRI_UZ;

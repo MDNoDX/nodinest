@@ -42,7 +42,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
   await ensureDefaults(ctx, locale);
   let body: React.ReactNode = null;
   if (tab === "day") {
-    const [d, all] = await Promise.all([getDay(ctx, day, locale), listRoutines(ctx)]);
+    const [d, all] = await Promise.all([getDay(ctx, day), listRoutines(ctx)]);
     const onDay = new Set(d.items.map((i) => i.id));
     const wd = fmtDay(day, locale, { weekday: "long" });
     const date = `${fmtDay(day, locale, { day: "numeric", month: "long", year: "numeric" }).replace(",", "")} | ${wd.charAt(0).toUpperCase()}${wd.slice(1)}`;
@@ -52,8 +52,6 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
         day={day}
         today={today}
         dateLabel={date}
-        hijri={d.hijri}
-        hijriEdit={!!ctx.superadminAccount}
         prevHref={`/plans?day=${addDays(day, -1)}`}
         nextHref={`/plans?day=${addDays(day, 1)}`}
         initialItems={d.items}

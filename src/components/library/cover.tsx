@@ -79,6 +79,7 @@ export function Cover({
           <span aria-hidden className="cover-glare" />
         </div>
         <span aria-hidden className="cover-pages" />
+        <span aria-hidden className="cover-back" />
       </div>
     );
   // Audio: a square sleeve and its record.

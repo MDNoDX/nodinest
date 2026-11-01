@@ -6,7 +6,7 @@ import { apiError, apiUser, json } from "../../_utils";
 export async function GET() {
   try {
     const { user, ctx } = await apiUser();
-    const d = await getDay(ctx, dayKey(new Date(), user.timezone), user.locale);
+    const d = await getDay(ctx, dayKey(new Date(), user.timezone));
     return json({
       day: d.day,
       tz: user.timezone,

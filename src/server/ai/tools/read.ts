@@ -312,7 +312,7 @@ export const READ_TOOLS = {
       const today = dayKey(new Date(), env.timeZone);
       const [g, p] = await Promise.all([
         listGoalsWithProgress(db, ctx, today, env.timeZone),
-        getDay(ctx, today, env.locale ?? "uz"),
+        getDay(ctx, today),
       ]);
       return {
         goals: g

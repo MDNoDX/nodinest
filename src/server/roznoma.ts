@@ -13,7 +13,6 @@ import { and, asc, between, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
-  appSettings,
   botUsers,
   dayLogs,
   goalSteps,
@@ -30,11 +29,11 @@ import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { GOAL_KINDS, guessIcon } from "@/lib/plan-icons";
 import {
+  hijriDate,
   amountTarget,
   type CheckStatus,
   dayPercent,
   dueOn,
-  hijriDate,
   normalizeTime,
   productivePercent,
 } from "@/lib/roznoma";
@@ -60,7 +59,7 @@ export const routineInput = z.object({
   endsOn: dayStr.nullish(),
   alarm: z.boolean().default(true),
   sound: z.string().trim().max(60).nullish(),
-  inJournal: z.boolean().default(true),
+  inJournal: z.boolean().default(false),
   parentId: uuid.nullish(),
   /** Stored in the plans (archive), not on the day. */
   archived: z.boolean().default(false),
@@ -448,29 +447,10 @@ function dayItems(all: Routine[], checks: Check[], day: string) {
   });
 }
 
-const HIJRI_KEY = "hijri_offset";
-
-/** The owner's ±1 day when the crescent was seen a day apart from the calculation. */
-export async function shiftHijri(ctx: AppContext, delta: 1 | -1) {
-  if (!ctx.superadminAccount) throw new AppError("FORBIDDEN");
-  const [r] = await db
-    .select({ v: appSettings.value })
-    .from(appSettings)
-    .where(eq(appSettings.key, HIJRI_KEY));
-  const value = Math.max(-2, Math.min(2, Number(r?.v ?? 0) + delta));
-  await db
-    .insert(appSettings)
-    .values({ key: HIJRI_KEY, value })
-    .onConflictDoUpdate({ target: appSettings.key, set: { value } });
-}
-
 /** Everything of one day: its list (with state), its page and the motto. */
-export async function getDay(ctx: AppContext, day: string, locale: string) {
+export async function getDay(ctx: AppContext, day: string) {
   const d = dayStr.parse(day);
-  const [all, [shift]] = await Promise.all([
-    loadRoutines(ctx),
-    db.select({ v: appSettings.value }).from(appSettings).where(eq(appSettings.key, HIJRI_KEY)),
-  ]);
+  const all = await loadRoutines(ctx);
   const [checks, logs, lastMotto] = await withUser(db, ctx, (tx) =>
     Promise.all([
       tx
@@ -534,7 +514,6 @@ export async function getDay(ctx: AppContext, day: string, locale: string) {
     : EMPTY_LOG;
   return {
     day: d,
-    hijri: uzScript(locale, hijriDate(d, locale, Number(shift?.v ?? 0))),
     items,
     log,
     motto: log.motto ?? lastMotto[0]?.motto ?? null,
@@ -584,7 +563,7 @@ export async function saveDayLog(ctx: AppContext, day: string, raw: unknown, loc
 
 /** The day as it stands goes into the book (after ticks, or saving the page). */
 export async function syncDay(ctx: AppContext, day: string, locale: string) {
-  const page = await getDay(ctx, dayStr.parse(day), locale);
+  const page = await getDay(ctx, dayStr.parse(day));
   const hasPage = !!(
     page.log.title ||
     page.log.story ||
@@ -654,6 +633,7 @@ async function writeIntoBook(
   const year = page.day.slice(0, 4);
   const bookId = await yearBook(ctx, year, locale);
   const heading = dayHeading(page.day, locale);
+  const hijri = uzScript(locale, hijriDate(page.day, locale));
   const month = monthHeading(page.day, locale);
   const L = page.log;
   const ru = locale === "ru";
@@ -663,9 +643,7 @@ async function writeIntoBook(
     {
       type: "heading",
       attrs: { level: 3 },
-      content: text(
-        `${heading}${page.hijri ? ` · ${page.hijri}` : ""}${L.title ? ` — ${L.title}` : ""}`,
-      ),
+      content: text(`${heading}${hijri ? ` · ${hijri}` : ""}${L.title ? ` — ${L.title}` : ""}`),
     } as Node,
   ];
   const shown = page.items.filter((i) => i.inJournal && i.status);
@@ -1025,7 +1003,7 @@ export async function sendReminders(now = new Date()) {
     }).format(now);
     const mins = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
     const nowMin = mins(hm);
-    const page = await getDay(ctx, today, p.locale);
+    const page = await getDay(ctx, today);
     const uz = p.locale !== "ru" && p.locale !== "en";
     for (const i of page.items) {
       if (i.done || !i.alarm || !i.time) continue;

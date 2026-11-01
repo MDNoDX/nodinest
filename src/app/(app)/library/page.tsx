@@ -9,7 +9,7 @@ import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { EmptyState, PageHeader, Pagination, TypeBadge } from "@/components/ui/misc";
-import { LEARNING_STATUSES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
+import { LEARNING_STATUSES, MAIN_TYPES, RESOURCE_TYPES, type ResourceType } from "@/lib/validation";
 import { shortYear } from "@/lib/dates";
 import { pageContext, sp, spInt, type SP } from "@/lib/page";
 import {
@@ -183,7 +183,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
         <MoreFilters active={hasFilters}>
           <Select name="type" defaultValue={filters.type ?? ""} aria-label={t("common.type")}>
             <option value="">{t("library.allTypes")}</option>
-            {RESOURCE_TYPES.map((ty) => (
+            {MAIN_TYPES.map((ty) => (
               <option key={ty} value={ty}>
                 {t(`types.plural.${ty}`)}
               </option>

@@ -698,7 +698,8 @@ export function Chat({
           onTurn={(turn) => {
             if (!conversationId) {
               setConversationId(turn.conversationId);
-              router.replace(`/assistant?c=${turn.conversationId}`, { scroll: false });
+              // Not the router: a new address would remount the chat and end the talk.
+              window.history.replaceState(null, "", `/assistant?c=${turn.conversationId}`);
             }
             setMessages((m) => [
               ...m,

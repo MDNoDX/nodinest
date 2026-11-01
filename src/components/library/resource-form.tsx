@@ -51,7 +51,7 @@ import { fileDuration, isMediaFileUrl, youtubeDuration } from "@/lib/media-durat
 import type { FieldErrors } from "@/lib/errors";
 import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import { youtubeIdFromUrl } from "@/lib/youtube";
-import { BOOK_LIKE, MEDIA_LIKE, type ResourceType } from "@/lib/validation";
+import { BOOK_LIKE, MEDIA_LIKE, type ResourceType, MAIN_TYPES } from "@/lib/validation";
 import type { Contributor, ResourceFormValue } from "./resource-form-value";
 import { pickName, type Locale } from "@/i18n/config";
 import { LegalPdfNote } from "./legal-pdf-note";
@@ -155,15 +155,6 @@ function toPayload(v: ResourceFormValue) {
 }
 
 /** What can be added (old lecture / interview entries keep their type). */
-const MAIN_TYPES: ResourceType[] = [
-  "book",
-  "course",
-  "article",
-  "video",
-  "podcast",
-  "file",
-  "other",
-];
 
 /** Who can take part depends on what it is. */
 const ROLES_BY_TYPE: Record<ResourceType, Contributor["role"][]> = {
@@ -432,9 +423,9 @@ export function ResourceForm({
         <div
           role="radiogroup"
           aria-label={t("resource.type")}
-          className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
+          className="flex flex-wrap justify-center gap-2.5"
         >
-          {(MAIN_TYPES.includes(v.type) ? MAIN_TYPES : [...MAIN_TYPES, v.type]).map((ty) => {
+          {MAIN_TYPES.map((ty) => {
             const Icon = TYPE_ICONS[ty];
             const on = v.type === ty;
             return (
@@ -447,7 +438,7 @@ export function ResourceForm({
                 title={t(`typeHints.${ty}`)}
                 style={hueStyle(TYPE_HUE[ty])}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all",
+                  "flex w-[calc(50%-0.32rem)] items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all sm:w-[calc(25%-0.48rem)]",
                   on
                     ? "hue-soft hue-border shadow-sm ring-2 ring-[var(--hue)]/40"
                     : "border-border bg-surface hover:-translate-y-0.5 hover:shadow-sm",

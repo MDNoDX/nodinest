@@ -12,7 +12,16 @@ import { passwordOk } from "@/lib/password";
 import { useAction } from "@/lib/use-action";
 
 /** Set a first password, or change it (asks for the current one). */
-export function PasswordForm({ has, login }: { has: boolean; login: string }) {
+export function PasswordForm({
+  has,
+  login,
+  canReset = true,
+}: {
+  has: boolean;
+  login: string;
+  /** The owner's account recovers through Google, not by a code. */
+  canReset?: boolean;
+}) {
   const t = useTranslations("auth");
   const { pending, exec } = useAction();
   const [v, setV] = useState({ current: "", next: "", again: "" });
@@ -81,7 +90,7 @@ export function PasswordForm({ has, login }: { has: boolean; login: string }) {
         <Button type="submit" loading={pending} disabled={!ok}>
           {t("savePassword")}
         </Button>
-        {has && (
+        {has && canReset && (
           <button
             type="button"
             onClick={() => setForgot(true)}

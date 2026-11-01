@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { Card, CardHeader, StatTile } from "@/components/ui/misc";
 import { fmtDay, type Loc } from "@/lib/format";
 import { productivePercent } from "@/lib/roznoma";
-import { PrintButton } from "./print-button";
 
 type H = {
   days: {
@@ -68,7 +67,6 @@ export async function StatsView({ h, locale }: { h: H; locale: Loc }) {
         <div className="flex items-center gap-2">
           <Sparkles className="text-primary size-4" />
           <h2 className="flex-1 font-semibold">{t("weekTitle")}</h2>
-          <PrintButton label={t("savePdf")} />
         </div>
         {notes.length ? (
           <ul className="flex flex-col gap-1.5 text-sm">

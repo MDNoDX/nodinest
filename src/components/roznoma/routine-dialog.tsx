@@ -48,7 +48,7 @@ const EMPTY: RoutineValue = {
   endsOn: null,
   alarm: true,
   sound: null,
-  inJournal: true,
+  inJournal: false,
 };
 
 /** Splits "20 bet" into its number and the unit the form offers. */
@@ -91,9 +91,7 @@ export function RoutineDialog({
   const parsed = parseAmount(initial?.amount ?? null, words);
   const [n, setN] = useState(parsed.n);
   const [unit, setUnit] = useState<Unit>(parsed.unit);
-  const [more, setMore] = useState(
-    !!(initial?.note || initial?.startsOn || initial?.endsOn || initial?.sound),
-  );
+  const [more, setMore] = useState(!!(initial?.note || initial?.sound));
   const [iconsOpen, setIconsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const days = t("weekdaysShort").split(",");
@@ -304,36 +302,11 @@ export function RoutineDialog({
                   <Input
                     {...p}
                     maxLength={500}
-                    placeholder={t("descriptionPh")}
                     value={v.note ?? ""}
                     onChange={(e) => setV({ ...v, note: e.target.value || null })}
                   />
                 )}
               </Field>
-              {!inner && v.repeat !== "once" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={t("startsOn")} optional>
-                    {(p) => (
-                      <Input
-                        {...p}
-                        type="date"
-                        value={v.startsOn ?? ""}
-                        onChange={(e) => setV({ ...v, startsOn: e.target.value || null })}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t("endsOn")} optional>
-                    {(p) => (
-                      <Input
-                        {...p}
-                        type="date"
-                        value={v.endsOn ?? ""}
-                        onChange={(e) => setV({ ...v, endsOn: e.target.value || null })}
-                      />
-                    )}
-                  </Field>
-                </div>
-              )}
               {!inner && (
                 <div className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">{t("sound")}</span>

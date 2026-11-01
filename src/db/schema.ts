@@ -804,8 +804,8 @@ export const routines = nodinest.table(
     /** "HH:MM" in the user's time zone, or NULL (any time of the day). */
     time: text("time"),
     endTime: text("end_time"),
-    /** Goes into the year's Röznoma book when done. */
-    inJournal: boolean("in_journal").notNull().default(true),
+    /** Goes into the year's Röznoma book when done (only if asked for). */
+    inJournal: boolean("in_journal").notNull().default(false),
     /** Alarm sound: a built-in name or `file:<id>` (the user's own). */
     sound: text("sound"),
     /** Optional period when it applies. */
