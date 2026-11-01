@@ -12,6 +12,8 @@ import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
+import { TimezoneSync } from "@/components/layout/timezone-sync";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   // A username is required: the first sign-in sets up the profile.
@@ -42,6 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       pendingSuggestions={Number(pending[0]?.n ?? 0)}
       timerSlot={user.isSuperadmin ? <AdminToggle on={user.adminMode} /> : null}
     >
+      <TimezoneSync current={user.timezone} />
       {children}
     </AppShell>
   );

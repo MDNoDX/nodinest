@@ -6,13 +6,18 @@ import {
   ListOrdered,
   Lock,
   Palette,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { getTranslations } from "next-intl/server";
 import { EditProfile } from "@/components/profile/edit-profile";
-import { TimezoneForm, AppearanceForm } from "@/components/settings/settings-forms";
+import { AppearanceForm } from "@/components/settings/settings-forms";
+import { DevicesList, PasswordForm } from "@/components/settings/security";
+import { StorageTools } from "@/components/settings/storage-tools";
+import { hasPassword, listDevices, MAX_DEVICES } from "@/server/account-security";
+import { fmtDateTime } from "@/lib/format";
 import { Badge, Card, CardHeader, PageHeader } from "@/components/ui/misc";
 import { ProgressBar } from "@/components/charts/hbar-list";
 import { fmtBytes } from "@/lib/format";
@@ -30,11 +35,6 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-/** Computed on the server so the client renders the identical list. */
-function timeZones(current: string) {
-  const all = Intl.supportedValuesOf("timeZone");
-  return all.includes(current) ? all : [current, ...all];
-}
 export async function generateMetadata() {
   return { title: (await getTranslations("settings"))("title") };
 }
@@ -42,6 +42,7 @@ export async function generateMetadata() {
 const TABS = [
   ["profile", UserRound],
   ["premium", null],
+  ["security", ShieldCheck],
   ["look", Palette],
   ["menu", ListOrdered],
   ["keys", Keyboard],
@@ -54,12 +55,14 @@ type Tab = (typeof TABS)[number][0];
 
 /** Settings in sections (one at a time): a side list on wide screens, chips on phones. */
 export default async function SettingsPage({ searchParams }: { searchParams: SP }) {
-  const { user, ctx } = await pageContext();
+  const { user, ctx, locale, tz } = await pageContext();
   const t = await getTranslations();
   const asked = sp((await searchParams).tab);
   const tab: Tab = TABS.some(([k]) => k === asked) ? (asked as Tab) : "profile";
   const storage = isStorageConfigured();
   const used = storage && tab === "storage" ? await storageUsage(ctx) : 0;
+  const [devices, pw] =
+    tab === "security" ? await Promise.all([listDevices(ctx), hasPassword(user.id)]) : [[], false];
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader section="settings" title={t("settings.title")} />
@@ -157,9 +160,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
                     username={user.username}
                   />
                 </div>
-                <div className="border-border mt-6 border-t pt-5">
-                  <TimezoneForm timezone={user.timezone} zones={timeZones(user.timezone)} />
-                </div>
               </div>
             </Card>
           )}
@@ -211,6 +211,36 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
                 ) : (
                   <p className="text-muted">{t("settings.storageOff")}</p>
                 )}
+              </div>
+            </Card>
+          )}
+          {tab === "storage" && (
+            <Card>
+              <CardHeader title={t("settings.device.title")} />
+              <div className="px-5 pb-5">
+                <StorageTools />
+              </div>
+            </Card>
+          )}
+          {tab === "security" && !user.isSuperadmin && (
+            <Card>
+              <CardHeader title={t("settings.security.password")} />
+              <div className="px-5 pb-5">
+                <PasswordForm has={pw} />
+              </div>
+            </Card>
+          )}
+          {tab === "security" && (
+            <Card>
+              <CardHeader title={t("settings.security.devices")} />
+              <div className="px-5 pb-5">
+                <DevicesList
+                  max={MAX_DEVICES}
+                  devices={devices.map((d) => ({
+                    ...d,
+                    lastSeen: fmtDateTime(d.lastSeen, locale, tz),
+                  }))}
+                />
               </div>
             </Card>
           )}

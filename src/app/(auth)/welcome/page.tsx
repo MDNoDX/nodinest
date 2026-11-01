@@ -4,6 +4,7 @@ import { LogoSymbol } from "@/components/brand/logo";
 import { LanguagePicker } from "@/components/profile/language-picker";
 import { WelcomeForm } from "@/components/profile/welcome-form";
 import { requireUser } from "@/lib/auth/session";
+import { hasPassword } from "@/server/account-security";
 import { suggestUsername } from "@/server/profile";
 import { isStorageConfigured } from "@/server/storage";
 
@@ -38,7 +39,8 @@ export default async function WelcomePage() {
             <WelcomeForm
               userId={user.id}
               storage={isStorageConfigured()}
-              initial={{ firstName: first, lastName: last, username, image: user.image }}
+              initial={{ firstName: first, lastName: last, username, image: user.image, phone: "" }}
+              askPassword={!user.isSuperadmin && !(await hasPassword(user.id))}
             />
           </div>
         </section>

@@ -6,9 +6,10 @@ import { setLocaleAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { loginAction } from "@/app/actions/account";
 import { authClient } from "@/lib/auth/client";
 import { EmailCode } from "./email-code";
-import { TelegramLogin } from "./telegram-login";
 import { LOCALES, localeKey } from "@/i18n/config";
 
 function GoogleIcon() {
@@ -33,14 +34,11 @@ function GoogleIcon() {
 
 export function LoginPanel({
   googleEnabled,
-  telegramEnabled = false,
   emailEnabled = false,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
-  /** Telegram sign-in (confirmed in the site's bot) is configured. */
-  telegramEnabled?: boolean;
   /** Sign-in with an e-mailed code is configured. */
   emailEnabled?: boolean;
   devEnabled: boolean;
@@ -54,6 +52,7 @@ export function LoginPanel({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [login, setLogin] = useState({ name: "", password: "" });
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -65,6 +64,14 @@ export function LoginPanel({
       setError(null);
       const r = await authClient.signIn.social({ provider: "google", callbackURL: next });
       if (r.error) setError(t("failed"));
+    });
+
+  const password = () =>
+    start(async () => {
+      setError(null);
+      const r = await loginAction(login.name, login.password);
+      if (!r.ok) setError(t(r.code === "RATE_LIMITED" ? "tooMany" : "badLogin"));
+      else window.location.assign(next);
     });
 
   const dev = (mode: "in" | "up") =>
@@ -97,13 +104,41 @@ export function LoginPanel({
         >
           <GoogleIcon /> {t("withGoogle")}
         </Button>
-        {telegramEnabled && <TelegramLogin next={next} disabled={pending} />}
+        <div className="text-muted flex items-center gap-3 text-xs">
+          <span className="bg-border h-px flex-1" /> {t("or")}{" "}
+          <span className="bg-border h-px flex-1" />
+        </div>
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            password();
+          }}
+        >
+          <Input
+            required
+            value={login.name}
+            onChange={(e) => setLogin({ ...login, name: e.target.value })}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder={t("usernameOrEmail")}
+            aria-label={t("usernameOrEmail")}
+          />
+          <PasswordInput
+            required
+            value={login.password}
+            onChange={(e) => setLogin({ ...login, password: e.target.value })}
+            autoComplete="current-password"
+            placeholder={t("password")}
+            aria-label={t("password")}
+          />
+          <Button type="submit" size="lg" loading={pending}>
+            {t("signIn")}
+          </Button>
+        </form>
         {emailEnabled && (
           <>
-            <div className="text-muted flex items-center gap-3 text-xs">
-              <span className="bg-border h-px flex-1" /> {t("or")}{" "}
-              <span className="bg-border h-px flex-1" />
-            </div>
             <EmailCode next={next} />
           </>
         )}
@@ -116,6 +151,7 @@ export function LoginPanel({
 
       {devEnabled && (
         <form
+          data-testid="dev-login"
           className="border-border-strong mt-6 flex flex-col gap-3 border-t border-dashed pt-5"
           onSubmit={(e) => {
             e.preventDefault();

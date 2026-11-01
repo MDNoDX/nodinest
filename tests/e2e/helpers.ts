@@ -18,10 +18,11 @@ export async function signUp(page: Page, u: { name: string; email: string; passw
   await skipTour(page);
   await page.goto("/login");
   await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
-  await page.getByLabel("Ism").fill(u.name);
-  await page.getByLabel("Email").fill(u.email);
-  await page.getByLabel("Parol").fill(u.password);
-  await page.getByRole("button", { name: "Lokal hisob yaratiş" }).click();
+  const dev = page.getByTestId("dev-login");
+  await dev.getByLabel("Ism").fill(u.name);
+  await dev.getByLabel("Email").fill(u.email);
+  await dev.getByLabel("Parol").fill(u.password);
+  await dev.getByRole("button", { name: "Lokal hisob yaratiş" }).click();
   await finishWelcome(page);
   await expect(page).toHaveURL("/", { timeout: 30_000 });
 }
@@ -37,9 +38,10 @@ export async function signIn(page: Page, u: { email: string; password: string; n
   await skipTour(page);
   await page.goto("/login");
   await page.locator("[data-hydrated=true]").waitFor(); // hydrated (cold dev compiles are slow)
-  await page.getByLabel("Email").fill(u.email);
-  await page.getByLabel("Parol").fill(u.password);
-  await page.getByRole("button", { name: "Kiriş", exact: true }).click();
+  const dev = page.getByTestId("dev-login");
+  await dev.getByLabel("Email").fill(u.email);
+  await dev.getByLabel("Parol").fill(u.password);
+  await dev.getByRole("button", { name: "Kiriş", exact: true }).click();
   // Signing in continues where the user stopped (/resume), or the home page.
   await expect(page).not.toHaveURL(/\/login/);
   await finishWelcome(page);

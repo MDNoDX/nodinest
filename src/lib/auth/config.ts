@@ -19,10 +19,9 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { eq, sql } from "drizzle-orm";
 import { codeMail, mailConfigured, sendMail } from "@/server/mail";
 import { hitRateLimit } from "@/server/rate-limit";
-import { telegram } from "./telegram";
+import { enforceDeviceLimit } from "@/server/account-security";
 
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
-const telegramEnabled = /^\d+:[\w-]{30,}$/.test(process.env.TELEGRAM_BOT_TOKEN ?? "");
 
 export const auth = betterAuth({
   appName: "NodiNote",
@@ -46,7 +45,8 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24,
     // Signed cookie copy of the session: no session-table query per request.
     // Safe because getCurrentUser() still re-reads role + status from the DB.
-    cookieCache: { enabled: true, maxAge: 5 * 60 },
+    // Short, so a device removed in Settings is out within a minute.
+    cookieCache: { enabled: true, maxAge: 60 },
   },
   user: {
     additionalFields: {
@@ -57,8 +57,11 @@ export const auth = betterAuth({
     },
   },
   emailAndPassword: {
-    // Development/E2E only — hard-disabled in production builds.
-    enabled: isDevLoginEnabled(),
+    // Signing in with a password is open (by username, server/account-security);
+    // creating an account this way only in development: accounts start with
+    // Google or an e-mailed code, then choose a password at /welcome.
+    enabled: true,
+    disableSignUp: !isDevLoginEnabled(),
     autoSignIn: true,
     minPasswordLength: 8,
   },
@@ -93,12 +96,12 @@ export const auth = betterAuth({
         },
         after: async (s) => {
           await bootstrapSuperadmin(db, s.userId, process.env.SUPERADMIN_EMAILS);
+          await enforceDeviceLimit(s.userId, s.id);
         },
       },
     },
   },
   plugins: [
-    ...(telegramEnabled ? [telegram()] : []),
     ...(mailConfigured()
       ? [
           emailOTP({
@@ -131,8 +134,6 @@ export const auth = betterAuth({
 export const authProviders = {
   google: googleConfigured,
   devLogin: isDevLoginEnabled(),
-  /** Sign-in confirmed in the site's Telegram bot. */
-  telegram: telegramEnabled,
   /** Sign-in with a code sent by e-mail. */
   email: mailConfigured(),
 };

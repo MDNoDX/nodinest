@@ -175,7 +175,22 @@
       "scan": "Point your phone camera at the QR code or press the button below.",
       "open": "Open Telegram",
       "waiting": "Waiting for you to confirm in the bot…"
-    }
+    },
+    "usernameOrEmail": "Username or email",
+    "badLogin": "Wrong username or password.",
+    "tooMany": "Too many attempts. Try again in 10 minutes.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "rule_length": "At least 8 characters",
+    "rule_lower": "A lowercase letter",
+    "rule_upper": "An uppercase letter",
+    "rule_digit": "At least one digit",
+    "newPassword": "Password",
+    "repeatPassword": "Repeat the password",
+    "currentPassword": "Current password",
+    "passwordsDiffer": "The passwords do not match.",
+    "savePassword": "Save password",
+    "passwordSaved": "Password saved."
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",
@@ -1023,11 +1038,40 @@
       "premium": "Premium",
       "look": "Look & language",
       "menu": "Menu",
-      "keys": "Keyboard",
+      "keys": "Shortcuts",
       "app": "Install the app",
       "storage": "Storage",
       "privacy": "Privacy & account",
-      "help": "Guide"
+      "help": "Guide",
+      "security": "Security"
+    },
+    "security": {
+      "password": "Password",
+      "devices": "Devices",
+      "devicesHint": "Signed in on {n} devices (at most {max}). A new sign-in logs out the oldest one.",
+      "thisDevice": "This device",
+      "remove": "Sign out",
+      "removed": "Device signed out"
+    },
+    "device": {
+      "title": "This device’s storage",
+      "intro": "To be fast and work offline, the site keeps some things on this device. Free the space whenever you need it.",
+      "deviceTotal": "The site uses {used} on this device",
+      "audioTitle": "Audiobooks",
+      "audioHint": "Parts you listened to. Cleared ones download again next time (no AI limit used).",
+      "booksTitle": "Offline books",
+      "booksHint": "Books saved for offline reading. Cleared, they won’t open without internet.",
+      "siteTitle": "Page and picture cache",
+      "siteHint": "Copies of covers and pages. After clearing, the site opens a bit slower once.",
+      "clear": "Clear",
+      "clearAll": "Clear everything",
+      "cleared": "Cleared",
+      "confirm_audio": "Remove audiobook parts from this device?",
+      "confirm_books": "Remove offline books?",
+      "confirm_site": "Clear the page and picture cache?",
+      "confirmAll": "Clear all cache on this device? Your account data is not deleted.",
+      "safeTitle": "What is never deleted",
+      "safeBody": "Your books, notes, quotes, write-ups, Röznoma and prepared audiobooks live on the server. Clearing only removes the copies on this device; they come back when needed."
     }
   },
   "admin": {

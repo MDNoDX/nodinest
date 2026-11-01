@@ -2,7 +2,10 @@
 import { AtSign, Check, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { setPasswordAction } from "@/app/actions/account";
 import { checkUsernameAction, saveFullProfileAction } from "@/app/actions/personal";
+import { PasswordInput, PasswordRules } from "@/components/ui/password-input";
+import { passwordOk } from "@/lib/password";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -30,14 +33,18 @@ export function ProfileForm({
   storage,
   submitLabel,
   onSaved,
+  askPassword = false,
 }: {
   initial: ProfileValue;
   userId: string;
   storage: boolean;
   submitLabel: string;
   onSaved?: () => void;
+  /** First sign-in: choose a password (asked twice). */
+  askPassword?: boolean;
 }) {
   const t = useTranslations("profile");
+  const ta = useTranslations("auth");
   const [v, setV] = useState(initial);
   const [check, setCheck] = useState<"idle" | "checking" | "free" | "taken" | "invalid">(
     initial.username ? "free" : "idle",
@@ -65,7 +72,9 @@ export function ProfileForm({
   }, [name, initial.username]);
 
   const display = [v.firstName, v.lastName].filter(Boolean).join(" ") || "?";
-  const ready = v.firstName.trim() && check === "free";
+  const [pw, setPw] = useState({ a: "", b: "" });
+  const pwOk = !askPassword || (passwordOk(pw.a) && pw.a === pw.b);
+  const ready = v.firstName.trim() && check === "free" && pwOk;
 
   return (
     <form
@@ -74,14 +83,17 @@ export function ProfileForm({
         e.preventDefault();
         if (!ready) return;
         exec(
-          () =>
-            saveFullProfileAction({
+          async () => {
+            const r = await saveFullProfileAction({
               firstName: v.firstName,
               lastName: v.lastName || null,
               username: name,
               image: v.image,
               ...(v.phone === undefined ? {} : { phone: v.phone || null }),
-            }),
+            });
+            if (!r.ok) return r;
+            return askPassword ? setPasswordAction(pw.a) : { ok: true as const, data: undefined };
+          },
           { success: t("saved"), onSuccess: () => onSaved?.() },
         );
       }}
@@ -177,6 +189,36 @@ export function ProfileForm({
             />
           )}
         </Field>
+      )}
+      {askPassword && (
+        <div className="flex flex-col gap-3">
+          <Field label={ta("newPassword")}>
+            {(p) => (
+              <PasswordInput
+                {...p}
+                required
+                autoComplete="new-password"
+                value={pw.a}
+                onChange={(e) => setPw({ ...pw, a: e.target.value })}
+              />
+            )}
+          </Field>
+          <PasswordRules value={pw.a} />
+          <Field
+            label={ta("repeatPassword")}
+            error={pw.b && pw.a !== pw.b ? ta("passwordsDiffer") : undefined}
+          >
+            {(p) => (
+              <PasswordInput
+                {...p}
+                required
+                autoComplete="new-password"
+                value={pw.b}
+                onChange={(e) => setPw({ ...pw, b: e.target.value })}
+              />
+            )}
+          </Field>
+        </div>
       )}
       <p
         className={

@@ -175,7 +175,22 @@
       "scan": "Telefoningizda kamerani QR kodga qarating yoki pastdagi tugmani bosing.",
       "open": "Telegram’ni oçiş",
       "waiting": "Botda tasdiqlaşingizni kutyapmiz…"
-    }
+    },
+    "usernameOrEmail": "Username yoki email",
+    "badLogin": "Username yoki parol notöğri.",
+    "tooMany": "Juda köp urinib köringiz. 10 daqiqadan keyin qayta urining.",
+    "showPassword": "Parolni körsatiş",
+    "hidePassword": "Parolni yaşiriş",
+    "rule_length": "Kamida 8 ta belgi",
+    "rule_lower": "Kiçik harf",
+    "rule_upper": "Katta harf",
+    "rule_digit": "Kamida 1 ta son",
+    "newPassword": "Parol",
+    "repeatPassword": "Parolni takrorlang",
+    "currentPassword": "Hozirgi parol",
+    "passwordsDiffer": "Parollar bir xil emas.",
+    "savePassword": "Parolni saqlaş",
+    "passwordSaved": "Parol saqlandi."
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -1023,11 +1038,40 @@
       "premium": "Premium",
       "look": "Köriniş va til",
       "menu": "Menyu",
-      "keys": "Klaviatura",
+      "keys": "Şortcutlar",
       "app": "Ilovani örnatiş",
       "storage": "Xotira",
       "privacy": "Maxfiylik va hisob",
-      "help": "Qöllanma"
+      "help": "Qöllanma",
+      "security": "Xavfsizlik"
+    },
+    "security": {
+      "password": "Parol",
+      "devices": "Qurilmalar",
+      "devicesHint": "Hisobingiz {n} ta qurilmada oçiq (köpi bilan {max} ta). Yangi qurilmadan kirilsa, eng eskisi çiqib ketadi.",
+      "thisDevice": "Şu qurilma",
+      "remove": "Çiqarib taşlaş",
+      "removed": "Qurilma çiqarildi"
+    },
+    "device": {
+      "title": "Şu qurilmadagi xotira",
+      "intro": "Sayt tez va internetsiz ham işlaşi uçun ba’zi narsalar şu qurilmada saqlanadi. Joy kerak bölsa, ularni tozalaşingiz mumkin.",
+      "deviceTotal": "Sayt şu qurilmada jami {used} joy egallagan",
+      "audioTitle": "Audiokitoblar",
+      "audioHint": "Eşitgan qismlaringiz. Tozalasangiz, keyingi safar internetdan qayta yuklanadi (AI limiti sarflanmaydi).",
+      "booksTitle": "Oflayn kitoblar",
+      "booksHint": "«Oflayn saqlaş» bosilgan kitoblar. Tozalasangiz, internetsiz oçilmaydi.",
+      "siteTitle": "Sahifa va rasmlar keşi",
+      "siteHint": "Muqovalar va sahifalar nusxasi. Tozalasangiz, sayt bir marta sekinroq oçiladi.",
+      "clear": "Tozalaş",
+      "clearAll": "Hammasini tozalaş",
+      "cleared": "Tozalandi",
+      "confirm_audio": "Bu qurilmadagi audiokitob qismlari öçirilsinmi?",
+      "confirm_books": "Oflayn saqlangan kitoblar öçirilsinmi?",
+      "confirm_site": "Sahifa va rasmlar keşi öçirilsinmi?",
+      "confirmAll": "Bu qurilmadagi barça keş öçirilsinmi? Hisobingizdagi ma’lumotlar öçmaydi.",
+      "safeTitle": "Nimalar öçmaydi",
+      "safeBody": "Kitoblaringiz, qaydlar, iqtiboslar, taqrizlar, Röznoma va tayyor audiokitoblar serverda saqlanadi. Tozalaş faqat şu qurilmadagi nusxalarni olib taşlaydi, ular kerak bölganda qayta yuklanadi."
     }
   },
   "admin": {
