@@ -7,7 +7,6 @@ import { takeSourceAction } from "@/app/actions/social";
 import { moreMediaAction } from "@/app/actions/media";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
@@ -16,7 +15,7 @@ import type { MediaItem } from "@/server/social";
 
 const KINDS = ["all", "book", "video", "podcast", "course", "article"];
 
-/** One screen per item, swiped like Reels; a YouTube video plays in place. */
+/** What people add, as small cards; a YouTube video opens in place. */
 export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string }) {
   const t = useTranslations("media");
   const tt = useTranslations("types");
@@ -38,7 +37,9 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
   useEffect(() => {
     const el = tail.current;
     if (!el) return;
-    const io = new IntersectionObserver((e) => e[0].isIntersecting && void more());
+    const io = new IntersectionObserver((e) => e[0].isIntersecting && void more(), {
+      rootMargin: "400px",
+    });
     io.observe(el);
     return () => io.disconnect();
   }, [more]);
@@ -64,12 +65,12 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
       {list.length === 0 ? (
         <EmptyState title={t("empty")} body={t("emptyBody")} />
       ) : (
-        <ul className="h-[calc(100dvh-9rem-var(--bottom-nav,0px))] snap-y snap-mandatory [scrollbar-width:none] overflow-y-auto rounded-2xl">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((it) => (
             <Card key={`${it.resourceId}-${it.ownerId}`} it={it} />
           ))}
           {!end && (
-            <li ref={tail} className="grid h-16 place-items-center">
+            <li ref={tail} className="col-span-full grid h-16 place-items-center">
               <Loader2 className="text-muted size-5 animate-spin" />
             </li>
           )}
@@ -86,69 +87,77 @@ function Card({ it }: { it: MediaItem }) {
   const [taken, setTaken] = useState(it.mine);
   const { pending, exec } = useAction();
   const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
+  const portrait = it.type === "book" || it.type === "course";
   return (
-    <li className="relative flex h-full snap-start flex-col overflow-hidden bg-neutral-950 text-white md:flex-row">
-      <div className="relative grid min-h-0 flex-1 place-items-center p-6">
-        {playing && yt ? (
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&playsinline=1`}
-            title={it.title}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            className="aspect-video w-full rounded-xl"
-          />
-        ) : (
-          <>
-            <Link href={`/library/${it.resourceId}`} className="block h-full max-h-full">
-              <Cover
-                type={it.type as "book"}
-                title={it.title}
-                src={coverSrc(it)}
-                className="h-full max-h-[58dvh] w-auto"
-              />
-            </Link>
-            {yt && (
-              <button
-                type="button"
-                aria-label={t("play")}
-                onClick={() => setPlaying(true)}
-                className="absolute inset-0 m-auto grid size-16 place-items-center rounded-full bg-white/90 text-black shadow-xl transition-transform hover:scale-105"
-              >
-                <Play className="size-7 fill-current" />
-              </button>
-            )}
-          </>
-        )}
-      </div>
-      <div className="flex flex-col gap-2 bg-gradient-to-t from-black to-black/40 p-4 md:w-80 md:justify-end md:bg-gradient-to-l">
-        <Link href={`/u/${it.username}`} className="flex items-center gap-2 text-sm">
-          <Avatar name={it.name} image={it.image} className="size-8" />
-          <span className="min-w-0 truncate font-semibold">{it.name}</span>
-          <span className="truncate text-xs text-white/60">@{it.username}</span>
-        </Link>
-        <div>
-          <p className="text-xs text-white/60">{tt(it.type as "book")}</p>
-          <Link href={`/library/${it.resourceId}`} className="line-clamp-2 font-semibold">
-            {it.title}
+    <li className={cn("card flex flex-col gap-3 p-3", playing && "col-span-full")}>
+      {playing && yt && (
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&playsinline=1`}
+          title={it.title}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          className="mx-auto aspect-video w-full max-w-3xl rounded-lg"
+        />
+      )}
+      <div className="flex min-w-0 flex-1 gap-3">
+        <div className={cn("relative shrink-0 self-start", portrait ? "w-16" : "w-28")}>
+          <Link href={`/library/${it.resourceId}`} className="block">
+            <Cover type={it.type as "book"} title={it.title} src={coverSrc(it)} />
           </Link>
-          {it.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-white/70">{it.description}</p>
+          {yt && !playing && (
+            <button
+              type="button"
+              aria-label={t("play")}
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 m-auto grid size-9 place-items-center rounded-full bg-black/65 text-white transition-transform hover:scale-110"
+            >
+              <Play className="size-4 translate-x-px fill-current" />
+            </button>
           )}
         </div>
-        <Button
-          size="sm"
-          variant={taken ? "outline" : "primary"}
-          className="self-start"
-          disabled={taken}
-          loading={pending}
-          onClick={() =>
-            exec(() => takeSourceAction(it.resourceId, it.ownerId), {
-              onSuccess: () => setTaken(true),
-              success: t("taken"),
-            })
-          }
-        >
-          {taken ? <Check /> : <BookPlus />} {taken ? t("inLibrary") : t("take")}
-        </Button>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <Link
+            href={`/u/${it.username}`}
+            className="text-muted hover:text-foreground flex min-w-0 items-center gap-1.5 text-xs"
+          >
+            <Avatar name={it.name} image={it.image} className="size-5" />
+            <span className="truncate font-medium">{it.name}</span>
+          </Link>
+          <Link
+            href={`/library/${it.resourceId}`}
+            className="line-clamp-2 text-sm leading-snug font-semibold"
+          >
+            {it.title}
+          </Link>
+          {it.description && <p className="text-muted line-clamp-1 text-xs">{it.description}</p>}
+          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+            <span className="text-muted truncate text-xs">{tt(it.type as "book")}</span>
+            <button
+              type="button"
+              disabled={taken || pending}
+              onClick={() =>
+                exec(() => takeSourceAction(it.resourceId, it.ownerId), {
+                  onSuccess: () => setTaken(true),
+                  success: t("taken"),
+                })
+              }
+              className={cn(
+                "inline-flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-colors",
+                taken
+                  ? "text-muted"
+                  : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
+              )}
+            >
+              {pending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : taken ? (
+                <Check className="size-3.5" />
+              ) : (
+                <BookPlus className="size-3.5" />
+              )}
+              {taken ? t("inLibrary") : t("take")}
+            </button>
+          </div>
+        </div>
       </div>
     </li>
   );

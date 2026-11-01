@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { saveNoteAction } from "@/app/actions/personal";
@@ -27,6 +27,7 @@ import { marked, type Mark } from "@/lib/reader-marks";
 import { reflow } from "@/lib/reflow";
 import type { ReaderData } from "@/server/reader";
 import { offlinePages } from "./offline";
+import { copySheet, turnPage } from "./page-turn";
 import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
 import { PAPER, paperVars, useReaderPrefs } from "./reader-prefs";
@@ -87,7 +88,7 @@ export function ReaderApp({
   const [zoom, setZoom] = useState(0);
   const [original, setOriginal] = useState<Set<number>>(new Set());
   const stage = useRef<HTMLDivElement>(null);
-  const turning = useRef(false);
+  const turned = useRef<{ at: number; stop?: () => void }>({ at: 0 });
   const swipe = useRef<number | null>(null);
 
   const chapters = useMemo(() => data.structure?.chapters ?? [], [data.structure]);
@@ -166,34 +167,30 @@ export function ReaderApp({
     [total],
   );
 
-  /** The turn: the page lifts from its left edge and the next one is under it. */
+  /** A turn starts at once; one in progress ends and gives way to it. */
   const turn = useCallback(
     (dir: 1 | -1) => {
       const next = at + dir;
-      if (next < 1 || next > total || turning.current) return;
+      if (next < 1 || next > total) return;
+      if (performance.now() - turned.current.at < 140) return;
+      turned.current.stop?.();
       setSel(null);
       const box = stage.current;
       if (!box || matchMedia("(prefers-reduced-motion: reduce)").matches) return setAt(next);
-      const copy = () =>
-        box.querySelector("[data-sheet=one]")?.cloneNode(true) as HTMLElement | undefined;
-      const before = copy();
+      const sheet = () => box.querySelector<HTMLElement>("[data-sheet=one]");
+      const was = sheet();
+      const scroll = was?.querySelector(".book-body")?.scrollTop ?? 0;
+      const before = was && copySheet(was);
       flushSync(() => setAt(next));
-      const after = copy();
-      if (!before || !after) return;
-      turning.current = true;
-      const layer = document.createElement("div");
-      layer.className = "book-turn";
-      layer.setAttribute("aria-hidden", "true");
-      if (dir === -1) layer.append(before);
-      const leaf = dir === 1 ? before : after;
-      leaf.classList.add("book-leaf", dir === 1 ? "book-leaf-next" : "book-leaf-prev");
-      layer.append(leaf);
-      box.appendChild(layer);
-      box.querySelector(".book-body")?.scrollTo(0, 0);
-      window.setTimeout(() => {
-        layer.remove();
-        turning.current = false;
-      }, 700);
+      const now = sheet();
+      if (!before || !now) return;
+      turned.current = {
+        at: performance.now(),
+        stop:
+          dir === 1
+            ? turnPage({ box, leaf: before, dir, scroll })
+            : turnPage({ box, leaf: copySheet(now), under: before, dir }),
+      };
     },
     [at, total],
   );
@@ -570,7 +567,8 @@ function Sheet({
 }) {
   const t = useTranslations("reader");
   const body = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  // Before paint: the page turn copies this sheet at its final size.
+  useLayoutEffect(() => {
     const el = body.current;
     if (!el) return;
     const fit = () => {

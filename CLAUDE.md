@@ -90,6 +90,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `server/book-format.ts` (after upload, while reading, and a little with each reminders cron); `d`
   blocks carry the speaker `s`; lines repeated at the edge of pages (`repeatedLines`) stay on their
   first page only; `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
+  The turn (`reader/page-turn.ts`): flat part + fold, clipped at a moving crease; transforms only.
 - Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`, with speed), on every
   page. Its page has one reader / with the characters (`analysis.cast`), the book as bars (one per
   part) and no text or analysis. `engine.tsx` keeps an order of parts (`queue`, in localStorage, made
@@ -176,7 +177,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   before the app), Settings → profile. Social (`server/social.ts`, `/u/[username]`, `/media`): new
   profiles are public, items are public or private one by one (the add form defaults to public, the
   DB to private); a private profile is found by name but only accepted followers see inside
-  (`follow_requests`, `canSee`). `/media` is a Reels-like feed; "take" (`takeSource`) copies only the
+  (`follow_requests`, `canSee`). `/media` is a feed of small cards; "take" (`takeSource`) copies only the
   card. Never expose notes, write-ups, files or book text of others.
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,

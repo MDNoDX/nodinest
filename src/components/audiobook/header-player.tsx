@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { Headphones, Loader2, Pause, Play, X } from "lucide-react";
+import { FastForward, Headphones, Loader2, Pause, Play, Rewind, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAudiobook } from "./engine";
@@ -44,8 +44,14 @@ export function HeaderPlayer({ className }: { className?: string }) {
       >
         {speed}×
       </button>
-      <button type="button" onClick={() => seek(-10)} aria-label={t("back15")} className={btn}>
-        −10
+      <button
+        type="button"
+        onClick={() => seek(-10)}
+        aria-label={t("back15")}
+        title={t("back15")}
+        className={btn}
+      >
+        <Rewind className="size-3.5 fill-current" />
       </button>
       <button
         type="button"
@@ -61,8 +67,14 @@ export function HeaderPlayer({ className }: { className?: string }) {
           <Play className="size-3.5 translate-x-px" />
         )}
       </button>
-      <button type="button" onClick={() => seek(10)} aria-label={t("fwd15")} className={btn}>
-        +10
+      <button
+        type="button"
+        onClick={() => seek(10)}
+        aria-label={t("fwd15")}
+        title={t("fwd15")}
+        className={btn}
+      >
+        <FastForward className="size-3.5 fill-current" />
       </button>
       <button type="button" onClick={close} aria-label={t("closePlayer")} className={btn}>
         <X className="size-3.5" />

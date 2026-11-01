@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { UserSearch } from "lucide-react";
 import { MediaFeed } from "@/components/media-feed/feed";
 import { FollowButton } from "@/components/social/follow-button";
 import { PeopleSearch } from "@/components/social/people-search";
@@ -22,13 +21,10 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
   return (
     <>
       <PageHeader title={t("title")} />
-      <section className="card mb-5 flex flex-col gap-3 p-4 sm:p-5">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <UserSearch className="size-5 text-[var(--c-violet)]" /> {t("findPeople")}
-        </h2>
+      <section aria-label={t("findPeople")} className="mb-4 flex flex-col gap-3">
         <PeopleSearch />
         {asked.length > 0 && (
-          <div className="border-border border-t pt-3">
+          <div className="card p-3">
             <h3 className="text-muted mb-2 text-xs font-semibold">{t("waiting")}</h3>
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {asked.map((p) => (

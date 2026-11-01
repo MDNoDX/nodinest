@@ -2,8 +2,7 @@
 import {
   ArrowLeft,
   AudioLines,
-  ChevronsLeft,
-  ChevronsRight,
+  FastForward,
   Gauge,
   Headphones,
   Loader2,
@@ -11,6 +10,9 @@ import {
   MoonStar,
   Pause,
   Play,
+  Rewind,
+  SkipBack,
+  SkipForward,
   Square,
   TableOfContents,
   Users,
@@ -471,15 +473,16 @@ function Ready({
             aria-label={t("prev")}
             className="ab-btn"
           >
-            <ChevronsLeft className="size-5" />
+            <SkipBack className="size-5 fill-current" />
           </button>
           <button
             type="button"
             onClick={() => seek(-10)}
             aria-label={t("back15")}
-            className="ab-btn text-sm font-semibold tabular-nums"
+            title={t("back15")}
+            className="ab-btn"
           >
-            −10
+            <Rewind className="size-6 fill-current" />
           </button>
           <span className="ab-ring" style={{ ["--pct" as string]: `${pct}%` }}>
             <button
@@ -501,9 +504,10 @@ function Ready({
             type="button"
             onClick={() => seek(10)}
             aria-label={t("fwd15")}
-            className="ab-btn text-sm font-semibold tabular-nums"
+            title={t("fwd15")}
+            className="ab-btn"
           >
-            +10
+            <FastForward className="size-6 fill-current" />
           </button>
           <button
             type="button"
@@ -511,7 +515,7 @@ function Ready({
             aria-label={t("next")}
             className="ab-btn"
           >
-            <ChevronsRight className="size-5" />
+            <SkipForward className="size-5 fill-current" />
           </button>
         </div>
         {loading && <p className="text-muted -mt-2 text-center text-xs">{t("voiceComing")}</p>}
