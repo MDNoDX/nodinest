@@ -95,7 +95,7 @@ const uz: GuideSection[] = [
       },
       {
         title: "Köriniş (Aa)",
-        text: "Fon (oq, sepiya, tun), şrift, harf ölçami, qator oraliği va matn kengligini özingizga moslang. Közni çarçatmaslik uçun keçqurun «Tun» yoki «Sepiya» tavsiya qilinadi.",
+        text: "Fon (oq, sepiya, tun), şrift, harf ölçami va qator oraliğini özingizga moslang. Közni çarçatmaslik uçun keçqurun «Tun» yoki «Sepiya» tavsiya qilinadi.",
       },
       {
         title: "Qidiruv va belgilar",
@@ -450,7 +450,7 @@ const en: GuideSection[] = [
       },
       {
         title: "Display (Aa)",
-        text: "Paper (white, sepia, night), typeface, size, line spacing and width. Night or sepia are kinder to the eyes in the evening.",
+        text: "Paper (white, sepia, night), typeface, size and line spacing. Night or sepia are kinder to the eyes in the evening.",
       },
       {
         title: "Search and marks",
