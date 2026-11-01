@@ -2503,7 +2503,10 @@
     "unit_rakat": "rakats",
     "unit_full": "full",
     "audioToText": "Turn into text",
-    "audioRemove": "Remove the recording"
+    "audioRemove": "Remove the recording",
+    "woke": "Got up",
+    "slept": "Went to bed",
+    "ofAwake": "of waking hours"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",

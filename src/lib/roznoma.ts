@@ -98,10 +98,20 @@ export function hijriDate(day: string, locale: string): string {
   }
 }
 
-/** How much of the awake day was productive (12 active hours = 100 %). */
-export const ACTIVE_DAY_MINUTES = 12 * 60;
-export const productivePercent = (minutes: number | null | undefined) =>
-  minutes ? Math.min(100, Math.round((minutes / ACTIVE_DAY_MINUTES) * 100)) : 0;
+/** A waking day, for days whose getting up and going to bed were not noted. */
+export const ACTIVE_DAY_MINUTES = 16 * 60;
+
+/** Minutes between getting up and going to bed; bedtime may fall after midnight. */
+export function awakeMinutes(woke: string | null | undefined, slept: string | null | undefined) {
+  if (!woke || !slept) return null;
+  const min = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const m = min(slept) - min(woke);
+  return m > 0 ? m : m + 24 * 60;
+}
+
+/** The share of the waking day that was productive: sleep neither helps nor hurts. */
+export const productivePercent = (minutes: number | null | undefined, awake?: number | null) =>
+  minutes ? Math.min(100, Math.round((minutes / (awake || ACTIVE_DAY_MINUTES)) * 100)) : 0;
 
 export const percent = (done: number, total: number) =>
   total ? Math.round((done / total) * 100) : 0;

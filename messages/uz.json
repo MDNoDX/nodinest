@@ -2503,7 +2503,10 @@
     "unit_rakat": "rakat",
     "unit_full": "töliq",
     "audioToText": "Matnga aylantiriş",
-    "audioRemove": "Audioni olib taşlaş"
+    "audioRemove": "Audioni olib taşlaş",
+    "woke": "Uyğondim",
+    "slept": "Uxladim",
+    "ofAwake": "uyğoq vaqtdan"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",

@@ -871,6 +871,9 @@ export const dayLogs = nodinest.table(
     productiveMinutes: integer("productive_minutes"),
     /** Better than yesterday? NULL = not answered. */
     better: boolean("better"),
+    /** Got up / went to bed ("HH:MM"): productive time is a share of these hours. */
+    wokeAt: text("woke_at"),
+    sleptAt: text("slept_at"),
     /** The day told aloud: recordings, kept as sound; `text` once turned into the story. */
     audio: jsonb("audio")
       .$type<{ fileId: string; name: string; seconds: number; text?: boolean }[]>()

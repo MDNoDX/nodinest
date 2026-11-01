@@ -29,11 +29,13 @@ import { Input, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
 import { uzScript } from "@/i18n/config";
-import { dayPercent, hijriDate, productivePercent } from "@/lib/roznoma";
+import { awakeMinutes, dayPercent, hijriDate, productivePercent } from "@/lib/roznoma";
 import { enqueue } from "@/lib/outbox";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
 import { DayAudio, type DayRecording } from "./day-audio";
+import { Highlights } from "./highlights";
+import { TimeField } from "./time-field";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
@@ -46,6 +48,8 @@ export type DayLogValue = {
   lesson: string | null;
   productiveMinutes: number | null;
   better: boolean | null;
+  wokeAt: string | null;
+  sleptAt: string | null;
   audio: DayRecording[];
 };
 export type StoredItem = RoutineValue & { id: string };
@@ -129,7 +133,6 @@ export function DayView({
   const [quick, setQuick] = useState("");
   const [savingLog, setSavingLog] = useState(false);
   const [mottoEdit, setMottoEdit] = useState(false);
-  const [highlight, setHighlight] = useState("");
   const [pageOpen, setPageOpen] = useState(
     !!(initialLog.title || initialLog.story || initialLog.highlights.length || initialLog.lesson),
   );
@@ -257,6 +260,17 @@ export function DayView({
   };
 
   const hours = log.productiveMinutes != null ? log.productiveMinutes / 60 : null;
+  const awake = awakeMinutes(log.wokeAt, log.sleptAt);
+  /** Productive time cannot go past the hours between getting up and going to bed. */
+  const limit = awake ?? 24 * 60;
+  const setHours = (change: Partial<DayLogValue>) =>
+    setLog((l) => {
+      const next = { ...l, ...change };
+      const max = awakeMinutes(next.wokeAt, next.sleptAt) ?? 24 * 60;
+      return next.productiveMinutes != null
+        ? { ...next, productiveMinutes: Math.min(next.productiveMinutes, max) }
+        : next;
+    });
 
   return (
     <div className="flex flex-col gap-5">
@@ -484,54 +498,13 @@ export function DayView({
                   void saveLog(next);
                 }}
               />
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">📌 {t("highlights")}</span>
-                {log.highlights.length > 0 && (
-                  <ul className="flex flex-col gap-1">
-                    {log.highlights.map((h, i) => (
-                      <li
-                        key={`${h}-${i}`}
-                        className="bg-surface-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
-                      >
-                        <span className="flex-1">• {h}</span>
-                        <button
-                          type="button"
-                          aria-label={t("delete")}
-                          className="text-muted hover:text-danger"
-                          onClick={() =>
-                            setLog({ ...log, highlights: log.highlights.filter((_, k) => k !== i) })
-                          }
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <form
-                  className="flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const h = highlight.trim();
-                    if (!h) return;
-                    setLog({ ...log, highlights: [...log.highlights, h] });
-                    setHighlight("");
-                  }}
-                >
-                  <Input
-                    value={highlight}
-                    maxLength={300}
-                    placeholder={t("highlightPh")}
-                    onChange={(e) => setHighlight(e.target.value)}
-                  />
-                  <Button type="submit" variant="secondary" disabled={!highlight.trim()}>
-                    <Plus />
-                  </Button>
-                </form>
-              </div>
+              <Highlights
+                value={log.highlights}
+                onChange={(highlights) => setLog({ ...log, highlights })}
+              />
               <details
                 className="group"
-                open={!!(log.lesson || log.productiveMinutes || log.better != null)}
+                open={!!(log.lesson || log.productiveMinutes || log.better != null || log.wokeAt)}
               >
                 <summary className="text-primary cursor-pointer text-sm font-medium">
                   {t("conclusion")}
@@ -543,13 +516,23 @@ export function DayView({
                     placeholder={`✍️ ${t("lessonPh")}`}
                     onChange={(e) => setLog({ ...log, lesson: e.target.value || null })}
                   />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1 text-sm">
+                      <span>🌅 {t("woke")}</span>
+                      <TimeField value={log.wokeAt} onChange={(v) => setHours({ wokeAt: v })} />
+                    </div>
+                    <div className="flex flex-col gap-1 text-sm">
+                      <span>🌙 {t("slept")}</span>
+                      <TimeField value={log.sleptAt} onChange={(v) => setHours({ sleptAt: v })} />
+                    </div>
+                  </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <label className="flex items-center gap-2 text-sm">
                       ⏳ {t("productive")}
                       <Input
                         type="number"
                         min={0}
-                        max={24}
+                        max={limit / 60}
                         step={0.5}
                         inputMode="decimal"
                         className="w-24"
@@ -560,15 +543,16 @@ export function DayView({
                             productiveMinutes:
                               e.target.value === ""
                                 ? null
-                                : Math.round(Number(e.target.value) * 60),
+                                : Math.min(limit, Math.round(Number(e.target.value) * 60)),
                           })
                         }
                       />
+                      {awake ? `/ ${Math.round((awake / 60) * 10) / 10} ` : ""}
                       {t("hoursShort")}
                     </label>
                     {log.productiveMinutes != null && (
                       <span className="bg-primary-soft text-primary rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums">
-                        {productivePercent(log.productiveMinutes)}%
+                        {productivePercent(log.productiveMinutes, awake)}%
                       </span>
                     )}
                   </div>

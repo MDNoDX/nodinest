@@ -2,7 +2,6 @@ import { Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Card, CardHeader, StatTile } from "@/components/ui/misc";
 import { fmtDay, type Loc } from "@/lib/format";
-import { productivePercent } from "@/lib/roznoma";
 
 type H = {
   days: {
@@ -15,7 +14,7 @@ type H = {
   }[];
   average: number;
   streak: number;
-  week: { pct: number | null; minutes: number };
+  week: { pct: number | null; minutes: number; share: number };
   prev: { pct: number | null; minutes: number };
   bestDay: { day: string; pct: number } | null;
   today: { pct: number; total: number };
@@ -92,7 +91,7 @@ export async function StatsView({ h, locale }: { h: H; locale: Loc }) {
         <StatTile
           label={t("statProductive")}
           value={`${hours(h.week.minutes)} ${t("hoursShort")}`}
-          hint={`${productivePercent(Math.round(h.week.minutes / 7))}% ${t("perDay")}`}
+          hint={`${h.week.share}% ${t("ofAwake")}`}
         />
         <StatTile
           label={t("statBetter")}

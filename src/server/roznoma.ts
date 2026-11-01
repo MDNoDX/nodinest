@@ -30,6 +30,8 @@ import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { GOAL_KINDS, guessIcon } from "@/lib/plan-icons";
 import {
+  ACTIVE_DAY_MINUTES,
+  awakeMinutes,
   hijriDate,
   amountTarget,
   type CheckStatus,
@@ -396,6 +398,8 @@ export type DayLog = {
   lesson: string | null;
   productiveMinutes: number | null;
   better: boolean | null;
+  wokeAt: string | null;
+  sleptAt: string | null;
   audio: DayAudio[];
 };
 export type DayAudio = { fileId: string; name: string; seconds: number; text?: boolean };
@@ -407,6 +411,8 @@ const EMPTY_LOG: DayLog = {
   lesson: null,
   productiveMinutes: null,
   better: null,
+  wokeAt: null,
+  sleptAt: null,
   audio: [],
 };
 
@@ -456,7 +462,7 @@ function dayItems(all: Routine[], checks: Check[], day: string) {
 export async function getDay(ctx: AppContext, day: string) {
   const d = dayStr.parse(day);
   const all = await loadRoutines(ctx);
-  const [checks, logs, lastMotto] = await withUser(db, ctx, (tx) =>
+  const [checks, logs, lastMotto, lastHours] = await withUser(db, ctx, (tx) =>
     Promise.all([
       tx
         .select({
@@ -487,6 +493,19 @@ export async function getDay(ctx: AppContext, day: string) {
         )
         .orderBy(desc(dayLogs.day))
         .limit(1),
+      // Yesterday's hours, offered for a day without its own.
+      tx
+        .select({ wokeAt: dayLogs.wokeAt, sleptAt: dayLogs.sleptAt })
+        .from(dayLogs)
+        .where(
+          and(
+            eq(dayLogs.userId, ctx.userId),
+            sql`${dayLogs.day} <= ${d}`,
+            sql`${dayLogs.wokeAt} is not null`,
+          ),
+        )
+        .orderBy(desc(dayLogs.day))
+        .limit(1),
     ]),
   );
   const doneOn = new Set(checks.filter((c) => c.status === "done").map((c) => `${c.id}|${c.day}`));
@@ -506,7 +525,7 @@ export async function getDay(ctx: AppContext, day: string) {
     streak: r.repeat === "once" ? 0 : streakOf(r),
   }));
   const l = logs[0];
-  const log: DayLog = l
+  let log: DayLog = l
     ? {
         motto: l.motto,
         title: l.title,
@@ -515,9 +534,17 @@ export async function getDay(ctx: AppContext, day: string) {
         lesson: l.lesson,
         productiveMinutes: l.productiveMinutes,
         better: l.better,
+        wokeAt: l.wokeAt,
+        sleptAt: l.sleptAt,
         audio: l.audio,
       }
     : EMPTY_LOG;
+  // People keep their hours: yesterday's are offered until today's are set.
+  log = {
+    ...log,
+    wokeAt: log.wokeAt ?? lastHours[0]?.wokeAt ?? null,
+    sleptAt: log.sleptAt ?? lastHours[0]?.sleptAt ?? null,
+  };
   return {
     day: d,
     items,
@@ -528,6 +555,8 @@ export async function getDay(ctx: AppContext, day: string) {
     percent: dayPercent(items),
   };
 }
+
+const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
 export const dayLogInput = z.object({
   motto: z.string().trim().max(300).nullish(),
@@ -542,6 +571,8 @@ export const dayLogInput = z.object({
     .max(24 * 60)
     .nullish(),
   better: z.boolean().nullish(),
+  wokeAt: clock.nullish(),
+  sleptAt: clock.nullish(),
   audio: z
     .array(
       z.object({
@@ -570,14 +601,19 @@ export async function saveDayLog(ctx: AppContext, day: string, raw: unknown, loc
     );
     if (own.length !== new Set(ids).size) throw new AppError("NOT_FOUND");
   }
+  const awake = awakeMinutes(a.wokeAt, a.sleptAt);
   const v = {
     audio: a.audio,
+    wokeAt: a.wokeAt ?? null,
+    sleptAt: a.sleptAt ?? null,
     motto: a.motto || null,
     title: a.title || null,
     story: a.story || null,
     highlights: a.highlights,
     lesson: a.lesson || null,
-    productiveMinutes: a.productiveMinutes ?? null,
+    // Never more than the hours between getting up and going to bed.
+    productiveMinutes:
+      a.productiveMinutes == null ? null : Math.min(a.productiveMinutes, awake ?? 24 * 60),
     better: a.better ?? null,
     updatedAt: new Date(),
   };
@@ -705,7 +741,7 @@ async function writeIntoBook(
   if (L.productiveMinutes != null)
     section.push(
       para(
-        `⏳ ${ru ? "Продуктивно" : en ? "Productive" : "Unumli"}: ${Math.round((L.productiveMinutes / 60) * 10) / 10} ${ru ? "ч" : en ? "h" : "soat"} | ${productivePercent(L.productiveMinutes)}%`,
+        `⏳ ${ru ? "Продуктивно" : en ? "Productive" : "Unumli"}: ${Math.round((L.productiveMinutes / 60) * 10) / 10} ${ru ? "ч" : en ? "h" : "soat"} | ${productivePercent(L.productiveMinutes, awakeMinutes(L.wokeAt, L.sleptAt))}%`,
       ),
     );
   if (page.motto) section.push(para(`📕 «${page.motto}»`));
@@ -822,6 +858,7 @@ export async function history(ctx: AppContext, today: string, days = 30) {
       total: items.length,
       pct: dayPercent(items),
       productive: l?.productiveMinutes ?? null,
+      awake: awakeMinutes(l?.wokeAt, l?.sleptAt),
       better: l?.better ?? null,
     };
   });
@@ -830,6 +867,15 @@ export async function history(ctx: AppContext, today: string, days = 30) {
     return w.length ? Math.round(w.reduce((a, x) => a + x.pct, 0) / w.length) : null;
   };
   const sum = (xs: typeof out) => xs.reduce((a, x) => a + (x.productive ?? 0), 0);
+  /** The productive share of the waking hours of the days that have a number. */
+  const share = (xs: typeof out) => {
+    const w = xs.filter((x) => x.productive != null);
+    if (!w.length) return 0;
+    return productivePercent(
+      sum(w),
+      w.reduce((a, x) => a + (x.awake ?? ACTIVE_DAY_MINUTES), 0),
+    );
+  };
   const week = out.slice(-7);
   const prev = out.slice(-14, -7);
   let streak = 0;
@@ -843,7 +889,7 @@ export async function history(ctx: AppContext, today: string, days = 30) {
     days: out,
     average: avg(out) ?? 0,
     streak,
-    week: { pct: avg(week), minutes: sum(week) },
+    week: { pct: avg(week), minutes: sum(week), share: share(week) },
     prev: { pct: avg(prev), minutes: sum(prev) },
     bestDay: [...week].filter((x) => x.total).sort((a, b) => b.pct - a.pct)[0] ?? null,
     today: out[out.length - 1],
