@@ -337,8 +337,10 @@ export async function runAssistant(
     attachments?: string[];
     /** Live voice talk: the reply is spoken aloud (short, no lists or formatting). */
     spoken?: boolean;
-    /** The language of the words just spoken (two letters). */
-    spokenLang?: string;
+    /** The recording itself: the model hears it instead of reading `message`. */
+    audio?: { mimeType: string; data: string };
+    /** What was said, written down (it arrives while the model answers). */
+    heard?: Promise<string>;
     /** The reply's text while it is being written. */
     onText?: (piece: string) => void;
     /** The conversation is known (before the model answers). */
@@ -407,15 +409,17 @@ export async function runAssistant(
     proposalsSoFar(ctx, convId),
     attachmentParts(ctx, attachments),
   ]);
-  await withUser(db, ctx, (tx) =>
-    tx.insert(aiMessages).values({
-      conversationId: convId,
-      userId: ctx.userId,
-      role: "user",
-      content: message,
-      toolTrace: attachments.length ? { attachments } : null,
-    }),
-  );
+  const saveQuestion = (content: string) =>
+    withUser(db, ctx, (tx) =>
+      tx.insert(aiMessages).values({
+        conversationId: convId,
+        userId: ctx.userId,
+        role: "user",
+        content,
+        toolTrace: attachments.length ? { attachments } : null,
+      }),
+    );
+  if (!input.heard) await saveQuestion(message);
 
   const allowed = (Object.keys(TOOLS) as ToolName[]).filter(
     (t) =>
@@ -434,7 +438,12 @@ export async function runAssistant(
 
   const contents: Content[] = [
     ...history,
-    { role: "user", parts: [{ text: message }, ...fileParts] },
+    {
+      role: "user",
+      parts: input.audio
+        ? [{ inlineData: input.audio }, { text: "(The user said this aloud.)" }]
+        : [{ text: message }, ...fileParts],
+    },
   ];
   const actions: AssistantAction[] = [];
   const visuals: Visual[] = [];
@@ -449,9 +458,7 @@ export async function runAssistant(
         "\n\n" +
         systemInstruction(input.locale, input.timeZone, context + earlier) +
         (input.spoken ? SPOKEN : "") +
-        (input.spokenLang
-          ? `\n- The user just spoke in the language with code "${input.spokenLang}": answer in that language.`
-          : ""),
+        (input.audio ? "\n- Answer in the language the user spoke in." : ""),
       tools,
       temperature: 0.7,
       maxOutputTokens: 4096,
@@ -627,6 +634,26 @@ export async function runAssistant(
             : actions.length
               ? "Quyidagi takliflarni körib çiqing va tasdiqlang."
               : "Bu sörovni bajara olmadim. Iltimos, boşqaça ifodalab köring.";
+  }
+
+  if (input.heard) {
+    const words = await input.heard;
+    // Only noise: nothing was said, so nothing is kept.
+    if (!words) {
+      if (!input.conversationId)
+        await withUser(db, ctx, (tx) =>
+          tx.delete(aiConversations).where(eq(aiConversations.id, convId)),
+        );
+      return { conversationId: convId, reply: "", actions, trace, visuals };
+    }
+    await saveQuestion(words);
+    if (!input.conversationId)
+      await withUser(db, ctx, (tx) =>
+        tx
+          .update(aiConversations)
+          .set({ title: words.slice(0, 80) })
+          .where(eq(aiConversations.id, convId)),
+      );
   }
 
   await withUser(db, ctx, async (tx) => {

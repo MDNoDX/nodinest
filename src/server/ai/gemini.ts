@@ -409,6 +409,54 @@ function toPcm(data: string, mime: string): { pcm: Int16Array; rate: number } {
 }
 
 /**
+ * One voice, sent piece by piece as it is made (the live talk starts hearing it
+ * at once). Returns false when no model could speak, so the caller can fall back.
+ */
+export async function speakLive(
+  text: string,
+  voiceName: string,
+  onPcm: (base64: string, rate: number) => void,
+  opts: { languageCode?: string; signal?: AbortSignal } = {},
+): Promise<boolean> {
+  const now = Date.now();
+  const models = ttsModels();
+  const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
+  for (const model of ready.length ? ready : models) {
+    let sent = false;
+    try {
+      const stream = await gemini().models.generateContentStream({
+        model,
+        contents: [{ role: "user", parts: [{ text }] }],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+            ...(opts.languageCode ? { languageCode: opts.languageCode } : {}),
+          },
+          abortSignal: opts.signal,
+          httpOptions: { timeout: 30_000, retryOptions: { attempts: 1 } },
+        },
+      });
+      for await (const chunk of stream) {
+        const data = chunk.candidates?.[0]?.content?.parts?.find(
+          (p) => p.inlineData?.data,
+        )?.inlineData;
+        if (!data?.data) continue;
+        const rate = /rate=(\d+)/.exec(data.mimeType ?? "")?.[1];
+        onPcm(data.data, Number(rate ?? 24_000));
+        sent = true;
+      }
+      if (sent) return true;
+    } catch (err) {
+      if (sent || opts.signal?.aborted) return sent;
+      if (err instanceof ApiError && err.status === 429)
+        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+    }
+  }
+  return false;
+}
+
+/**
  * Speaks lines by at most TWO speakers (the API's limit per request) with the
  * given prebuilt voices. Models are tried in order (quota / overload → next).
  */

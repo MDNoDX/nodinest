@@ -11,6 +11,7 @@ type Event =
   | { t: "conv"; conversationId: string }
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
+  | { t: "pcm"; audio: string; rate: number }
   | { t: "done"; reply: string; conversationId: string | null; visuals: Visual[] }
   | { t: "error"; code: string };
 
@@ -180,6 +181,34 @@ export function VoiceTalk({
     [watchBarge],
   );
 
+  /** A piece of raw speech: joined to the previous one without a gap. */
+  const playPcm = useCallback(
+    (b64: string, rate: number, turn: number) => {
+      const x = r.current;
+      x.decoding = x.decoding.then(() => {
+        const ctx = x.ctx;
+        if (!ctx || turn !== x.turn || !x.out) return;
+        const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+        const samples = new Int16Array(bytes.buffer, 0, Math.floor(bytes.length / 2));
+        const buf = ctx.createBuffer(1, samples.length, rate);
+        buf.getChannelData(0).set(Float32Array.from(samples, (v) => v / 32768));
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(x.out);
+        const at = Math.max(ctx.currentTime + 0.03, x.nextAt);
+        src.start(at);
+        x.nextAt = at + buf.duration;
+        x.sources.add(src);
+        src.onended = () => x.sources.delete(src);
+        if (x.sources.size === 1) {
+          setState("speaking");
+          watchBarge();
+        }
+      });
+    },
+    [watchBarge],
+  );
+
   /** A soft tick: "I heard you", before the answer is ready. */
   const tick = useCallback(() => {
     const ctx = r.current.ctx;
@@ -238,7 +267,7 @@ export function VoiceTalk({
       const handle = (e: Event) => {
         if (e.t === "heard") {
           heard = e.heard;
-          setCaption({ heard, reply: "" });
+          setCaption({ heard, reply });
         } else if (e.t === "conv") x.conv = e.conversationId;
         else if (e.t === "text") {
           reply += e.piece;
@@ -246,6 +275,9 @@ export function VoiceTalk({
         } else if (e.t === "audio") {
           spoken = true;
           play(e.audio, turn);
+        } else if (e.t === "pcm") {
+          spoken = true;
+          playPcm(e.audio, e.rate, turn);
         } else if (e.t === "done") {
           reply = e.reply;
           x.conv = e.conversationId ?? x.conv;
@@ -300,7 +332,7 @@ export function VoiceTalk({
       window.clearInterval(x.barge);
       if (!x.closed && turn === x.turn) void x.listen?.();
     },
-    [onTurn, play, t, te, tick, watchBarge],
+    [onTurn, play, playPcm, t, te, tick, watchBarge],
   );
 
   const listen = useCallback(async () => {

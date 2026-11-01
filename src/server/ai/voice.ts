@@ -13,7 +13,7 @@ import { limitsFor } from "../premium";
 import { hitRateLimit } from "../rate-limit";
 import { runAssistant } from "./assistant";
 import { generate } from "./gemini";
-import { MAX_TURN_CHARS, talkVoice } from "./speech";
+import { MAX_TURN_CHARS, talkVoice, type TalkVoice } from "./speech";
 
 /** Free accounts can try the live talk this many times a day. */
 export const FREE_VOICE_TURNS = 3;
@@ -43,6 +43,7 @@ export type VoiceEvent =
   | { t: "conv"; conversationId: string }
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
+  | { t: "pcm"; audio: string; rate: number }
   | { t: "done"; reply: string; conversationId: string | null; visuals: unknown[] };
 
 /** May this person talk now? (before anything is streamed) */
@@ -69,39 +70,45 @@ export async function voiceTurn(
 ) {
   const loc = asLocale(input.locale);
   const mimeType = input.mime.split(";")[0] || "audio/webm";
-  const heardRes = await generate(
-    [
-      {
-        role: "user",
-        parts: [
-          { inlineData: { mimeType, data: Buffer.from(input.audio).toString("base64") } },
-          {
-            text: `Transcribe exactly what is said in this short recording (the user usually speaks ${aiLanguage(loc)}; Uzbek in Latin script). Answer in one line: the two-letter language code, then "|", then the words, e.g. "uz|Salom". If nothing is said or it is only noise, answer "-".`,
-          },
-        ],
-      },
-    ],
-    { temperature: 0, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 512 } },
-    { timeoutMs: 30_000 },
-  );
-  const raw = (heardRes.text ?? "").trim();
-  const m = /^([a-z]{2})\|([\s\S]+)$/.exec(raw);
-  const heard = (m ? m[2] : raw === "-" ? "" : raw).trim();
-  const lang = m?.[1] ?? (loc === "uz-Cyrl" ? "uz" : loc);
-  emit({ t: "heard", heard });
-  if (!heard) return;
+  const data = Buffer.from(input.audio).toString("base64");
+  // The model hears the recording itself, so the answer does not wait for the
+  // written words: both are asked for at once.
+  const heardNow = (async () => {
+    const res = await generate(
+      [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType, data } },
+            {
+              text: `Transcribe exactly what is said in this short recording (the user usually speaks ${aiLanguage(loc)}; Uzbek in Latin script). Answer in one line: the two-letter language code, then "|", then the words, e.g. "uz|Salom". If nothing is said or it is only noise, answer "-".`,
+            },
+          ],
+        },
+      ],
+      { temperature: 0, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 512 } },
+      { timeoutMs: 30_000 },
+    );
+    const raw = (res.text ?? "").trim();
+    const m = /^([a-z]{2})\|([\s\S]+)$/.exec(raw);
+    return {
+      heard: (m ? m[2] : raw === "-" ? "" : raw).trim(),
+      lang: m?.[1] ?? (loc === "uz-Cyrl" ? "uz" : loc),
+    };
+  })();
 
-  const speaker = await talkVoice(ctx, lang, input.voice);
   // Two sentences are made at a time; they are sent in order.
+  let speaker: TalkVoice | null = null;
   const jobs: Promise<unknown>[] = [];
   let sent = Promise.resolve();
   let spent = 0;
   const speakOut = (piece: string) => {
     const text = forSpeech(piece).slice(0, MAX_TURN_CHARS - spent);
-    if (!text || signal?.aborted) return;
+    const voice = speaker;
+    if (!text || !voice || signal?.aborted) return;
     spent += text.length;
     const job = (jobs.at(-2) ?? Promise.resolve()).then(() =>
-      signal?.aborted ? null : speaker.say(text).catch(() => null),
+      signal?.aborted ? null : voice.say(text).catch(() => null),
     );
     jobs.push(job);
     sent = sent.then(async () => {
@@ -112,29 +119,48 @@ export async function voiceTurn(
 
   let pending = "";
   let first = true;
+  const flush = () => {
+    if (!speaker?.chunked) return;
+    for (;;) {
+      const end = nextSentences(pending, first ? 12 : 50);
+      if (end == null) break;
+      speakOut(pending.slice(0, end));
+      pending = pending.slice(end);
+      first = false;
+    }
+  };
+  const ready = heardNow.then(async ({ heard, lang }) => {
+    emit({ t: "heard", heard });
+    if (!heard) return;
+    speaker = await talkVoice(ctx, lang, input.voice, signal);
+    flush();
+  });
+  ready.catch(() => {});
   const turn = await runAssistant(ctx, {
     conversationId: input.conversationId,
-    message: heard,
+    message: "…",
+    audio: { mimeType, data },
+    heard: heardNow.then((h) => h.heard),
     spoken: true,
-    spokenLang: lang,
     locale: input.locale,
     timeZone: input.timeZone,
     onConversation: (id) => emit({ t: "conv", conversationId: id }),
     onText: (piece) => {
       emit({ t: "text", piece });
-      if (!speaker.chunked) return;
       pending += piece;
-      for (;;) {
-        const end = nextSentences(pending, first ? 12 : 50);
-        if (end == null) break;
-        speakOut(pending.slice(0, end));
-        pending = pending.slice(end);
-        first = false;
-      }
+      flush();
     },
   });
-  // A reply made without the model's words (a card's fixed line) is said whole.
-  speakOut(speaker.chunked && spent + pending.length > 0 ? pending : turn.reply);
+  await ready;
+  if (!turn.reply) return;
+  const voice = speaker as TalkVoice | null;
+  if (voice?.live) {
+    const text = forSpeech(turn.reply).slice(0, MAX_TURN_CHARS);
+    const ok = await voice
+      .live(text, (audio, rate) => emit({ t: "pcm", audio, rate }))
+      .catch(() => false);
+    if (!ok) speakOut(turn.reply);
+  } else speakOut(spent + pending.length > 0 ? pending : turn.reply);
   await sent;
   emit({
     t: "done",

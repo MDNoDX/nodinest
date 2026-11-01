@@ -13,7 +13,7 @@ import { appSettings } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { encodeMp3 } from "../audiobook";
 import { hitRateLimit } from "../rate-limit";
-import { speak } from "./gemini";
+import { speak, speakLive } from "./gemini";
 
 const KEY = "eleven_usage";
 const API = "https://api.elevenlabs.io/v1";
@@ -110,6 +110,8 @@ export type TalkVoice = {
   /** It can say one sentence at a time (Gemini's few daily requests cannot). */
   chunked: boolean;
   say: (text: string) => Promise<Buffer | null>;
+  /** Speaks the whole reply as it is made; false if it could not. */
+  live?: (text: string, onPcm: (b64: string, rate: number) => void) => Promise<boolean>;
 };
 
 /** The longest reply a turn may speak (lib: the budget checks count this much). */
@@ -121,6 +123,7 @@ export async function talkVoice(
   /** The language spoken (two letters). */
   lang: string,
   voice: "female" | "male",
+  signal?: AbortSignal,
 ): Promise<TalkVoice> {
   if (key()) {
     const n = MAX_TURN_CHARS;
@@ -140,6 +143,8 @@ export async function talkVoice(
   }
   return {
     chunked: false,
+    live: (text, onPcm) =>
+      speakLive(text, GEMINI_VOICE[voice], onPcm, { languageCode: GEMINI_LANG[lang], signal }),
     say: async (text) => {
       try {
         const { pcm, rate } = await speak([{ speaker: "ai", text }], () => GEMINI_VOICE[voice], {
