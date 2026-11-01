@@ -77,7 +77,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
         }
       />
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr] [&>*]:min-w-0">
-        <aside className="hidden lg:block">
+        <aside className="sticky top-20 hidden max-h-[calc(100dvh-6rem)] self-start overflow-y-auto lg:block">
           <ConversationList
             items={convs.map((x) => ({ id: x.id, title: x.title ?? "…" }))}
             current={c ?? null}

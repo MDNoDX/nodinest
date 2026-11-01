@@ -972,7 +972,7 @@ export async function dailyNudges(now = new Date()) {
     const diff = h.prev.pct == null ? null : h.week.pct - h.prev.pct;
     await notify(p.userId, "weekly", {
       body: `${h.week.pct} %${diff == null ? "" : ` (${diff >= 0 ? "+" : ""}${diff})`}`,
-      href: "/plans?tab=stats",
+      href: "/stats?tab=plans",
     });
   }
 }

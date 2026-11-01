@@ -1,4 +1,4 @@
-import { BookOpen, Copy, Headphones, Plus, Search } from "lucide-react";
+import { BookOpen, Copy, Plus, Search } from "lucide-react";
 import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -97,7 +97,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
     !filters.archived &&
     filters.page <= 1 &&
     filters.sort === "updated";
-  const [shelves, audio] = browsing
+  const [shelves, audiobooks] = browsing
     ? await Promise.all([
         Promise.all(
           SHELVES.map(async (type) => ({
@@ -105,10 +105,11 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
             data: await listResources(db, ctx, { ...filters, type, pageSize: 5 }),
           })),
         ),
-        listAudiobooks(ctx, 5),
+        listAudiobooks(ctx),
       ])
     : [[], []];
   const shown = shelves.filter((x) => x.data.total > 0);
+  const audio = new Set(audiobooks.map((a) => a.id));
   const groups: { key: string; items: typeof data.items }[] = [];
   for (const r of data.items) {
     const k = groupKey(r);
@@ -283,27 +284,6 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
         )
       ) : browsing ? (
         <div className="flex flex-col gap-9">
-          {audio.length > 0 && (
-            <section>
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-                <Headphones className="text-primary size-5" /> {t("library.audiobooks")}
-              </h2>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {audio.map((r) => (
-                  <li key={r.id}>
-                    <CoverTile
-                      id={r.id}
-                      href={`/library/${r.id}/audiobook`}
-                      type="book"
-                      title={r.title}
-                      cover={coverSrc(r)}
-                      status={null}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
           {shown.map((x) => (
             <section key={x.type}>
               <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -330,6 +310,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
                       line={r.contributors}
                       status={r.myStatus}
                       rating={r.myRating}
+                      audio={audio.has(r.id)}
                     />
                   </li>
                 ))}

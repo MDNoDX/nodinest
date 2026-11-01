@@ -1,17 +1,17 @@
-import { CalendarDays, Flag, ListChecks, TrendingUp } from "lucide-react";
+import { CalendarDays, Flag, ListChecks } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { DayView } from "@/components/roznoma/day-view";
 import { GoalsView } from "@/components/roznoma/goals-view";
 import { RoutinesView } from "@/components/roznoma/routines-view";
-import { StatsView } from "@/components/roznoma/stats-view";
 import { PageHeader } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { addDays } from "@/lib/dates";
 import { fmtDay } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listGoalsWithProgress } from "@/server/goals";
-import { ensureDefaults, getDay, history, listRoutines } from "@/server/roznoma";
+import { ensureDefaults, getDay, listRoutines } from "@/server/roznoma";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -22,7 +22,6 @@ const TABS = [
   ["day", CalendarDays],
   ["goals", Flag],
   ["plans", ListChecks],
-  ["stats", TrendingUp],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -35,6 +34,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
   const t = await getTranslations();
   const q = await searchParams;
   const asked = sp(q.tab);
+  if (asked === "stats") redirect("/stats?tab=plans");
   const tab: Tab = TABS.some(([k]) => k === asked) ? (asked as Tab) : "day";
   const qd = sp(q.day);
   const day = qd && /^\d{4}-\d{2}-\d{2}$/.test(qd) ? qd : today;
@@ -85,16 +85,14 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
         }))}
       />
     );
-  } else if (tab === "plans") {
-    body = <RoutinesView routines={await listRoutines(ctx)} today={today} userId={ctx.userId} />;
   } else {
-    body = <StatsView h={await history(ctx, today, 30)} locale={locale} />;
+    body = <RoutinesView routines={await listRoutines(ctx)} today={today} userId={ctx.userId} />;
   }
 
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader section="plans" title={t("nav.plans")} />
-      <nav className="bg-surface-2 mb-5 grid grid-cols-4 gap-0.5 rounded-xl p-0.5 text-sm">
+      <nav className="bg-surface-2 mb-5 grid grid-cols-3 gap-0.5 rounded-xl p-0.5 text-sm">
         {TABS.map(([k, Icon]) => (
           <Link
             key={k}

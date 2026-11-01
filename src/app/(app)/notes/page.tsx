@@ -1,4 +1,5 @@
 import { FileText, Layers, NotebookPen, NotebookText, Plus, Quote, Trash2 } from "lucide-react";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import { ExportMenu } from "@/components/export/export-menu";
 import { Cover, coverSrc } from "@/components/library/cover";
 import type { ResourceType } from "@/lib/validation";
@@ -84,6 +85,7 @@ export default async function NotesPage({ searchParams }: { searchParams: SP }) 
           </>
         }
       />
+      <DarsxonaTabs current="notes" />
 
       <div className="mb-6 flex flex-col gap-3">
         <nav className="flex flex-wrap gap-2" aria-label={t("common.filters")}>

@@ -302,6 +302,13 @@
       "when": 1793524706919,
       "tag": "0042_book_layout",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793540035075,
+      "tag": "0043_reader_v2",
+      "breakpoints": true
     }
   ]
 }

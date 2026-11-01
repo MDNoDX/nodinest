@@ -84,11 +84,21 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks and the
   day page queue in `lib/outbox.ts` and go out on reconnect (`layout/outbox-sync.tsx`); the book editor
   has its own drafts. AI needs the network. The Mac app's WKWebView has service workers too.
-- Reader (`components/reader/reader-app.tsx`): one sheet per PDF page, facing pages on wide screens;
-  blocks in `book_pages.formatted` come from `server/book-format.ts` (after upload, while reading, and
-  a little with each reminders cron); scanned books show the PDF pages.
-- Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`), on every page. Its page
-  has one reader / with the characters (`analysis.cast`) and no text or analysis.
+- Reader (`components/reader/reader-app.tsx`): one page at a time, never two; it fills the width up
+  to the side panel, fits the window (`Sheet` tries font sizes), zoom makes the text bigger and the
+  page scrolls; full screen covers everything. Blocks in `book_pages.formatted` come from
+  `server/book-format.ts` (after upload, while reading, and a little with each reminders cron); `d`
+  blocks carry the speaker `s`; lines repeated at the edge of pages (`repeatedLines`) stay on their
+  first page only; `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
+- Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`, with speed), on every
+  page. Its page has one reader / with the characters (`analysis.cast`), the book as bars (one per
+  part) and no text or analysis. `engine.tsx` keeps an order of parts (`queue`, in localStorage, made
+  one at a time behind playback); moving to a part never makes it unless play is asked for.
+- Sections: notes, collections and people live in Darsxona tabs (`library/darsxona-tabs.tsx`), not
+  the menu; the top search (`layout/command-palette.tsx`) replaces the menu entry and finds Latin
+  Uzbek in Cyrillic and back (`otherScript`, `crossScriptTsQuery`). Tahlil is a tab of Metrics
+  (`/stats?tab=plans`). Accounts are public by default (0043), private is a choice.
+- Page-long chats stay at the newest line with `lib/use-follow-bottom.ts`.
 - Taqriz bubble menu: «Iqtibos» wraps the selection in a blockquote AND saves a `quote` note;
   «Qaydnoma» saves a `note` and highlights the text with the `note` mark (`attrs.noteId`,
   `components/taqriz/note-mark.ts`, allowed in `sanitizeDoc`). Video files + `youtube` nodes too.

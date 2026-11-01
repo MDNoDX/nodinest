@@ -975,7 +975,9 @@
     "byDays": "Kun böyiça",
     "byPace": "Kuniga bet",
     "days": "{count, plural, other {# kun}}",
-    "perDay": "{n} bet/kun"
+    "perDay": "{n} bet/kun",
+    "tabAll": "Umumiy",
+    "tabPlans": "Rejalar"
   },
   "suggestions": {
     "title": "Takliflar",
@@ -1760,8 +1762,7 @@
     "catalogExplain": "Umumiy katalogdagi boşqa foydalanuvçi qöşgan yozuvni özgartirsangiz, özgariş şu yerga taklif bölib tuşadi va admin tasdiqlagaç qöllanadi. Özingiz qöşganlarni esa darhol tahrirlaysiz.",
     "answer": "Admin javobi",
     "botTitle": "Telegram bot",
-    "botHint": "Taklif yozing — javob botga ham keladi",
-    "orWrite": "Yoki töğridan töğri yozing:"
+    "botHint": "Taklif yozing — javob botga ham keladi"
   },
   "tour": {
     "label": "Qöllanma",
@@ -1963,7 +1964,6 @@
     },
     "sleep": "Uyqu taymeri",
     "sleepOff": "Taymer yöq",
-    "sleepOn": "Taymer yoqilgan",
     "sleepMin": "{n} daqiqadan keyin",
     "sleepChapter": "Bob oxirida",
     "textDraft": "Kitob matni. Kim gapirayotgani ovoz tayyor bölgaç ranglar bilan ajratiladi.",
@@ -1996,7 +1996,23 @@
     "mode": "Kim öqisin",
     "modeSolo": "Bitta öquvçi",
     "modeSoloHint": "Butun kitobni bir ovoz öqiydi",
-    "preparing": "Tayyorlanmoqda…"
+    "preparing": "Tayyorlanmoqda…",
+    "voiceComing": "Ovoz tayyorlanmoqda. Kutmasangiz ham boşqa qismga o'tişingiz mumkin.",
+    "partsMap": "Kitob qismlari",
+    "partsHint": "Tayyor qismni bossangiz o'ynaydi. Tayyor bo'lmaganini bossangiz navbatga qo'şiladi va o'zi tayyorlanadi.",
+    "chapters": "Boblar",
+    "readyCount": "{n} / {total} tayyor",
+    "prepareAll": "Hammasini tayyorlaş",
+    "queueStop": "To'xtatiş ({n} qoldi)",
+    "queueResume": "Davom ettiriş ({n})",
+    "queueStopped": "Bugungi ovoz limiti tugadi. Navbat saqlandi, keyinroq davom ettirasiz.",
+    "sleepLeft": "{n} daqiqa qoldi",
+    "state": {
+      "ready": "tayyor",
+      "making": "tayyorlanmoqda",
+      "ordered": "navbatda",
+      "empty": "tayyor emas"
+    }
   },
   "reader": {
     "title": "Kitobni öqiş",
@@ -2287,8 +2303,7 @@
   "roznoma": {
     "tab_day": "Kun",
     "tab_goals": "Maqsadlar",
-    "tab_plans": "Rejalar",
-    "tab_stats": "Tahlil",
+    "tab_plans": "Arxiv",
     "prevDay": "Oldingi kun",
     "nextDay": "Keyingi kun",
     "backToToday": "Bugunga qaytiş",
@@ -2383,8 +2398,7 @@
     "goalName": "Maqsad",
     "goalTitlePh": "Masalan: IELTS 7.0",
     "goalDue": "Muddati",
-    "goalWhy": "Nega muhim",
-    "goalKind": "Turi",
+    "goalWhy": "Tavsif",
     "kind_study": "Ilm",
     "kind_sport": "Sport",
     "kind_language": "Til",
@@ -2532,7 +2546,8 @@
     "take": "Özimga oliş",
     "taken": "Manba kutubxonangizga qöşildi",
     "inLibrary": "Kutubxonamda bor",
-    "findPeople": "Odamlarni qidiriş"
+    "findPeople": "Odamlarni qidiriş",
+    "waiting": "Sörovingiz javob kutmoqda"
   },
   "sectionHint": {
     "close": "Yopiş",

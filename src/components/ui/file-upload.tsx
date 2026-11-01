@@ -14,6 +14,24 @@ const ACCEPT = {
   attachment: "application/pdf,application/epub+zip",
 };
 
+/** A picture from a phone is many MB; on the page it needs far less, and it uploads at once. */
+async function smaller(file: File, max = 1000) {
+  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.size < 400_000)
+    return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k);
+    c.height = Math.round(bmp.height * k);
+    c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", 0.86));
+    return blob ? new File([blob], "image.jpg", { type: "image/jpeg" }) : file;
+  } catch {
+    return file;
+  }
+}
+
 /**
  * Direct-to-Blob upload with progress. The server issues a token only after
  * checking auth, type, size and the per-user path; afterwards it verifies the
@@ -53,9 +71,10 @@ export function FileUpload({
       </p>
     );
 
-  const doUpload = async (file: File) => {
+  const doUpload = async (picked: File) => {
     setProgress(0);
     try {
+      const file = purpose === "attachment" ? picked : await smaller(picked);
       const safeName =
         file.name
           .normalize("NFKD")

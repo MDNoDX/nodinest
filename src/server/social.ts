@@ -148,6 +148,17 @@ export async function followRequestsForMe(ctx: AppContext) {
     limit 200`);
 }
 
+/** Whom I asked to follow, still waiting for their answer. */
+export async function myFollowRequests(ctx: AppContext) {
+  return db.execute<FollowRequest>(sql`
+    select u.id, u.name, u.username, u.image
+    from nodinest.follow_requests r
+    join nodinest."user" u on u.id = r.target_id and u.status = 'active'
+    where r.requester_id = ${ctx.userId} and u.username is not null
+    order by r.created_at desc
+    limit 100`);
+}
+
 export async function answerFollowRequest(ctx: AppContext, requesterId: string, accept: boolean) {
   const id = z.string().uuid().parse(requesterId);
   const gone = await db

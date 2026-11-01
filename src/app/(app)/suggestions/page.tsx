@@ -68,7 +68,6 @@ export default async function SuggestionsPage({ searchParams }: { searchParams: 
               <FeedbackForm />
             </div>
             <div className="border-border relative mt-6 flex flex-wrap items-center gap-3 border-t pt-4">
-              <span className="text-muted text-xs">{t("feedback.orWrite")}</span>
               <a
                 href="https://t.me/nodinest_bot"
                 target="_blank"

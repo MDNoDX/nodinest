@@ -73,7 +73,7 @@ export function GoalsView({ goals, today }: { goals: GoalView[]; today: string }
   const { pending, exec } = useAction();
   const router = useRouter();
   const [open, setOpen] = useState(goals.length === 0);
-  const [v, setV] = useState({ title: "", note: "", dueOn: "", kind: "study" as Kind });
+  const [v, setV] = useState({ title: "", note: "", dueOn: "", kind: "other" as Kind });
   const [steps, setSteps] = useState<{ title: string; note: string }[]>([{ title: "", note: "" }]);
   const [party, setParty] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -159,26 +159,6 @@ export function GoalsView({ goals, today }: { goals: GoalView[]; today: string }
               )}
             </Field>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">{t("goalKind")}</span>
-            <div className="flex flex-wrap gap-1.5">
-              {GOAL_KINDS.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setV({ ...v, kind: k })}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition",
-                    v.kind === k
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted",
-                  )}
-                >
-                  <PlanIcon name={GOAL_ICON[k]} className="size-3.5" /> {t(`kind_${k}`)}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">{t("goalSteps")}</span>
             {steps.map((s, i) => (
@@ -221,7 +201,7 @@ export function GoalsView({ goals, today }: { goals: GoalView[]; today: string }
                 {
                   success: t("goalCreated"),
                   onSuccess: () => {
-                    setV({ title: "", note: "", dueOn: "", kind: "study" });
+                    setV({ title: "", note: "", dueOn: "", kind: "other" });
                     setSteps([{ title: "", note: "" }]);
                     setOpen(false);
                   },

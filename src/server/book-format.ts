@@ -1,7 +1,8 @@
 /**
  * Lays a book's pages out for reading: lines the PDF broke are joined, each
- * speaker's line of dialogue stands apart, titles and quotations are marked,
- * and the author's words are kept. Done a few pages at a time, so it can stop
+ * line of dialogue stands apart with its speaker, titles and quotations are
+ * marked, running headers stay only on their first page, and the author's
+ * words are kept. Done a few pages at a time, so it can stop
  * and go on: after an upload, while someone reads, and from the minute cron.
  * A page the model changed too much keeps its plain layout.
  */
@@ -10,7 +11,13 @@ import { Type } from "@google/genai";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { bookPages } from "@/db/schema";
-import { blocksFromParas, keepsWords, type BookBlock } from "@/lib/book-blocks";
+import {
+  blocksFromParas,
+  keepsWords,
+  repeatedLines,
+  withoutRepeats,
+  type BookBlock,
+} from "@/lib/book-blocks";
 import { reflow } from "@/lib/reflow";
 import { generate, isAiConfigured } from "./ai/gemini";
 import { hitRateLimit } from "./rate-limit";
@@ -30,6 +37,7 @@ const SCHEMA = {
           properties: {
             k: { type: Type.STRING, enum: ["h", "p", "d", "q", "c"] },
             t: { type: Type.STRING },
+            s: { type: Type.STRING },
           },
           required: ["k", "t"],
         },
@@ -42,14 +50,20 @@ const SCHEMA = {
 const PROMPT = `You lay out pages of a book for reading. The text comes from a PDF, line by line.
 For each page return its content as blocks, in order:
 - h: a title or chapter heading
-- p: a paragraph (join the lines the PDF broke, mend words hyphenated at a line end)
-- d: one speaker's line of dialogue, each line its own block
+- p: narration (join the lines the PDF broke, mend words hyphenated at a line end)
+- d: one line of direct speech, only the spoken words with their quotation marks or dash; put the speaker's name in "s" (as the book calls them, e.g. "Gared", or "Chol") whenever the text makes clear who speaks, else leave it out
 - q: a quotation, verse, Quran verse or hadith set apart from the text
 - c: centred lines of a title page (author, title, publisher, year)
-Rules: keep the author's words EXACTLY, in the same order and language and script. Never translate, summarise, correct or add anything. Drop only running headers, footers and bare page numbers. A paragraph cut by the end of the page stays cut.`;
+Words around speech ("he said", "Royce replied.") are their own p block after the d block, as in a script.
+Rules: keep the author's words EXACTLY, in the same order and language and script. Never translate, summarise, correct or add anything, except speaker names in "s". Drop only bare page numbers. A paragraph cut by the end of the page stays cut.`;
 
 /** One batch: the next pages without a layout, from `around` on. Returns how many were done. */
-async function batch(ctx: AppContext, resourceId: string, around: number) {
+async function batch(
+  ctx: AppContext,
+  resourceId: string,
+  around: number,
+  repeats: Map<string, number>,
+) {
   const rows = await withUser(db, ctx, (tx) =>
     tx
       .select({ id: bookPages.id, page: bookPages.page, content: bookPages.content })
@@ -66,11 +80,12 @@ async function batch(ctx: AppContext, resourceId: string, around: number) {
       .limit(BATCH),
   );
   if (!rows.length) return 0;
+  const text = (r: (typeof rows)[number]) => withoutRepeats(r.content, r.page, repeats);
   const res = await generate(
     [
       {
         role: "user",
-        parts: [{ text: rows.map((r) => `=== PAGE ${r.page} ===\n${r.content}`).join("\n\n") }],
+        parts: [{ text: rows.map((r) => `=== PAGE ${r.page} ===\n${text(r)}`).join("\n\n") }],
       },
     ],
     {
@@ -92,10 +107,10 @@ async function batch(ctx: AppContext, resourceId: string, around: number) {
   await withUser(db, ctx, async (tx) => {
     for (const r of rows) {
       const m = made.find((x) => x.page === r.page)?.blocks;
-      const ok = m?.length && keepsWords(r.content, m);
+      const ok = m?.length && keepsWords(text(r), m);
       await tx
         .update(bookPages)
-        .set({ formatted: ok ? m : blocksFromParas(reflow(r.content)) })
+        .set({ formatted: ok ? m : blocksFromParas(reflow(text(r))) })
         .where(eq(bookPages.id, r.id));
     }
   });
@@ -112,9 +127,16 @@ export async function formatBook(
   const end = Date.now() + (opts.budgetMs ?? 0);
   let done = 0;
   try {
+    const all = await withUser(db, ctx, (tx) =>
+      tx
+        .select({ page: bookPages.page, content: bookPages.content })
+        .from(bookPages)
+        .where(and(eq(bookPages.userId, ctx.userId), eq(bookPages.resourceId, resourceId))),
+    );
+    const repeats = repeatedLines(all);
     do {
       if (!(await hitRateLimit(db, `format:${ctx.userId}`, 400, 86_400)).allowed) break;
-      const n = await batch(ctx, resourceId, opts.around ?? 1);
+      const n = await batch(ctx, resourceId, opts.around ?? 1, repeats);
       if (!n) break;
       done += n;
     } while (Date.now() < end);

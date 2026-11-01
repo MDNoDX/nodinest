@@ -391,6 +391,7 @@ export function DayView({
                   onEdit={() => setEditing({ item: it })}
                   onArchive={() => void archive([it.id])}
                   onAddSub={() => setEditing({ item: null, parentId: it.id })}
+                  onEditSub={(sub) => setEditing({ item: sub as never, parentId: it.id })}
                 />
               </div>
             ))}

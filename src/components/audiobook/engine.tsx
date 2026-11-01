@@ -64,11 +64,27 @@ const readSpeed = () => {
   }
 };
 
+const queueKey = (id: string) => `nn:abook-queue:${id}`;
+const stopsQueue = (e: Error & { premium?: boolean }) =>
+  ["AI_QUOTA", "RATE_LIMITED", "PREMIUM_REQUIRED"].includes(e.message) || e.premium === false;
+
 type Engine = {
   src: AudiobookSource | null;
   idx: number;
   playing: boolean;
   loading: boolean;
+  /** Parts this browser already has. */
+  ready: Set<number>;
+  /** Parts ordered, in the order they will be made. */
+  queue: number[];
+  /** The part being made right now. */
+  making: number | null;
+  /** A ready part plays; any other is ordered (or taken off the order). */
+  pick: (i: number) => void;
+  /** Orders parts from..to (a chapter) without leaving the current one. */
+  orderParts: (from: number, to: number) => void;
+  prepareAll: () => void;
+  stopQueue: () => void;
   time: { cur: number; dur: number };
   speed: number;
   speeds: number[];
@@ -112,6 +128,14 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
   const inflight = useRef(new Map<string, Promise<Seg>>());
   const want = useRef(false);
   const startAt = useRef(0);
+  /** The URL of the part the <audio> element holds. */
+  const loaded = useRef("");
+  const [ready, setReady] = useState<Set<number>>(new Set());
+  const readyRef = useRef(ready);
+  const [queue, setQueueState] = useState<number[]>([]);
+  const queueRef = useRef(queue);
+  const [making, setMaking] = useState<number | null>(null);
+  const working = useRef(false);
 
   useEffect(() => {
     queueMicrotask(() => setSpeedState(readSpeed()));
@@ -138,12 +162,70 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       if (!p) {
         p = segmentBlob(url);
         inflight.current.set(url, p);
-        p.catch(() => inflight.current.delete(url));
+        const done = () => void inflight.current.delete(url);
+        p.then(done, done);
       }
       return p;
     },
     [urlOf],
   );
+  const setQueue = useCallback((id: string, q: number[]) => {
+    queueRef.current = q;
+    setQueueState(q);
+    try {
+      if (q.length) localStorage.setItem(queueKey(id), JSON.stringify(q));
+      else localStorage.removeItem(queueKey(id));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const markReady = useCallback(
+    (s: AudiobookSource, i: number) => {
+      if (live.current.src?.id !== s.id || live.current.src.version !== s.version) return;
+      if (!readyRef.current.has(i)) {
+        readyRef.current = new Set(readyRef.current).add(i);
+        setReady(readyRef.current);
+      }
+      if (queueRef.current.includes(i))
+        setQueue(
+          s.id,
+          queueRef.current.filter((x) => x !== i),
+        );
+    },
+    [setQueue],
+  );
+  /** Makes the ordered parts one by one, behind whatever is playing. */
+  const pump = useCallback(async () => {
+    if (working.current) return;
+    working.current = true;
+    for (;;) {
+      const s = live.current.src;
+      const i = queueRef.current[0];
+      if (!s || i == null) break;
+      setMaking(i);
+      try {
+        await blobFor(s, i);
+        markReady(s, i);
+      } catch (e) {
+        const err = e as Error & { premium?: boolean };
+        if (stopsQueue(err)) {
+          // The order stays: it goes on when the voice is available again.
+          toast.error(
+            err.message === "PREMIUM_REQUIRED" ? te("PREMIUM_REQUIRED") : t("queueStopped"),
+          );
+          break;
+        }
+        toast.error(t("voiceFailed"));
+        if (live.current.src?.id === s.id)
+          setQueue(
+            s.id,
+            queueRef.current.filter((x) => x !== i),
+          );
+      }
+    }
+    setMaking(null);
+    working.current = false;
+  }, [blobFor, markReady, setQueue, t, te]);
   const savePos = useCallback(() => {
     const s = live.current.src;
     if (!s) return;
@@ -164,9 +246,10 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       const a = audio.current;
       if (!a) return;
       want.current = play;
-      setLoading(true);
+      setLoading(play);
       try {
         const { blob } = await blobFor(s, i);
+        markReady(s, i);
         if (live.current.idx !== i || live.current.src?.id !== s.id) return;
         const key = urlOf(s, i);
         let u = urls.current.get(key);
@@ -175,6 +258,7 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
           urls.current.set(key, u);
         }
         a.src = u;
+        loaded.current = key;
         a.playbackRate = live.current.speed;
         if (startAt.current) {
           const sec = startAt.current;
@@ -183,8 +267,13 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
         }
         if (want.current) await a.play().catch(() => {});
         // The next part is ready before this one ends (also with the screen off).
-        if (i + 1 < s.segments) void blobFor(s, i + 1).catch(() => {});
+        const next = i + 1;
+        if (want.current && next < s.segments && !readyRef.current.has(next)) {
+          setQueue(s.id, [next, ...queueRef.current.filter((x) => x !== next)]);
+          void pump();
+        }
       } catch (e) {
+        if (live.current.idx !== i) return;
         const err = e as Error & { premium?: boolean };
         if (err.message === "PREMIUM_REQUIRED" || err.premium === false)
           errorToast(te, { code: err.message, details: { premium: err.premium } });
@@ -196,12 +285,13 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
                 ? t("ttsQuota")
                 : t("voiceFailed"),
           );
+        want.current = false;
         setPlaying(false);
       } finally {
         if (live.current.idx === i) setLoading(false);
       }
     },
-    [blobFor, t, te, urlOf],
+    [blobFor, markReady, pump, setQueue, t, te, urlOf],
   );
 
   const go = useCallback(
@@ -209,14 +299,63 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       const s = live.current.src;
       if (!s || i < 0 || i >= s.segments) return;
       const keep = play ?? (live.current.playing || want.current);
-      audio.current?.pause();
+      const a = audio.current;
+      a?.pause();
       live.current.idx = i;
       setIdx(i);
-      void load(s, i, keep);
+      setTime({ cur: 0, dur: 0 });
+      if (keep || readyRef.current.has(i)) void load(s, i, keep);
+      else {
+        // Only moved here: the voice is not made until it is asked for.
+        want.current = false;
+        setLoading(false);
+        loaded.current = "";
+        a?.removeAttribute("src");
+        a?.load();
+      }
       savePos();
     },
     [load, savePos],
   );
+
+  const pick = useCallback(
+    (i: number) => {
+      const s = live.current.src;
+      if (!s) return;
+      if (readyRef.current.has(i) || i === live.current.idx) return go(i, true);
+      const q = queueRef.current;
+      setQueue(s.id, q.includes(i) ? q.filter((x) => x !== i) : [...q, i]);
+      void pump();
+    },
+    [go, pump, setQueue],
+  );
+  const orderParts = useCallback(
+    (from: number, to: number) => {
+      const s = live.current.src;
+      if (!s) return;
+      const q = queueRef.current;
+      const add: number[] = [];
+      for (let i = from; i <= to; i++) if (!readyRef.current.has(i) && !q.includes(i)) add.push(i);
+      setQueue(s.id, [...q, ...add]);
+      void pump();
+    },
+    [pump, setQueue],
+  );
+  const prepareAll = useCallback(() => {
+    const s = live.current.src;
+    if (!s) return;
+    const at = live.current.idx;
+    const all = Array.from({ length: s.segments }, (_, k) => (at + k) % s.segments);
+    setQueue(
+      s.id,
+      all.filter((i) => !readyRef.current.has(i)),
+    );
+    void pump();
+  }, [pump, setQueue]);
+  const stopQueue = useCallback(() => {
+    const s = live.current.src;
+    if (s) setQueue(s.id, []);
+  }, [setQueue]);
 
   const open = useCallback(
     (s: AudiobookSource) => {
@@ -228,17 +367,38 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       setSrc(s);
       setIdx(s.startIdx);
       setTime({ cur: 0, dur: 0 });
+      loaded.current = "";
       startAt.current = s.startSec;
+      readyRef.current = new Set();
+      setReady(readyRef.current);
+      let saved: number[] = [];
+      try {
+        saved = JSON.parse(localStorage.getItem(queueKey(s.id)) ?? "[]");
+      } catch {
+        /* ignore */
+      }
+      queueRef.current = saved.filter((i) => i < s.segments);
+      setQueueState(queueRef.current);
       // Opening costs nothing: the voice is loaded only if this browser has it.
       void caches
         ?.open(CACHE)
-        .then((c) => c.match(urlOf(s, s.startIdx)))
-        .then((hit) => {
-          if (hit) void load(s, s.startIdx, false);
+        .then((c) => c.keys())
+        .then((keys) => {
+          const have = new Set(keys.map((k) => k.url.slice(k.url.indexOf("/api/"))));
+          if (live.current.src !== s) return;
+          const found = new Set<number>();
+          for (let i = 0; i < s.segments; i++) if (have.has(urlOf(s, i))) found.add(i);
+          readyRef.current = found;
+          setReady(found);
+          setQueue(
+            s.id,
+            queueRef.current.filter((i) => !found.has(i)),
+          );
+          if (found.has(s.startIdx)) void load(s, s.startIdx, false);
         })
         .catch(() => {});
     },
-    [load, urlOf],
+    [load, setQueue, urlOf],
   );
 
   const toggle = useCallback(() => {
@@ -246,15 +406,20 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
     const s = live.current.src;
     if (!a || !s) return;
     if (a.paused) {
-      want.current = true;
-      if (a.getAttribute("src")) void a.play();
-      else void load(s, live.current.idx, true);
+      if (loaded.current === urlOf(s, live.current.idx)) {
+        want.current = true;
+        void a.play();
+      } else if (want.current) {
+        // Pressed again while its voice is being made: stop waiting for it.
+        want.current = false;
+        setLoading(false);
+      } else void load(s, live.current.idx, true);
     } else {
       want.current = false;
       a.pause();
       savePos();
     }
-  }, [load, savePos]);
+  }, [load, savePos, urlOf]);
 
   const seekTo = useCallback((v: number) => {
     const a = audio.current;
@@ -268,6 +433,7 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       a.pause();
       a.removeAttribute("src");
     }
+    loaded.current = "";
     live.current.src = null;
     setSrc(null);
     setPlaying(false);
@@ -403,6 +569,13 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       idx,
       playing,
       loading,
+      ready,
+      queue,
+      making,
+      pick,
+      orderParts,
+      prepareAll,
+      stopQueue,
       time,
       speed,
       speeds: SPEEDS,
@@ -421,6 +594,13 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       idx,
       playing,
       loading,
+      ready,
+      queue,
+      making,
+      pick,
+      orderParts,
+      prepareAll,
+      stopQueue,
       time,
       speed,
       sleep,

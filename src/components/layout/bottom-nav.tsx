@@ -10,7 +10,12 @@ export const IMMERSIVE_RE = /^\/(library\/[^/]+\/(read|taqriz)|write\/[^/]+)/;
 const TABS = [
   { href: "/", key: "dashboard", icon: Home, also: [] as string[] },
   { href: "/plans", key: "plans", icon: CalendarCheck, also: [] },
-  { href: "/library", key: "library", icon: BookOpen, also: ["/people", "/publishers"] },
+  {
+    href: "/library",
+    key: "library",
+    icon: BookOpen,
+    also: ["/people", "/publishers", "/notes", "/collections"],
+  },
   { href: "/assistant", key: "assistant", icon: Sparkles, also: [] },
 ];
 

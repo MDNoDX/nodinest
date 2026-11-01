@@ -975,7 +975,9 @@
     "byDays": "By days",
     "byPace": "Pages per day",
     "days": "{count, plural, one {# day} other {# days}}",
-    "perDay": "{n} p/day"
+    "perDay": "{n} p/day",
+    "tabAll": "Overview",
+    "tabPlans": "Plans"
   },
   "suggestions": {
     "title": "Suggestions",
@@ -1760,8 +1762,7 @@
     "catalogExplain": "When you change an entry someone else added to the shared catalog, your change lands here as a suggestion and is applied once the admin approves it. Entries you added yourself you edit directly.",
     "answer": "Admin’s answer",
     "botTitle": "Telegram bot",
-    "botHint": "Write a suggestion — the answer comes to the bot too",
-    "orWrite": "Or write directly:"
+    "botHint": "Write a suggestion — the answer comes to the bot too"
   },
   "tour": {
     "label": "Guide",
@@ -1963,7 +1964,6 @@
     },
     "sleep": "Sleep timer",
     "sleepOff": "No timer",
-    "sleepOn": "Timer on",
     "sleepMin": "In {n} minutes",
     "sleepChapter": "End of chapter",
     "textDraft": "The book’s text. Speakers are marked in colour once the voice is ready.",
@@ -1996,7 +1996,23 @@
     "mode": "Who reads",
     "modeSolo": "One reader",
     "modeSoloHint": "One voice reads the whole book",
-    "preparing": "Preparing…"
+    "preparing": "Preparing…",
+    "voiceComing": "Making the voice. You can move to another part without waiting.",
+    "partsMap": "Parts of the book",
+    "partsHint": "Press a ready part to play it. Press any other to add it to the queue; it is made on its own.",
+    "chapters": "Chapters",
+    "readyCount": "{n} of {total} ready",
+    "prepareAll": "Prepare all",
+    "queueStop": "Stop ({n} left)",
+    "queueResume": "Continue ({n})",
+    "queueStopped": "Today's voice limit is used up. The queue is saved; continue later.",
+    "sleepLeft": "{n} min left",
+    "state": {
+      "ready": "ready",
+      "making": "being made",
+      "ordered": "queued",
+      "empty": "not ready"
+    }
   },
   "reader": {
     "title": "Read the book",
@@ -2287,8 +2303,7 @@
   "roznoma": {
     "tab_day": "Day",
     "tab_goals": "Goals",
-    "tab_plans": "Plans",
-    "tab_stats": "Insights",
+    "tab_plans": "Archive",
     "prevDay": "Previous day",
     "nextDay": "Next day",
     "backToToday": "Back to today",
@@ -2383,8 +2398,7 @@
     "goalName": "Goal",
     "goalTitlePh": "e.g. IELTS 7.0",
     "goalDue": "Deadline",
-    "goalWhy": "Why it matters",
-    "goalKind": "Kind",
+    "goalWhy": "Description",
     "kind_study": "Study",
     "kind_sport": "Sport",
     "kind_language": "Language",
@@ -2532,7 +2546,8 @@
     "take": "Take it",
     "taken": "Added to your library",
     "inLibrary": "In my library",
-    "findPeople": "Find people"
+    "findPeople": "Find people",
+    "waiting": "Your requests are waiting"
   },
   "sectionHint": {
     "close": "Close",

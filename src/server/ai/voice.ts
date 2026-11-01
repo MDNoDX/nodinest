@@ -97,9 +97,8 @@ export async function voiceTurn(
     };
   })();
 
-  // Two sentences are made at a time; they are sent in order.
+  // Sentences are spoken one after another, each sent as it is made.
   let speaker: TalkVoice | null = null;
-  const jobs: Promise<unknown>[] = [];
   let sent = Promise.resolve();
   let spent = 0;
   const speakOut = (piece: string) => {
@@ -107,12 +106,15 @@ export async function voiceTurn(
     const voice = speaker;
     if (!text || !voice || signal?.aborted) return;
     spent += text.length;
-    const job = (jobs.at(-2) ?? Promise.resolve()).then(() =>
-      signal?.aborted ? null : voice.say(text).catch(() => null),
-    );
-    jobs.push(job);
     sent = sent.then(async () => {
-      const mp3 = await job;
+      if (signal?.aborted) return;
+      const live = voice.sentence
+        ? await voice
+            .sentence(text, (audio, rate) => emit({ t: "pcm", audio, rate }))
+            .catch(() => false)
+        : false;
+      if (live) return;
+      const mp3 = await voice.say(text).catch(() => null);
       if (mp3) emit({ t: "audio", audio: mp3.toString("base64") });
     });
   };
@@ -122,7 +124,7 @@ export async function voiceTurn(
   const flush = () => {
     if (!speaker?.chunked) return;
     for (;;) {
-      const end = nextSentences(pending, first ? 12 : 50);
+      const end = nextSentences(pending, first ? 8 : 40);
       if (end == null) break;
       speakOut(pending.slice(0, end));
       pending = pending.slice(end);

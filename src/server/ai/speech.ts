@@ -103,12 +103,50 @@ async function elevenLabs(text: string, kind: "female" | "male", lang: string) {
   return Buffer.from(await r.arrayBuffer());
 }
 
+/** Raw speech as it is made: the first words arrive before the sentence is finished. */
+async function elevenLive(
+  text: string,
+  kind: "female" | "male",
+  lang: string,
+  onPcm: (b64: string, rate: number) => void,
+  signal?: AbortSignal,
+) {
+  const id = await voiceId(kind);
+  if (!id) return false;
+  const rate = 24_000;
+  const r = await fetch(`${API}/text-to-speech/${id}/stream?output_format=pcm_${rate}`, {
+    method: "POST",
+    headers: { "xi-api-key": key(), "content-type": "application/json" },
+    body: JSON.stringify({
+      text,
+      model_id: process.env.ELEVEN_MODEL ?? "eleven_v4",
+      language_code: lang,
+    }),
+    signal,
+  }).catch(() => null);
+  if (!r?.ok || !r.body) return false;
+  // Whole 16-bit samples only: a chunk may end in the middle of one.
+  let rest = Buffer.alloc(0);
+  const reader = r.body.getReader();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const all = Buffer.concat([rest, Buffer.from(value)]);
+    const even = all.length - (all.length % 2);
+    if (even) onPcm(all.subarray(0, even).toString("base64"), rate);
+    rest = all.subarray(even);
+  }
+  return true;
+}
+
 const GEMINI_VOICE = { female: "Sulafat", male: "Charon" } as const;
 const GEMINI_LANG: Record<string, string> = { uz: "uz-UZ", ru: "ru-RU", en: "en-US", tr: "tr-TR" };
 
 export type TalkVoice = {
   /** It can say one sentence at a time (Gemini's few daily requests cannot). */
   chunked: boolean;
+  /** Speaks one sentence as it is made; false if it could not. */
+  sentence?: (text: string, onPcm: (b64: string, rate: number) => void) => Promise<boolean>;
   say: (text: string) => Promise<Buffer | null>;
   /** Speaks the whole reply as it is made; false if it could not. */
   live?: (text: string, onPcm: (b64: string, rate: number) => void) => Promise<boolean>;
@@ -134,6 +172,11 @@ export async function talkVoice(
     if (roomMonth && roomUser)
       return {
         chunked: true,
+        sentence: async (text, onPcm) => {
+          const ok = await elevenLive(text, voice, lang, onPcm, signal);
+          if (ok) await addChars(text.length).catch(() => {});
+          return ok;
+        },
         say: async (text) => {
           const mp3 = await elevenLabs(text, voice, lang);
           if (mp3) await addChars(text.length).catch(() => {});

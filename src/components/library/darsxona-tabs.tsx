@@ -1,13 +1,19 @@
-import { BookOpen, Building2, Users } from "lucide-react";
+import { BookOpen, Building2, FolderHeart, Quote, Users } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { cn } from "@/lib/cn";
 
-/** Darsxona's sections: my resources, people, publishers & channels. */
-export async function DarsxonaTabs({ current }: { current: "library" | "people" | "publishers" }) {
+/** Darsxona's sections: my resources, quotes, collections, people, channels. */
+export async function DarsxonaTabs({
+  current,
+}: {
+  current: "library" | "notes" | "collections" | "people" | "publishers";
+}) {
   const t = await getTranslations("nav");
   const tabs = [
     { key: "library", href: "/library", icon: BookOpen, label: t("libraryTab") },
+    { key: "notes", href: "/notes", icon: Quote, label: t("notes") },
+    { key: "collections", href: "/collections", icon: FolderHeart, label: t("collections") },
     { key: "people", href: "/people", icon: Users, label: t("people") },
     { key: "publishers", href: "/publishers", icon: Building2, label: t("publishers") },
   ] as const;

@@ -1,3 +1,4 @@
+import { toCyrillic, uzCyrillicToLatin } from "./uz-cyrl";
 /**
  * Text normalisation shared by search, autocomplete and duplicate detection.
  * MUST stay in sync with the SQL function nodinest.nn_norm() (drizzle/0001).
@@ -36,6 +37,29 @@ export function searchTokens(query: string, max = 8): string[] {
  * Tokens are already restricted to letters/digits, so no tsquery syntax can
  * be injected; the value is still passed as a bind parameter.
  */
+/** The query in the other Uzbek alphabet: Latin ↔ Cyrillic. */
+export function otherScript(query: string) {
+  return /[а-яёўқғҳ]/i.test(query) ? uzCyrillicToLatin(query) : toCyrillic(query);
+}
+
+/**
+ * Uzbek is written in two alphabets, so each word matches in both. People type
+ * "oqish" without the apostrophe: the Cyrillic о may then be ў.
+ */
+export function crossScriptTsQuery(query: string): string | null {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return null;
+  const other = searchTokens(otherScript(query));
+  if (other.length !== tokens.length) return toPrefixTsQuery(tokens);
+  return tokens
+    .map((t, i) => {
+      const forms = new Set([t, other[i]]);
+      if (/^[а-яёўқғҳ]+$/.test(other[i])) forms.add(other[i].replace(/о/g, "ў"));
+      return `(${[...forms].map((f) => `${f}:*`).join(" | ")})`;
+    })
+    .join(" & ");
+}
+
 export function toPrefixTsQuery(tokens: string[]): string | null {
   if (tokens.length === 0) return null;
   return tokens.map((t) => `${t}:*`).join(" & ");

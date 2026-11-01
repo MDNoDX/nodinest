@@ -76,6 +76,7 @@ export function PlanItem({
   onEdit,
   onArchive,
   onAddSub,
+  onEditSub,
 }: {
   it: PlanRow;
   /** The day is over: what stayed undone shows as an X. */
@@ -85,6 +86,7 @@ export function PlanItem({
   onEdit: () => void;
   onArchive: () => void;
   onAddSub: () => void;
+  onEditSub: (sub: SubRow) => void;
 }) {
   const t = useTranslations("roznoma");
   const [open, setOpen] = useState(false);
@@ -201,6 +203,15 @@ export function PlanItem({
                       {s.title}
                       {s.amount && <span className="text-muted"> · {s.amount}</span>}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => onEditSub(s)}
+                      aria-label={t("editItem")}
+                      title={t("editItem")}
+                      className="text-muted hover:text-foreground rounded p-1"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
                     <Tick
                       small
                       status={s.status}

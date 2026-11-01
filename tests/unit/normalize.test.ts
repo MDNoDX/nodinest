@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  crossScriptTsQuery,
   duplicateKey,
   escapeLike,
   makeSnippet,
   normalizeTag,
+  otherScript,
   normalizeText,
   parseIsbn,
   searchTokens,
@@ -68,5 +70,15 @@ describe("makeSnippet", () => {
     const parts = makeSnippet(text, ["target"], 20);
     expect(parts[0].text).toBe("…");
     expect(parts.at(-1)!.text).toBe("…");
+  });
+});
+
+describe("search across the two Uzbek alphabets", () => {
+  it("finds the Cyrillic form of a Latin word and the other way round", () => {
+    expect(otherScript("kitob")).toBe("китоб");
+    expect(otherScript("китоб")).toBe("kitob");
+  });
+  it("adds the other alphabet to the query", () => {
+    expect(crossScriptTsQuery("chol dengiz")).toContain("денгиз");
   });
 });

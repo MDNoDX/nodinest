@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { Headphones, Loader2, Pause, Play, RotateCcw, RotateCw, X } from "lucide-react";
+import { Headphones, Loader2, Pause, Play, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useAudiobook } from "./engine";
@@ -13,9 +13,10 @@ export function HeaderPlayer({ className }: { className?: string }) {
   const t = useTranslations("audiobook");
   const e = useAudiobook();
   if (!e?.src) return null;
-  const { src, playing, loading, time, toggle, seek, close } = e;
+  const { src, playing, loading, time, toggle, seek, close, speed, speeds, setSpeed } = e;
   const pct = time.dur ? (time.cur / time.dur) * 100 : 0;
-  const btn = "text-muted hover:text-foreground rounded-full p-1.5 transition-colors";
+  const btn =
+    "text-muted hover:text-foreground rounded-full px-1.5 py-1 text-[11px] font-semibold tabular-nums transition-colors";
   return (
     <div
       className={`border-border bg-surface relative flex min-w-0 items-center gap-1 overflow-hidden rounded-full border py-1 pr-1 pl-1.5 ${className ?? ""}`}
@@ -34,8 +35,17 @@ export function HeaderPlayer({ className }: { className?: string }) {
         )}
         <span className="truncate text-xs font-semibold">{src.title}</span>
       </Link>
+      <button
+        type="button"
+        onClick={() => setSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length])}
+        aria-label={t("speed")}
+        title={t("speed")}
+        className={`${btn} text-foreground`}
+      >
+        {speed}×
+      </button>
       <button type="button" onClick={() => seek(-10)} aria-label={t("back15")} className={btn}>
-        <RotateCcw className="size-3.5" />
+        −10
       </button>
       <button
         type="button"
@@ -52,7 +62,7 @@ export function HeaderPlayer({ className }: { className?: string }) {
         )}
       </button>
       <button type="button" onClick={() => seek(10)} aria-label={t("fwd15")} className={btn}>
-        <RotateCw className="size-3.5" />
+        +10
       </button>
       <button type="button" onClick={close} aria-label={t("closePlayer")} className={btn}>
         <X className="size-3.5" />

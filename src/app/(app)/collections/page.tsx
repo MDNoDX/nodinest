@@ -3,6 +3,7 @@ import { FolderHeart } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CollectionDialog } from "@/components/collections/collection-dialog";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import { PageHeader } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import { getCollectionStats } from "@/server/stats";
@@ -31,6 +32,7 @@ export default async function CollectionsPage() {
         title={t("collections.title")}
         actions={<CollectionDialog />}
       />
+      <DarsxonaTabs current="collections" />
       <section className="mb-8">
         <h2 className="mb-1 text-sm font-semibold">{t("collections.shelves")}</h2>
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">

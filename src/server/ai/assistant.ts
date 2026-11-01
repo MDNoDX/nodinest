@@ -152,6 +152,26 @@ WHAT YOU REMEMBER FROM EARLIER TALKS (private; use it naturally, never recite it
 ${memory}`;
 }
 
+const talkContext = new Map<string, { at: number; v: readonly [string, string, string] }>();
+
+/**
+ * What the model knows about the user. A live talk keeps it for a few minutes:
+ * these queries would otherwise come before every spoken answer.
+ */
+async function knownContext(ctx: AppContext, spoken: boolean) {
+  const hit = talkContext.get(ctx.userId);
+  if (spoken && hit && Date.now() - hit.at < 5 * 60_000) return hit.v;
+  const [c, p, m] = await Promise.all([
+    userContext(ctx),
+    learnerProfile(ctx),
+    getMemory(ctx.userId),
+  ]);
+  const v = [c, p, memoryText(m)] as const;
+  if (talkContext.size > 500) talkContext.clear();
+  talkContext.set(ctx.userId, { at: Date.now(), v });
+  return v;
+}
+
 /** A compact picture of the user's learning for "Suhbat" (only their own data). */
 async function learnerProfile(ctx: AppContext): Promise<string> {
   const rows = await withUser(db, ctx, (tx) =>
@@ -407,9 +427,7 @@ export async function runAssistant(
   input.onConversation?.(convId);
   const [history, [context, profile, memory], earlier, fileParts] = await Promise.all([
     loadHistory(ctx, convId),
-    Promise.all([userContext(ctx), learnerProfile(ctx), getMemory(ctx.userId)]).then(
-      ([c, p, m]) => [c, p, memoryText(m)] as const,
-    ),
+    knownContext(ctx, !!input.spoken),
     proposalsSoFar(ctx, convId),
     attachmentParts(ctx, attachments),
   ]);

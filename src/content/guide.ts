@@ -90,6 +90,10 @@ const uz: GuideSection[] = [
         text: "Tuşunmagan söz yoki joyni belgilab «AI’dan söraş»ni bosing: ma’nosi, tarjimasi, kim va qayer ekanligi tuşuntiriladi. Kitob haqida umumiy savol ham berişingiz mumkin. AI siz öqiyotgan joydan keyingi voqealarni aytmaydi.",
       },
       {
+        title: "Sahifa va kattalaştiriş",
+        text: "Har bir sahifa PDF’dagi raqami bilan, bittadan, ekran kengligida oçiladi va oynaga sigadi. Yuqoridagi lupa bilan matnni kattalaştirsangiz, sahifani pastga sudrab öqiysiz. Töliq ekran butun ekranni qoplaydi. Suhbatlar gapirayotgan qahramon nomi bilan ajratiladi, har sahifada takrorlanadigan sarlavhalar esa olib taşlanadi.",
+      },
+      {
         title: "Köriniş (Aa)",
         text: "Fon (oq, sepiya, tun), şrift, harf ölçami, qator oraliği va matn kengligini özingizga moslang. Közni çarçatmaslik uçun keçqurun «Tun» yoki «Sepiya» tavsiya qilinadi.",
       },
@@ -120,11 +124,11 @@ const uz: GuideSection[] = [
       },
       {
         title: "Tinglaş",
-        text: "Ovoz qismma-qism tayyorlanadi: birinçisi 20–60 soniya, keyingilari siz tinglab turganingizda oldindan tayyorlanadi. Tayyor qismlar qurilmangizda saqlanadi.",
+        text: "Ovoz qismma-qism tayyorlanadi. Pleyerdagi tayoqçalar kitobning qismlari: tayyorini bossangiz öynaydi, tayyor bölmaganini bossangiz navbatga qöşiladi va orqada tayyorlanadi, siz esa tinglaşda davom etasiz. «Hammasini tayyorlaş» qolgan qismlarning hammasini navbatga qöyadi; limit tugasa navbat saqlanadi. Tayyor qismlar qurilmangizda qoladi.",
       },
       {
         title: "Tezlik, uyqu taymeri, ovozlar",
-        text: "Sukut böyiça tezlik 0,9× — tinç hikoya. Uyqu taymeri ma’lum vaqtdan keyin yoki bob oxirida töxtatadi. «Ovozlar» bölimida istalgan qahramonning ovozini almaştiriş mumkin.",
+        text: "Tezlik pleyerda va yuqori panelda turadi, boşqa sahifaga ötsangiz ham bosib özgartirasiz. Uyqu taymeri ma’lum vaqtdan keyin yoki bob oxirida töxtatadi. «Ovozlar» bölimida istalgan qahramonning ovozini almaştiriş mumkin.",
       },
       {
         title: "Limit",
@@ -288,7 +292,7 @@ const uz: GuideSection[] = [
       },
       {
         title: "Kuzatiş va özingizga olish",
-        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni Qidiruv sahifasining yuqorisida bir harfdan boşlab topasiz. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
+        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni yuqoridagi qidiruvda bir harfdan boşlab topasiz. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
       },
     ],
     link: { href: "/media", label: "Media" },
@@ -441,6 +445,10 @@ const en: GuideSection[] = [
         text: "Select a word or passage you don’t understand and press “Ask AI”: meaning, translation, who and where. You can also ask about the book. The AI never reveals what happens after your page.",
       },
       {
+        title: "Page and zoom",
+        text: "Each page opens on its own, with its PDF number, as wide as the screen, and fits the window. Zoom in with the magnifier at the top and scroll down the page. Full screen covers the whole screen. Dialogue is set apart with the speaker’s name, and headers repeated on every page are removed.",
+      },
+      {
         title: "Display (Aa)",
         text: "Paper (white, sepia, night), typeface, size, line spacing and width. Night or sepia are kinder to the eyes in the evening.",
       },
@@ -471,11 +479,11 @@ const en: GuideSection[] = [
       },
       {
         title: "Listening",
-        text: "The voice is made part by part: the first in 20–60 seconds, the next ones while you listen. Finished parts are kept on your device.",
+        text: "The voice is made part by part. The bars in the player are the parts of the book: press a ready one to play it, press any other to add it to the queue while you keep listening. “Prepare all” queues everything left; if the limit runs out the queue is saved. Finished parts stay on your device.",
       },
       {
         title: "Speed, sleep timer, voices",
-        text: "Default speed is 0.9× — a calm narration. The sleep timer stops after a while or at the end of a chapter. Change any character’s voice under “Voices”.",
+        text: "Speed is in the player and in the top bar, so you can change it from any page. The sleep timer stops after a while or at the end of a chapter. Change any character’s voice under “Voices”.",
       },
       {
         title: "Limit",
@@ -636,7 +644,7 @@ const en: GuideSection[] = [
       },
       {
         title: "Follow and take it yourself",
-        text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people at the top of the Search page, from the first letter. Open a book you like and pick a status: it joins your own library.",
+        text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people in the search at the top, from the first letter. Open a book you like and pick a status: it joins your own library.",
       },
     ],
     link: { href: "/media", label: "Media" },

@@ -10,11 +10,12 @@
 import { sql, type SQL } from "drizzle-orm";
 import { withUser, type AppContext, type Database, type Tx } from "@/db/client";
 import {
+  crossScriptTsQuery,
   escapeLike,
   makeSnippet,
   normalizeText,
+  otherScript,
   searchTokens,
-  toPrefixTsQuery,
   type SnippetPart,
 } from "@/lib/normalize";
 
@@ -486,8 +487,9 @@ function isBrowse(f: SearchFilters) {
 }
 
 export async function universalSearch(database: Database, ctx: AppContext, f: SearchFilters) {
-  const tokens = searchTokens(f.q);
-  const tsq = toPrefixTsQuery(tokens);
+  // Uzbek in either alphabet finds both, down to the words inside books.
+  const tokens = [...new Set([...searchTokens(f.q), ...searchTokens(otherScript(f.q))])];
+  const tsq = crossScriptTsQuery(f.q);
   const page = Math.max(1, f.page ?? 1);
   const empty = {
     query: f.q,
@@ -537,6 +539,6 @@ export async function universalSearch(database: Database, ctx: AppContext, f: Se
 /** Lightweight command-palette search (titles/names only). */
 export async function quickSearch(database: Database, ctx: AppContext, query: string) {
   const r = await universalSearch(database, ctx, { q: query, sort: "relevance" });
-  const order: SearchGroup[] = ["resources", "people", "quotes", "notes", "categories"];
+  const order: SearchGroup[] = ["resources", "booktext", "quotes", "notes", "taqriz", "people"];
   return order.flatMap((g) => (r.groups[g]?.hits ?? []).slice(0, 4));
 }

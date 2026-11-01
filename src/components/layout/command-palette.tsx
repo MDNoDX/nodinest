@@ -1,6 +1,16 @@
 "use client";
 import { comboLabel, getShortcuts, matches, useIsApple, useShortcuts } from "@/lib/shortcuts";
-import { AtSign, BookOpen, FileText, Hash, Quote, Search, User } from "lucide-react";
+import {
+  AtSign,
+  BookOpen,
+  BookText,
+  FileText,
+  Hash,
+  PenLine,
+  Quote,
+  Search,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -28,6 +38,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   people: User,
   quotes: Quote,
   notes: FileText,
+  booktext: BookText,
+  taqriz: PenLine,
   categories: Hash,
 };
 
@@ -91,7 +103,7 @@ export function CommandPalette() {
     <D.Root open={open} onOpenChange={setOpen}>
       <D.Trigger asChild>
         <button
-          className="border-border bg-surface text-muted hover:border-border-strong flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 text-sm transition-colors sm:max-w-sm"
+          className="border-border bg-surface text-muted hover:border-border-strong flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
           aria-label={t("nav.commandPalette")}
           data-tour="search"
         >
@@ -104,7 +116,7 @@ export function CommandPalette() {
       </D.Trigger>
       <D.Portal>
         <D.Overlay className="animate-fade-in fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
-        <D.Content className="border-border bg-surface animate-scale-in fixed top-[12vh] left-1/2 z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl">
+        <D.Content className="border-border bg-surface animate-scale-in fixed top-[12vh] left-1/2 z-50 w-[min(56rem,94vw)] -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl">
           <D.Title className="sr-only">{t("nav.commandPalette")}</D.Title>
           <D.Description className="sr-only">{t("nav.commandHint")}</D.Description>
           <div className="border-border flex items-center gap-2 border-b px-4">
@@ -145,7 +157,7 @@ export function CommandPalette() {
               id="cmdk-list"
               ref={listRef}
               role="listbox"
-              className="max-h-[50vh] overflow-y-auto p-2"
+              className="max-h-[65vh] overflow-y-auto p-2"
             >
               {all.map((h, i) => {
                 const Icon = ICONS[h.group] ?? Search;

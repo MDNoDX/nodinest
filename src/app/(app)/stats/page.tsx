@@ -7,6 +7,8 @@ import { Card, CardHeader, EmptyState, PageHeader, StatTile } from "@/components
 import { cn } from "@/lib/cn";
 import { fmtMinutes } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
+import { StatsView } from "@/components/roznoma/stats-view";
+import { history } from "@/server/roznoma";
 import { getCollectionStats } from "@/server/stats";
 import { asLocale, intlTag, pickName } from "@/i18n/config";
 
@@ -16,9 +18,42 @@ export async function generateMetadata() {
 }
 
 export default async function StatsPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db, locale, tz } = await pageContext();
+  const { ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const params = await searchParams;
+  const tabs = (
+    <nav className="bg-surface-2 mb-5 grid max-w-sm grid-cols-2 gap-0.5 rounded-xl p-0.5 text-sm">
+      {(
+        [
+          ["all", "/stats", t("stats.tabAll")],
+          ["plans", "/stats?tab=plans", t("stats.tabPlans")],
+        ] as const
+      ).map(([k, href, label]) => {
+        const on = (sp(params.tab) === "plans" ? "plans" : "all") === k;
+        return (
+          <Link
+            key={k}
+            href={href}
+            aria-current={on ? "page" : undefined}
+            className={cn(
+              "rounded-lg px-2 py-2 text-center font-medium",
+              on ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground",
+            )}
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+  if (sp(params.tab) === "plans")
+    return (
+      <>
+        <PageHeader section="stats" title={t("stats.title")} />
+        {tabs}
+        <StatsView h={await history(ctx, today, 30)} locale={locale} />
+      </>
+    );
   const y = Number(sp(params.year));
   const pace = sp(params.fast) === "pace";
   const year = Number.isInteger(y) && y > 1900 && y < 2200 ? y : null;
@@ -45,6 +80,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
   return (
     <>
       <PageHeader section="stats" title={t("stats.title")} />
+      {tabs}
       <nav className="mb-6 flex flex-wrap gap-1.5" aria-label={t("stats.byYear")}>
         <Link
           href="/stats"

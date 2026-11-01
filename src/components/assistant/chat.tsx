@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { errorText, needsPremium } from "@/lib/error-toast";
 import { uploadMedia } from "@/lib/upload-media";
+import { useFollowBottom } from "@/lib/use-follow-bottom";
 import { VisualCard, type Visual } from "./visual-card";
 import { VoiceTalk } from "./voice-talk";
 
@@ -558,7 +559,6 @@ export function Chat({
 }) {
   const t = useTranslations("assistant");
   const te = useTranslations("errors");
-  const router = useRouter();
   const [conversationId, setConversationId] = useState(initialConversation);
   const [messages, setMessages] = useState(initialMessages);
   const [actions, setActions] = useState<Record<string, ChatAction>>(
@@ -568,15 +568,16 @@ export function Chat({
   const [files, setFiles] = useState<Pending[]>([]);
   const [error, setError] = useState<{ text: string; premium: boolean } | null>(null);
   const [pending, start] = useTransition();
-  const end = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const toEnd = useFollowBottom(box);
   const picker = useRef<HTMLInputElement>(null);
   const rec = useRecorder();
   const [talking, setTalking] = useState(false);
   const closeTalk = useCallback(() => setTalking(false), []);
 
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, pending]);
+    toEnd();
+  }, [messages.length, pending, toEnd]);
 
   const addFiles = async (list: FileList | File[] | Blob[], names?: string[]) => {
     for (const [i, f] of [...list].entries()) {
@@ -637,7 +638,7 @@ export function Chat({
       const d = r.data;
       if (!conversationId) {
         setConversationId(d.conversationId);
-        router.replace(`/assistant?c=${d.conversationId}`, { scroll: false });
+        window.history.replaceState(null, "", `/assistant?c=${d.conversationId}`);
       }
       setActions((s) => ({
         ...s,
@@ -681,7 +682,7 @@ export function Chat({
           : t("unavailable");
 
   return (
-    <div className="flex min-h-[60vh] flex-col">
+    <div ref={box} className="flex min-h-[60vh] flex-col">
       {available && (
         <button
           type="button"
@@ -783,7 +784,6 @@ export function Chat({
             )}
           </div>
         )}
-        <div ref={end} />
       </div>
 
       <form

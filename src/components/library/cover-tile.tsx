@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Headphones, Star } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import type { ResourceType } from "@/lib/validation";
@@ -17,10 +17,10 @@ export function CoverTile({
   progress,
   rating,
   className,
-  href,
+  audio,
 }: {
-  /** Where the tile leads, when not the entry's own page. */
-  href?: string;
+  /** It has an audiobook: a small mark on the cover, which leads to it. */
+  audio?: boolean;
   id: string;
   type: ResourceType;
   title: string;
@@ -32,7 +32,7 @@ export function CoverTile({
   rating?: number | null;
   className?: string;
 }) {
-  const to = href ?? `/library/${id}`;
+  const to = `/library/${id}`;
   return (
     <div className={cn("group relative", className)}>
       <div className="relative">
@@ -48,6 +48,15 @@ export function CoverTile({
           />
         </Link>
         <StatusRibbon resourceId={id} type={type} status={status} progress={progress} />
+        {audio && (
+          <Link
+            href={`/library/${id}/audiobook`}
+            aria-label="Audio"
+            className="absolute right-3 bottom-2 grid size-8 place-items-center rounded-full bg-black/70 text-white shadow transition-transform hover:scale-110"
+          >
+            <Headphones className="size-4" />
+          </Link>
+        )}
       </div>
       <Link
         href={to}

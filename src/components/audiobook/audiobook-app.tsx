@@ -1,18 +1,18 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 import {
   ArrowLeft,
+  AudioLines,
+  ChevronsLeft,
+  ChevronsRight,
+  Gauge,
   Headphones,
   Loader2,
   Mic2,
+  MoonStar,
   Pause,
   Play,
-  RotateCcw,
-  RotateCw,
-  SkipBack,
-  SkipForward,
   Square,
-  Timer,
+  TableOfContents,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +41,197 @@ const SAMPLE_EVENT = "nn:voice-sample";
 
 const AUDIO_VERSION = "p4";
 const SLEEP = [15, 30, 45, 60] as const;
+
+/** Bar heights: the same shape for a part every time, so the book looks like a sound. */
+const barHeight = (i: number) => 30 + 70 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.37 + 1));
+
+/**
+ * The whole book as one sound: a bar for each part, a gap between chapters.
+ * Ready parts play when pressed; any other is ordered and made in the
+ * background, so the listener never waits on a part they only wanted to line up.
+ */
+function BookWave({ chapterAt, chapters }: { chapterAt: number[]; chapters: string[] }) {
+  const t = useTranslations("audiobook");
+  const { src, idx, ready, queue, making, pick } = useAudiobook()!;
+  const ordered = new Set(queue);
+  const total = src?.segments ?? 0;
+  const starts = new Set(chapterAt);
+  const chapterOf = (i: number) => {
+    let k = -1;
+    chapterAt.forEach((at, n) => {
+      if (at <= i) k = n;
+    });
+    return chapters[k] ?? "";
+  };
+  return (
+    <div>
+      <div className="ab-wave" role="group" aria-label={t("partsMap")}>
+        {Array.from({ length: total }, (_, i) => {
+          const state =
+            i === making ? "making" : ready.has(i) ? "ready" : ordered.has(i) ? "ordered" : "empty";
+          const label = `${t("part", { n: i + 1, total })} · ${t(`state.${state}` as "state.ready")}`;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => pick(i)}
+              aria-label={label}
+              aria-current={i === idx || undefined}
+              title={[chapterOf(i), label].filter(Boolean).join("\n")}
+              data-state={state}
+              data-gap={(i > 0 && starts.has(i)) || undefined}
+              className="ab-bar"
+            >
+              <span style={{ height: `${barHeight(i)}%` }} />
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-muted mt-1.5 text-xs">{t("partsHint")}</p>
+    </div>
+  );
+}
+
+/** Everything around the sound, one row: speed, sleep, chapter, the order. */
+function PlayerChips({ chapterAt, chapters }: { chapterAt: number[]; chapters: string[] }) {
+  const t = useTranslations("audiobook");
+  const e = useAudiobook()!;
+  const { src, speed, speeds, setSpeed, sleep, setSleep, ready, queue, making } = e;
+  const [open, setOpen] = useState<"speed" | "sleep" | null>(null);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (typeof sleep !== "number") return;
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick);
+    const timer = setInterval(tick, 20_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [sleep]);
+  const total = src?.segments ?? 0;
+  const left = typeof sleep === "number" ? Math.max(1, Math.ceil((sleep - now) / 60_000)) : 0;
+  const sleepLabel =
+    sleep === "chapter"
+      ? t("sleepChapter")
+      : typeof sleep === "number" && now
+        ? t("sleepLeft", { n: left })
+        : t("sleep");
+  const chapterEnd = (k: number) => (chapterAt[k + 1] ?? total) - 1;
+  const opt = (on: boolean) => cn("ab-opt", on && "ab-opt-on");
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(open === "speed" ? null : "speed")}
+          aria-expanded={open === "speed"}
+          className="ab-chip"
+        >
+          <Gauge className="size-4" /> {speed}×
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(open === "sleep" ? null : "sleep")}
+          aria-expanded={open === "sleep"}
+          className={cn("ab-chip", sleep != null && "text-primary")}
+        >
+          <MoonStar className="size-4" /> {sleepLabel}
+        </button>
+        {chapters.length > 1 && (
+          <label className="ab-chip relative min-w-0">
+            <TableOfContents className="size-4 shrink-0" />
+            <span className="truncate">{t("chapters")}</span>
+            <select
+              value=""
+              aria-label={t("chapters")}
+              onChange={(ev) => {
+                const k = Number(ev.target.value);
+                if (ready.has(chapterAt[k])) e.go(chapterAt[k], true);
+                else e.orderParts(chapterAt[k], chapterEnd(k));
+              }}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            >
+              <option value="" disabled>
+                {t("chapters")}
+              </option>
+              {chapters.map((c, k) => (
+                <option key={k} value={k}>
+                  {ready.has(chapterAt[k]) ? "✓ " : ""}
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <span className="ml-auto flex items-center gap-2">
+          <span className="text-muted text-xs tabular-nums">
+            {t("readyCount", { n: ready.size, total })}
+          </span>
+          {ready.size < total &&
+            (queue.length > 0 && making != null ? (
+              <button type="button" onClick={e.stopQueue} className="ab-chip">
+                <Loader2 className="size-4 animate-spin" /> {t("queueStop", { n: queue.length })}
+              </button>
+            ) : (
+              <button type="button" onClick={e.prepareAll} className="ab-chip ab-opt-on">
+                <AudioLines className="size-4" />
+                {queue.length ? t("queueResume", { n: queue.length }) : t("prepareAll")}
+              </button>
+            ))}
+        </span>
+      </div>
+      {open === "speed" && (
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("speed")}>
+          {speeds.map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={speed === v}
+              onClick={() => setSpeed(v)}
+              className={opt(speed === v)}
+            >
+              {v}×
+            </button>
+          ))}
+        </div>
+      )}
+      {open === "sleep" && (
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("sleep")}>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={sleep == null}
+            onClick={() => setSleep(null)}
+            className={opt(sleep == null)}
+          >
+            {t("sleepOff")}
+          </button>
+          {SLEEP.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setSleep(Date.now() + m * 60_000)}
+              className="ab-opt"
+            >
+              {t("sleepMin", { n: m })}
+            </button>
+          ))}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={sleep === "chapter"}
+            onClick={() => setSleep("chapter")}
+            className={opt(sleep === "chapter")}
+          >
+            {t("sleepChapter")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** The choice that matters before anything is made: one reader, or the whole cast. */
 function ModeChoice({ cast, onChange }: { cast: boolean; onChange: (v: boolean) => void }) {
@@ -182,8 +373,8 @@ function Ready({
   const [analysis, setAnalysis] = useState(view.analysis!);
   const cast = !!analysis.cast;
   const engine = useAudiobook()!;
-  const { idx, playing, loading, time, speed, speeds, sleep } = engine;
-  const { setSleep, setSpeed, go, toggle, seek, seekTo, open } = engine;
+  const { idx, playing, loading, time } = engine;
+  const { go, toggle, seek, seekTo, open } = engine;
   const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${cast ? "c" : "s"}.${AUDIO_VERSION}`;
   // The book enters the site-wide player (one that is already playing goes on).
   useEffect(() => {
@@ -207,7 +398,7 @@ function Ready({
     if (at <= idx) chapter = analysis.chapters[k]?.title ?? chapter;
   });
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const nextSpeed = () => setSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length]);
+  const pct = time.dur ? (time.cur / time.dur) * 100 : 0;
 
   const changeVoice = async (speaker: string, voice: string) => {
     const r = await setVoiceAction(resource.id, speaker, voice);
@@ -231,135 +422,101 @@ function Ready({
 
   return (
     <>
-      <section className="ab-stage relative overflow-hidden rounded-3xl text-white">
-        {resource.cover && <img src={resource.cover} alt="" aria-hidden className="ab-glow" />}
-        <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[15rem_1fr]">
+      <section className="ab-deck flex flex-col gap-5 rounded-3xl p-5 sm:p-7">
+        <div className="flex items-center gap-4 sm:gap-5">
           <Cover
             type="book"
             title={resource.title}
             author={resource.authors}
             src={resource.cover}
-            className={cn(
-              "mx-auto aspect-[2/3] h-auto w-44 transition-transform duration-700 md:w-full",
-              playing && "scale-[1.03]",
-            )}
+            className="aspect-[2/3] h-auto w-20 shrink-0 sm:w-24"
           />
-          <div className="flex min-w-0 flex-col gap-5">
-            <div className="min-w-0 text-center md:text-left">
-              <p className="truncate text-sm font-semibold text-[#f6c453]">{chapter || " "}</p>
-              <h1 className="mt-1 text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
-                {resource.title}
-              </h1>
-              {resource.authors && (
-                <p className="mt-1 truncate text-sm text-white/65">{resource.authors}</p>
-              )}
-            </div>
-            <div>
-              <input
-                type="range"
-                min={0}
-                max={time.dur || 0}
-                step={0.1}
-                value={time.cur}
-                disabled={!time.dur}
-                onChange={(e) => seekTo(Number(e.target.value))}
-                aria-label={t("position")}
-                className="ab-range w-full"
-                style={{
-                  ["--pct" as string]: `${time.dur ? (time.cur / time.dur) * 100 : 0}%`,
-                }}
-              />
-              <div className="mt-1 flex justify-between text-xs text-white/60 tabular-nums">
-                <span>{fmt(time.cur)}</span>
-                <span>{t("part", { n: idx + 1, total: view.segments })}</span>
-                <span>{time.dur ? fmt(time.dur) : "–:––"}</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-1 sm:gap-2 md:justify-start">
-              <button
-                type="button"
-                onClick={nextSpeed}
-                aria-label={t("speed")}
-                className="ab-btn w-12 text-sm font-semibold tabular-nums"
-              >
-                {speed}x
-              </button>
-              <button
-                type="button"
-                onClick={() => go(idx - 1)}
-                aria-label={t("prev")}
-                className="ab-btn"
-              >
-                <SkipBack className="size-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => seek(-10)}
-                aria-label={t("back15")}
-                className="ab-btn"
-              >
-                <RotateCcw className="size-5" />
-              </button>
-              <button
-                type="button"
-                onClick={toggle}
-                aria-label={playing ? t("pause") : t("play")}
-                className="mx-1 grid size-16 shrink-0 place-items-center rounded-full bg-[#f6c453] text-[#1a1408] shadow-lg transition-transform hover:scale-105 active:scale-95"
-              >
-                {loading ? (
-                  <Loader2 className="size-7 animate-spin" />
-                ) : playing ? (
-                  <Pause className="size-7" />
-                ) : (
-                  <Play className="size-7 translate-x-0.5" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => seek(10)}
-                aria-label={t("fwd15")}
-                className="ab-btn"
-              >
-                <RotateCw className="size-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => go(idx + 1)}
-                aria-label={t("next")}
-                className="ab-btn"
-              >
-                <SkipForward className="size-5" />
-              </button>
-              <label
-                className={cn("ab-btn relative", sleep != null && "text-[#f6c453]")}
-                title={t("sleep")}
-              >
-                <Timer className="size-5" />
-                <select
-                  value={sleep == null ? "" : String(sleep === "chapter" ? "chapter" : "on")}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "on") return;
-                    setSleep(
-                      !v ? null : v === "chapter" ? "chapter" : Date.now() + Number(v) * 60_000,
-                    );
-                  }}
-                  aria-label={t("sleep")}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">{t("sleepOff")}</option>
-                  {typeof sleep === "number" && <option value="on">{t("sleepOn")}</option>}
-                  {SLEEP.map((m) => (
-                    <option key={m} value={m}>
-                      {t("sleepMin", { n: m })}
-                    </option>
-                  ))}
-                  <option value="chapter">{t("sleepChapter")}</option>
-                </select>
-              </label>
-            </div>
+          <div className="min-w-0">
+            <p className="text-primary truncate text-sm font-semibold">{chapter || " "}</p>
+            <h1 className="mt-0.5 text-xl leading-tight font-bold tracking-tight sm:text-2xl">
+              {resource.title}
+            </h1>
+            {resource.authors && (
+              <p className="text-muted mt-0.5 truncate text-sm">{resource.authors}</p>
+            )}
           </div>
         </div>
+
+        <BookWave chapterAt={view.chapterAt} chapters={analysis.chapters.map((c) => c.title)} />
+
+        <div>
+          <input
+            type="range"
+            min={0}
+            max={time.dur || 0}
+            step={0.1}
+            value={time.cur}
+            disabled={!time.dur}
+            onChange={(e) => seekTo(Number(e.target.value))}
+            aria-label={t("position")}
+            className="ab-range w-full"
+            style={{ ["--pct" as string]: `${pct}%` }}
+          />
+          <div className="text-muted mt-1 flex justify-between text-xs tabular-nums">
+            <span>{fmt(time.cur)}</span>
+            <span>{t("part", { n: idx + 1, total: view.segments })}</span>
+            <span>{time.dur ? fmt(time.dur) : "–:––"}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => go(idx - 1)}
+            aria-label={t("prev")}
+            className="ab-btn"
+          >
+            <ChevronsLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => seek(-10)}
+            aria-label={t("back15")}
+            className="ab-btn text-sm font-semibold tabular-nums"
+          >
+            −10
+          </button>
+          <span className="ab-ring" style={{ ["--pct" as string]: `${pct}%` }}>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={playing ? t("pause") : t("play")}
+              className="btn-primary text-primary-foreground grid size-14 place-items-center rounded-full transition-transform active:scale-95"
+            >
+              {loading ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : playing ? (
+                <Pause className="size-6" />
+              ) : (
+                <Play className="size-6 translate-x-0.5" />
+              )}
+            </button>
+          </span>
+          <button
+            type="button"
+            onClick={() => seek(10)}
+            aria-label={t("fwd15")}
+            className="ab-btn text-sm font-semibold tabular-nums"
+          >
+            +10
+          </button>
+          <button
+            type="button"
+            onClick={() => go(idx + 1)}
+            aria-label={t("next")}
+            className="ab-btn"
+          >
+            <ChevronsRight className="size-5" />
+          </button>
+        </div>
+        {loading && <p className="text-muted -mt-2 text-center text-xs">{t("voiceComing")}</p>}
+
+        <PlayerChips chapterAt={view.chapterAt} chapters={analysis.chapters.map((c) => c.title)} />
       </section>
 
       <section className="card flex flex-col gap-4 p-5">
