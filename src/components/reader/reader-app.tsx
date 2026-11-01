@@ -7,13 +7,15 @@ import {
   Headphones,
   ListTree,
   Loader2,
+  Maximize,
+  Minimize,
   Sparkles,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { saveNoteAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,8 @@ import type { ReaderData } from "@/server/reader";
 import { offlinePages } from "./offline";
 import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
-import { PAPER, useReaderPrefs, WIDTH } from "./reader-prefs";
+import { PAPER, paperVars, useReaderPrefs, WIDTH } from "./reader-prefs";
+import { useBookPages } from "./use-book-pages";
 import { MarkMenu, NoteDialog, SelectionMenu, type Sel } from "./reader-selection";
 import { ReaderSettings } from "./reader-settings";
 import { ReaderSide, type SideTab } from "./reader-side";
@@ -70,6 +73,17 @@ export function ReaderApp({
   const [original, setOriginal] = useState<Set<number>>(new Set());
   const main = useRef<HTMLDivElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+  const wide = useSyncExternalStore(
+    (cb) => {
+      const m = matchMedia("(min-width: 1024px)");
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => matchMedia("(min-width: 1024px)").matches,
+    () => false,
+  );
+  const bookMode = prefs.layout === "book" && wide && !ai;
 
   const textPages = data.pages;
   // Picture-only pages (maps, plates, the cover) are drawn from the PDF itself.
@@ -111,6 +125,28 @@ export function ReaderApp({
     [resource.id, noise, pictures],
   );
 
+  /** One more batch at the end (for the turning pages). */
+  const moreAtEnd = useCallback(async () => {
+    const end = pages.at(-1)?.page ?? 0;
+    if (!end || end >= last) return false;
+    const got = await fetchPages(end + 1, end + BATCH);
+    setPages((cur) => [...cur, ...got.filter((g) => !cur.some((c) => c.page === g.page))]);
+    return true;
+  }, [pages, last, fetchPages]);
+
+  const earlierRef = useRef<() => Promise<boolean>>(async () => false);
+  const book = useBookPages(bookMode, moreAtEnd, () => earlierRef.current());
+  const toSpread = useRef(book.spreadOf);
+  const goSpread = useRef(book.go);
+  useEffect(() => {
+    toSpread.current = book.spreadOf;
+    goSpread.current = book.go;
+  });
+  const bookOn = useRef(bookMode);
+  useEffect(() => {
+    bookOn.current = bookMode;
+  }, [bookMode]);
+
   /** Scrolls to `title` on `page` (or to the page itself). Only the window scrolls. */
   const scrollTo = useCallback((page: number, title?: string) => {
     requestAnimationFrame(() => {
@@ -129,7 +165,8 @@ export function ReaderApp({
               .startsWith(want.slice(0, 30)),
           )) ||
         root.querySelector<HTMLElement>(`[data-page="${page}"]`);
-      if (target)
+      if (target && bookOn.current) goSpread.current(toSpread.current(target));
+      else if (target)
         window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 120 });
     });
   }, []);
@@ -179,6 +216,60 @@ export function ReaderApp({
     io.observe(el);
     return () => io.disconnect();
   }, [pages, loading, last, fetchPages]);
+
+  // Turning back past the first loaded page.
+  useEffect(() => {
+    earlierRef.current = async () => {
+      const first = pages[0]?.page ?? 1;
+      if (first <= firstPage) return false;
+      const got = await fetchPages(Math.max(firstPage, first - BATCH), first - 1);
+      setPages((cur) => [...got, ...cur]);
+      await new Promise((done) => requestAnimationFrame(() => setTimeout(done, 60)));
+      const el = main.current?.querySelector<HTMLElement>(`[data-page="${first}"]`);
+      if (el) goSpread.current(toSpread.current(el));
+      return true;
+    };
+  }, [pages, firstPage, fetchPages]);
+
+  // Full screen: the app's frame goes away and only the book stays.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (full) root.dataset.readerFull = "1";
+    else delete root.dataset.readerFull;
+    return () => {
+      delete root.dataset.readerFull;
+    };
+  }, [full]);
+  // Works as a calm mode even where the browser refuses real full screen (iPhone).
+  const realFull = useRef(false);
+  const toggleFull = useCallback(() => {
+    setFull((on) => {
+      if (on) void document.exitFullscreen?.().catch(() => null);
+      else void document.documentElement.requestFullscreen?.().catch(() => null);
+      return !on;
+    });
+  }, []);
+  useEffect(() => {
+    const onChange = () => {
+      if (document.fullscreenElement) realFull.current = true;
+      else if (realFull.current) {
+        realFull.current = false;
+        setFull(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as Element;
+      if (t.closest?.("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey || e.altKey)
+        return;
+      if (e.key.toLowerCase() === "f") toggleFull();
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [toggleFull]);
 
   const loadEarlier = async () => {
     const first = pages[0]?.page ?? 1;
@@ -327,15 +418,13 @@ export function ReaderApp({
   return (
     <div
       className="-mx-4 -my-6 min-h-[calc(100dvh-3.5rem)] sm:-mx-6 sm:-my-8"
-      style={paper ? { background: paper.bg, color: paper.fg } : undefined}
+      style={paper ? paperVars(paper) : undefined}
     >
       {/* Top bar */}
       <div
         className={cn(
-          "border-border sticky top-14 z-20 flex items-center gap-1.5 border-b px-3 py-2 backdrop-blur sm:px-5",
-          !paper && "bg-background/90",
+          "reader-bar border-border bg-background/90 sticky top-14 z-20 flex items-center gap-1.5 border-b px-3 py-2 backdrop-blur sm:px-5",
         )}
-        style={paper ? { background: `${paper.bg}e6`, color: paper.fg } : undefined}
       >
         <Link
           href={`/library/${resource.id}`}
@@ -362,6 +451,16 @@ export function ReaderApp({
           </p>
         </div>
         <ReaderSettings />
+        <button
+          type="button"
+          onClick={toggleFull}
+          className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100"
+          title={`${t(full ? "exitFull" : "fullScreen")} (F)`}
+          aria-label={t(full ? "exitFull" : "fullScreen")}
+          aria-pressed={full}
+        >
+          {full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+        </button>
         <Link
           href={`/library/${resource.id}/audiobook`}
           className="hover:bg-surface-2/50 rounded-md p-1.5 opacity-70 hover:opacity-100"
@@ -430,113 +529,153 @@ export function ReaderApp({
         )}
         <div
           ref={main}
-          className={cn("min-w-0 flex-1 px-5 pt-6 pb-32 sm:px-10", ai && "lg:mr-[24rem]")}
+          className={cn(
+            "min-w-0 flex-1 px-5 pt-6 sm:px-10",
+            bookMode ? "pb-3" : "pb-32",
+            ai && "lg:mr-[24rem]",
+          )}
         >
-          <article
-            className={cn("mx-auto", prefs.family === "serif" ? "font-serif" : "font-sans")}
-            style={{
-              fontSize: prefs.size,
-              lineHeight: prefs.leading,
-              maxWidth: WIDTH[prefs.width],
-            }}
-            lang="und"
+          <div
+            ref={bookMode ? book.frame : undefined}
+            className={cn(bookMode && "book-frame")}
+            style={bookMode ? { color: "var(--foreground)" } : undefined}
           >
-            {(pages[0]?.page ?? 1) > firstPage && (
-              <div className="mb-6 text-center font-sans">
-                <Button variant="ghost" size="sm" onClick={() => void loadEarlier()}>
-                  <ChevronUp /> {t("earlier")}
-                </Button>
-              </div>
-            )}
-            {pages.map((p) => (
-              <section key={p.page} data-page={p.page} className="scroll-mt-32">
-                <div className="my-6 flex items-center gap-3 font-sans text-xs tabular-nums opacity-50 select-none">
-                  <span className="h-px flex-1 bg-current opacity-30" /> {p.page}
-                  {data.fileId && !p.picture && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOriginal((cur) => {
-                          const n = new Set(cur);
-                          if (n.has(p.page)) n.delete(p.page);
-                          else n.add(p.page);
-                          return n;
-                        })
-                      }
-                      className="rounded px-1 hover:opacity-100"
-                      title={t("originalHint")}
-                    >
-                      {original.has(p.page) ? t("hideOriginal") : t("original")}
-                    </button>
-                  )}
-                  <span className="h-px flex-1 bg-current opacity-30" />
+            <article
+              ref={bookMode ? book.flow : undefined}
+              className={cn(
+                !bookMode && "mx-auto",
+                bookMode && "book-flow",
+                prefs.family === "serif" ? "font-serif" : "font-sans",
+              )}
+              style={{
+                fontSize: prefs.size,
+                lineHeight: prefs.leading,
+                ...(bookMode
+                  ? {
+                      columnWidth: (book.width - book.gap) / 2 || undefined,
+                      columnGap: book.gap,
+                      transform: `translateX(${-book.spread * book.step}px)`,
+                    }
+                  : { maxWidth: WIDTH[prefs.width] }),
+              }}
+              lang="und"
+            >
+              {!bookMode && (pages[0]?.page ?? 1) > firstPage && (
+                <div className="mb-6 text-center font-sans">
+                  <Button variant="ghost" size="sm" onClick={() => void loadEarlier()}>
+                    <ChevronUp /> {t("earlier")}
+                  </Button>
                 </div>
-                {data.fileId && (p.picture || original.has(p.page)) && (
-                  <figure className="my-4 font-sans">
-                    <PdfPage
-                      fileId={data.fileId}
-                      page={p.page}
-                      alt={
-                        pageTitle(p.page) ||
-                        t("pageOf", { n: p.page, total: data.totalPages || last })
-                      }
-                    />
-                    {p.picture && pageTitle(p.page) && (
-                      <figcaption className="mt-2 text-center text-sm opacity-60">
-                        {pageTitle(p.page)}
-                      </figcaption>
+              )}
+              {pages.map((p) => (
+                <section key={p.page} data-page={p.page} className="scroll-mt-32">
+                  <div className="my-6 flex items-center gap-3 font-sans text-xs tabular-nums opacity-50 select-none">
+                    <span className="h-px flex-1 bg-current opacity-30" /> {p.page}
+                    {data.fileId && !p.picture && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOriginal((cur) => {
+                            const n = new Set(cur);
+                            if (n.has(p.page)) n.delete(p.page);
+                            else n.add(p.page);
+                            return n;
+                          })
+                        }
+                        className="rounded px-1 hover:opacity-100"
+                        title={t("originalHint")}
+                      >
+                        {original.has(p.page) ? t("hideOriginal") : t("original")}
+                      </button>
                     )}
-                  </figure>
-                )}
-                {p.paras.map((para, i) =>
-                  para.heading ? (
-                    <h2
-                      key={i}
-                      data-para
-                      className="mt-8 mb-4 text-center font-sans text-[0.95em] font-semibold tracking-[0.12em] uppercase"
-                    >
-                      {para.text}
-                    </h2>
-                  ) : (
-                    <p key={i} data-para className="mb-[0.9em] indent-[1.5em]">
-                      {marked(para.text, marks, term).map((piece, k) =>
-                        typeof piece === "string" ? (
-                          piece
-                        ) : "hit" in piece ? (
-                          <mark key={k} className="rounded-sm bg-[var(--c-amber)]/35 text-inherit">
-                            {piece.t}
-                          </mark>
-                        ) : (
-                          <mark
-                            key={k}
-                            onClick={(e) => {
-                              if (window.getSelection()?.toString()) return;
-                              setMarkMenu({ m: piece.m, x: e.clientX, y: e.clientY });
-                            }}
-                            className={cn(
-                              "cursor-pointer rounded-sm px-0.5 text-inherit",
-                              piece.m.kind === "quote"
-                                ? "bg-primary-soft border-primary/50 border-b-2"
-                                : "taqriz-note-mark",
-                            )}
-                          >
-                            {piece.t}
-                          </mark>
-                        ),
+                    <span className="h-px flex-1 bg-current opacity-30" />
+                  </div>
+                  {data.fileId && (p.picture || original.has(p.page)) && (
+                    <figure className="my-4 font-sans">
+                      <PdfPage
+                        fileId={data.fileId}
+                        page={p.page}
+                        alt={
+                          pageTitle(p.page) ||
+                          t("pageOf", { n: p.page, total: data.totalPages || last })
+                        }
+                      />
+                      {p.picture && pageTitle(p.page) && (
+                        <figcaption className="mt-2 text-center text-sm opacity-60">
+                          {pageTitle(p.page)}
+                        </figcaption>
                       )}
-                    </p>
-                  ),
-                )}
-              </section>
-            ))}
-            <div ref={bottom} className="py-10 text-center font-sans">
-              {loading ? (
-                <Loader2 className="mx-auto size-5 animate-spin opacity-50" />
-              ) : (pages.at(-1)?.page ?? 0) >= last ? (
-                <p className="text-sm opacity-60">{t("theEnd")}</p>
-              ) : null}
-            </div>
-          </article>
+                    </figure>
+                  )}
+                  {p.paras.map((para, i) =>
+                    para.heading ? (
+                      <h2
+                        key={i}
+                        data-para
+                        className="mt-8 mb-4 text-center font-sans text-[0.95em] font-semibold tracking-[0.12em] uppercase"
+                      >
+                        {para.text}
+                      </h2>
+                    ) : (
+                      <p key={i} data-para className="mb-[0.9em] indent-[1.5em]">
+                        {marked(para.text, marks, term).map((piece, k) =>
+                          typeof piece === "string" ? (
+                            piece
+                          ) : "hit" in piece ? (
+                            <mark
+                              key={k}
+                              className="rounded-sm bg-[var(--c-amber)]/35 text-inherit"
+                            >
+                              {piece.t}
+                            </mark>
+                          ) : (
+                            <mark
+                              key={k}
+                              onClick={(e) => {
+                                if (window.getSelection()?.toString()) return;
+                                setMarkMenu({ m: piece.m, x: e.clientX, y: e.clientY });
+                              }}
+                              className={cn(
+                                "cursor-pointer rounded-sm px-0.5 text-inherit",
+                                piece.m.kind === "quote"
+                                  ? "bg-primary-soft border-primary/50 border-b-2"
+                                  : "taqriz-note-mark",
+                              )}
+                            >
+                              {piece.t}
+                            </mark>
+                          ),
+                        )}
+                      </p>
+                    ),
+                  )}
+                </section>
+              ))}
+              <div ref={bottom} className="py-10 text-center font-sans">
+                {loading ? (
+                  <Loader2 className="mx-auto size-5 animate-spin opacity-50" />
+                ) : (pages.at(-1)?.page ?? 0) >= last ? (
+                  <p className="text-sm opacity-60">{t("theEnd")}</p>
+                ) : null}
+              </div>
+            </article>
+            {bookMode && (
+              <>
+                <button
+                  type="button"
+                  aria-label={t("prevPage")}
+                  onClick={() => void book.turn(-1)}
+                  className="book-edge left-0"
+                />
+                <button
+                  type="button"
+                  aria-label={t("nextPage")}
+                  onClick={() => void book.turn(1)}
+                  className="book-edge right-0"
+                />
+              </>
+            )}
+          </div>
         </div>
         {ai && (
           <aside className="border-border bg-surface text-foreground fixed inset-x-0 top-14 bottom-0 z-30 border-l shadow-xl sm:left-auto sm:w-[24rem] lg:shadow-none">

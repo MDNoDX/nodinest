@@ -361,7 +361,9 @@
     "anyReadYear": "Har qanday yil",
     "readIn": "{year}-yilda öqilgan",
     "notFinished": "Hali tugatilmagan",
-    "unknownYear": "Yili noma’lum"
+    "unknownYear": "Yili noma’lum",
+    "audiobooks": "Audiokitoblar",
+    "seeAll": "Hammasi ({count})"
   },
   "resource": {
     "newTitle": "Manba qöşiş",
@@ -2060,7 +2062,14 @@
     "offlineReady": "Internetsiz öqişga tayyor",
     "offlineRemove": "Qurilmadan öçiriş",
     "offlineDone": "Kitob qurilmaga saqlandi — endi internetsiz ham öqiysiz",
-    "offlineFailed": "Saqlanmadi. Internetni tekşirib, qayta urinib köring."
+    "offlineFailed": "Saqlanmadi. Internetni tekşirib, qayta urinib köring.",
+    "layout": "Köriniş",
+    "layout_scroll": "Aylantirib",
+    "layout_book": "Kitob kabi",
+    "fullScreen": "Töliq ekran",
+    "exitFull": "Töliq ekrandan çiqiş",
+    "prevPage": "Oldingi sahifa",
+    "nextPage": "Keyingi sahifa"
   },
   "guide": {
     "title": "Qöllanma",

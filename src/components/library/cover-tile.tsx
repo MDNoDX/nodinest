@@ -17,7 +17,10 @@ export function CoverTile({
   progress,
   rating,
   className,
+  href,
 }: {
+  /** Where the tile leads, when not the entry's own page. */
+  href?: string;
   id: string;
   type: ResourceType;
   title: string;
@@ -29,10 +32,11 @@ export function CoverTile({
   rating?: number | null;
   className?: string;
 }) {
+  const to = href ?? `/library/${id}`;
   return (
     <div className={cn("group relative", className)}>
       <div className="relative">
-        <Link href={`/library/${id}`} className="block rounded-lg" tabIndex={-1} aria-hidden>
+        <Link href={to} className="block rounded-lg" tabIndex={-1} aria-hidden>
           <Cover
             type={type}
             title={title}
@@ -46,7 +50,7 @@ export function CoverTile({
         <StatusRibbon resourceId={id} type={type} status={status} progress={progress} />
       </div>
       <Link
-        href={`/library/${id}`}
+        href={to}
         className="mt-2 line-clamp-2 block text-[15px] leading-snug font-semibold hover:underline"
       >
         {title}

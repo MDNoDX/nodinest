@@ -773,3 +773,113 @@ a:focus-visible .cover-3d {
     transition: none;
   }
 }
+
+/* ── The reader ── */
+/* Full screen: only the book stays. */
+html[data-reader-full] [data-shell] {
+  display: none;
+}
+html[data-reader-full] .reader-bar {
+  top: 0;
+}
+html[data-reader-full] .book-frame {
+  height: calc(100dvh - 5.5rem);
+}
+/* Two facing pages. */
+.book-frame {
+  position: relative;
+  height: calc(100dvh - 9.5rem);
+  max-width: 76rem;
+  margin-inline: auto;
+  overflow: hidden;
+  perspective: 2200px;
+  background: linear-gradient(
+    90deg,
+    transparent calc(50% - 44px),
+    rgb(0 0 0 / 0.1) calc(50% - 2px),
+    rgb(0 0 0 / 0.2) 50%,
+    rgb(0 0 0 / 0.1) calc(50% + 2px),
+    transparent calc(50% + 44px)
+  );
+}
+.book-flow {
+  height: 100%;
+  column-fill: auto;
+}
+.book-flow p,
+.book-flow h2 {
+  break-inside: auto;
+  orphans: 2;
+  widows: 2;
+}
+.book-flow figure,
+.book-flow canvas,
+.book-flow img {
+  break-inside: avoid;
+  max-height: calc(100dvh - 12rem);
+}
+.book-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 7%;
+  cursor: pointer;
+}
+.book-turn {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+.book-left,
+.book-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(50% - 36px);
+}
+.book-left {
+  left: 0;
+}
+.book-right {
+  right: 0;
+}
+.book-face {
+  overflow: hidden;
+  background: var(--background);
+}
+.book-sheet {
+  transform-style: preserve-3d;
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.3, 1);
+  animation-fill-mode: both;
+}
+.book-sheet .book-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  box-shadow: inset 0 0 40px rgb(0 0 0 / 0.1);
+}
+.book-sheet .book-reverse {
+  transform: rotateY(180deg);
+}
+.book-forward {
+  transform-origin: calc(-36px) center;
+  animation-name: book-forward;
+}
+.book-back {
+  transform-origin: calc(100% + 36px) center;
+  animation-name: book-back;
+}
+@keyframes book-forward {
+  to {
+    transform: rotateY(-180deg);
+  }
+}
+@keyframes book-back {
+  to {
+    transform: rotateY(180deg);
+  }
+}

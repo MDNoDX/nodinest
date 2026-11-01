@@ -361,7 +361,9 @@
     "anyReadYear": "Any year",
     "readIn": "Read in {year}",
     "notFinished": "Not finished yet",
-    "unknownYear": "Year unknown"
+    "unknownYear": "Year unknown",
+    "audiobooks": "Audiobooks",
+    "seeAll": "All ({count})"
   },
   "resource": {
     "newTitle": "Add a resource",
@@ -2060,7 +2062,14 @@
     "offlineReady": "Ready for offline reading",
     "offlineRemove": "Remove from this device",
     "offlineDone": "Saved on this device — you can read it offline now",
-    "offlineFailed": "Not saved. Check the connection and try again."
+    "offlineFailed": "Not saved. Check the connection and try again.",
+    "layout": "Layout",
+    "layout_scroll": "Scroll",
+    "layout_book": "Like a book",
+    "fullScreen": "Full screen",
+    "exitFull": "Exit full screen",
+    "prevPage": "Previous page",
+    "nextPage": "Next page"
   },
   "guide": {
     "title": "Guide",

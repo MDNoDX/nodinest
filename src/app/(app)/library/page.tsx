@@ -1,4 +1,4 @@
-import { BookOpen, Copy, Plus, Search } from "lucide-react";
+import { BookOpen, Copy, Headphones, Plus, Search } from "lucide-react";
 import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -18,11 +18,14 @@ import {
   listResources,
   type LibrarySort,
 } from "@/server/catalog";
+import { listAudiobooks } from "@/server/audiobook";
 import { findLibraryDuplicates } from "@/server/merge";
 import { pickName } from "@/i18n/config";
 import { isUz, uzScript } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
+
+const SHELVES: ResourceType[] = ["book", "course", "video", "podcast", "article", "file", "other"];
 
 export async function generateMetadata() {
   return { title: (await getTranslations("library"))("title") };
@@ -82,6 +85,29 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
                 : `${-r.writtenYear} BC`
             : String(r.writtenYear)
         : "";
+  // With no filter the Darsxona is shelves: the latest of each kind, and audiobooks.
+  const browsing =
+    !filters.q &&
+    !filters.type &&
+    !filters.status &&
+    !filters.categoryId &&
+    !filters.personId &&
+    !filters.readYear &&
+    !filters.archived &&
+    filters.page <= 1 &&
+    filters.sort === "updated";
+  const [shelves, audio] = browsing
+    ? await Promise.all([
+        Promise.all(
+          SHELVES.map(async (type) => ({
+            type,
+            data: await listResources(db, ctx, { ...filters, type, pageSize: 5 }),
+          })),
+        ),
+        listAudiobooks(ctx, 5),
+      ])
+    : [[], []];
+  const shown = shelves.filter((x) => x.data.total > 0);
   const groups: { key: string; items: typeof data.items }[] = [];
   for (const r of data.items) {
     const k = groupKey(r);
@@ -252,6 +278,62 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
             }
           />
         )
+      ) : browsing ? (
+        <div className="flex flex-col gap-9">
+          {audio.length > 0 && (
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                <Headphones className="text-primary size-5" /> {t("library.audiobooks")}
+              </h2>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {audio.map((r) => (
+                  <li key={r.id}>
+                    <CoverTile
+                      id={r.id}
+                      href={`/library/${r.id}/audiobook`}
+                      type="book"
+                      title={r.title}
+                      cover={coverSrc(r)}
+                      status={null}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {shown.map((x) => (
+            <section key={x.type}>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h2 className="text-lg font-semibold">
+                  {t(`types.plural.${x.type}` as "types.plural.book")}
+                </h2>
+                {x.data.total > x.data.items.length && (
+                  <Link
+                    href={`/library?type=${x.type}`}
+                    className="text-primary text-sm font-medium hover:underline"
+                  >
+                    {t("library.seeAll", { count: x.data.total })}
+                  </Link>
+                )}
+              </div>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {x.data.items.map((r) => (
+                  <li key={r.id}>
+                    <CoverTile
+                      id={r.id}
+                      type={r.type}
+                      title={r.title}
+                      cover={coverSrc(r)}
+                      line={r.contributors}
+                      status={r.myStatus}
+                      rating={r.myRating}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col gap-8">
           {groups.map((g) => (
@@ -287,20 +369,22 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
           ))}
         </div>
       )}
-      <Pagination
-        page={data.page}
-        total={data.total}
-        pageSize={data.pageSize}
-        hrefFor={qs}
-        labels={{
-          previous: t("common.previous"),
-          next: t("common.next"),
-          page: t("common.page", {
-            page: data.page,
-            total: Math.max(1, Math.ceil(data.total / data.pageSize)),
-          }),
-        }}
-      />
+      {!browsing && (
+        <Pagination
+          page={data.page}
+          total={data.total}
+          pageSize={data.pageSize}
+          hrefFor={qs}
+          labels={{
+            previous: t("common.previous"),
+            next: t("common.next"),
+            page: t("common.page", {
+              page: data.page,
+              total: Math.max(1, Math.ceil(data.total / data.pageSize)),
+            }),
+          }}
+        />
+      )}
     </>
   );
 }

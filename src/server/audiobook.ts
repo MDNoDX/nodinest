@@ -18,7 +18,7 @@ import "server-only";
 import { Mp3Encoder } from "@breezystack/lamejs";
 import { Type } from "@google/genai";
 import { createHash } from "node:crypto";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
@@ -28,6 +28,7 @@ import {
   audiobookScripts,
   bookTextSources,
   voiceSamples,
+  resources,
 } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { generate, speak, uploadToGemini } from "./ai/gemini";
@@ -729,6 +730,24 @@ async function getRow(ctx: AppContext, resourceId: string) {
       .where(and(eq(audiobooks.userId, ctx.userId), eq(audiobooks.resourceId, resourceId))),
   );
   return r ?? null;
+}
+
+/** My audiobooks for the Darsxona shelf, the latest first. */
+export async function listAudiobooks(ctx: AppContext, limit = 6) {
+  return withUser(db, ctx, (tx) =>
+    tx
+      .select({
+        id: resources.id,
+        title: resources.title,
+        coverUrl: resources.coverUrl,
+        coverFileId: resources.coverFileId,
+      })
+      .from(audiobooks)
+      .innerJoin(resources, eq(resources.id, audiobooks.resourceId))
+      .where(and(eq(audiobooks.userId, ctx.userId), isNull(resources.deletedAt)))
+      .orderBy(desc(audiobooks.updatedAt))
+      .limit(limit),
+  );
 }
 
 export async function getAudiobook(

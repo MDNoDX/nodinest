@@ -121,6 +121,17 @@ export function ReaderSettings() {
               </button>
             </div>
           </div>
+          <div className="max-lg:hidden">
+            <Choice
+              label={t("layout")}
+              value={p.layout}
+              onChange={(v) => set({ layout: v })}
+              options={[
+                { v: "scroll", label: t("layout_scroll") },
+                { v: "book", label: t("layout_book") },
+              ]}
+            />
+          </div>
           <Choice
             label={t("typeface")}
             value={p.family}
