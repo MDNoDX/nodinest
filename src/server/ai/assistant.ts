@@ -180,18 +180,38 @@ async function learnerProfile(ctx: AppContext): Promise<string> {
         from nodinest.notes n left join nodinest.resources r on r.id = n.resource_id
         where n.user_id = ${ctx.userId} and n.deleted_at is null
         order by n.created_at desc limit 25`),
-      tx
-        .execute<{
-          title: string;
-          target: number | null;
-          current: number | null;
-          due: string | null;
-        }>(
-          sql`
-        select title, target_value as target, current_value as current, to_char(due_date, 'YYYY-MM-DD') as due
-        from nodinest.goals where user_id = ${ctx.userId} order by created_at desc limit 8`,
-        )
-        .catch(() => []),
+      tx.execute<{
+        title: string;
+        due: string | null;
+        status: string;
+        done: number;
+        all: number;
+      }>(sql`
+        select g.title, to_char(g.due_on, 'YYYY-MM-DD') as due, g.status::text as status,
+          (select count(*)::int from nodinest.goal_steps s where s.goal_id = g.id and s.done) as done,
+          (select count(*)::int from nodinest.goal_steps s where s.goal_id = g.id) as all
+        from nodinest.goals g where g.user_id = ${ctx.userId} order by g.created_at desc limit 10`),
+      tx.execute<{
+        title: string;
+        amount: string | null;
+        time: string | null;
+        on_day: boolean;
+        done_week: number;
+      }>(sql`
+        select r.title, r.amount, r.time, not r.archived as on_day,
+          (select count(*)::int from nodinest.routine_checks c
+            where c.routine_id = r.id and c.status = 'done' and c.day > current_date - 7) as done_week
+        from nodinest.routines r
+        where r.user_id = ${ctx.userId} and r.parent_id is null and not r.archived
+        order by r.position limit 20`),
+      tx.execute<{
+        title: string | null;
+        better: boolean | null;
+        minutes: number | null;
+        day: string;
+      }>(sql`
+        select title, better, productive_minutes as minutes, to_char(day, 'YYYY-MM-DD') as day
+        from nodinest.day_logs where user_id = ${ctx.userId} order by day desc limit 7`),
       tx.execute<{ cards: number; due: number }>(sql`
         select count(*)::int as cards, count(*) filter (where due_at <= now() and not suspended)::int as due
         from nodinest.study_cards where user_id = ${ctx.userId}`),
@@ -199,7 +219,7 @@ async function learnerProfile(ctx: AppContext): Promise<string> {
         select count(*)::int as n from nodinest.writeups where user_id = ${ctx.userId} and words > 50`),
     ]),
   );
-  const [[me], items, notes, goals, [cards], [writeups]] = rows;
+  const [[me], items, notes, goals, plans, days, [cards], [writeups]] = rows;
   const line = (i: (typeof items)[number]) =>
     `- ${i.title}${i.authors ? ` (${i.authors})` : ""} · ${i.type} · ${i.status}${i.rating ? ` · ${i.rating}/10` : ""}${i.progress ? ` · ${i.progress}` : ""}${i.review ? ` · their opinion: "${i.review}"` : ""}`;
   const by = (st: string) => items.filter((i) => i.status === st);
@@ -215,7 +235,11 @@ ${[...by("planned"), ...by("paused")].slice(0, 12).map(line).join("\n") || "—"
     `Recent notes and quotes:
 ${notes.map((n) => `- ${n.kind}${n.book ? ` (${n.book})` : ""}: ${n.text}`).join("\n") || "—"}`,
     `Goals:
-${(goals as { title: string; target: number | null; current: number | null; due: string | null }[]).map((g) => `- ${g.title}: ${g.current ?? 0}/${g.target ?? "?"}${g.due ? ` by ${g.due}` : ""}`).join("\n") || "—"}`,
+${goals.map((g) => `- ${g.title} (${g.status})${g.all ? `: ${g.done}/${g.all} steps` : ""}${g.due ? ` by ${g.due}` : ""}`).join("\n") || "—"}`,
+    `Daily plan, and how many times each was done in the last 7 days:
+${plans.map((p) => `- ${p.time ? `${p.time} ` : ""}${p.title}${p.amount ? ` (${p.amount})` : ""}: ${p.done_week}/7`).join("\n") || "—"}`,
+    `Last days:
+${days.map((d) => `- ${d.day}${d.title ? `: ${d.title}` : ""}${d.minutes ? ` · productive ${Math.round(d.minutes / 60)} h` : ""}${d.better === true ? " · pleased" : d.better === false ? " · not pleased" : ""}`).join("\n") || "—"}`,
     `Study cards: ${cards?.cards ?? 0} (${cards?.due ?? 0} due now). Write-ups with real text: ${writeups?.n ?? 0}.`,
   ].join("\n\n");
 }
