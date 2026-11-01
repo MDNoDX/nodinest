@@ -33,7 +33,7 @@ import { dayPercent, hijriDate, productivePercent } from "@/lib/roznoma";
 import { enqueue } from "@/lib/outbox";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
-import { Dictate } from "./dictate";
+import { DayAudio, type DayRecording } from "./day-audio";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
@@ -46,6 +46,7 @@ export type DayLogValue = {
   lesson: string | null;
   productiveMinutes: number | null;
   better: boolean | null;
+  audio: DayRecording[];
 };
 export type StoredItem = RoutineValue & { id: string };
 
@@ -468,10 +469,20 @@ export function DayView({
                 placeholder={t("storyPh")}
                 onChange={(e) => setLog({ ...log, story: e.target.value || null })}
               />
-              <Dictate
-                onText={(text) =>
-                  setLog((l) => ({ ...l, story: l.story ? `${l.story}\n\n${text}` : text }))
-                }
+              <DayAudio
+                audio={log.audio}
+                userId={userId}
+                onChange={(audio) => {
+                  const next = { ...log, audio };
+                  setLog(next);
+                  void saveLog(next);
+                }}
+                onText={(text, audio) => {
+                  const story = log.story ? `${log.story}\n\n${text}` : text;
+                  const next = { ...log, story, audio };
+                  setLog(next);
+                  void saveLog(next);
+                }}
               />
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium">📌 {t("highlights")}</span>

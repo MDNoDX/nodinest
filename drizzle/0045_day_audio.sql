@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."day_logs" ADD COLUMN "audio" jsonb DEFAULT '[]'::jsonb NOT NULL;

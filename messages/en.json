@@ -1465,7 +1465,7 @@
       "md": "For Obsidian, Notion and other note apps",
       "txt": "Opens on any device",
       "zip": "Text, pictures, audio and video in one folder — opens offline in a browser",
-      "epub": "With audio/video in Apple Books and other readers"
+      "epub": "E-book: audio and video play inside it (Apple Books, Thorium)"
     },
     "withNotes": "Include notes and quotes",
     "ready": "Ready: {name}",
@@ -2501,7 +2501,9 @@
     "savedOffline": "Saved. It goes out when the internet is back.",
     "unit_none": "–",
     "unit_rakat": "rakats",
-    "unit_full": "full"
+    "unit_full": "full",
+    "audioToText": "Turn into text",
+    "audioRemove": "Remove the recording"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",
