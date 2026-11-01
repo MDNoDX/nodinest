@@ -1,5 +1,5 @@
 /**
- * Sending e-mail (sign-in codes). Either Resend (RESEND_API_KEY + MAIL_FROM)
+ * Sending e-mail (password reset codes). Either Resend (RESEND_API_KEY + MAIL_FROM)
  * or any SMTP server, e.g. Gmail with an app password
  * (SMTP_URL=smtps://you%40gmail.com:app-password@smtp.gmail.com:465, MAIL_FROM=…).
  */

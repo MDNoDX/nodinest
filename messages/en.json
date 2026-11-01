@@ -157,12 +157,7 @@
     "agree": "By signing in you agree to the <terms>Terms of use</terms> and the <privacy>Privacy policy</privacy>.",
     "withEmail": "Get a code by e-mail",
     "sendCode": "Send code",
-    "code": "6-digit code from the e-mail",
-    "codeSent": "A code was sent to {email}. Check the spam folder too.",
-    "verify": "Sign in",
-    "or": "or",
     "badCode": "The code is wrong or expired.",
-    "changeEmail": "Other e-mail",
     "tg": {
       "button": "Continue with Telegram",
       "title": "Sign in with Telegram",
@@ -195,9 +190,14 @@
     "forgot": "Forgot your password?",
     "back": "Back",
     "resetCode": "6-digit code",
-    "resetHint": "The code goes to your account’s e-mail and the linked Telegram bot.",
-    "resetSent": "If the account exists, the code was sent. Check your e-mail and the bot.",
-    "passwordReset": "Password updated. Now sign in."
+    "resetHint": "Enter your email or username. If we find the account, we'll send it a code.",
+    "resetSentTo": "The code was sent to {to}. Check your spam folder too.",
+    "resetSentBot": "The code was sent to the Telegram bot.",
+    "resetNoUser": "No such user.",
+    "resetCheck": "Continue",
+    "resetAgain": "Send the code again",
+    "resetWait": "Send again in {n} s",
+    "resetNewHint": "The code is right. Set a new password and you'll be signed in."
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",

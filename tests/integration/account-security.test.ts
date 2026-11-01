@@ -70,10 +70,12 @@ describe("account security", () => {
   });
 
   it("resets a password with a code: one use, limited tries, all sessions end", async () => {
-    const { confirmReset, requestReset } = await import("@/server/password-reset");
+    const { checkReset, confirmReset, requestReset } = await import("@/server/password-reset");
     const u = await makeUser(db);
     await addSession(u.userId, 1);
     await requestReset(u.email);
+    await expect(checkReset(u.email, "000000")).rejects.toThrow();
+    await expect(checkReset(u.email, "123456")).resolves.toBeUndefined();
     await expect(confirmReset(u.email, "000000", "Abcdefg1")).rejects.toThrow();
     await expect(confirmReset(u.email, "123456", "weak")).rejects.toThrow();
     await confirmReset(u.email, "123456", "Abcdefg1");
@@ -90,6 +92,10 @@ describe("account security", () => {
     await expect(confirmReset(v.email, "123456", "Abcdefg1")).rejects.toThrow();
     expect(await hasPassword(v.userId)).toBe(false);
     // An unknown account gets the same quiet answer.
-    await expect(requestReset("nobody-here@example.test")).resolves.toBeUndefined();
+    await expect(requestReset("nobody-here@example.test")).resolves.toEqual({
+      to: "no***e@example.test",
+      bot: false,
+    });
+    await expect(requestReset("nobody_here")).resolves.toEqual({ to: null, bot: false });
   });
 });

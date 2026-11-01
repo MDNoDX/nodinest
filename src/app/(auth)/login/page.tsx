@@ -69,7 +69,6 @@ export default async function LoginPage({
           </div>
           <LoginPanel
             googleEnabled={authProviders.google}
-            emailEnabled={authProviders.email}
             devEnabled={authProviders.devLogin}
             next={next}
           />

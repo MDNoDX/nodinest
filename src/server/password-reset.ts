@@ -1,8 +1,11 @@
 /**
- * "I forgot my password": a 6-digit code to the e-mail and the linked Telegram
- * bot. The answer never says whether an account exists; the code is stored
- * hashed, lives 10 minutes and allows 5 tries. Success ends every session. The
- * superadmin account signs in with Google only, so it has no reset.
+ * Signing in without Google, or without the password: a 6-digit code goes to
+ * the account's e-mail and linked Telegram bot, only if the account exists. An
+ * e-mail typed by hand gets the same answer either way, so the form cannot be
+ * used to learn who has an account (usernames are public anyway). The code is
+ * stored hashed, lives 10 minutes and allows 5 tries; a right code leads to a
+ * new password, which ends every other session. The superadmin account signs
+ * in with Google only, so it has no reset.
  */
 import "server-only";
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
@@ -12,6 +15,7 @@ import { db } from "@/db";
 import { account, botUsers, session, user, verification } from "@/db/schema";
 import { auth } from "@/lib/auth/config";
 import { AppError } from "@/lib/errors";
+import { maskEmail } from "@/lib/mask-email";
 import { passwordOk } from "@/lib/password";
 import { normalizeUsername } from "@/lib/username";
 import { later } from "./later";
@@ -50,14 +54,17 @@ const TG = {
     `🔐 Password reset code: <b>${c}</b>\n\nValid for 10 minutes. If this wasn’t you, tell it to no one.`,
 };
 
-export async function requestReset(login: string) {
+/** Where the code went, for the form: a masked e-mail, the bot, or nowhere. */
+export type ResetAnswer = { to: string | null; bot: boolean };
+
+export async function requestReset(login: string): Promise<ResetAnswer> {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   const name = normalizeUsername(login).slice(0, 120);
   const a = await hitRateLimit(db, `reset-ip:${ip}`, 10, 3600);
   const b = await hitRateLimit(db, `reset-name:${name}`, 3, 3600);
   if (!a.allowed || !b.allowed) throw new AppError("RATE_LIMITED");
   const u = await find(login);
-  if (!u) return;
+  if (!u) return { to: login.includes("@") ? maskEmail(login.trim()) : null, bot: false };
   // A username and an e-mail name the same person.
   if (!(await hitRateLimit(db, `reset-user:${u.id}`, 3, 3600)).allowed)
     throw new AppError("RATE_LIMITED");
@@ -68,9 +75,10 @@ export async function requestReset(login: string) {
     value: JSON.stringify({ h: hashOf(u.id, code), tries: 0 }),
     expiresAt: new Date(Date.now() + TTL),
   });
+  const hasMail = !u.email.endsWith(".invalid");
   // After the answer: its speed must not tell whether the account exists.
   later(async () => {
-    if (mailConfigured() && !u.email.endsWith(".invalid"))
+    if (mailConfigured() && hasMail)
       await sendMail({ to: u.email, ...codeMail(code, u.locale, "reset") }).catch((e) =>
         console.error("[nodinest] reset mail failed:", e instanceof Error ? e.message : e),
       );
@@ -83,10 +91,11 @@ export async function requestReset(login: string) {
       await tgTo(bot.tg, say(code)).catch(() => null);
     }
   });
+  return { to: hasMail ? maskEmail(u.email) : null, bot: !hasMail };
 }
 
-export async function confirmReset(login: string, code: string, password: string) {
-  if (!passwordOk(password)) throw new AppError("VALIDATION", "weak_password");
+/** The code's row when it is right; a wrong one uses up a try. */
+async function rightCode(login: string, code: string) {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (!(await hitRateLimit(db, `reset-try-ip:${ip}`, 30, 3600)).allowed)
     throw new AppError("RATE_LIMITED");
@@ -113,6 +122,17 @@ export async function confirmReset(login: string, code: string, password: string
         .where(eq(verification.id, row.id));
     throw bad;
   }
+  return { u, row };
+}
+
+/** The code alone: a right one opens the step with the new password. */
+export async function checkReset(login: string, code: string) {
+  await rightCode(login, code);
+}
+
+export async function confirmReset(login: string, code: string, password: string) {
+  if (!passwordOk(password)) throw new AppError("VALIDATION", "weak_password");
+  const { u, row } = await rightCode(login, code);
   const c = await auth.$context;
   const hash = await c.password.hash(password);
   const [has] = await db

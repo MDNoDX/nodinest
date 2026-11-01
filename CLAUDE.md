@@ -90,7 +90,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `server/book-format.ts` (after upload, while reading, and a little with each reminders cron); `d`
   blocks carry the speaker `s`; lines repeated at the edge of pages (`repeatedLines`) stay on their
   first page only; `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
-  The turn (`reader/page-turn.ts`): flat part + fold, clipped at a moving crease; transforms only.
+  The turn (`reader/page-turn.ts`): the page stays put, cut by `clip-path` along a moving crease so
+  its text never blurs; the turned part is a narrow opaque roll, never a second page or see-through.
 - Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`, with speed), on every
   page. Its page has one reader / with the characters (`analysis.cast`), the book as bars (one per
   part) and no text or analysis. `engine.tsx` keeps an order of parts (`queue`, in localStorage, made
@@ -155,9 +156,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Audiobook text: the player asks `/api/audiobook/[id]/script/[idx]?fast=1` first
   (`segmentPreview`: cached script, else the book's own text reflowed — no AI), then the full
   speaker script once the voice exists. `bookText()` caches the cleaned book per warm function.
-- Sign-in: Google, username + password (`server/account-security.ts`), e-mail code when mail is
-  configured. Raw Better Auth endpoints for these are off in production (`disabledPaths`); forgotten
-  passwords go through `server/password-reset.ts` (code to e-mail and the linked bot).
+- Sign-in: accounts start with Google only; then username + password (`server/account-security.ts`).
+  Without Google or the password: `server/password-reset.ts` and `auth/forgot-password.tsx`, a code to
+  an existing account's e-mail and linked bot (shown masked), then a new password, then signed in.
+  Raw Better Auth endpoints for these are off in production (`disabledPaths`).
 - Public legal pages /privacy and /terms (`src/content/legal.ts`, uz + en): keep them true when
   adding services, cookies or data. Settings → delete account (`server/account.ts`: DB cascade +
   Blob files; never the superadmin). Vercel Web Analytics (`components/pwa/analytics.tsx`, ids

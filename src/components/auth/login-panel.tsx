@@ -9,8 +9,6 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { loginAction } from "@/app/actions/account";
 import { authClient } from "@/lib/auth/client";
-import { toast } from "sonner";
-import { EmailCode } from "./email-code";
 import { ForgotPassword } from "./forgot-password";
 import { LOCALES, localeKey } from "@/i18n/config";
 
@@ -36,13 +34,10 @@ function GoogleIcon() {
 
 export function LoginPanel({
   googleEnabled,
-  emailEnabled = false,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
-  /** Sign-in with an e-mailed code is configured. */
-  emailEnabled?: boolean;
   devEnabled: boolean;
   /** Where to go after signing in (validated same-site path). */
   next?: string;
@@ -101,9 +96,13 @@ export function LoginPanel({
         {forgot ? (
           <ForgotPassword
             onBack={() => setForgot(false)}
-            onDone={() => {
-              setForgot(false);
-              toast.success(t("passwordReset"));
+            onDone={async (who, pass) => {
+              const r = await loginAction(who, pass);
+              if (r.ok) window.location.assign(next);
+              else {
+                setForgot(false);
+                setError(t("failed"));
+              }
             }}
           />
         ) : (
@@ -145,26 +144,15 @@ export function LoginPanel({
           </form>
         )}
         {!forgot && (
-          <>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={google}
-              disabled={!googleEnabled}
-              loading={pending && googleEnabled}
-            >
-              <GoogleIcon /> {t("withGoogle")}
-            </Button>
-            <div className="text-muted flex items-center gap-3 text-xs">
-              <span className="bg-border h-px flex-1" /> {t("or")}{" "}
-              <span className="bg-border h-px flex-1" />
-            </div>
-          </>
-        )}
-        {emailEnabled && !forgot && (
-          <>
-            <EmailCode next={next} />
-          </>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={google}
+            disabled={!googleEnabled}
+            loading={pending && googleEnabled}
+          >
+            <GoogleIcon /> {t("withGoogle")}
+          </Button>
         )}
         {!googleEnabled && (
           <p className="bg-warning-soft text-warning rounded-lg p-3 text-xs">

@@ -9,7 +9,7 @@ import {
   setFirstPassword,
   syncTimezone,
 } from "@/server/account-security";
-import { confirmReset, requestReset } from "@/server/password-reset";
+import { checkReset, confirmReset, requestReset, type ResetAnswer } from "@/server/password-reset";
 import { run } from "./_run";
 
 /** Before a session exists, so outside run(). */
@@ -22,10 +22,21 @@ export async function loginAction(login: string, password: string): Promise<Acti
   }
 }
 
-/** Also before a session: the same answer whether or not the account exists. */
-export async function requestResetAction(login: string): Promise<ActionResult<null>> {
+/** Also before a session. An e-mail gets the same answer whether or not it has an account. */
+export async function requestResetAction(login: string): Promise<ActionResult<ResetAnswer>> {
   try {
-    await requestReset(z.string().trim().min(1).max(120).parse(login));
+    return { ok: true, data: await requestReset(z.string().trim().min(1).max(120).parse(login)) };
+  } catch (err) {
+    return toActionError(err);
+  }
+}
+
+export async function checkResetAction(login: string, code: string): Promise<ActionResult<null>> {
+  try {
+    await checkReset(
+      z.string().trim().min(1).max(120).parse(login),
+      z.string().max(12).parse(code),
+    );
     return { ok: true, data: null };
   } catch (err) {
     return toActionError(err);

@@ -157,12 +157,7 @@
     "agree": "Kiriş orqali siz <terms>Foydalaniş şartlari</terms> va <privacy>Maxfiylik siyosati</privacy>ga rozilik bildirasiz.",
     "withEmail": "Email orqali kod oliş",
     "sendCode": "Kod yuboriş",
-    "code": "Emaildagi 6 xonali kod",
-    "codeSent": "Kod {email} manziliga yuborildi. Spam papkasini ham tekşiring.",
-    "verify": "Kiriş",
-    "or": "yoki",
     "badCode": "Kod notöğri yoki eskirgan.",
-    "changeEmail": "Boşqa email",
     "tg": {
       "button": "Telegram orqali kiriş",
       "title": "Telegram orqali kiriş",
@@ -195,9 +190,14 @@
     "forgot": "Parolni unutdingizmi?",
     "back": "Orqaga",
     "resetCode": "6 xonali kod",
-    "resetHint": "Kod hisobingizdagi emailga va ulangan Telegram botga yuboriladi.",
-    "resetSent": "Hisob topilsa, kod yuborildi. Email va botni tekşiring.",
-    "passwordReset": "Parol yangilandi. Endi kiring."
+    "resetHint": "Email yoki username'ingizni yozing. Akkaunt topilsa, unga kod yuboramiz.",
+    "resetSentTo": "Kod {to} manziliga yuborildi. Spam papkasini ham tekşiring.",
+    "resetSentBot": "Kod Telegram botga yuborildi.",
+    "resetNoUser": "Bunday foydalanuvçi topilmadi.",
+    "resetCheck": "Davom etiş",
+    "resetAgain": "Kodni qayta yuboriş",
+    "resetWait": "Qayta yuboriş: {n} s",
+    "resetNewHint": "Kod to'g'ri. Yangi parol qo'ying, keyin akkauntingizga kirasiz."
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",

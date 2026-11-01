@@ -34,7 +34,9 @@ export function PasswordForm({
         <ForgotPassword
           login={login}
           onBack={() => setForgot(false)}
-          onDone={() => router.replace("/login")}
+          onDone={() => {
+            router.replace("/login");
+          }}
         />
       </div>
     );

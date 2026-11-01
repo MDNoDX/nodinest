@@ -1,19 +1,17 @@
 /**
- * The page turn. A real sheet is drawn in two pieces: what still lies flat, and
- * the folded part laid back over it, its reverse side showing. The crease runs
- * in from the bottom right corner and straightens as it crosses the page, with
- * shadows on the page beneath and under the fold. Only transforms and opacity
- * change, on a few layers, so it stays smooth on large pages and on phones.
+ * The page turn: one sheet of paper, rolling away. The page stays exactly where
+ * it is, cut along a crease that crosses it from the bottom right corner, so its
+ * text never moves or blurs. The part already turned is a narrow roll of plain
+ * paper running along the crease, never a second page lying on the first, with a
+ * soft shadow on either side of it.
  */
-const MS = 820;
+const MS = 720;
 /** How far the crease leans when it starts (radians). */
-const TILT = 0.2;
-/** A fold is round, so the part laid back looks narrower than flat paper. */
-const ROUND = 0.84;
+const TILT = 0.14;
 /** The longest step of one frame: a slow frame pauses the turn, it never jumps. */
 const STEP = 40;
 
-const ease = (t: number) => 1 - (1 - t) ** 2.5;
+const ease = (t: number) => 0.5 - Math.cos(Math.PI * t) / 2;
 
 const div = (className: string, ...kids: Node[]) => {
   const d = document.createElement("div");
@@ -31,10 +29,11 @@ export function copySheet(sheet: HTMLElement) {
     const src = from[i];
     const { width, height } = src.getBoundingClientRect();
     if (!width || !src.width) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     c.style.width = `${width}px`;
     c.style.height = `${height}px`;
-    c.width = Math.ceil(width);
-    c.height = Math.ceil(height);
+    c.width = Math.ceil(width * dpr);
+    c.height = Math.ceil(height * dpr);
     c.getContext("2d")?.drawImage(src, 0, 0, c.width, c.height);
   });
   return out;
@@ -60,37 +59,46 @@ export function turnPage({
   const W = box.clientWidth;
   const H = box.clientHeight;
   const S = 2 * (W + H);
+  /** The widest the roll gets. */
+  const ROLL = Math.max(44, Math.min(150, W * 0.11));
   const start = W + (H / 2) * Math.tan(TILT);
 
-  const flat = div("book-turn-page", leaf);
-  const flatClip = div("book-turn-clip", flat);
   const shade = div("book-turn-shade");
-  const back = div("book-turn-back", copySheet(leaf), div("book-turn-tint"), shade);
-  const fold = div("book-turn-page", back, div("book-turn-edge"));
-  const foldClip = div("book-turn-clip", fold);
+  const edge = div("book-turn-edge");
+  const paper = div("book-turn-paper", shade);
+  const roll = div("book-turn-roll", paper, edge);
+  const clip = div("book-turn-clip", roll);
   const cast = div("book-turn-cast");
   const layer = div("book-turn");
   layer.setAttribute("aria-hidden", "true");
   if (under) layer.append(under);
-  layer.append(cast, flatClip, foldClip);
+  layer.append(cast, leaf, clip);
   layer.style.setProperty("--w", `${W}px`);
   layer.style.setProperty("--h", `${H}px`);
   layer.style.setProperty("--s", `${S}px`);
   box.appendChild(layer);
-  layer.querySelectorAll<HTMLElement>(".book-body").forEach((b) => (b.scrollTop = scroll));
+  const body = leaf.querySelector<HTMLElement>(".book-body");
+  if (body) body.scrollTop = scroll;
 
   /** p: 0 the page lies flat, 1 it has gone past the left edge. */
   const paint = (p: number) => {
-    const a = TILT * (1 - p) ** 1.5;
+    const a = TILT * (1 - p);
     const x = start * (1 - p);
-    const crease = `translate(${x}px, ${H / 2}px) rotate(${a}rad)`;
-    const page = `rotate(${-a}rad) translate(${-x}px, ${-H / 2}px)`;
-    flatClip.style.transform = foldClip.style.transform = crease;
-    flat.style.transform = page;
-    fold.style.transform = `scaleX(${-ROUND}) ${page}`;
-    shade.style.transform = crease;
-    cast.style.transform = crease;
-    cast.style.opacity = String(Math.sin(Math.PI * p) ** 0.6);
+    const lean = (H / 2) * Math.tan(a);
+    leaf.style.clipPath = `polygon(0 0, ${x + lean}px 0, ${x - lean}px ${H}px, 0 ${H}px)`;
+    // What has been turned so far is squeezed into the roll: a bit of paper
+    // when the corner lifts, its full width from then on.
+    const turned = Math.max(1, W - x + lean);
+    const k = Math.min(0.9, Math.min(ROLL, turned * 0.6) / turned);
+    clip.style.transform = `translate(${x}px, ${H / 2}px) rotate(${a}rad)`;
+    roll.style.transform = `scaleX(${-k}) rotate(${-a}rad) translate(${-x}px, ${-H / 2}px)`;
+    // These two turn about their own middle, which is level with the page's.
+    const along = `translate(${x}px) rotate(${a}rad)`;
+    shade.style.transform = `${along} scaleX(${turned / W})`;
+    edge.style.transform = `scaleX(${1 / k})`;
+    // Starts a little under the roll, so no light line shows between them.
+    cast.style.transform = `translate(${x - 2}px) rotate(${a}rad)`;
+    cast.style.opacity = String(Math.min(1, 6 * Math.sin(Math.PI * p)));
   };
   paint(dir === 1 ? 0 : 1);
 
