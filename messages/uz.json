@@ -506,7 +506,9 @@
     "legalPdf": "Faqat qonuniy nusxani yuklang (sotib olingan, muallif ruxsat bergan yoki erkin tarqatiladigan). Kitob, uning matni va audiokitobi faqat siz uçun — ularni Telegram yoki boşqa joylarda tarqatmang.",
     "legalPdfMore": "Batafsil",
     "originalTitlePh": "Tarjima bölsa, asl tildagi nomi: The Alçemist",
-    "identifiersHint": "ISBN yoki YouTube ID kabi yagona raqam. Bir manba ikki marta qöşilmasligini tekşiradi va muqova, davomiylikni topişga yordam beradi."
+    "identifiersHint": "ISBN yoki YouTube ID kabi yagona raqam. Bir manba ikki marta qöşilmasligini tekşiradi va muqova, davomiylikni topişga yordam beradi.",
+    "publicHint": "Profilingizda körinadi. Profilingiz yopiq bölsa, faqat kuzatuvçilarga.",
+    "privateHint": "Faqat sizga körinadi."
   },
   "record": {
     "status": "Holati",
@@ -1169,7 +1171,8 @@
     "tooLarge": "Fayl juda katta (maks. {max} MB).",
     "badType": "Bu fayl turiga ruxsat berilmagan.",
     "unavailable": "Yuklaş sozlanmagan; örniga rasm URL’ini kiriting.",
-    "coverUpload": "Rasm yuklaş"
+    "coverUpload": "Rasm yuklaş",
+    "dropHint": "Faylni şu yerga taşlang yoki bosing · PDF yoki EPUB · {max} MB gaça"
   },
   "empty": {
     "nothingHere": "Bu yerda hali heç narsa yöq."
@@ -1743,7 +1746,8 @@
     "catalogExplain": "Umumiy katalogdagi boşqa foydalanuvçi qöşgan yozuvni özgartirsangiz, özgariş şu yerga taklif bölib tuşadi va admin tasdiqlagaç qöllanadi. Özingiz qöşganlarni esa darhol tahrirlaysiz.",
     "answer": "Admin javobi",
     "botTitle": "Telegram bot",
-    "botHint": "Taklif yozing — javob botga ham keladi"
+    "botHint": "Taklif yozing — javob botga ham keladi",
+    "orWrite": "Yoki töğridan töğri yozing:"
   },
   "tour": {
     "label": "Qöllanma",
@@ -1845,7 +1849,12 @@
     "how2": "Gapiring yoki yozing: AI savol beradi va matnni kitob uslubida tartiblaydi.",
     "how3": "Tayyor bölgaç PDF, Word yoki EPUB qilib yuklab oling.",
     "words": "{n} söz",
-    "updated": "{date} tahrirlangan"
+    "updated": "{date} tahrirlangan",
+    "roznomaTag": "Yil kundaligi · Rejalar bilan boğlangan",
+    "roznomaStats": "{days} kun yozildi · {words} söz. Rejalar’da saqlagan har bir kuningiz şu kitobga tuşadi.",
+    "roznomaEmpty": "Rejalar’da «Kunni saqlaş»ni bosing, kuningiz şu kitobda paydo böla boşlaydi.",
+    "roznomaToday": "Bugun haqida yoziş",
+    "roznomaOpen": "Kitobni oçiş"
   },
   "duration": {
     "minutes": "Daqiqa",
@@ -2211,7 +2220,7 @@
     "privateTitle": "Bu profil yopiq",
     "privateBody": "Egasi profilini faqat özi köradigan qilgan.",
     "noPublic": "Hali oçiq darslik yöq",
-    "noPublicSelf": "Kitob sahifasida «Yopiq» tugmasini bosib, uni oçiq qiling.",
+    "noPublicSelf": "Quyida, «Profilimda nima körinadi» bölimida oçiq qiling.",
     "library": "Oçiq darsliklar",
     "selfPrivateNote": "Profilingiz yopiq: boşqalar uni körmaydi. «Profilni tahrirlaş» orqali oçiş mumkin.",
     "public": "Oçiq",
@@ -2245,7 +2254,11 @@
     "statItems": "Oçiq darslik",
     "statFollowers": "Kuzatuvçi",
     "statFollowing": "Kuzatilmoqda",
-    "findPeopleHint": "Ism yoki username yozing — döstlaringiz va ustozlaringizni toping."
+    "findPeopleHint": "Ism yoki username yozing — döstlaringiz va ustozlaringizni toping.",
+    "whatOthersSee": "Profilimda nima körinadi",
+    "whatOthersSeeHint": "{total} tadan {open} tasi oçiq. Har birini şu yerda almaştiring.",
+    "filterItems": "Manbani topiş…",
+    "showAllN": "Hammasini körsatiş ({n})"
   },
   "roznoma": {
     "tab_day": "Kun",

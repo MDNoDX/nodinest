@@ -1,10 +1,11 @@
 "use client";
 import { upload } from "@vercel/blob/client";
-import { ImagePlus, Upload, X } from "lucide-react";
+import { FileUp, ImagePlus, Upload, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { registerUploadAction } from "@/app/actions/files";
+import { cn } from "@/lib/cn";
 import { Button } from "./button";
 
 const ACCEPT = {
@@ -37,11 +38,13 @@ export function FileUpload({
   label: string;
   resourceId?: string;
   userId: string;
-  variant?: "button" | "tile";
+  /** "drop" is a wide zone a file can be dragged onto. */
+  variant?: "button" | "tile" | "drop";
 }) {
   const t = useTranslations();
   const input = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const [over, setOver] = useState(false);
 
   if (!enabled)
     return (
@@ -106,6 +109,58 @@ export function FileUpload({
       }}
     />
   );
+
+  if (variant === "drop")
+    return (
+      <div>
+        {picker}
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          disabled={progress !== null}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setOver(true);
+          }}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) void doUpload(f);
+          }}
+          className={cn(
+            "group flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed p-6 text-center transition-colors",
+            over
+              ? "border-primary bg-primary-soft"
+              : "border-border-strong hover:border-primary hover:bg-surface-2",
+          )}
+        >
+          <span className="bg-primary-soft text-primary grid size-12 place-items-center rounded-2xl transition-transform group-hover:-translate-y-0.5">
+            <FileUp className="size-6" />
+          </span>
+          <span className="text-sm font-semibold">
+            {progress !== null ? t("upload.uploading", { percent: progress }) : label}
+          </span>
+          <span className="text-muted text-xs">{t("upload.dropHint", { max: 50 })}</span>
+          {progress !== null && (
+            <span
+              className="bg-surface-2 mt-1 h-1.5 w-full max-w-xs overflow-hidden rounded-full"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={label}
+            >
+              <span
+                className="bg-primary block h-full transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
+            </span>
+          )}
+        </button>
+      </div>
+    );
 
   if (variant === "tile")
     return (

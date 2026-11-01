@@ -506,7 +506,9 @@
     "legalPdf": "Upload only a legal copy (bought, allowed by the author or free to share). The book, its text and audiobook are for you only — do not share them on Telegram or anywhere else.",
     "legalPdfMore": "Details",
     "originalTitlePh": "For a translation: the title in its own language, The Alchemist",
-    "identifiersHint": "A unique number such as an ISBN or a YouTube ID. It prevents duplicates and helps find the cover and length."
+    "identifiersHint": "A unique number such as an ISBN or a YouTube ID. It prevents duplicates and helps find the cover and length.",
+    "publicHint": "Shown on your profile.",
+    "privateHint": "Only you can see it."
   },
   "record": {
     "status": "Status",
@@ -1169,7 +1171,8 @@
     "tooLarge": "File is too large (max {max} MB).",
     "badType": "This file type is not allowed.",
     "unavailable": "Uploads are not configured; paste an image URL instead.",
-    "coverUpload": "Upload image"
+    "coverUpload": "Upload image",
+    "dropHint": "Drop the file here or click · PDF or EPUB · up to {max} MB"
   },
   "empty": {
     "nothingHere": "Nothing here yet."
@@ -1743,7 +1746,8 @@
     "catalogExplain": "When you change an entry someone else added to the shared catalog, your change lands here as a suggestion and is applied once the admin approves it. Entries you added yourself you edit directly.",
     "answer": "Admin’s answer",
     "botTitle": "Telegram bot",
-    "botHint": "Write a suggestion — the answer comes to the bot too"
+    "botHint": "Write a suggestion — the answer comes to the bot too",
+    "orWrite": "Or write directly:"
   },
   "tour": {
     "label": "Guide",
@@ -1845,7 +1849,12 @@
     "how2": "Speak or type: the AI asks questions and shapes the text like a book.",
     "how3": "When ready, download it as PDF, Word or EPUB.",
     "words": "{n} words",
-    "updated": "edited {date}"
+    "updated": "edited {date}",
+    "roznomaTag": "The year’s journal · linked to Plans",
+    "roznomaStats": "{days} days written · {words} words. Every day you save in Plans lands here.",
+    "roznomaEmpty": "Press “Save the day” in Plans and your day starts appearing in this book.",
+    "roznomaToday": "Write about today",
+    "roznomaOpen": "Open the book"
   },
   "duration": {
     "minutes": "Minutes",
@@ -2211,7 +2220,7 @@
     "privateTitle": "This profile is private",
     "privateBody": "Its owner keeps it to themselves.",
     "noPublic": "No public items yet",
-    "noPublicSelf": "On a book’s page press “Private” to make it public.",
+    "noPublicSelf": "Make items public below, in “What my profile shows”.",
     "library": "Public lessons",
     "selfPrivateNote": "Your profile is private: others cannot see it. You can open it in Settings.",
     "public": "Public",
@@ -2245,7 +2254,11 @@
     "statItems": "Public items",
     "statFollowers": "Followers",
     "statFollowing": "Following",
-    "findPeopleHint": "Type a name or username — find your friends and teachers."
+    "findPeopleHint": "Type a name or username — find your friends and teachers.",
+    "whatOthersSee": "What my profile shows",
+    "whatOthersSeeHint": "{open} of {total} items are public. Switch each one right here.",
+    "filterItems": "Find an item…",
+    "showAllN": "Show all ({n})"
   },
   "roznoma": {
     "tab_day": "Day",

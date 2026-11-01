@@ -150,17 +150,22 @@ export default async function DashboardPage() {
     <>
       <section className="hero -mx-4 -mt-6 mb-7 rounded-b-3xl px-4 pt-7 pb-6 sm:-mx-6 sm:-mt-8 sm:px-6 sm:pt-9">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+          <Link
+            href={user.username ? `/u/${user.username}` : "/settings"}
+            className="group flex items-center gap-4 rounded-2xl"
+          >
             <Avatar
               name={user.name}
               image={user.image}
-              className="ring-surface size-16 text-xl ring-4"
+              className="ring-surface size-16 text-xl ring-4 transition-transform group-hover:scale-105"
             />
             <div>
               <div className="text-muted text-xs font-semibold tracking-wide uppercase">
                 {t("dashboard.heroSubtitle")}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{user.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight group-hover:underline sm:text-3xl">
+                {user.name}
+              </h1>
               <div className="text-muted mt-0.5 text-sm">
                 {t("dashboard.inLibrary", { count: s.library })}
                 {s.avg_rating ? (
@@ -171,7 +176,7 @@ export default async function DashboardPage() {
                 ) : null}
               </div>
             </div>
-          </div>
+          </Link>
           <div className="flex flex-wrap gap-2">
             {last && (
               <Button variant="secondary" asChild className="max-w-xs">

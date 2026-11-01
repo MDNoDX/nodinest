@@ -999,7 +999,7 @@ export async function sendReminders(now = new Date()) {
       if (!(await hitRateLimit(db, `remind:${i.id}:${today}`, 1, 86_400)).allowed) continue;
       await tgTo(
         p.tg,
-        `⏰ <b>${esc(i.time)}</b> — ${esc(i.title)}${i.amount ? ` · ${esc(i.amount)}` : ""}\n${uz ? "Bajarsangiz, Röznoma’da belgilab qöying ✅" : p.locale === "ru" ? "Когда сделаете, отметьте в Рузнома ✅" : "Tick it off in your Röznoma when done ✅"}`,
+        `⏰ <b>${esc(i.time)}</b> — ${esc(i.title)}${i.amount ? ` · ${esc(i.amount)}` : ""}\n${uz ? "Bajarsangiz, Rejalar’da belgilab qöying ✅" : p.locale === "ru" ? "Когда сделаете, отметьте в Планах ✅" : "Tick it off in Plans when done ✅"}`,
       ).catch(() => null);
       sent++;
     }

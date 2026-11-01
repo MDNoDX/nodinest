@@ -10,7 +10,14 @@ import { ProfileEditor } from "@/components/social/profile-editor";
 import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
-import { followingFeed, followingList, profileByUsername, publicItems } from "@/server/social";
+import {
+  followingFeed,
+  followingList,
+  myItemsVisibility,
+  profileByUsername,
+  publicItems,
+} from "@/server/social";
+import { ItemsVisibility } from "@/components/social/items-visibility";
 import { PersonCard } from "@/components/social/person-card";
 import { PeopleSearch } from "@/components/social/people-search";
 
@@ -25,13 +32,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const { username } = await params;
   const { ctx, user } = await pageContext();
   const t = await getTranslations("social");
-  const p = await profileByUsername(ctx, decodeURIComponent(username));
-  if (!p) notFound();
-  const [items, feed, following] = await Promise.all([
-    p.visible ? publicItems(ctx, p.id) : Promise.resolve([]),
-    p.self ? followingFeed(ctx) : Promise.resolve([]),
-    p.self ? followingList(ctx) : Promise.resolve([]),
+  const name = decodeURIComponent(username).toLowerCase();
+  // My own page: everything is asked for at once (no waiting in turn).
+  const mine = name === user.username?.toLowerCase();
+  const [p, feed, following, myItems, ownItems] = await Promise.all([
+    profileByUsername(ctx, name),
+    mine ? followingFeed(ctx) : Promise.resolve([]),
+    mine ? followingList(ctx) : Promise.resolve([]),
+    mine ? myItemsVisibility(ctx) : Promise.resolve([]),
+    mine ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
+  if (!p) notFound();
+  const items = ownItems ?? (p.visible ? await publicItems(ctx, p.id) : []);
   const stat = (n: number, label: string, href?: string) => {
     const body = (
       <>
@@ -135,6 +147,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </h2>
           <ItemGrid items={items} />
         </section>
+      )}
+      {p.self && myItems.length > 0 && (
+        <ItemsVisibility items={myItems} profilePublic={user.profilePublic} />
       )}
       {p.self && !p.profilePublic && (
         <p className="bg-surface-2 text-muted flex items-center gap-2 rounded-xl px-4 py-3 text-sm">

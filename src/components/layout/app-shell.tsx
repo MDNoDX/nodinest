@@ -100,7 +100,7 @@ function NavList({
             )}
           >
             <Link
-              href={item.href}
+              href={item.to ?? item.href}
               draggable={false}
               onContextMenu={(e) => drag && e.preventDefault()}
               onClick={(e) => {
@@ -207,7 +207,7 @@ export function AppShell({
   const secondary = sortByOrder(
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
     order,
-  );
+  ).map((i) => (i.key === "profile" && user.username ? { ...i, to: `/u/${user.username}` } : i));
   const badge = { suggestions: pendingSuggestions };
 
   const sidebar = (mobile: boolean) => (

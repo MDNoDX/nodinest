@@ -10,6 +10,7 @@ import {
   Files,
   Film,
   Globe,
+  Lock,
   GraduationCap,
   Headphones,
   Image as ImageIcon,
@@ -33,6 +34,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { importUrlAction, lookupBooksAction, saveResourceAction } from "@/app/actions/catalog";
+import { setItemVisibilityAction } from "@/app/actions/social";
 import { mapPerson, mapPublisher } from "@/components/people/mappers";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -45,6 +47,7 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge, IconChip } from "@/components/ui/misc";
 import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/cn";
+import { fileDuration, isMediaFileUrl, youtubeDuration } from "@/lib/media-duration";
 import type { FieldErrors } from "@/lib/errors";
 import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import { youtubeIdFromUrl } from "@/lib/youtube";
@@ -79,6 +82,7 @@ type Candidate = {
   description: string | null;
   coverUrl: string | null;
   infoUrl: string | null;
+  genres: string[];
 };
 
 const PLATFORMS: [RegExp, string][] = [
@@ -211,6 +215,7 @@ export function ResourceForm({
     nameEn: string;
     nameRu?: string | null;
     parentId: string | null;
+    slug?: string | null;
   }[];
   isAdmin: boolean;
   /** True when saving applies immediately (new entry, own entry or admin mode). */
@@ -228,6 +233,8 @@ export function ResourceForm({
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [explanation, setExplanation] = useState("");
   const [pdfId, setPdfId] = useState<string | null>(null);
+  // Shown on my profile, unless I close it right here.
+  const [isPublic, setIsPublic] = useState(true);
   const [pending, start] = useTransition();
   const [finding, startFind] = useTransition();
   const set = <K extends keyof ResourceFormValue>(k: K, val: ResourceFormValue[K]) =>
@@ -244,14 +251,29 @@ export function ResourceForm({
     [v.sourceUrl, ...v.links.map((l) => l.url)].map(youtubeIdFromUrl).find(Boolean) ??
     null;
   const [detecting, startDetect] = useTransition();
-  const detectDuration = (id: string, loud: boolean) =>
+  // A file link (audio / video) or our uploaded media file, for its length.
+  const mediaUrl =
+    [v.sourceUrl, ...v.links.map((l) => l.url)].find((u) => u && isMediaFileUrl(u)) ?? null;
+  const pageUrl = v.sourceUrl || v.links.find((l) => l.url)?.url || null;
+  const canDetect = !!(ytId || mediaUrl || pageUrl);
+  /** The length: in the browser first (YouTube player / file), then the server. */
+  const detectDuration = (loud: boolean) =>
     startDetect(async () => {
-      const r = await importUrlAction(`https://www.youtube.com/watch?v=${id}`);
-      const secs = r.ok ? r.data.durationSeconds : null;
+      let secs: number | null = null;
+      if (ytId) secs = await youtubeDuration(ytId);
+      if (!secs && mediaUrl) secs = await fileDuration(mediaUrl);
+      let code: string | null = null;
+      if (!secs && (ytId || pageUrl)) {
+        const r = await importUrlAction(
+          ytId ? `https://www.youtube.com/watch?v=${ytId}` : pageUrl!,
+        );
+        secs = r.ok ? r.data.durationSeconds : null;
+        if (!r.ok) code = r.code;
+      }
       if (secs) {
         setV((s) => ({ ...s, media: { ...s.media, durationSeconds: String(secs) } }));
         if (loud) toast.success(t("resource.durationDetected"));
-      } else if (loud) toast.error(r.ok ? t("resource.durationUnknown") : t(`errors.${r.code}`));
+      } else if (loud) toast.error(code ? t(`errors.${code}`) : t("resource.durationUnknown"));
     });
   const coverPreview = v.coverFileId ? `/api/files/${v.coverFileId}` : v.coverUrl || null;
 
@@ -267,6 +289,7 @@ export function ResourceForm({
         setDups(null);
         if (r.data.mode === "applied") {
           toast.success(t("resource.savedToCatalog"));
+          if (!resourceId) await setItemVisibilityAction(r.data.id, isPublic).catch(() => null);
           // A PDF given with a new book is read (indexed) on the book's page.
           router.push(`/library/${r.data.id}${pdfId ? `?pdf=${pdfId}` : ""}`);
         } else {
@@ -371,6 +394,12 @@ export function ResourceForm({
         sourceUrl: s.sourceUrl || c.infoUrl || "",
         contributors,
         identifiers,
+        categoryIds: [
+          ...new Set([
+            ...s.categoryIds,
+            ...categories.filter((g) => c.genres.includes(g.slug ?? "")).map((g) => g.id),
+          ]),
+        ],
         book: {
           ...s.book,
           publisherName:
@@ -649,7 +678,7 @@ export function ResourceForm({
           />
           <p className="text-muted mb-3 text-sm">{t("resource.pdfHint")}</p>
           {pdfId ? (
-            <p className="flex items-center gap-2 text-sm">
+            <p className="bg-surface-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-sm">
               <FileText className="size-4 text-[var(--c-violet)]" /> {t("resource.pdfReady")}
               <Button type="button" variant="ghost" size="sm" onClick={() => setPdfId(null)}>
                 <X /> {t("upload.remove")}
@@ -661,6 +690,7 @@ export function ResourceForm({
               enabled={storageEnabled}
               userId={userId}
               label={t("resource.uploadPdf")}
+              variant="drop"
               onUploaded={(id) => setPdfId(id)}
             />
           )}
@@ -885,13 +915,13 @@ export function ResourceForm({
                       invalid={!!err("media.durationSeconds")}
                       onChange={(x) => set("media", { ...v.media, durationSeconds: x })}
                     />
-                    {ytId && (
+                    {canDetect && v.type !== "article" && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         disabled={detecting}
-                        onClick={() => detectDuration(ytId, true)}
+                        onClick={() => detectDuration(true)}
                       >
                         {detecting ? <Loader2 className="animate-spin" /> : <Timer />}
                         {t("resource.detectDuration")}
@@ -1109,7 +1139,8 @@ export function ResourceForm({
                           "identifiers",
                           v.identifiers.map((x, j) => (j === i ? { ...x, value: yt } : x)),
                         );
-                      if (isMedia && !v.media.durationSeconds) detectDuration(yt, false);
+                      if (isMedia && !v.media.durationSeconds)
+                        setTimeout(() => detectDuration(false), 0);
                     }}
                     onChange={(e) =>
                       set(
@@ -1232,7 +1263,24 @@ export function ResourceForm({
               : t("resource.newSubtitleAdmin")
             : t("resource.newSubtitleUser")}
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {!resourceId && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPublic}
+              onClick={() => setIsPublic((p) => !p)}
+              title={t(isPublic ? "resource.publicHint" : "resource.privateHint")}
+              className="border-border text-muted hover:text-foreground flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm"
+            >
+              {isPublic ? (
+                <Globe className="size-4 text-[var(--c-emerald)]" />
+              ) : (
+                <Lock className="size-4" />
+              )}
+              {t(isPublic ? "common.public" : "common.private")}
+            </button>
+          )}
           <Button type="button" variant="ghost" onClick={() => router.back()}>
             {t("common.cancel")}
           </Button>

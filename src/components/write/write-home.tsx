@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BookHeart,
   BookOpen,
+  CalendarCheck,
   Feather,
   Lightbulb,
   Map,
@@ -77,7 +78,12 @@ export function WriteHome({
   // New book (template) or editing an existing one (book id).
   const [form, setForm] = useState<{ tpl?: BookTemplate; edit?: Book } | null>(null);
   const [v, setV] = useState<Form>({ title: "", subtitle: "", goal: "" });
-  const last = books[0];
+  // The year's book (written from the plans' day pages) always on top.
+  const year = new Date().getFullYear();
+  const roz = books.find((b) => b.title === `Röznoma ${year}`) ?? null;
+  const others = books.filter((b) => !/^Röznoma \d{4}$/.test(b.title));
+  const last = others[0];
+  const [picking, setPicking] = useState(false);
 
   const start = (tpl: BookTemplate) => {
     setV({ title: t(`tpl.${tpl}.title`), subtitle: "", goal: "" });
@@ -96,6 +102,8 @@ export function WriteHome({
     <div className="flex flex-col gap-8">
       {storage && <StorageHint {...storage} />}
 
+      <RoznomaCard book={roz} year={year} author={author} />
+
       {last ? (
         <Continue book={last} author={author} />
       ) : (
@@ -103,29 +111,42 @@ export function WriteHome({
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold">{t("newBook")}</h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {BOOK_TEMPLATES.map((tpl) => {
-            const Icon = ICON[tpl];
-            return (
-              <li key={tpl}>
-                <button
-                  type="button"
-                  onClick={() => start(tpl)}
-                  className="card hover:border-border-strong flex h-full w-full items-start gap-3 p-4 text-left transition-colors"
-                >
-                  <span className="bg-primary-soft text-primary grid size-10 shrink-0 place-items-center rounded-xl">
-                    <Icon className="size-5" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold">{t(`tpl.${tpl}.name`)}</span>
-                    <span className="text-muted mt-0.5 block text-sm">{t(`tpl.${tpl}.desc`)}</span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">{t("newBook")}</h2>
+          <Button
+            size="sm"
+            variant={picking ? "ghost" : "outline"}
+            onClick={() => setPicking((p) => !p)}
+          >
+            <Plus /> {t("newBook")}
+          </Button>
+        </div>
+        {picking && (
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {BOOK_TEMPLATES.map((tpl) => {
+              const Icon = ICON[tpl];
+              return (
+                <li key={tpl}>
+                  <button
+                    type="button"
+                    onClick={() => start(tpl)}
+                    className="card hover:border-primary/50 flex h-full w-full items-center gap-3 p-3 text-left transition-colors"
+                  >
+                    <span className="bg-primary-soft text-primary grid size-9 shrink-0 place-items-center rounded-lg">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{t(`tpl.${tpl}.name`)}</span>
+                      <span className="text-muted line-clamp-1 block text-xs">
+                        {t(`tpl.${tpl}.desc`)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <section>
@@ -142,7 +163,7 @@ export function WriteHome({
                     title={b.title}
                     author={author}
                     src={null}
-                    className="aspect-[2/3] h-auto w-full transition-transform group-hover:-translate-y-0.5 group-hover:shadow-md"
+                    className="aspect-[2/3] h-auto w-full"
                   />
                   <div className="mt-2 line-clamp-2 pr-7 text-sm font-medium">{b.title}</div>
                   <div className="text-muted text-xs">
@@ -275,6 +296,54 @@ function Progress({ words, goal }: { words: number; goal: number }) {
         style={{ width: `${Math.min(100, (words / goal) * 100)}%` }}
       />
     </div>
+  );
+}
+
+/** The year's journal, filled from the Röznoma's day pages. */
+function RoznomaCard({ book, year, author }: { book: Book | null; year: number; author: string }) {
+  const t = useTranslations("write");
+  return (
+    <section className="card relative flex flex-col gap-5 overflow-hidden p-5 sm:flex-row sm:items-center sm:p-6">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-20 -right-16 size-56 rounded-full bg-[var(--c-amber)]/15 blur-3xl"
+      />
+      <Link
+        href={book ? `/write/${book.id}` : "/plans"}
+        className="group w-24 shrink-0 self-center sm:self-auto"
+      >
+        <Cover
+          type="book"
+          title={`Röznoma ${year}`}
+          author={author}
+          src={null}
+          className="aspect-[2/3] h-auto w-full"
+        />
+      </Link>
+      <div className="relative min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[var(--c-amber)] uppercase">
+          <CalendarCheck className="size-3.5" /> {t("roznomaTag")}
+        </p>
+        <h2 className="mt-1 font-serif text-2xl leading-tight font-semibold">Röznoma {year}</h2>
+        <p className="text-muted mt-1 text-sm">
+          {book ? t("roznomaStats", { words: book.words, days: book.chapters }) : t("roznomaEmpty")}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <Link href="/plans">
+              <CalendarCheck /> {t("roznomaToday")}
+            </Link>
+          </Button>
+          {book && (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/write/${book.id}`}>
+                <BookOpen /> {t("roznomaOpen")}
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

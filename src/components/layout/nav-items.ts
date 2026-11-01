@@ -23,22 +23,24 @@ export type NavItem = {
   key: string;
   icon: LucideIcon;
   admin?: boolean;
+  /** Where the link goes when it differs from `href` (e.g. my own profile). */
+  to?: string;
   /** Other sections shown as tabs inside this one (they keep it highlighted). */
   includes?: string[];
 };
 
 /**
- * Default order: what a reader does every day first (home, the library, the
- * AI, notes, review, plans), then making things; the rest below the line.
+ * Default order: what a reader does every day first (home, the day's plan,
+ * the library, the AI, quotes, review), then making things; the rest below the line.
  * Users can drag items to their own order (lib/nav-order.ts).
  */
 export const NAV_PRIMARY: NavItem[] = [
   { href: "/", key: "dashboard", icon: Home },
+  { href: "/plans", key: "plans", icon: CalendarCheck },
   { href: "/library", key: "library", icon: BookOpen, includes: ["/people", "/publishers"] },
   { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/notes", key: "notes", icon: NotebookPen },
   { href: "/review", key: "review", icon: Brain },
-  { href: "/plans", key: "plans", icon: CalendarCheck },
   { href: "/collections", key: "collections", icon: FolderHeart },
   { href: "/write", key: "write", icon: PenLine },
 ];

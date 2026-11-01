@@ -212,6 +212,20 @@ export async function setProfilePublic(ctx: AppContext, on: boolean, bio: string
   );
 }
 
+/** My whole library with who may see each item (for the profile's switches). */
+export async function myItemsVisibility(ctx: AppContext) {
+  return withUser(db, ctx, (tx) =>
+    tx.execute<{ resourceId: string; title: string; type: string; public: boolean }>(sql`
+      select lr.resource_id as "resourceId", r.title, r.type::text as type,
+        (lr.visibility = 'public') as public
+      from nodinest.learning_records lr
+      join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+      where lr.user_id = ${ctx.userId}
+      order by lr.updated_at desc
+      limit 500`),
+  );
+}
+
 export async function setItemVisibility(ctx: AppContext, resourceId: string, pub: boolean) {
   const id = z.string().uuid().parse(resourceId);
   await withUser(db, ctx, (tx) =>

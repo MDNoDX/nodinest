@@ -56,6 +56,8 @@ export type BookCandidate = {
   description: string | null;
   coverUrl: string | null;
   infoUrl: string | null;
+  /** Our genre slugs, guessed from the sources' subjects. */
+  genres: string[];
 };
 
 type GoogleVolume = {
@@ -71,6 +73,7 @@ type GoogleVolume = {
     industryIdentifiers?: { type: string; identifier: string }[];
     imageLinks?: { thumbnail?: string; smallThumbnail?: string };
     infoLink?: string;
+    categories?: string[];
   };
 };
 
@@ -88,12 +91,47 @@ function googleCover(url: string | undefined): string | null {
     .replace("zoom=1", "zoom=2");
 }
 
+const GENRE_WORDS: [slug: string, re: RegExp][] = [
+  ["biography", /biograph|autobiograph|memoir/i],
+  ["history", /histor|civili[sz]ation/i],
+  ["philosophy", /philosoph|ethic/i],
+  ["religion", /religio|islam|quran|koran|theolog|christian|hadith/i],
+  ["psychology", /psycholog/i],
+  ["economics", /econom|business|financ|management/i],
+  ["languages", /language|linguist|grammar|dictionar/i],
+  ["self-development", /self[- ]help|personal growth|self[- ]improvement|habit/i],
+  ["fantasy", /fantasy|science fiction|dystopia/i],
+  ["romance", /romance|love stor/i],
+  ["science", /science|math|physics|chemistry|biolog|technolog|computer|programming/i],
+  ["literature", /fiction|novel|poetry|literature|drama|classics/i],
+];
+
+function genresOf(subjects: string[]) {
+  const text = subjects.join(" · ");
+  return GENRE_WORDS.filter(([, re]) => re.test(text))
+    .map(([slug]) => slug)
+    .slice(0, 2);
+}
+
+const sameTitle = (a: string, b: string) => {
+  const n = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  const [x, y] = [n(a), n(b)];
+  return (
+    x === y || (x.length > 5 && y.startsWith(`${x} `)) || (y.length > 5 && x.startsWith(`${y} `))
+  );
+};
+
 /** Searches books by free text and/or ISBN; best matches first. */
 export async function lookupBooks(
   query: string,
   opts: { isbn?: string | null; limit?: number } = {},
 ): Promise<BookCandidate[]> {
-  const isbn = opts.isbn ? parseIsbn(opts.isbn)?.value : null;
+  // A bare ISBN typed in the search box is a far better query than free text.
+  const isbn = parseIsbn(opts.isbn ?? query)?.value ?? null;
   const q = isbn ? `isbn:${isbn}` : query;
   const limit = Math.min(opts.limit ?? 5, 8);
   const [google, ol] = await Promise.all([
@@ -111,11 +149,12 @@ export async function lookupBooks(
         publisher?: string[];
         key?: string;
         language?: string[];
+        subject?: string[];
       }>;
     }>(
       isbn
         ? `https://openlibrary.org/search.json?isbn=${isbn}&limit=3`
-        : `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,publisher,key,language`,
+        : `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,cover_i,isbn,number_of_pages_median,publisher,key,language,subject`,
     ),
   ]);
   const olDocs = ol?.docs ?? [];
@@ -124,7 +163,9 @@ export async function lookupBooks(
     const v = it.volumeInfo ?? {};
     if (!v.title) continue;
     const ids = v.industryIdentifiers ?? [];
-    const match = olDocs.find((d) => d.title && d.title.toLowerCase() === v.title!.toLowerCase());
+    // The same work in Open Library fills what Google left empty.
+    const match = olDocs.find((d) => d.title && sameTitle(d.title, v.title!));
+    const olIsbns = match?.isbn ?? [];
     out.push({
       source: "google",
       title: v.title,
@@ -132,21 +173,28 @@ export async function lookupBooks(
       authors: v.authors ?? [],
       editionDate: normDate(v.publishedDate),
       originalYear: match?.first_publish_year ? String(match.first_publish_year) : null,
-      publisher: v.publisher ?? null,
-      pageCount: v.pageCount ?? match?.number_of_pages_median ?? null,
+      publisher: v.publisher ?? match?.publisher?.[0] ?? null,
+      pageCount: v.pageCount || match?.number_of_pages_median || null,
       language: v.language ?? null,
-      isbn13: ids.find((i) => i.type === "ISBN_13")?.identifier ?? null,
-      isbn10: ids.find((i) => i.type === "ISBN_10")?.identifier ?? null,
+      isbn13:
+        ids.find((i) => i.type === "ISBN_13")?.identifier ??
+        olIsbns.find((i) => i.length === 13) ??
+        null,
+      isbn10:
+        ids.find((i) => i.type === "ISBN_10")?.identifier ??
+        olIsbns.find((i) => i.length === 10) ??
+        null,
       description: v.description?.replace(/<[^>]+>/g, "").slice(0, 3000) ?? null,
       coverUrl:
         googleCover(v.imageLinks?.thumbnail ?? v.imageLinks?.smallThumbnail) ??
         (match?.cover_i ? `https://covers.openlibrary.org/b/id/${match.cover_i}-L.jpg` : null),
       infoUrl: v.infoLink ?? null,
+      genres: genresOf([...(v.categories ?? []), ...(match?.subject ?? [])]),
     });
   }
   // Open Library results that Google didn't return.
   for (const d of olDocs) {
-    if (!d.title || out.some((o) => o.title.toLowerCase() === d.title!.toLowerCase())) continue;
+    if (!d.title || out.some((o) => sameTitle(o.title, d.title!))) continue;
     const isbns = d.isbn ?? [];
     out.push({
       source: "openlibrary",
@@ -163,9 +211,32 @@ export async function lookupBooks(
       description: null,
       coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg` : null,
       infoUrl: d.key ? `https://openlibrary.org${d.key}` : null,
+      genres: genresOf(d.subject ?? []),
     });
   }
-  return out.slice(0, limit);
+  // The title that was asked for first, then the fullest record.
+  const worth = (c: BookCandidate) =>
+    (sameTitle(c.title, query) ? 8 : 0) +
+    [c.coverUrl, c.isbn13 ?? c.isbn10, c.description, c.pageCount, c.publisher].filter(Boolean)
+      .length;
+  const best = out
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => worth(b.c) - worth(a.c) || a.i - b.i)
+    .map((x) => x.c)
+    .slice(0, limit);
+  // Open Library keeps the description on the work, one more (cached) request.
+  await Promise.all(
+    best
+      .filter((c) => !c.description && c.infoUrl?.startsWith("https://openlibrary.org/works/"))
+      .map(async (c) => {
+        const w = await cachedJson<{ description?: string | { value?: string } }>(
+          `${c.infoUrl}.json`,
+        );
+        const d = typeof w?.description === "string" ? w.description : w?.description?.value;
+        if (d) c.description = d.slice(0, 3000);
+      }),
+  );
+  return best;
 }
 
 export type PersonCandidate = {
