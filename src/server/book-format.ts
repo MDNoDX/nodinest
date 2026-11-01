@@ -1,7 +1,7 @@
 /**
  * Lays a book's pages out for reading: lines the PDF broke are joined, each
  * line of dialogue stands apart with its speaker, titles and quotations are
- * marked, running headers stay only on their first page, and the author's
+ * marked, what the PDF repeats on every page is left out, and the author's
  * words are kept. Done a few pages at a time, so it can stop
  * and go on: after an upload, while someone reads, and from the minute cron.
  * A page the model changed too much keeps its plain layout.
@@ -14,9 +14,10 @@ import { bookPages } from "@/db/schema";
 import {
   blocksFromParas,
   keepsWords,
-  repeatedLines,
-  withoutRepeats,
+  runningPhrases,
+  stripRunning,
   type BookBlock,
+  type Running,
 } from "@/lib/book-blocks";
 import { reflow } from "@/lib/reflow";
 import { generate, isAiConfigured } from "./ai/gemini";
@@ -51,18 +52,36 @@ const PROMPT = `You lay out pages of a book for reading. The text comes from a P
 For each page return its content as blocks, in order:
 - h: a title or chapter heading
 - p: narration (join the lines the PDF broke, mend words hyphenated at a line end)
-- d: one line of direct speech, only the spoken words with their quotation marks or dash; put the speaker's name in "s" (as the book calls them, e.g. "Gared", or "Chol") whenever the text makes clear who speaks, else leave it out
+- d: one line of direct speech or spoken thought, only the spoken words with their quotation marks or dash; always put who says it in "s"
 - q: a quotation, verse, Quran verse or hadith set apart from the text
 - c: centred lines of a title page (author, title, publisher, year)
-Words around speech ("he said", "Royce replied.") are their own p block after the d block, as in a script.
+Words around speech ("he said", "Royce replied.") are their own p block after the d block, as in a script. One paragraph like "— Come here,— he said.— Now." is three blocks: d, p, d.
+Who speaks: follow the scene across the pages. "He said" means the person the scene is about, and two people talking take turns. Use the name the book calls them by ("Gared", or "Chol" for the old man), spelled exactly the same every time and exactly as in PEOPLE IN THIS BOOK when that list is given. Leave "s" out only when the text truly cannot tell.
 Rules: keep the author's words EXACTLY, in the same order and language and script. Never translate, summarise, correct or add anything, except speaker names in "s". Drop only bare page numbers. A paragraph cut by the end of the page stays cut.`;
+
+/** The book's cast (when its audiobook was analysed) and the speakers named so far. */
+async function peopleOf(ctx: AppContext, resourceId: string) {
+  const rows = await withUser(db, ctx, (tx) =>
+    tx.execute<{ name: string }>(sql`
+      (select c->>'name' as name from nodinest.audiobooks a,
+        jsonb_array_elements(a.analysis->'characters') c
+       where a.user_id = ${ctx.userId} and a.resource_id = ${resourceId})
+      union
+      (select distinct b->>'s' from nodinest.book_pages p, jsonb_array_elements(p.formatted) b
+       where p.user_id = ${ctx.userId} and p.resource_id = ${resourceId}
+         and jsonb_typeof(p.formatted) = 'array' and b->>'s' is not null)
+      limit 40`),
+  );
+  return rows.map((r) => r.name).filter(Boolean);
+}
 
 /** One batch: the next pages without a layout, from `around` on. Returns how many were done. */
 async function batch(
   ctx: AppContext,
   resourceId: string,
   around: number,
-  repeats: Map<string, number>,
+  phrases: Running[],
+  people: string[],
 ) {
   const rows = await withUser(db, ctx, (tx) =>
     tx
@@ -80,12 +99,17 @@ async function batch(
       .limit(BATCH),
   );
   if (!rows.length) return 0;
-  const text = (r: (typeof rows)[number]) => withoutRepeats(r.content, r.page, repeats);
+  const text = (r: (typeof rows)[number]) => stripRunning(r.content, r.page, phrases);
+  const known = people.length ? `PEOPLE IN THIS BOOK: ${people.join(", ")}\n\n` : "";
   const res = await generate(
     [
       {
         role: "user",
-        parts: [{ text: rows.map((r) => `=== PAGE ${r.page} ===\n${text(r)}`).join("\n\n") }],
+        parts: [
+          {
+            text: `${known}${rows.map((r) => `=== PAGE ${r.page} ===\n${text(r)}`).join("\n\n")}`,
+          },
+        ],
       },
     ],
     {
@@ -133,10 +157,11 @@ export async function formatBook(
         .from(bookPages)
         .where(and(eq(bookPages.userId, ctx.userId), eq(bookPages.resourceId, resourceId))),
     );
-    const repeats = repeatedLines(all);
+    const phrases = runningPhrases(all);
+    const people = await peopleOf(ctx, resourceId);
     do {
       if (!(await hitRateLimit(db, `format:${ctx.userId}`, 400, 86_400)).allowed) break;
-      const n = await batch(ctx, resourceId, opts.around ?? 1, repeats);
+      const n = await batch(ctx, resourceId, opts.around ?? 1, phrases, people);
       if (!n) break;
       done += n;
     } while (Date.now() < end);

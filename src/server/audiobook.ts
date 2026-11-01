@@ -18,7 +18,7 @@ import "server-only";
 import { Mp3Encoder } from "@breezystack/lamejs";
 import { Type } from "@google/genai";
 import { createHash } from "node:crypto";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
@@ -29,10 +29,11 @@ import {
   bookTextSources,
   voiceSamples,
 } from "@/db/schema";
+import { stripSites } from "@/lib/book-blocks";
 import { AppError } from "@/lib/errors";
 import { generate, speak, uploadToGemini } from "./ai/gemini";
 import { factsText, gate, langRule, resourceFacts } from "./ai/study";
-import { findStructure, getStructure } from "./book-structure";
+import { findStructure, getStructure, runningOf } from "./book-structure";
 import { loadBookPages } from "./booktext";
 import { enforceRateLimit } from "./rate-limit";
 import { reflow } from "@/lib/reflow";
@@ -833,6 +834,23 @@ async function onePage(bytes: Uint8Array, page: number) {
   return out.save();
 }
 
+/** Who says what on these pages, from the reader's layout: it has done that work already. */
+async function spokenOnPages(ctx: AppContext, resourceId: string, from: number, to: number) {
+  const rows = await withUser(db, ctx, (tx) =>
+    tx.execute<{ s: string; t: string }>(sql`
+      select b->>'s' as s, left(b->>'t', 70) as t
+      from nodinest.book_pages p, jsonb_array_elements(p.formatted) b
+      where p.user_id = ${ctx.userId} and p.resource_id = ${resourceId}
+        and p.page between ${from} and ${to} and jsonb_typeof(p.formatted) = 'array'
+        and b->>'k' = 'd' and b->>'s' is not null
+      limit 120`),
+  );
+  if (!rows.length) return "";
+  return `WHO SPEAKS (already worked out for these pages):\n${rows
+    .map((r) => `${r.s}: ${r.t}`)
+    .join("\n")}\n\n`;
+}
+
 /** The voiced script of segment `idx` (cached). */
 /**
  * The text the plan's offsets refer to. Kept for a while per warm function, so
@@ -886,7 +904,10 @@ export async function segmentPreview(
       };
     return { lines: [] as ScriptLine[], page: seg[2], draft: true };
   }
-  const text = (await bookText(ctx, resourceId, r.id, a.rev, plan)).slice(seg[0], seg[1]);
+  const text = stripSites(
+    (await bookText(ctx, resourceId, r.id, a.rev, plan)).slice(seg[0], seg[1]),
+    await runningOf(ctx, resourceId, await getStructure(ctx, resourceId)),
+  );
   const lines = reflow(text).map((p) => ({ speaker: "narrator", text: p.text }));
   // In narrator mode these ARE the voiced lines (marks match them).
   return { lines, page: seg[2], draft: !opts.plain };
@@ -939,11 +960,13 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
     ];
   } else {
     const text = await bookText(ctx, resourceId, r.id, a.rev, plan);
-    source = text.slice(seg[0], seg[1]);
-    const before = text.slice(Math.max(0, seg[0] - 400), seg[0]);
+    const phrases = await runningOf(ctx, resourceId, await getStructure(ctx, resourceId));
+    source = stripSites(text.slice(seg[0], seg[1]), phrases);
+    const before = stripSites(text.slice(Math.max(0, seg[0] - 400), seg[0]), phrases);
+    const said = await spokenOnPages(ctx, resourceId, seg[2], plan.segs[idx + 1]?.[2] ?? seg[2]);
     parts = [
       {
-        text: `${before ? `CONTEXT BEFORE (do not include it): …${before}\n\n` : ""}PASSAGE\n${source}`,
+        text: `${before ? `CONTEXT BEFORE (do not include it): …${before}\n\n` : ""}${said}PASSAGE\n${source}`,
       },
     ];
   }

@@ -24,6 +24,7 @@ import { CatalogActions } from "@/components/library/catalog-actions";
 import { CollectionPicker } from "@/components/library/collection-picker";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { ReadingPanel } from "@/components/library/reading-panel";
+import { ResourceColumns } from "@/components/library/resource-columns";
 import { RecordForm } from "@/components/library/record-form";
 import { Button } from "@/components/ui/button";
 import { Badge, Card, CardHeader, TypeBadge } from "@/components/ui/misc";
@@ -324,307 +325,314 @@ export default async function ResourcePage({
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <ResumeMark resourceId={id} />
-          {playable && (
-            <div className="flex flex-col gap-2">
-              <PlayInDock
-                source={playable}
-                at={
-                  resume?.media &&
-                  (resume.media.kind === "youtube"
-                    ? playable.kind === "youtube" && resume.media.id === playable.id
-                    : playable.kind === "file" && resume.media.src === playable.src)
-                    ? resume.mediaSeconds
-                    : null
+      <ResourceColumns
+        main={
+          <>
+            <ResumeMark resourceId={id} />
+            {playable && (
+              <div className="flex flex-col gap-2">
+                <PlayInDock
+                  source={playable}
+                  at={
+                    resume?.media &&
+                    (resume.media.kind === "youtube"
+                      ? playable.kind === "youtube" && resume.media.id === playable.id
+                      : playable.kind === "file" && resume.media.src === playable.src)
+                      ? resume.mediaSeconds
+                      : null
+                  }
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/library/${id}/taqriz?ai=full`}
+                    className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                  >
+                    <FileText className="text-primary size-4" /> {t("resource.fullText")}
+                  </Link>
+                  <Link
+                    href={`/library/${id}/taqriz?ai=listen`}
+                    className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                  >
+                    <AudioLines className="text-primary size-4" /> {t("resource.liveWrite")}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {r.description && (
+              <Card className="p-5 sm:p-6">
+                <h2 className="mb-2 text-sm font-semibold">{t("common.description")}</h2>
+                <p className="prose-nn text-foreground/90 text-[15px]">{r.description}</p>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader
+                title={t("taqriz.title")}
+                icon={<NotebookPen />}
+                hue="violet"
+                description={
+                  d.mine.writeupWords
+                    ? t("taqriz.summary", { words: d.mine.writeupWords, chapters: chapters.length })
+                    : undefined
+                }
+                action={
+                  <span className="flex items-center gap-2">
+                    {d.mine.writeupWords ? (
+                      <ExportMenu resourceId={r.id} variant="ghost" className="h-8" />
+                    ) : null}
+                    <Link
+                      href={`/library/${r.id}/taqriz`}
+                      className="text-primary text-xs font-semibold hover:underline"
+                    >
+                      {d.mine.writeupWords ? t("common.open") : t("taqriz.start")} →
+                    </Link>
+                  </span>
                 }
               />
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/library/${id}/taqriz?ai=full`}
-                  className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
-                >
-                  <FileText className="text-primary size-4" /> {t("resource.fullText")}
-                </Link>
-                <Link
-                  href={`/library/${id}/taqriz?ai=listen`}
-                  className="border-border bg-surface hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
-                >
-                  <AudioLines className="text-primary size-4" /> {t("resource.liveWrite")}
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {r.description && (
-            <Card className="p-5 sm:p-6">
-              <h2 className="mb-2 text-sm font-semibold">{t("common.description")}</h2>
-              <p className="prose-nn text-foreground/90 text-[15px]">{r.description}</p>
+              {chapters.length > 0 && (
+                <ol className="flex flex-col gap-0.5 px-5 pb-5">
+                  {chapters.map((c, i) => (
+                    <li key={`${i}-${c}`}>
+                      <Link
+                        href={`/library/${r.id}/taqriz?q=${encodeURIComponent(c)}`}
+                        className="hover:bg-surface-2 flex items-baseline gap-3 rounded-lg px-2 py-1.5 text-sm"
+                      >
+                        <span className="text-muted w-5 shrink-0 text-right text-xs tabular-nums">
+                          {i + 1}.
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{c}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </Card>
-          )}
 
-          <Card>
-            <CardHeader
-              title={t("taqriz.title")}
-              icon={<NotebookPen />}
-              hue="violet"
-              description={
-                d.mine.writeupWords
-                  ? t("taqriz.summary", { words: d.mine.writeupWords, chapters: chapters.length })
-                  : undefined
-              }
-              action={
-                <span className="flex items-center gap-2">
-                  {d.mine.writeupWords ? (
-                    <ExportMenu resourceId={r.id} variant="ghost" className="h-8" />
-                  ) : null}
-                  <Link
-                    href={`/library/${r.id}/taqriz`}
-                    className="text-primary text-xs font-semibold hover:underline"
-                  >
-                    {d.mine.writeupWords ? t("common.open") : t("taqriz.start")} →
-                  </Link>
-                </span>
-              }
-            />
-            {chapters.length > 0 && (
-              <ol className="flex flex-col gap-0.5 px-5 pb-5">
-                {chapters.map((c, i) => (
-                  <li key={`${i}-${c}`}>
-                    <Link
-                      href={`/library/${r.id}/taqriz?q=${encodeURIComponent(c)}`}
-                      className="hover:bg-surface-2 flex items-baseline gap-3 rounded-lg px-2 py-1.5 text-sm"
-                    >
-                      <span className="text-muted w-5 shrink-0 text-right text-xs tabular-nums">
-                        {i + 1}.
-                      </span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{c}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader
-              title={t("resource.myNotes")}
-              icon={<StickyNote />}
-              hue="teal"
-              description={
-                <span className="inline-flex items-center gap-1">
-                  <Lock className="size-3" />
-                  {d.myNotes.length
-                    ? t("resource.notesCount", { count: d.myNotes.length })
-                    : t("resource.myLearningHint")}
-                </span>
-              }
-              action={
-                d.myNotes.length > 0 ? (
-                  <Link
-                    href={`/notes?resource=${r.id}`}
-                    className="text-primary text-xs font-semibold hover:underline"
-                  >
-                    {t("common.open")} →
-                  </Link>
-                ) : undefined
-              }
-            />
-            {d.myNotes.length === 0 ? (
-              <div className="flex flex-wrap gap-2 px-5 pb-5">
-                <Button size="sm" variant="secondary" asChild>
-                  <Link href={`/notes/new?resource=${r.id}&kind=quote`}>
-                    <Quote /> {t("resource.addQuote")}
-                  </Link>
-                </Button>
-                <Button size="sm" variant="secondary" asChild>
-                  <Link href={`/notes/new?resource=${r.id}`}>
-                    <StickyNote /> {t("resource.addNote")}
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <ul className="divide-border flex flex-col divide-y px-5 pb-4">
-                {d.myNotes.slice(0, 4).map((n) => (
-                  <li key={n.id} className="py-3">
-                    <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
-                      {n.kind === "quote" ? (
-                        <blockquote className="line-clamp-4 border-l-2 border-[var(--c-violet)] pl-3 font-serif italic">
-                          “{n.quoteText}”
-                        </blockquote>
-                      ) : (
-                        <p className="line-clamp-3 text-sm">
-                          {n.title && <strong>{n.title} — </strong>}
-                          {n.body}
-                        </p>
-                      )}
-                      <span className="text-muted mt-1 block text-xs">
-                        {n.pageFrom != null &&
-                          (n.pageTo && n.pageTo !== n.pageFrom
-                            ? t("notes.pages", { from: n.pageFrom, to: n.pageTo })
-                            : t("notes.page", { page: n.pageFrom }))}
-                        {n.location ? ` · ${n.location}` : ""} · {fmtDate(n.createdAt, locale, tz)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-                {d.myNotes.length > 4 && (
-                  <li className="pt-3">
+            <Card>
+              <CardHeader
+                title={t("resource.myNotes")}
+                icon={<StickyNote />}
+                hue="teal"
+                description={
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="size-3" />
+                    {d.myNotes.length
+                      ? t("resource.notesCount", { count: d.myNotes.length })
+                      : t("resource.myLearningHint")}
+                  </span>
+                }
+                action={
+                  d.myNotes.length > 0 ? (
                     <Link
                       href={`/notes?resource=${r.id}`}
-                      className="text-primary text-sm font-medium hover:underline"
+                      className="text-primary text-xs font-semibold hover:underline"
                     >
-                      {t("resource.allNotes", { count: d.myNotes.length })} →
+                      {t("common.open")} →
                     </Link>
-                  </li>
-                )}
-              </ul>
-            )}
-          </Card>
-
-          {d.publicNotes.length > 0 && (
-            <Card>
-              <CardHeader title={t("resource.publicNotes")} icon={<Quote />} hue="sky" />
-              <ul className="flex flex-col gap-3 px-5 pb-5">
-                {d.publicNotes.map((n) => (
-                  <li key={n.id}>
-                    <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
-                      {n.kind === "quote" ? (
-                        <blockquote className="border-border-strong border-l-2 pl-3 font-serif italic">
-                          “{n.quoteText}”
-                        </blockquote>
-                      ) : (
-                        <p className="text-sm">{n.title ?? n.body}</p>
-                      )}
+                  ) : undefined
+                }
+              />
+              {d.myNotes.length === 0 ? (
+                <div className="flex flex-wrap gap-2 px-5 pb-5">
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link href={`/notes/new?resource=${r.id}&kind=quote`}>
+                      <Quote /> {t("resource.addQuote")}
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          {(d.categories.length > 0 ||
-            d.tags.length > 0 ||
-            links.length > 0 ||
-            d.identifiers.length > 0) && (
-            <Card className="p-5">
-              {(d.categories.length > 0 || d.tags.length > 0) && (
-                <div className="flex flex-wrap gap-1.5">
-                  {d.categories.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/library?category=${c.id}`}
-                      style={hueStyle(hueFor(c.id))}
-                      className="chip rounded-full px-2.5 py-1 text-xs font-medium hover:underline"
-                    >
-                      {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
+                  </Button>
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link href={`/notes/new?resource=${r.id}`}>
+                      <StickyNote /> {t("resource.addNote")}
                     </Link>
-                  ))}
-                  {d.tags.map((tg) => (
-                    <Link
-                      key={tg.id}
-                      href={`/search?q=${encodeURIComponent(tg.name)}`}
-                      className="bg-surface-2 text-muted rounded-full px-2.5 py-1 text-xs hover:underline"
-                    >
-                      #{tg.name}
-                    </Link>
-                  ))}
+                  </Button>
                 </div>
-              )}
-              {links.length > 0 && (
-                <ul className="mt-4 flex flex-col gap-1.5">
-                  {links.map((l) => (
-                    <li key={l.id}>
-                      <a
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer nofollow"
-                        className="text-primary inline-flex items-center gap-1.5 text-sm hover:underline"
+              ) : (
+                <ul className="divide-border flex flex-col divide-y px-5 pb-4">
+                  {d.myNotes.slice(0, 4).map((n) => (
+                    <li key={n.id} className="py-3">
+                      <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
+                        {n.kind === "quote" ? (
+                          <blockquote className="line-clamp-4 border-l-2 border-[var(--c-violet)] pl-3 font-serif italic">
+                            “{n.quoteText}”
+                          </blockquote>
+                        ) : (
+                          <p className="line-clamp-3 text-sm">
+                            {n.title && <strong>{n.title} — </strong>}
+                            {n.body}
+                          </p>
+                        )}
+                        <span className="text-muted mt-1 block text-xs">
+                          {n.pageFrom != null &&
+                            (n.pageTo && n.pageTo !== n.pageFrom
+                              ? t("notes.pages", { from: n.pageFrom, to: n.pageTo })
+                              : t("notes.page", { page: n.pageFrom }))}
+                          {n.location ? ` · ${n.location}` : ""} ·{" "}
+                          {fmtDate(n.createdAt, locale, tz)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {d.myNotes.length > 4 && (
+                    <li className="pt-3">
+                      <Link
+                        href={`/notes?resource=${r.id}`}
+                        className="text-primary text-sm font-medium hover:underline"
                       >
-                        <ExternalLink className="size-3.5" /> {l.label || t(`linkKinds.${l.kind}`)}{" "}
-                        <span className="text-muted text-xs">{new URL(l.url).hostname}</span>
-                      </a>
+                        {t("resource.allNotes", { count: d.myNotes.length })} →
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </Card>
+
+            {d.publicNotes.length > 0 && (
+              <Card>
+                <CardHeader title={t("resource.publicNotes")} icon={<Quote />} hue="sky" />
+                <ul className="flex flex-col gap-3 px-5 pb-5">
+                  {d.publicNotes.map((n) => (
+                    <li key={n.id}>
+                      <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
+                        {n.kind === "quote" ? (
+                          <blockquote className="border-border-strong border-l-2 pl-3 font-serif italic">
+                            “{n.quoteText}”
+                          </blockquote>
+                        ) : (
+                          <p className="text-sm">{n.title ?? n.body}</p>
+                        )}
+                      </Link>
                     </li>
                   ))}
                 </ul>
-              )}
-              {d.identifiers.length > 0 && (
-                <p className="text-muted mt-3 text-xs">
-                  {d.identifiers.map((i) => `${i.scheme.toUpperCase()} ${i.value}`).join(" · ")}
+              </Card>
+            )}
+
+            {(d.categories.length > 0 ||
+              d.tags.length > 0 ||
+              links.length > 0 ||
+              d.identifiers.length > 0) && (
+              <Card className="p-5">
+                {(d.categories.length > 0 || d.tags.length > 0) && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {d.categories.map((c) => (
+                      <Link
+                        key={c.id}
+                        href={`/library?category=${c.id}`}
+                        style={hueStyle(hueFor(c.id))}
+                        className="chip rounded-full px-2.5 py-1 text-xs font-medium hover:underline"
+                      >
+                        {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
+                      </Link>
+                    ))}
+                    {d.tags.map((tg) => (
+                      <Link
+                        key={tg.id}
+                        href={`/search?q=${encodeURIComponent(tg.name)}`}
+                        className="bg-surface-2 text-muted rounded-full px-2.5 py-1 text-xs hover:underline"
+                      >
+                        #{tg.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {links.length > 0 && (
+                  <ul className="mt-4 flex flex-col gap-1.5">
+                    {links.map((l) => (
+                      <li key={l.id}>
+                        <a
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="text-primary inline-flex items-center gap-1.5 text-sm hover:underline"
+                        >
+                          <ExternalLink className="size-3.5" />{" "}
+                          {l.label || t(`linkKinds.${l.kind}`)}{" "}
+                          <span className="text-muted text-xs">{new URL(l.url).hostname}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {d.identifiers.length > 0 && (
+                  <p className="text-muted mt-3 text-xs">
+                    {d.identifiers.map((i) => `${i.scheme.toUpperCase()} ${i.value}`).join(" · ")}
+                  </p>
+                )}
+              </Card>
+            )}
+
+            {d.media?.transcript && (
+              <details id="transcript" className="card p-5">
+                <summary className="cursor-pointer text-sm font-semibold">
+                  {t("resource.transcript")}
+                </summary>
+                <p className="prose-nn mt-3 max-h-[60vh] overflow-y-auto text-sm">
+                  {d.media.transcript}
                 </p>
-              )}
-            </Card>
-          )}
+              </details>
+            )}
 
-          {d.media?.transcript && (
-            <details id="transcript" className="card p-5">
-              <summary className="cursor-pointer text-sm font-semibold">
-                {t("resource.transcript")}
-              </summary>
-              <p className="prose-nn mt-3 max-h-[60vh] overflow-y-auto text-sm">
-                {d.media.transcript}
-              </p>
-            </details>
-          )}
-
-          {d.related.length > 0 && (
+            {d.related.length > 0 && (
+              <Card>
+                <CardHeader title={t("resource.related")} icon={<BookOpenText />} hue="indigo" />
+                <ul className="grid gap-2 px-5 pb-5 sm:grid-cols-2">
+                  {d.related.map((x) => (
+                    <li key={`${x.id}-${x.kind}`}>
+                      <Link
+                        href={`/library/${x.id}`}
+                        className="border-border hover:bg-surface-2 flex flex-col rounded-lg border px-3 py-2"
+                      >
+                        <span className="truncate text-sm font-medium">{x.title}</span>
+                        <span className="text-muted text-xs">
+                          {t(`types.${x.type}`)} · {t(`resource.relationKinds.${x.kind}`)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </>
+        }
+        side={
+          <>
             <Card>
-              <CardHeader title={t("resource.related")} icon={<BookOpenText />} hue="indigo" />
-              <ul className="grid gap-2 px-5 pb-5 sm:grid-cols-2">
-                {d.related.map((x) => (
-                  <li key={`${x.id}-${x.kind}`}>
-                    <Link
-                      href={`/library/${x.id}`}
-                      className="border-border hover:bg-surface-2 flex flex-col rounded-lg border px-3 py-2"
-                    >
-                      <span className="truncate text-sm font-medium">{x.title}</span>
-                      <span className="text-muted text-xs">
-                        {t(`types.${x.type}`)} · {t(`resource.relationKinds.${x.kind}`)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-        </div>
-
-        <aside className="flex flex-col gap-6">
-          <Card>
-            <CardHeader
-              title={t("record.title")}
-              icon={<BookOpenText />}
-              hue="blue"
-              description={
-                <span className="inline-flex items-center gap-1">
-                  <Lock className="size-3" /> {t("resource.myLearningHint")}
-                </span>
-              }
-            />
-            <div className="px-5 pb-5">
-              <RecordForm
-                key={d.record ? `${d.record.status}-${d.record.updatedAt.getTime()}` : "none"}
-                resourceId={r.id}
-                isMedia={isMedia}
-                defaultTotal={progressTotal}
-                defaultUnit={progressUnit}
-                record={
-                  d.record && {
-                    status: d.record.status,
-                    startedAt: readingValue(d.record.startedAt, d.record.startedPrecision),
-                    completedAt: readingValue(d.record.completedAt, d.record.completedPrecision),
-                    rating: d.record.rating,
-                    review: d.record.review,
-                    progressCurrent: d.record.progressCurrent,
-                    progressTotal: d.record.progressTotal,
-                    progressUnit: d.record.progressUnit,
-                  }
+              <CardHeader
+                title={t("record.title")}
+                icon={<BookOpenText />}
+                hue="blue"
+                description={
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="size-3" /> {t("resource.myLearningHint")}
+                  </span>
                 }
               />
-            </div>
-          </Card>
-          {!isMedia && (
+              <div className="px-5 pb-5">
+                <RecordForm
+                  key={d.record ? `${d.record.status}-${d.record.updatedAt.getTime()}` : "none"}
+                  resourceId={r.id}
+                  isMedia={isMedia}
+                  defaultTotal={progressTotal}
+                  defaultUnit={progressUnit}
+                  record={
+                    d.record && {
+                      status: d.record.status,
+                      startedAt: readingValue(d.record.startedAt, d.record.startedPrecision),
+                      completedAt: readingValue(d.record.completedAt, d.record.completedPrecision),
+                      rating: d.record.rating,
+                      review: d.record.review,
+                      progressCurrent: d.record.progressCurrent,
+                      progressTotal: d.record.progressTotal,
+                      progressUnit: d.record.progressUnit,
+                    }
+                  }
+                />
+              </div>
+            </Card>
+          </>
+        }
+        extra={
+          !isMedia && (
             <Card id="reading" className="scroll-mt-20">
               <CardHeader title={t("resource.reading")} icon={<FileText />} hue="violet" />
               <div className="px-5 pb-5">
@@ -649,9 +657,9 @@ export default async function ResourcePage({
                 />
               </div>
             </Card>
-          )}
-        </aside>
-      </div>
+          )
+        }
+      />
     </article>
   );
 }

@@ -10,7 +10,8 @@ import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { bookPages, bookTextSources, learningRecords, notes, resources } from "@/db/schema";
 import { AppError } from "@/lib/errors";
-import { getStructure, type Structure } from "./book-structure";
+import type { Running } from "@/lib/book-blocks";
+import { getStructure, runningOf, type Structure } from "./book-structure";
 
 export type ReaderMark = { id: string; kind: "quote" | "note"; text: string; page: number | null };
 
@@ -19,6 +20,8 @@ export type ReaderData = {
   pages: number[];
   totalPages: number;
   structure: Structure | null;
+  /** What the PDF repeats on page after page: never shown. */
+  running: Running[];
   fileId: string | null;
   scanned: boolean;
   lastPage: number | null;
@@ -29,6 +32,11 @@ export async function getReaderData(
   ctx: AppContext,
   resourceId: string,
 ): Promise<ReaderData | null> {
+  const data = await readerBasics(ctx, resourceId);
+  return data && { ...data, running: await runningOf(ctx, resourceId, data.structure) };
+}
+
+function readerBasics(ctx: AppContext, resourceId: string) {
   return withUser(db, ctx, async (tx) => {
     const [src] = await tx
       .select({ fileId: bookTextSources.fileId, pages: bookTextSources.pages })

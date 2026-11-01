@@ -1,56 +1,10 @@
 "use client";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { Input } from "./input";
-import { toCyrillic } from "@/lib/uz-cyrl";
 
 type Parts = { y: string; m: string; d: string };
-
-// Spelled out: some browsers ship no Uzbek month names (they show "M10").
-const MONTHS_UZ = [
-  "Yanvar",
-  "Fevral",
-  "Mart",
-  "Aprel",
-  "May",
-  "Iyun",
-  "Iyul",
-  "Avgust",
-  "Sentabr",
-  "Oktabr",
-  "Noyabr",
-  "Dekabr",
-];
-const MONTHS_EN = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-const MONTHS_RU = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
 
 const pad = (n: string) => n.padStart(2, "0");
 
@@ -94,18 +48,9 @@ export function DateParts({
   className?: string;
 }) {
   const t = useTranslations("dates");
-  const locale = useLocale();
   // Local state keeps a month / day picked before the year is typed.
   const [p, setP] = useState<Parts>(() => split(value));
   const shown = join(p) === value ? p : value ? split(value) : p;
-  const months =
-    locale === "uz"
-      ? MONTHS_UZ
-      : locale === "uz-Cyrl"
-        ? MONTHS_UZ.map(toCyrillic)
-        : locale === "ru"
-          ? MONTHS_RU
-          : MONTHS_EN;
   const update = (next: Partial<Parts>) => {
     const n = { ...shown, ...next };
     if (!n.m) n.d = "";
@@ -130,25 +75,18 @@ export function DateParts({
           update({ y: y.replace(/(?!^)-/g, "") });
         }}
       />
-      <div className="relative min-w-0 flex-1">
-        <Input
-          aria-label={t("month")}
-          value={shown.m ? String(Number(shown.m)) : ""}
-          inputMode="numeric"
-          placeholder={t("month")}
-          maxLength={2}
-          className="px-2 tabular-nums"
-          onChange={(e) => {
-            const n = Number(e.target.value.replace(/\D/g, ""));
-            update({ m: n >= 1 && n <= 12 ? pad(String(n)) : "" });
-          }}
-        />
-        {shown.m && (
-          <span className="text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 truncate text-xs">
-            {months[Number(shown.m) - 1]}
-          </span>
-        )}
-      </div>
+      <Input
+        aria-label={t("month")}
+        value={shown.m ? String(Number(shown.m)) : ""}
+        inputMode="numeric"
+        placeholder={t("month")}
+        maxLength={2}
+        className="min-w-0 flex-1 px-2 tabular-nums"
+        onChange={(e) => {
+          const n = Number(e.target.value.replace(/\D/g, ""));
+          update({ m: n >= 1 && n <= 12 ? pad(String(n)) : "" });
+        }}
+      />
       <Input
         aria-label={t("day")}
         value={shown.d ? String(Number(shown.d)) : ""}

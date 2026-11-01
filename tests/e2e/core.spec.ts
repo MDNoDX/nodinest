@@ -42,7 +42,7 @@ test("catalog: person + resource with author autocomplete, quote, search", async
   await expect(page.getByRole("heading", { name: "Alisher Navoiy" })).toBeVisible();
 
   await page.goto("/library/new");
-  await page.getByLabel("Sarlavha", { exact: true }).fill("Xamsa");
+  await page.getByLabel("Nomi", { exact: true }).fill("Xamsa");
   const combo = page.getByRole("combobox", { name: "Şaxs qöşiş" });
   await combo.fill("n");
   await expect(page.getByRole("option", { name: /Alisher Navoiy/ })).toBeVisible();
@@ -80,7 +80,7 @@ test("taqriz: write and find inside it from the side panel", async ({ page }) =>
 test("Darsxona tabs and publishers & channels explain themselves", async ({ page }) => {
   await signIn(page, DEV_USER);
   await page.goto("/library");
-  await page.getByRole("link", { name: "Naşriyot va kanallar" }).click();
+  await page.getByRole("link", { name: "Kanallar" }).click();
   await expect(page).toHaveURL(/\/publishers/);
   await expect(page.getByText(/YouTube kanallari/)).toBeVisible();
   await page.getByRole("link", { name: "Şaxslar" }).click();
@@ -90,7 +90,7 @@ test("Darsxona tabs and publishers & channels explain themselves", async ({ page
 test("takliflar: a message goes to the admin and shows as sent", async ({ page }) => {
   await signIn(page, DEV_USER);
   await page.goto("/suggestions");
-  await expect(page.getByRole("link", { name: /@nodinest_bot/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Telegram" })).toBeVisible();
   await page.getByLabel("Sarlavha").fill("Test taklif");
   await page.getByLabel("Matn").fill("Video uchun yangi imkoniyat");
   await page.getByRole("button", { name: "Yuboriş" }).click();

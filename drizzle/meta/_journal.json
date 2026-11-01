@@ -309,6 +309,13 @@
       "when": 1793540035075,
       "tag": "0043_reader_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793545884188,
+      "tag": "0044_speakers_layout",
+      "breakpoints": true
     }
   ]
 }

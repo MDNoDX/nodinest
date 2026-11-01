@@ -21,7 +21,7 @@ import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { saveNoteAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
-import { blocksFromParas, type BookBlock } from "@/lib/book-blocks";
+import { blocksFromParas, stripBlocks, stripRunning, type BookBlock } from "@/lib/book-blocks";
 import { cn } from "@/lib/cn";
 import { marked, type Mark } from "@/lib/reader-marks";
 import { reflow } from "@/lib/reflow";
@@ -126,13 +126,18 @@ export function ReaderApp({
         for (const p of raw)
           next[p.page] = {
             page: p.page,
-            blocks: p.blocks ?? blocksFromParas(reflow(p.content, noise)),
+            blocks: stripBlocks(
+              p.blocks ??
+                blocksFromParas(reflow(stripRunning(p.content, p.page, data.running), noise)),
+              p.page,
+              data.running,
+            ),
             laidOut: !!p.blocks,
           };
         return next;
       });
     },
-    [resource.id, noise],
+    [resource.id, noise, data.running],
   );
 
   // The pages in view and the next few are always at hand.
@@ -629,6 +634,7 @@ function Sheet({
                 key={i}
                 data-para
                 className="book-d"
+                data-who={b.s ? "" : undefined}
                 style={
                   { "--who": b.s ? whoColor(b.s) : "var(--border-strong)" } as React.CSSProperties
                 }

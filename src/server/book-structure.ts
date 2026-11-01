@@ -22,6 +22,7 @@ import {
   joinPages,
   locateHeading,
 } from "@/lib/audiobook-plan";
+import { runningPhrases, type Running } from "@/lib/book-blocks";
 import { lineKey } from "@/lib/reflow";
 import { generate, isAiConfigured } from "./ai/gemini";
 import { langRule } from "./ai/study";
@@ -49,6 +50,8 @@ export type Structure = {
   startedAt?: string;
   /** lineKey()s of running headers / footers / navigation lines to hide while reading. */
   noise?: string[];
+  /** Phrases printed on page after page, wherever the PDF put them (see book-blocks). */
+  running?: Running[];
   /** Pages that hold pictures; `textless` ones are only a picture (maps, cover, plates). */
   images?: { page: number; textless: boolean }[];
 };
@@ -357,6 +360,26 @@ export function needsStructure(s: Structure | null) {
 }
 
 /** The stored structure (null until it was found). */
+/** The book's running phrases, found once and kept with its structure. */
+export async function runningOf(ctx: AppContext, resourceId: string, s: Structure | null) {
+  if (s?.running) return s.running;
+  const running = runningPhrases(await loadBookPages(ctx, resourceId));
+  if (s && s.source !== "pending")
+    await withUser(db, ctx, (tx) =>
+      tx
+        .update(bookTextSources)
+        .set({ chapters: { ...s, running } })
+        .where(
+          and(
+            eq(bookTextSources.userId, ctx.userId),
+            eq(bookTextSources.resourceId, resourceId),
+            eq(bookTextSources.status, "ready"),
+          ),
+        ),
+    );
+  return running;
+}
+
 export async function getStructure(ctx: AppContext, resourceId: string): Promise<Structure | null> {
   const [src] = await withUser(db, ctx, (tx) =>
     tx

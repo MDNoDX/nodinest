@@ -88,8 +88,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   to the side panel, the text is the same size on every page (`prefs.size` × zoom), a long page scrolls;
   full screen covers everything. Blocks in `book_pages.formatted` come from
   `server/book-format.ts` (after upload, while reading, and a little with each reminders cron); `d`
-  blocks carry the speaker `s`; lines repeated at the edge of pages (`repeatedLines`) stay on their
-  first page only; `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
+  blocks carry the speaker `s` and show in that person's colour. What a PDF repeats on its pages is
+  found as a phrase, not a line (`runningPhrases` in lib/book-blocks, kept in `structure.running`):
+  site names go everywhere, a title stays only on pages 1-2; audio uses `stripSites`, which keeps a
+  title the story itself says. `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
   The turn (`reader/page-turn.ts`): the page stays put, cut by `clip-path` along a moving crease so
   its text never blurs; the turned part is a narrow opaque roll, never a second page or see-through.
 - Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`, with speed), on every
