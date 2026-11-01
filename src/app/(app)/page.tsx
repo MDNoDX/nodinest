@@ -25,7 +25,7 @@ import { pageContext } from "@/lib/page";
 import { cn } from "@/lib/cn";
 import { hueStyle, type Hue } from "@/lib/hues";
 import { listGoalsWithProgress } from "@/server/goals";
-import { getDay } from "@/server/roznoma";
+import { ensureDefaults, getDay } from "@/server/roznoma";
 import { TodayCard } from "@/components/roznoma/today-card";
 import { getCollection, listCollections, listNotes } from "@/server/notes";
 import { listMyRecords } from "@/server/records";
@@ -87,6 +87,7 @@ export default async function DashboardPage() {
     getStartSteps(ctx),
   ]);
   // Röznoma: today's plan (with ticks) and the goals, at a glance.
+  await ensureDefaults(ctx, locale);
   const todayPage = await getDay(ctx, today, locale);
   const homeAd = await adFor(ctx, "home");
   const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
@@ -379,9 +380,12 @@ export default async function DashboardPage() {
             items={todayPage.items.map((i) => ({
               id: i.id,
               title: i.title,
+              icon: i.icon,
               amount: i.amount,
               time: i.time,
               done: i.done,
+              status: i.status,
+              value: i.value,
             }))}
             goals={activeGoals.map((g) => ({
               id: g.id,

@@ -9,6 +9,8 @@ export type RoutineLike = {
   weekdays: number[];
   onDay: string | null;
   archived?: boolean;
+  startsOn?: string | null;
+  endsOn?: string | null;
 };
 
 /** 1 = Monday … 7 = Sunday, for a "YYYY-MM-DD" day. */
@@ -22,6 +24,8 @@ export function isoWeekday(day: string): number {
 export function dueOn(r: RoutineLike, day: string): boolean {
   if (r.archived) return false;
   if (r.repeat === "once") return r.onDay === day;
+  if (r.startsOn && day < r.startsOn) return false;
+  if (r.endsOn && day > r.endsOn) return false;
   if (r.repeat === "weekly") return r.weekdays.includes(isoWeekday(day));
   return true;
 }
@@ -106,4 +110,35 @@ export function normalizeTime(v: string | null | undefined): string | null {
   const min = Number(m[2]);
   if (h > 23 || min > 59) return null;
   return `${String(h).padStart(2, "0")}:${m[2]}`;
+}
+export type CheckStatus = "done" | "partial" | "skipped";
+
+/** The number in an amount ("20 bet" → 20, "1.5 soat" → 1.5), or null. */
+export function amountTarget(amount: string | null | undefined): number | null {
+  const m = /(\d+(?:[.,]\d+)?)/.exec(amount ?? "");
+  return m ? Number(m[1].replace(",", ".")) : null;
+}
+
+/**
+ * How much of an item counts for the day, 0…1: done = 1, partial = the share
+ * of the amount (or of 100 % when there is no number), skipped / not done = 0.
+ */
+export function itemScore(i: {
+  status: CheckStatus | null;
+  value: number | null;
+  amount: string | null;
+}): number {
+  if (i.status === "done") return 1;
+  if (i.status !== "partial" || i.value == null) return 0;
+  const target = amountTarget(i.amount);
+  return Math.max(0, Math.min(1, target ? i.value / target : i.value / 100));
+}
+
+/** The day's share done (skipped items with a reason do not count against it). */
+export function dayPercent(
+  items: { status: CheckStatus | null; value: number | null; amount: string | null }[],
+) {
+  const counted = items.filter((i) => i.status !== "skipped");
+  if (!counted.length) return 0;
+  return Math.round((counted.reduce((a, i) => a + itemScore(i), 0) / counted.length) * 100);
 }

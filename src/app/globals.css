@@ -464,3 +464,101 @@ mark.taqriz-note-mark {
   outline: 2px solid var(--primary);
   animation: tour-pulse 1.4s ease-out infinite;
 }
+
+/* ── Plans: the tick and the opening row ──────────────────────────────── */
+.tick {
+  --tick-fill: 0deg;
+  border-color: var(--border-strong);
+  color: #fff;
+  transition:
+    border-color 0.25s,
+    background 0.25s,
+    transform 0.15s;
+}
+.tick:hover {
+  border-color: var(--c-emerald);
+}
+.tick:active {
+  transform: scale(0.86);
+}
+.tick[data-state="done"] {
+  border-color: var(--c-emerald);
+  background: var(--c-emerald);
+  animation: tick-pop 0.45s cubic-bezier(0.3, 1.7, 0.5, 1);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-emerald) 55%, transparent);
+}
+.tick[data-state="partial"] {
+  border-color: var(--c-amber);
+  background: conic-gradient(var(--c-amber) var(--tick-fill), transparent 0);
+  animation: tick-pop 0.4s ease-out;
+}
+.tick[data-state="x"] {
+  border-color: color-mix(in oklab, var(--danger, #e5484d) 70%, transparent);
+  color: var(--danger, #e5484d);
+}
+.tick-mark {
+  animation: tick-draw 0.35s ease-out;
+}
+@keyframes tick-pop {
+  0% {
+    transform: scale(0.7);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-emerald) 55%, transparent);
+  }
+  60% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+@keyframes tick-draw {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.plan-more {
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.plan-more-open {
+  grid-template-rows: 1fr;
+}
+/* A goal reached: a burst of paper. */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
+}
+.confetti i {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+@keyframes confetti-fall {
+  to {
+    transform: translate3d(var(--dx, 0), 105vh, 0) rotate(var(--r, 540deg));
+    opacity: 0.2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tick,
+  .tick-mark,
+  .plan-more {
+    animation: none;
+    transition: none;
+  }
+  .confetti {
+    display: none;
+  }
+}

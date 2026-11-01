@@ -23,10 +23,10 @@ describe("Röznoma", () => {
     expect((await r.getDay(u, "2026-09-10", "uz")).items.map((i) => i.title)).toEqual([
       "Kitob öqiş",
     ]);
-    await r.checkRoutine(u, daily, "2026-09-09", true, "35%");
+    await r.checkRoutine(u, daily, "2026-09-09", { status: "done", note: "35%" });
     const after = await r.getDay(u, "2026-09-09", "uz");
     expect(after.done).toBe(1);
-    expect(after.items.find((i) => i.id === daily)?.note).toBe("35%");
+    expect(after.items.find((i) => i.id === daily)?.note2).toBe("35%");
 
     const { bookId } = await r.saveDayLog(
       u,
@@ -41,6 +41,7 @@ describe("Röznoma", () => {
       },
       "uz",
     );
+    if (!bookId) throw new Error("no book");
     const [book] = await db
       .select({ title: resources.title })
       .from(ownBooks)
@@ -52,6 +53,7 @@ describe("Röznoma", () => {
       .from(writeups)
       .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId)));
     expect(w.plain).toContain("Yaxşi kun");
+    expect(w.plain).toContain("Sentabr");
     expect(w.plain).toContain("Monitor sovğa qilişdi");
     // Saving the same day again replaces its section (no duplicate).
     await r.saveDayLog(u, "2026-09-09", { title: "Ajoyib kun", highlights: [] }, "uz");
@@ -64,21 +66,66 @@ describe("Röznoma", () => {
     // The motto stays on the next days.
     expect((await r.getDay(u, "2026-09-12", "uz")).motto).toBe(null);
 
+    // Done partly: 10 of "20 bet" counts as half; inner items decide the parent.
+    await r.checkRoutine(u, daily, "2026-09-10", { status: "partial", value: 10 });
+    expect((await r.getDay(u, "2026-09-10", "uz")).percent).toBe(50);
+    const parent = await r.saveRoutine(u, { title: "Qazo" });
+    const asr = await r.saveRoutine(u, { title: "Asr", parentId: parent });
+    await r.saveRoutine(u, { title: "Şom", parentId: parent });
+    await r.checkRoutine(u, asr, "2026-09-11", { status: "done" });
+    const qazo = (await r.getDay(u, "2026-09-11", "uz")).items.find((i) => i.id === parent);
+    expect(qazo).toMatchObject({ status: "partial", value: 50 });
+    expect(qazo?.subs).toHaveLength(2);
+
+    // Taken off the day = kept; brought back with its amount; deleted only for good.
+    await r.setArchived(u, [daily], true);
+    expect((await r.getDay(u, "2026-09-10", "uz")).items.map((i) => i.id)).not.toContain(daily);
+    await r.setArchived(u, [daily], false);
+    const back = (await r.getDay(u, "2026-09-10", "uz")).items.find((i) => i.id === daily);
+    expect(back).toMatchObject({ amount: "20 bet", time: "21:00" });
+    await r.deleteRoutines(u, [parent]);
+    expect((await r.listRoutines(u)).map((x) => x.id)).not.toContain(asr);
+
     const h = await r.history(u, "2026-09-10", 3);
     expect(h.days.find((d) => d.day === "2026-09-09")).toMatchObject({ done: 1 });
+  });
+
+  it("a new account gets an ordinary day and stored plans, once", async () => {
+    const r = await import("@/server/roznoma");
+    const u = await makeUser(db);
+    await r.ensureDefaults(u, "uz");
+    await r.ensureDefaults(u, "uz");
+    const all = await r.listRoutines(u);
+    expect(all.filter((x) => !x.archived).map((x) => x.title)).toContain("Badan tarbiya");
+    expect(all.filter((x) => x.archived).length).toBe(10);
+    const d = await r.getDay(u, "2026-11-01", "uz");
+    expect(d.items.find((i) => i.prayer === "fajr")?.time).toMatch(/^0[45]:\d\d$/);
   });
 
   it("step goals are achieved when every step is done", async () => {
     const r = await import("@/server/roznoma");
     const { listGoalsWithProgress } = await import("@/server/goals");
     const u = await makeUser(db);
-    const g = await r.createStepGoal(u, { title: "Sertifikat", steps: ["Test", "Imtihon"] });
+    const g = await r.createGoal(u, {
+      title: "Sertifikat",
+      kind: "study",
+      dueOn: "2027-01-01",
+      steps: [{ title: "Test" }, { title: "Imtihon", note: "9 gaça" }],
+    });
     let [goal] = await listGoalsWithProgress(db, u, "2026-10-01", "UTC");
-    expect(goal).toMatchObject({ id: g, metric: "steps", value: 0, target: 2 });
+    expect(goal).toMatchObject({
+      id: g,
+      metric: "steps",
+      value: 0,
+      target: 2,
+      dueOn: "2027-01-01",
+    });
     for (const s of goal.steps) await r.setGoalStep(u, s.id, true);
     [goal] = await listGoalsWithProgress(db, u, "2026-10-01", "UTC");
     expect(goal).toMatchObject({ value: 2, status: "achieved" });
     const other = await makeUser(db);
-    await expect(r.addGoalStep(other, g, "x")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(r.addGoalStep(other, g, { title: "x" })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 });

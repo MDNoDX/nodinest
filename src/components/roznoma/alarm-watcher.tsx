@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { checkRoutineAction } from "@/app/actions/roznoma";
+import { audioCtx, playAlarm } from "./alarm-sound";
 
 type Item = {
   id: string;
@@ -11,35 +12,9 @@ type Item = {
   amount: string | null;
   time: string | null;
   alarm: boolean;
+  sound: string | null;
   done: boolean;
 };
-
-/** A soft alarm melody (Web Audio, no file): three rising notes, four times. */
-let ctx: AudioContext | null = null;
-function ring() {
-  try {
-    ctx ??= new AudioContext();
-    void ctx.resume();
-    const now = ctx.currentTime;
-    const notes = [659.25, 783.99, 987.77];
-    for (let rep = 0; rep < 4; rep++)
-      notes.forEach((f, i) => {
-        const o = ctx!.createOscillator();
-        const g = ctx!.createGain();
-        o.type = "sine";
-        o.frequency.value = f;
-        const t0 = now + rep * 1.6 + i * 0.22;
-        g.gain.setValueAtTime(0, t0);
-        g.gain.linearRampToValueAtTime(0.25, t0 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.9);
-        o.connect(g).connect(ctx!.destination);
-        o.start(t0);
-        o.stop(t0 + 1);
-      });
-  } catch {
-    /* no audio */
-  }
-}
 
 const minutesIn = (tz: string, d = new Date()) => {
   const s = new Intl.DateTimeFormat("en-GB", {
@@ -65,8 +40,7 @@ export function AlarmWatcher() {
     // Browsers allow sound only after the first touch / click on the page.
     const unlock = () => {
       try {
-        ctx ??= new AudioContext();
-        void ctx.resume();
+        audioCtx();
       } catch {
         /* ignore */
       }
@@ -104,14 +78,14 @@ export function AlarmWatcher() {
               } catch {
                 /* ignore */
               }
-              ring();
+              playAlarm(i.sound);
               const body = `${i.time} · ${i.title}${i.amount ? ` — ${i.amount}` : ""}`;
               notify(t("alarmTitle"), body);
               toast(`⏰ ${body}`, {
                 duration: 60_000,
                 action: {
                   label: t("markDone"),
-                  onClick: () => void checkRoutineAction(i.id, d.day, true),
+                  onClick: () => void checkRoutineAction(i.id, d.day, { status: "done" }),
                 },
               });
             },

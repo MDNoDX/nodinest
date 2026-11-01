@@ -260,6 +260,13 @@
       "when": 1793280661227,
       "tag": "0036_roznoma",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793500547939,
+      "tag": "0037_plans_v2",
+      "breakpoints": true
     }
   ]
 }

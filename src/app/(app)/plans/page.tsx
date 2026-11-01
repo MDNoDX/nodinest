@@ -11,7 +11,9 @@ import { addDays } from "@/lib/dates";
 import { fmtDay } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listGoalsWithProgress } from "@/server/goals";
-import { getDay, history, listRoutines } from "@/server/roznoma";
+import { ensureDefaults, getDay, history, listRoutines } from "@/server/roznoma";
+import { eq } from "drizzle-orm";
+import { user as userTable } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -39,17 +41,22 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
   const qd = sp(q.day);
   const day = qd && /^\d{4}-\d{2}-\d{2}$/.test(qd) ? qd : today;
 
+  await ensureDefaults(ctx, locale);
   let body: React.ReactNode = null;
   if (tab === "day") {
-    const d = await getDay(ctx, day, locale);
+    const [d, all, me] = await Promise.all([
+      getDay(ctx, day, locale),
+      listRoutines(ctx),
+      db.select({ lat: userTable.lat }).from(userTable).where(eq(userTable.id, ctx.userId)),
+    ]);
+    const onDay = new Set(d.items.map((i) => i.id));
     const wd = fmtDay(day, locale, { weekday: "long" });
     const date = `${fmtDay(day, locale, { day: "numeric", month: "long", year: "numeric" }).replace(",", "")} | ${wd.charAt(0).toUpperCase()}${wd.slice(1)}`;
-
     body = (
       <DayView
         key={day}
         day={day}
-        isToday={day === today}
+        today={today}
         dateLabel={date}
         hijri={d.hijri}
         prevHref={`/plans?day=${addDays(day, -1)}`}
@@ -57,18 +64,28 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
         initialItems={d.items}
         log={d.log}
         motto={d.motto}
+        stored={all.filter((r) => !r.parentId && !onDay.has(r.id) && r.archived)}
+        userId={ctx.userId}
+        placeSet={me[0]?.lat != null}
       />
     );
   } else if (tab === "goals") {
     const goals = await listGoalsWithProgress(db, ctx, today, tz);
     body = (
       <GoalsView
+        today={today}
         goals={goals.map((g) => ({
           id: g.id,
           title: g.title,
           note: g.note,
           metric: g.metric,
           status: g.status,
+          missed: g.missed,
+          kind: g.kind,
+          dueOn: g.dueOn,
+          dueLabel: g.dueOn
+            ? fmtDay(g.dueOn, locale, { day: "numeric", month: "long", year: "numeric" })
+            : null,
           value: g.value,
           target: g.target,
           steps: g.steps,
@@ -77,7 +94,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
       />
     );
   } else if (tab === "plans") {
-    body = <RoutinesView routines={await listRoutines(ctx)} today={today} />;
+    body = <RoutinesView routines={await listRoutines(ctx)} today={today} userId={ctx.userId} />;
   } else {
     body = <StatsView h={await history(ctx, today, 30)} locale={locale} />;
   }

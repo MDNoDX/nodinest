@@ -1,5 +1,5 @@
 "use client";
-import { Check, Flag, Target } from "lucide-react";
+import { Flag, Target } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -7,14 +7,19 @@ import { checkRoutineAction } from "@/app/actions/roznoma";
 import { ProgressBar } from "@/components/charts/hbar-list";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { percent } from "@/lib/roznoma";
+import { dayPercent, type CheckStatus } from "@/lib/roznoma";
+import { Tick } from "./plan-item";
+import { PlanIcon } from "./plan-icon";
 
 type Item = {
   id: string;
   title: string;
+  icon: string | null;
   amount: string | null;
   time: string | null;
   done: boolean;
+  status: CheckStatus | null;
+  value: number | null;
 };
 type Goal = { id: string; title: string; value: number; target: number };
 
@@ -32,7 +37,7 @@ export function TodayCard({
   const td = useTranslations("dashboard");
   const [items, setItems] = useState(initial);
   const done = items.filter((i) => i.done).length;
-  const pct = percent(done, items.length);
+  const pct = dayPercent(items);
   return (
     <section className="card flex flex-col gap-4 p-5">
       <div className="flex items-center gap-2.5">
@@ -48,36 +53,36 @@ export function TodayCard({
           <ul className="flex flex-col gap-1">
             {items.slice(0, 6).map((i) => (
               <li key={i.id}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={i.done}
-                  onClick={async () => {
-                    setItems((l) => l.map((x) => (x.id === i.id ? { ...x, done: !i.done } : x)));
-                    const r = await checkRoutineAction(i.id, day, !i.done).catch(() => null);
-                    if (!r?.ok)
-                      setItems((l) => l.map((x) => (x.id === i.id ? { ...x, done: i.done } : x)));
-                  }}
-                  className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left text-sm"
-                >
-                  <span
-                    className={cn(
-                      "grid size-5 shrink-0 place-items-center rounded-full border-2",
-                      i.done
-                        ? "border-[var(--c-emerald)] bg-[var(--c-emerald)] text-white"
-                        : "border-border-strong",
-                    )}
-                  >
-                    {i.done && <Check className="size-3" strokeWidth={3} />}
+                <div className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm">
+                  <span className="text-muted w-10 shrink-0 text-xs tabular-nums">
+                    {i.time ?? "•"}
                   </span>
-                  <span
-                    className={cn("min-w-0 flex-1 truncate", i.done && "text-muted line-through")}
-                  >
+                  <PlanIcon name={i.icon} className="text-primary size-4 shrink-0" />
+                  <span className={cn("min-w-0 flex-1 truncate", i.done && "text-muted")}>
                     {i.title}
-                    {i.amount && <span className="text-muted"> — {i.amount}</span>}
+                    {i.amount && <span className="text-muted"> · {i.amount}</span>}
                   </span>
-                  {i.time && <span className="text-muted text-xs tabular-nums">{i.time}</span>}
-                </button>
+                  <Tick
+                    small
+                    status={i.status}
+                    score={i.status === "partial" ? 0.5 : 0}
+                    missed={false}
+                    label={i.title}
+                    onClick={async () => {
+                      const status = i.done ? null : ("done" as const);
+                      setItems((l) =>
+                        l.map((x) => (x.id === i.id ? { ...x, done: !i.done, status } : x)),
+                      );
+                      const r = await checkRoutineAction(i.id, day, { status }).catch(() => null);
+                      if (!r?.ok)
+                        setItems((l) =>
+                          l.map((x) =>
+                            x.id === i.id ? { ...x, done: i.done, status: i.status } : x,
+                          ),
+                        );
+                    }}
+                  />
+                </div>
               </li>
             ))}
           </ul>

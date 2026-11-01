@@ -173,6 +173,11 @@ export const user = nodinest.table(
     bio: text("bio"),
     /** Optional, private: only the owner (and the site admin) sees it. */
     phone: text("phone"),
+    /** Default plans were created (once, so deleting them all sticks). */
+    plansSeeded: boolean("plans_seeded").notNull().default(false),
+    /** Where prayer times are computed for (Tashkent until the user shares it). */
+    lat: real("lat"),
+    lng: real("lng"),
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
     /** Parts of the admin given by the superadmin (lib/admin-perms.ts). */
@@ -738,6 +743,12 @@ export const goals = nodinest.table(
     resourceType: resourceType("resource_type"),
     status: goalStatus("status").notNull().default("active"),
     note: text("note"),
+    /** Sport, ilm, til… (lib/plan-icons.ts GOAL_KINDS). */
+    kind: text("kind"),
+    /** The deadline: at this day the user is asked if it was reached. */
+    dueOn: date("due_on"),
+    /** After the deadline: not reached. */
+    missed: boolean("missed").notNull().default(false),
     startsOn: date("starts_on"),
     endsOn: date("ends_on"),
     createdAt: createdAt(),
@@ -758,6 +769,8 @@ export const goalSteps = nodinest.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
+    /** What exactly (e.g. "Listening 9 gacha çiqariş"). */
+    note: text("note"),
     done: boolean("done").notNull().default(false),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
@@ -779,8 +792,24 @@ export const routines = nodinest.table(
       .references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     amount: text("amount"),
+    /** Ikonka nomi (lib/plan-icons.ts). */
+    icon: text("icon"),
+    /** A short description ("turib, tahorat olib, bomdod o'qish"). */
+    note: text("note"),
+    /** A sub-item of another routine (Qazo → Asr, Shom…). */
+    parentId: uuid("parent_id"),
     /** "HH:MM" in the user's time zone, or NULL (any time of the day). */
     time: text("time"),
+    endTime: text("end_time"),
+    /** The time follows this prayer (fajr, dhuhr, asr, maghrib, isha) at the user's place. */
+    prayer: text("prayer"),
+    /** Goes into the year's Röznoma book when done. */
+    inJournal: boolean("in_journal").notNull().default(true),
+    /** Alarm sound: a built-in name or `file:<id>` (the user's own). */
+    sound: text("sound"),
+    /** Optional period when it applies. */
+    startsOn: date("starts_on"),
+    endsOn: date("ends_on"),
     repeat: routineRepeat("repeat").notNull().default("daily"),
     /** Weekly: 1 = Monday … 7 = Sunday. */
     weekdays: integer("weekdays")
@@ -810,6 +839,9 @@ export const routineChecks = nodinest.table(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     note: text("note"),
+    /** done | partial (value = how much of the amount) | skipped (note = why). */
+    status: text("status").notNull().default("done"),
+    value: real("value"),
     createdAt: createdAt(),
   },
   (t) => [

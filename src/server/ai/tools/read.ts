@@ -315,6 +315,7 @@ export const READ_TOOLS = {
             target: x.target,
             value: x.value,
             steps: x.steps.map((s) => ({ title: s.title, done: s.done })),
+            deadline: x.dueOn,
           })),
         today: p.items.map((x) => ({
           title: x.title,

@@ -1,38 +1,42 @@
 "use client";
 import {
-  AlarmClock,
   Bell,
   Check,
-  ChevronLeft,
+  ChevronDown,
   ChevronRight,
-  GripVertical,
+  ChevronLeft,
+  MapPin,
   Moon,
-  Pencil,
   Plus,
   Quote,
-  Repeat,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   checkRoutineAction,
   reorderRoutinesAction,
   saveDayLogAction,
   saveRoutineAction,
+  savePlaceAction,
+  setArchivedAction,
+  syncDayAction,
 } from "@/app/actions/roznoma";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
-import { percent, productivePercent } from "@/lib/roznoma";
+import { dayPercent, productivePercent } from "@/lib/roznoma";
 import { useDragOrder } from "@/lib/use-drag-order";
+import { PlanIcon } from "./plan-icon";
+import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
-export type DayItem = RoutineValue & { id: string; done: boolean; note: string | null };
+export type DayItem = PlanRow;
 export type DayLogValue = {
   motto: string | null;
   title: string | null;
@@ -42,6 +46,7 @@ export type DayLogValue = {
   productiveMinutes: number | null;
   better: boolean | null;
 };
+export type StoredItem = RoutineValue & { id: string };
 
 /** A ring that fills with the share of the day's plan that is done. */
 function Ring({ pct }: { pct: number }) {
@@ -74,7 +79,7 @@ function Ring({ pct }: { pct: number }) {
  */
 export function DayView({
   day,
-  isToday,
+  today,
   dateLabel,
   hijri,
   prevHref,
@@ -82,9 +87,12 @@ export function DayView({
   initialItems,
   log: initialLog,
   motto: initialMotto,
+  stored,
+  userId,
+  placeSet,
 }: {
   day: string;
-  isToday: boolean;
+  today: string;
   dateLabel: string;
   hijri: string;
   prevHref: string;
@@ -92,37 +100,91 @@ export function DayView({
   initialItems: DayItem[];
   log: DayLogValue;
   motto: string | null;
+  /** The plans not on the day: "+ Add" picks from these. */
+  stored: StoredItem[];
+  userId: string;
+  /** The user shared a place (prayer times are for it). */
+  placeSet: boolean;
 }) {
   const t = useTranslations("roznoma");
   const te = useTranslations("errors");
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
   const [log, setLog] = useState<DayLogValue>({ ...initialLog, motto: initialMotto });
-  const [editing, setEditing] = useState<DayItem | "new" | null>(null);
+  const [editing, setEditing] = useState<{
+    item: RoutineValue | null;
+    parentId?: string;
+    stored?: boolean;
+  } | null>(null);
+  const [picking, setPicking] = useState(false);
   const [quick, setQuick] = useState("");
   const [savingLog, setSavingLog] = useState(false);
   const [mottoEdit, setMottoEdit] = useState(false);
   const [highlight, setHighlight] = useState("");
+  const [pageOpen, setPageOpen] = useState(
+    !!(initialLog.title || initialLog.story || initialLog.highlights.length || initialLog.lesson),
+  );
   const [notif, setNotif] = useState<NotificationPermission | "none">("none");
   useEffect(() => {
     queueMicrotask(() => setNotif("Notification" in window ? Notification.permission : "none"));
   }, []);
 
-  const done = items.filter((i) => i.done).length;
-  const pct = percent(done, items.length);
+  const past = day < today;
+  const done = items.filter((i) => i.status === "done").length;
+  const pct = dayPercent(items);
+  const rate =
+    pct >= 100 ? t("rateAll") : pct >= 70 ? t("rateGood") : pct > 0 ? t("rateStart") : "";
 
-  const tick = async (it: DayItem, on: boolean, note?: string) => {
-    setItems((l) => l.map((x) => (x.id === it.id ? { ...x, done: on, note: note ?? x.note } : x)));
-    if (on && items.filter((x) => x.done).length + 1 === items.length) toast.success(t("allDone"));
-    const r = await checkRoutineAction(it.id, day, on, note ?? it.note ?? undefined).catch(
-      () => null,
-    );
-    if (!r?.ok) {
-      setItems((l) => l.map((x) => (x.id === it.id ? { ...x, done: !on } : x)));
-      errorToast(te, r && !r.ok ? r : "INTERNAL");
-    }
+  // The ticks reach the year's book a moment after the last one.
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncSoon = () => {
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => void syncDayAction(day), 2500);
   };
 
+  const send = async (id: string, next: PlanState, before: DayItem[]) => {
+    const r = await checkRoutineAction(id, day, {
+      status: next.status,
+      value: next.value,
+      note: next.note2,
+    }).catch(() => null);
+    if (!r?.ok) {
+      setItems(before);
+      errorToast(te, r && !r.ok ? r : "INTERNAL");
+    } else syncSoon();
+  };
+  const setState = (it: DayItem, next: PlanState) => {
+    const before = items;
+    const after = items.map((x) =>
+      x.id === it.id
+        ? {
+            ...x,
+            ...next,
+            done: next.status === "done",
+            subs: x.subs.map((s) => ({ ...s, ...next })),
+          }
+        : x,
+    );
+    setItems(after);
+    if (next.status === "done" && dayPercent(after) === 100) toast.success(t("allDone"));
+    void send(it.id, next, before);
+  };
+  const setSubState = (it: DayItem, sub: SubRow, next: PlanState) => {
+    const before = items;
+    setItems(
+      items.map((x) => {
+        if (x.id !== it.id) return x;
+        const subs = x.subs.map((s) => (s.id === sub.id ? { ...s, ...next } : s));
+        const p = dayPercent(subs);
+        const status: DayItem["status"] =
+          p >= 100 ? "done" : subs.some((s) => s.status) ? "partial" : null;
+        return { ...x, subs, status, value: status === "partial" ? p : null, done: p >= 100 };
+      }),
+    );
+    void send(sub.id, next, before);
+  };
+
+  // Holding a line and dragging moves it (nothing to learn, nothing in the way).
   const {
     list: dragList,
     shown,
@@ -137,16 +199,32 @@ export function DayView({
     },
   );
 
+  const archive = async (ids: string[]) => {
+    setItems((l) => l.filter((x) => !ids.includes(x.id)));
+    const r = await setArchivedAction(ids, true);
+    if (!r.ok) errorToast(te, r);
+    else toast(t("archived"));
+  };
+
+  const locate = () =>
+    navigator.geolocation?.getCurrentPosition(
+      async (p) => {
+        const r = await savePlaceAction(p.coords.latitude, p.coords.longitude);
+        if (r.ok) {
+          toast.success(t("placeSaved"));
+          router.refresh();
+        }
+      },
+      () => toast.error(t("placeDenied")),
+      { timeout: 10_000 },
+    );
+
   const addQuick = async () => {
     const title = quick.trim();
     if (!title) return;
     setQuick("");
-    const r = await saveRoutineAction({
-      title,
-      repeat: "once",
-      onDay: day,
-      alarm: false,
-    });
+    // A new line for this day (it can be made regular by editing it).
+    const r = await saveRoutineAction({ title, repeat: "once", onDay: day, alarm: false });
     if (!r.ok) return errorToast(te, r);
     router.refresh();
   };
@@ -158,14 +236,13 @@ export function DayView({
 
   const saveLog = async (next = log) => {
     setSavingLog(true);
-    const r = await saveDayLogAction(day, {
-      ...next,
-      highlights: next.highlights,
-    }).catch(() => null);
+    const r = await saveDayLogAction(day, next).catch(() => null);
     setSavingLog(false);
     if (!r?.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
     toast.success(t("logSaved"), {
-      action: { label: t("openBook"), onClick: () => router.push(`/write/${r.data.bookId}`) },
+      action: r.data.bookId
+        ? { label: t("openBook"), onClick: () => router.push(`/write/${r.data.bookId}`) }
+        : undefined,
     });
   };
 
@@ -194,7 +271,7 @@ export function DayView({
                 {dateLabel.split(" | ")[1]}
               </span>
             </h2>
-            {!isToday && (
+            {day !== today && (
               <Link href="/plans" className="text-primary text-xs font-medium hover:underline">
                 {t("backToToday")}
               </Link>
@@ -242,7 +319,7 @@ export function DayView({
       </section>
 
       {/* The plan */}
-      <section className="card p-5">
+      <section className="card p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-4">
           <div className="relative">
             <Ring pct={pct} />
@@ -255,84 +332,34 @@ export function DayView({
             <p className="text-muted text-sm">
               {items.length ? t("doneOf", { done, total: items.length }) : t("noItems")}
             </p>
+            {rate && <p className="text-xs font-medium text-[var(--c-emerald)]">{rate}</p>}
           </div>
-          <Button size="sm" variant="outline" onClick={() => setEditing("new")}>
+          <Button size="sm" variant="outline" onClick={() => setPicking(true)}>
             <Plus /> {t("add")}
           </Button>
         </div>
 
         {items.length > 0 && (
-          <ol ref={dragList as React.RefObject<HTMLOListElement>} className="flex flex-col gap-1.5">
+          <ol ref={dragList as React.RefObject<HTMLOListElement>} className="flex flex-col gap-2">
             {shown.map((it) => (
-              <li
+              <div
                 key={it.id}
                 onPointerDown={(e) => dragStart(e, items.indexOf(it))}
                 className={cn(
-                  "group border-border flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
-                  it.done ? "border-[var(--c-emerald)]/30 bg-[var(--c-emerald)]/8" : "bg-surface",
-                  dragged === it.id && "ring-primary/40 scale-[1.02] shadow-lg ring-2",
+                  "transition-transform",
+                  dragged === it.id && "ring-primary/40 scale-[1.02] rounded-2xl shadow-lg ring-2",
                 )}
               >
-                <GripVertical className="text-muted/50 size-4 shrink-0 cursor-grab max-sm:hidden" />
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={it.done}
-                  aria-label={it.title}
-                  onClick={() => void tick(it, !it.done)}
-                  className={cn(
-                    "grid size-7 shrink-0 place-items-center rounded-full border-2 transition-colors",
-                    it.done
-                      ? "border-[var(--c-emerald)] bg-[var(--c-emerald)] text-white"
-                      : "border-border-strong hover:border-[var(--c-emerald)]",
-                  )}
-                >
-                  {it.done && <Check className="size-4" strokeWidth={3} />}
-                </button>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={cn(
-                      "flex flex-wrap items-baseline gap-x-2 text-[15px] font-medium",
-                      it.done && "text-muted line-through decoration-1",
-                    )}
-                  >
-                    <span>{it.title}</span>
-                    {it.amount && (
-                      <span className="text-muted text-sm font-normal no-underline">
-                        — {it.amount}
-                      </span>
-                    )}
-                  </div>
-                  {it.done && (
-                    <input
-                      defaultValue={it.note ?? ""}
-                      maxLength={60}
-                      placeholder={t("notePh")}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if (v !== (it.note ?? "")) void tick(it, true, v);
-                      }}
-                      className="text-muted placeholder:text-muted/60 mt-0.5 w-full bg-transparent text-xs outline-none"
-                    />
-                  )}
-                </div>
-                {it.repeat !== "once" && (
-                  <Repeat className="text-muted/60 size-3.5 shrink-0" aria-label={t("repeating")} />
-                )}
-                {it.time && (
-                  <span className="bg-surface-2 text-muted inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs tabular-nums">
-                    {it.alarm && <AlarmClock className="size-3" />} {it.time}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setEditing(it)}
-                  className="text-muted hover:text-foreground rounded-md p-1 opacity-60 group-hover:opacity-100"
-                  aria-label={t("editItem")}
-                >
-                  <Pencil className="size-3.5" />
-                </button>
-              </li>
+                <PlanItem
+                  it={it}
+                  past={past}
+                  onState={(n) => setState(it, n)}
+                  onSubState={(sub, n) => setSubState(it, sub, n)}
+                  onEdit={() => setEditing({ item: it })}
+                  onArchive={() => void archive([it.id])}
+                  onAddSub={() => setEditing({ item: null, parentId: it.id })}
+                />
+              </div>
             ))}
           </ol>
         )}
@@ -351,169 +378,247 @@ export function DayView({
             placeholder={t("quickPh")}
             aria-label={t("quickPh")}
           />
-          <Button type="submit" variant="secondary" disabled={!quick.trim()}>
+          <Button type="submit" variant="secondary" disabled={!quick.trim()} aria-label={t("add")}>
             <Plus />
           </Button>
         </form>
-        {items.length > 1 && <p className="text-muted mt-2 text-xs">{t("dragHint")}</p>}
-        {notif === "default" && (
-          <button
-            type="button"
-            onClick={async () => {
-              const p = await Notification.requestPermission().catch(() => "denied" as const);
-              setNotif(p);
-              if (p === "granted") toast.success(t("notifOn"));
-            }}
-            className="bg-primary-soft text-primary mt-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium"
-          >
-            <Bell className="size-4" /> {t("notifAsk")}
-          </button>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {notif === "default" && (
+            <button
+              type="button"
+              onClick={async () => {
+                const p = await Notification.requestPermission().catch(() => "denied" as const);
+                setNotif(p);
+                if (p === "granted") toast.success(t("notifOn"));
+              }}
+              className="bg-primary-soft text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+            >
+              <Bell className="size-3.5" /> {t("notifAsk")}
+            </button>
+          )}
+          {!placeSet && items.some((i) => i.prayer) && (
+            <button
+              type="button"
+              onClick={locate}
+              className="bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+            >
+              <MapPin className="size-3.5" /> {t("placeAsk")}
+            </button>
+          )}
+        </div>
       </section>
 
       {/* The day's page */}
-      <section className="card flex flex-col gap-4 p-5">
-        <div>
-          <h3 className="font-semibold">{t("dayPage")}</h3>
-          <p className="text-muted text-xs">{t("dayPageHint", { year: day.slice(0, 4) })}</p>
-        </div>
-        <Input
-          value={log.title ?? ""}
-          maxLength={200}
-          placeholder={t("titlePh")}
-          onChange={(e) => setLog({ ...log, title: e.target.value || null })}
-          className="text-base font-semibold"
-        />
-        <Textarea
-          rows={5}
-          value={log.story ?? ""}
-          maxLength={20000}
-          placeholder={t("storyPh")}
-          onChange={(e) => setLog({ ...log, story: e.target.value || null })}
-        />
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">📌 {t("highlights")}</span>
-          {log.highlights.length > 0 && (
-            <ul className="flex flex-col gap-1">
-              {log.highlights.map((h, i) => (
-                <li
-                  key={`${h}-${i}`}
-                  className="bg-surface-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
-                >
-                  <span className="flex-1">• {h}</span>
-                  <button
-                    type="button"
-                    aria-label={t("delete")}
-                    className="text-muted hover:text-danger"
-                    onClick={() =>
-                      setLog({ ...log, highlights: log.highlights.filter((_, k) => k !== i) })
-                    }
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const h = highlight.trim();
-              if (!h) return;
-              setLog({ ...log, highlights: [...log.highlights, h] });
-              setHighlight("");
-            }}
-          >
-            <Input
-              value={highlight}
-              maxLength={300}
-              placeholder={t("highlightPh")}
-              onChange={(e) => setHighlight(e.target.value)}
-            />
-            <Button type="submit" variant="secondary" disabled={!highlight.trim()}>
-              <Plus />
-            </Button>
-          </form>
-        </div>
-        <details
-          className="group"
-          open={!!(log.lesson || log.productiveMinutes || log.better != null)}
+      <section className="card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setPageOpen((o) => !o)}
+          aria-expanded={pageOpen}
+          className="flex w-full items-center gap-3 p-5 text-left"
         >
-          <summary className="text-primary cursor-pointer text-sm font-medium">
-            {t("conclusion")}
-          </summary>
-          <div className="mt-3 flex flex-col gap-3">
-            <Input
-              value={log.lesson ?? ""}
-              maxLength={1000}
-              placeholder={`✍️ ${t("lessonPh")}`}
-              onChange={(e) => setLog({ ...log, lesson: e.target.value || null })}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                ⏳ {t("productive")}
-                <Input
-                  type="number"
-                  min={0}
-                  max={24}
-                  step={0.5}
-                  inputMode="decimal"
-                  className="w-24"
-                  value={hours ?? ""}
-                  onChange={(e) =>
-                    setLog({
-                      ...log,
-                      productiveMinutes:
-                        e.target.value === "" ? null : Math.round(Number(e.target.value) * 60),
-                    })
-                  }
-                />
-                {t("hoursShort")}
-              </label>
-              {log.productiveMinutes != null && (
-                <span className="bg-primary-soft text-primary rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums">
-                  {productivePercent(log.productiveMinutes)}%
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span>❓ {t("better")}</span>
-              {([true, false] as const).map((b) => (
-                <button
-                  key={String(b)}
-                  type="button"
-                  onClick={() => setLog({ ...log, better: log.better === b ? null : b })}
-                  className={cn(
-                    "rounded-full border px-3 py-1 font-medium",
-                    log.better === b
-                      ? b
-                        ? "border-[var(--c-emerald)] bg-[var(--c-emerald)]/15 text-[var(--c-emerald)]"
-                        : "border-danger bg-danger-soft text-danger"
-                      : "border-border text-muted",
-                  )}
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{t("dayPage")}</span>
+            <span className="text-muted block text-xs">
+              {t("dayPageHint", { year: day.slice(0, 4) })}
+            </span>
+          </span>
+          <ChevronDown
+            className={cn("text-muted size-5 transition-transform", pageOpen && "rotate-180")}
+          />
+        </button>
+        <div className={cn("plan-more grid", pageOpen && "plan-more-open")}>
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-4 px-5 pb-5">
+              <Input
+                value={log.title ?? ""}
+                maxLength={200}
+                placeholder={t("titlePh")}
+                onChange={(e) => setLog({ ...log, title: e.target.value || null })}
+                className="text-base font-semibold"
+              />
+              <Textarea
+                rows={5}
+                value={log.story ?? ""}
+                maxLength={20000}
+                placeholder={t("storyPh")}
+                onChange={(e) => setLog({ ...log, story: e.target.value || null })}
+              />
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium">📌 {t("highlights")}</span>
+                {log.highlights.length > 0 && (
+                  <ul className="flex flex-col gap-1">
+                    {log.highlights.map((h, i) => (
+                      <li
+                        key={`${h}-${i}`}
+                        className="bg-surface-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm"
+                      >
+                        <span className="flex-1">• {h}</span>
+                        <button
+                          type="button"
+                          aria-label={t("delete")}
+                          className="text-muted hover:text-danger"
+                          onClick={() =>
+                            setLog({ ...log, highlights: log.highlights.filter((_, k) => k !== i) })
+                          }
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <form
+                  className="flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const h = highlight.trim();
+                    if (!h) return;
+                    setLog({ ...log, highlights: [...log.highlights, h] });
+                    setHighlight("");
+                  }}
                 >
-                  {b ? `✅ ${t("yes")}` : `❌ ${t("no")}`}
-                </button>
-              ))}
+                  <Input
+                    value={highlight}
+                    maxLength={300}
+                    placeholder={t("highlightPh")}
+                    onChange={(e) => setHighlight(e.target.value)}
+                  />
+                  <Button type="submit" variant="secondary" disabled={!highlight.trim()}>
+                    <Plus />
+                  </Button>
+                </form>
+              </div>
+              <details
+                className="group"
+                open={!!(log.lesson || log.productiveMinutes || log.better != null)}
+              >
+                <summary className="text-primary cursor-pointer text-sm font-medium">
+                  {t("conclusion")}
+                </summary>
+                <div className="mt-3 flex flex-col gap-3">
+                  <Input
+                    value={log.lesson ?? ""}
+                    maxLength={1000}
+                    placeholder={`✍️ ${t("lessonPh")}`}
+                    onChange={(e) => setLog({ ...log, lesson: e.target.value || null })}
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      ⏳ {t("productive")}
+                      <Input
+                        type="number"
+                        min={0}
+                        max={24}
+                        step={0.5}
+                        inputMode="decimal"
+                        className="w-24"
+                        value={hours ?? ""}
+                        onChange={(e) =>
+                          setLog({
+                            ...log,
+                            productiveMinutes:
+                              e.target.value === ""
+                                ? null
+                                : Math.round(Number(e.target.value) * 60),
+                          })
+                        }
+                      />
+                      {t("hoursShort")}
+                    </label>
+                    {log.productiveMinutes != null && (
+                      <span className="bg-primary-soft text-primary rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums">
+                        {productivePercent(log.productiveMinutes)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span>{t("better")}</span>
+                    {([true, false] as const).map((b) => (
+                      <button
+                        key={String(b)}
+                        type="button"
+                        aria-pressed={log.better === b}
+                        onClick={() => setLog({ ...log, better: log.better === b ? null : b })}
+                        className={cn(
+                          "rounded-full border px-3 py-1 font-medium transition active:scale-95",
+                          log.better === b
+                            ? b
+                              ? "border-[var(--c-emerald)] bg-[var(--c-emerald)]/15 text-[var(--c-emerald)]"
+                              : "border-[var(--c-amber)] bg-[var(--c-amber)]/15 text-[var(--c-amber)]"
+                            : "border-border text-muted",
+                        )}
+                      >
+                        {b ? t("betterYes") : t("betterNo")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </details>
+              <Button className="self-start" loading={savingLog} onClick={() => void saveLog()}>
+                {t("saveDay")}
+              </Button>
             </div>
           </div>
-        </details>
-        <Button className="self-start" loading={savingLog} onClick={() => void saveLog()}>
-          {t("saveDay")}
-        </Button>
+        </div>
       </section>
 
       {editing && (
         <RoutineDialog
-          key={editing === "new" ? "new" : editing.id}
+          key={editing.item?.id ?? `new-${editing.parentId ?? ""}`}
           open
           onOpenChange={(o) => !o && setEditing(null)}
-          initial={editing === "new" ? null : editing}
+          initial={editing.item}
+          parentId={editing.parentId}
           day={day}
+          userId={userId}
           onSaved={() => router.refresh()}
         />
       )}
+      <Dialog open={picking} onOpenChange={setPicking}>
+        <DialogContent title={t("pickTitle")} closeLabel={t("close")}>
+          {stored.length > 0 ? (
+            <ul className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
+              {stored.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setPicking(false);
+                      const res = await setArchivedAction([r.id], false, day);
+                      if (!res.ok) return errorToast(te, res);
+                      router.refresh();
+                    }}
+                    className="hover:bg-surface-2 flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left"
+                  >
+                    <span className="bg-primary-soft text-primary grid size-9 place-items-center rounded-xl">
+                      <PlanIcon name={r.icon} className="size-[18px]" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{r.title}</span>
+                      <span className="text-muted text-xs">
+                        {[r.amount, r.time].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <Plus className="text-muted size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted text-sm">{t("pickEmpty")}</p>
+          )}
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => {
+              setPicking(false);
+              setEditing({ item: null });
+            }}
+          >
+            <Plus /> {t("newItem")}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

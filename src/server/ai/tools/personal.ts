@@ -12,7 +12,7 @@ import { getResourceDetail } from "../../catalog";
 import { writeToWriteup } from "../../writeups";
 import { dayKey } from "@/lib/dates";
 import { saveGoal } from "../../goals";
-import { createStepGoal, saveRoutine } from "../../roznoma";
+import { createGoal, saveRoutine } from "../../roznoma";
 import { saveNote, toggleCollectionItem } from "../../notes";
 import { upsertLearningRecord } from "../../records";
 import {
@@ -385,7 +385,10 @@ export const PERSONAL_TOOLS = {
     }),
     run: async (ctx, a) => {
       if (a.steps?.length || !a.metric || a.metric === "steps" || !a.target) {
-        await createStepGoal(ctx, { title: a.goalTitle, steps: a.steps ?? [] });
+        await createGoal(ctx, {
+          title: a.goalTitle,
+          steps: (a.steps ?? []).map((title) => ({ title })),
+        });
         return { created: true, href: "/plans?tab=goals" };
       }
       await saveGoal(db, ctx, {

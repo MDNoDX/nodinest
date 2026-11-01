@@ -19,6 +19,8 @@ export function useDragOrder<T>(
     if (!onReorder || (e.pointerType === "mouse" && e.button !== 0)) return;
     const y0 = e.clientY;
     const touch = e.pointerType !== "mouse";
+    // No text selection / menu while holding.
+    e.currentTarget instanceof HTMLElement && (e.currentTarget.style.webkitUserSelect = "none");
     let active = false;
     let over = from;
     const overAt = (y: number) => {
@@ -34,14 +36,15 @@ export function useDragOrder<T>(
       setDrag({ from, over: from });
       navigator.vibrate?.(15);
     };
-    const timer = touch ? window.setTimeout(begin, 380) : 0;
+    // A drag starts only after holding still a moment (a passing touch or a
+    // click never moves anything).
+    const timer = window.setTimeout(begin, touch ? 420 : 320);
     const noScroll = (ev: TouchEvent) => active && ev.preventDefault();
     const move = (ev: PointerEvent) => {
       if (!active) {
-        if (Math.abs(ev.clientY - y0) > 8) {
-          if (touch) return end(); // a scroll, not a drag
-          begin();
-        } else return;
+        // Moving before the hold is over: a scroll or a click, not a drag.
+        if (Math.abs(ev.clientY - y0) > 8) end();
+        return;
       }
       const o = overAt(ev.clientY);
       if (o !== over) {

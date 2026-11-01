@@ -85,7 +85,10 @@ export type GoalProgress = {
   from: string;
   to: string;
   /** What the goal consists of (metric "steps"). */
-  steps: { id: string; title: string; done: boolean }[];
+  steps: { id: string; title: string; note: string | null; done: boolean }[];
+  kind: string | null;
+  dueOn: string | null;
+  missed: boolean;
 };
 
 export async function listGoalsWithProgress(
@@ -106,6 +109,7 @@ export async function listGoalsWithProgress(
             id: goalSteps.id,
             goalId: goalSteps.goalId,
             title: goalSteps.title,
+            note: goalSteps.note,
             done: goalSteps.done,
           })
           .from(goalSteps)
@@ -130,6 +134,9 @@ export async function listGoalsWithProgress(
           from,
           to,
           steps,
+          kind: g.kind,
+          dueOn: g.dueOn,
+          missed: g.missed,
         });
         continue;
       }
@@ -156,6 +163,9 @@ export async function listGoalsWithProgress(
         from,
         to,
         steps,
+        kind: g.kind,
+        dueOn: g.dueOn,
+        missed: g.missed,
       });
     }
     return out;

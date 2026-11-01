@@ -16,6 +16,7 @@ export async function GET() {
         amount: i.amount,
         time: i.time,
         alarm: i.alarm,
+        sound: i.sound,
         done: i.done,
       })),
     });
