@@ -182,10 +182,15 @@ export function ReaderApp({
     scrollTo(page, title);
   };
 
+  // Opens once: saving a quote refreshes the page's data, and the reader must
+  // stay where it is.
+  const opened = useRef(false);
   useEffect(() => {
+    if (opened.current) return;
     let alive = true;
     void fetchPages(start, start + BATCH - 1).then((got) => {
       if (!alive) return;
+      opened.current = true;
       setPages(got);
       setLoading(false);
       scrollTo(start);

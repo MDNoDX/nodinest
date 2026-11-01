@@ -823,7 +823,7 @@ html[data-reader-full] .book-frame {
   top: 0;
   bottom: 0;
   z-index: 3;
-  width: 7%;
+  width: 28px; /* the text next to it stays selectable */
   cursor: pointer;
 }
 .book-turn {

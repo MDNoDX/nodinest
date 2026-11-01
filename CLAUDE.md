@@ -76,6 +76,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - First-visit guide: `components/onboarding/tour.tsx` (targets `data-tour="…"`; key
   `nodinest-tour-v1`, replay from Settings). E2E marks it seen in `tests/e2e/helpers.ts`.
 - Taqriz AI panel answers stream from `POST /api/ai/stream` (`generateStream` in gemini.ts).
+- Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
+  The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
+- Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
+  parallel on the recording; ElevenLabs speaks sentence by sentence, Gemini streams PCM once per turn
+  (few daily requests). Speaking over the answer stops it (`watchBarge`).
 - Taqriz bubble menu: «Iqtibos» wraps the selection in a blockquote AND saves a `quote` note;
   «Qaydnoma» saves a `note` and highlights the text with the `note` mark (`attrs.noteId`,
   `components/taqriz/note-mark.ts`, allowed in `sanitizeDoc`). Video files + `youtube` nodes too.

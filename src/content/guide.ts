@@ -275,8 +275,12 @@ const uz: GuideSection[] = [
     items: [
       {
         title: "Profil — yopiq yoki oçiq",
-        text: "Sukut böyiça profilingiz yopiq: hamma narsa faqat sizga körinadi. Sozlamalar → Profil körinişi böliminda uni oçiq qilsangiz, boşqalar sizni ism yoki @username böyiça topadi.",
-        tip: "Profilni yopsangiz, hamma narsa darhol yaşiriladi.",
+        text: "Yangi profil oçiq böladi. Sozlamalarda uni yopsangiz, sizni ism va rasm böyiça topişadi, lekin içini faqat kuzatiş sörovini qabul qilganlaringiz köradi.",
+        tip: "Sörov kelganda qöğiröqça belgisida körinadi.",
+      },
+      {
+        title: "Media va bildirişnomalar",
+        text: "Media böliminda odamlar oçiq qilgan manbalarni körasiz, username böyiça qidirasiz va yoqqan manbani özingizga olasiz. Bildirişnomalar qöğiröqçada, turlarini va Telegram botni Sozlamalarda boşqarasiz.",
       },
       {
         title: "Darslikni oçiq qiliş",
@@ -287,7 +291,7 @@ const uz: GuideSection[] = [
         text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni Qidiruv sahifasining yuqorisida bir harfdan boşlab topasiz. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
       },
     ],
-    link: { href: "/search", label: "Odam qidiriş" },
+    link: { href: "/media", label: "Media" },
   },
   {
     id: "premium",
@@ -619,8 +623,12 @@ const en: GuideSection[] = [
     items: [
       {
         title: "Profile — private or public",
-        text: "Your profile is private by default: everything is visible only to you. Make it public in Settings → Profile visibility and others can find you by name or @username.",
-        tip: "Make the profile private again and everything is hidden at once.",
+        text: "A new profile is public. Make it private in Settings and people can still find your name and picture, but only those whose follow request you accept see inside.",
+        tip: "Requests show up under the bell.",
+      },
+      {
+        title: "Media and notifications",
+        text: "In Media you see what people share, search by username and take a source you like. Notifications are under the bell; choose the kinds and link the Telegram bot in Settings.",
       },
       {
         title: "Making a lesson public",
@@ -631,7 +639,7 @@ const en: GuideSection[] = [
         text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people at the top of the Search page, from the first letter. Open a book you like and pick a status: it joins your own library.",
       },
     ],
-    link: { href: "/search", label: "Find people" },
+    link: { href: "/media", label: "Media" },
   },
   {
     id: "premium",
