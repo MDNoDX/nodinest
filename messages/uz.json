@@ -1465,7 +1465,7 @@
       "md": "Obsidian, Notion va boşqa yozuv ilovalari uçun",
       "txt": "Har qanday qurilmada oçiladi",
       "zip": "Matn, rasm, audio va videolar bitta papkada — brauzerda internetsiz oçiladi",
-      "epub": "Elektron kitob: audio va videolar içida ijro etiladi (Apple Books, Thorium)"
+      "epub": "Apple Books va boşqa öqiş ilovalarida audio/video bilan"
     },
     "withNotes": "Qaydlar va iqtiboslarni ham qöşiş",
     "ready": "Tayyor: {name}",
@@ -2501,9 +2501,7 @@
     "savedOffline": "Saqlandi. Internet qaytganda yuboriladi.",
     "unit_none": "–",
     "unit_rakat": "rakat",
-    "unit_full": "töliq",
-    "audioToText": "Matnga aylantiriş",
-    "audioRemove": "Audioni olib taşlaş"
+    "unit_full": "töliq"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",

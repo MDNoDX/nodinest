@@ -223,10 +223,6 @@ messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fai
   Search folds both alphabets (nn_norm / normalizeText: ş→sh ç→ch ö→o ğ→g). AI prompts take the
   answer language from `aiLanguage(locale)` (i18n/config.ts).
 
-- The day told aloud (`roznoma/day-audio.tsx`, `day_logs.audio`): recordings stay sound and go into
-  the year's book as `audio` nodes; text is an optional step per recording. Books with sound export
-  to EPUB 3 or the web book: PDF readers do not play audio, so a PDF only names the recording.
-
 ## Installed apps (`apps/`, see apps/README.md)
 
 `apps/mobile` (Capacitor: iOS + Android), `apps/windows` (Electron), `apps/mac` (Swift). All open the

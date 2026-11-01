@@ -15,7 +15,6 @@ import { db, withUser, type AppContext } from "@/db";
 import {
   botUsers,
   dayLogs,
-  files,
   goalSteps,
   goals,
   ownBooks,
@@ -396,9 +395,7 @@ export type DayLog = {
   lesson: string | null;
   productiveMinutes: number | null;
   better: boolean | null;
-  audio: DayAudio[];
 };
-export type DayAudio = { fileId: string; name: string; seconds: number; text?: boolean };
 const EMPTY_LOG: DayLog = {
   motto: null,
   title: null,
@@ -407,7 +404,6 @@ const EMPTY_LOG: DayLog = {
   lesson: null,
   productiveMinutes: null,
   better: null,
-  audio: [],
 };
 
 /** One day's list with its state; an item with inner items takes its state from them. */
@@ -515,7 +511,6 @@ export async function getDay(ctx: AppContext, day: string) {
         lesson: l.lesson,
         productiveMinutes: l.productiveMinutes,
         better: l.better,
-        audio: l.audio,
       }
     : EMPTY_LOG;
   return {
@@ -542,36 +537,13 @@ export const dayLogInput = z.object({
     .max(24 * 60)
     .nullish(),
   better: z.boolean().nullish(),
-  audio: z
-    .array(
-      z.object({
-        fileId: uuid,
-        name: z.string().trim().min(1).max(120),
-        seconds: z.number().min(0).max(86_400),
-        text: z.boolean().optional(),
-      }),
-    )
-    .max(20)
-    .default([]),
 });
 
 /** Saves the day's page and writes it into the year's Röznoma book. */
 export async function saveDayLog(ctx: AppContext, day: string, raw: unknown, locale: string) {
   const d = dayStr.parse(day);
   const a = dayLogInput.parse(raw);
-  // Only the user's own recordings can stand in their day.
-  const ids = a.audio.map((x) => x.fileId);
-  if (ids.length) {
-    const own = await withUser(db, ctx, (tx) =>
-      tx
-        .select({ id: files.id })
-        .from(files)
-        .where(and(eq(files.ownerId, ctx.userId), inArray(files.id, ids))),
-    );
-    if (own.length !== new Set(ids).size) throw new AppError("NOT_FOUND");
-  }
   const v = {
-    audio: a.audio,
     motto: a.motto || null,
     title: a.title || null,
     story: a.story || null,
@@ -597,7 +569,6 @@ export async function syncDay(ctx: AppContext, day: string, locale: string) {
     page.log.title ||
     page.log.story ||
     page.log.highlights.length ||
-    page.log.audio.length ||
     page.log.lesson
   );
   if (!hasPage && !page.items.some((i) => i.status && i.inJournal)) return { bookId: null };
@@ -694,8 +665,6 @@ async function writeIntoBook(
       })),
     } as Node);
   if (L.story) for (const p of L.story.split(/\n+/).filter(Boolean)) section.push(para(p));
-  for (const a of L.audio)
-    section.push({ type: "audio", attrs: { fileId: a.fileId, name: a.name } } as Node);
   if (L.highlights.length)
     section.push({
       type: "bulletList",

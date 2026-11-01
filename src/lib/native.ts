@@ -34,7 +34,7 @@ export function listenForSignIn() {
     if (!code) return;
     void plugin<BrowserPlugin>("Browser")?.close();
     // An API route that sets the session cookie: a full load, not a page change.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    // eslint-disable-next-line @next/next/no-html-link-for-pages
     window.location.href = `/api/app/handoff?code=${code}`;
   });
 }

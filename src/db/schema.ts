@@ -871,11 +871,6 @@ export const dayLogs = nodinest.table(
     productiveMinutes: integer("productive_minutes"),
     /** Better than yesterday? NULL = not answered. */
     better: boolean("better"),
-    /** The day told aloud: recordings, kept as sound; `text` once turned into the story. */
-    audio: jsonb("audio")
-      .$type<{ fileId: string; name: string; seconds: number; text?: boolean }[]>()
-      .notNull()
-      .default(sql`'[]'::jsonb`),
     updatedAt: updatedAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.day] })],

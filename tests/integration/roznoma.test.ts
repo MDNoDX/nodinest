@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { files, ownBooks, resources, writeups } from "@/db/schema";
+import { ownBooks, resources, writeups } from "@/db/schema";
 import { makeUser, testDb } from "../helpers/db";
 
 vi.mock("next/server", async (orig) => ({ ...(await orig()), after: (fn: () => void) => fn() }));
@@ -85,40 +85,6 @@ describe("Röznoma", () => {
 
     const h = await r.history(u, "2026-09-10", 3);
     expect(h.days.find((d) => d.day === "2026-09-09")).toMatchObject({ done: 1 });
-  });
-
-  it("a day told aloud goes into the book as sound; someone else's file does not", async () => {
-    const r = await import("@/server/roznoma");
-    const u = await makeUser(db);
-    const addFile = async (ownerId: string) => {
-      const [f] = await db
-        .insert(files)
-        .values({
-          ownerId,
-          bucket: "test",
-          path: `t/${Math.random()}`,
-          originalName: "kun.m4a",
-          mimeType: "audio/mp4",
-          sizeBytes: 10,
-          purpose: "media",
-        })
-        .returning({ id: files.id });
-      return f.id;
-    };
-    const fileId = await addFile(u.userId);
-    const clip = { fileId, name: "kun.m4a", seconds: 12 };
-    const { bookId } = await r.saveDayLog(u, "2026-09-11", { audio: [clip] }, "uz");
-    expect((await r.getDay(u, "2026-09-11")).log.audio).toEqual([clip]);
-    const [w] = await db
-      .select({ doc: writeups.doc })
-      .from(writeups)
-      .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId!)));
-    expect(JSON.stringify(w.doc)).toContain(`"fileId":"${fileId}"`);
-
-    const other = await makeUser(db);
-    await expect(r.saveDayLog(other, "2026-09-11", { audio: [clip] }, "uz")).rejects.toMatchObject({
-      code: "NOT_FOUND",
-    });
   });
 
   it("a new account gets an ordinary day and stored plans, once", async () => {
