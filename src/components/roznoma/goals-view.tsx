@@ -37,7 +37,8 @@ export function GoalsView({ goals }: { goals: GoalView[] }) {
   const [open, setOpen] = useState(goals.length === 0);
   const [v, setV] = useState({ title: "", note: "", steps: "" });
 
-  const ideas = t.raw("goalIdeas") as { title: string; steps: string[] }[];
+  const raw = t.raw("goalIdeas");
+  const ideas = (Array.isArray(raw) ? raw : []) as { title: string; steps: string[] }[];
   const create = (g: { title: string; note?: string; steps: string[] }) =>
     exec(() => createStepGoalAction({ title: g.title, note: g.note || null, steps: g.steps }), {
       success: t("goalCreated"),

@@ -2,13 +2,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { toCyrillicMessage } from "../src/lib/uz-cyrl";
 
-const walk = (o: Record<string, unknown>): Record<string, unknown> =>
-  Object.fromEntries(
-    Object.entries(o).map(([k, v]) => [
-      k,
-      typeof v === "string" ? toCyrillicMessage(v) : walk(v as Record<string, unknown>),
-    ]),
-  );
+// Strings are converted; arrays stay arrays (lists of ideas, etc.).
+const walk = (v: unknown): unknown =>
+  typeof v === "string"
+    ? toCyrillicMessage(v)
+    : Array.isArray(v)
+      ? v.map(walk)
+      : v && typeof v === "object"
+        ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]))
+        : v;
 const uz = JSON.parse(readFileSync("messages/uz.json", "utf8"));
 writeFileSync("messages/uz-Cyrl.json", JSON.stringify(walk(uz), null, 2) + "\n");
 console.log("messages/uz-Cyrl.json written");

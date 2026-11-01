@@ -30,13 +30,14 @@ describe("i18n catalogs", () => {
     expect(keys(ru).sort()).toEqual(keys(en).sort());
   });
   it("Uzbek Cyrillic is generated from the Latin file (run scripts/uz-cyrl.ts)", () => {
-    const walk = (o: object): unknown =>
-      Object.fromEntries(
-        Object.entries(o).map(([k, v]) => [
-          k,
-          typeof v === "string" ? toCyrillicMessage(v) : walk(v),
-        ]),
-      );
+    const walk = (v: unknown): unknown =>
+      typeof v === "string"
+        ? toCyrillicMessage(v)
+        : Array.isArray(v)
+          ? v.map(walk)
+          : v && typeof v === "object"
+            ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]))
+            : v;
     expect(uzCyrl).toEqual(walk(uz));
   });
   it("placeholders and tags match English in every language", () => {

@@ -1,5 +1,5 @@
-# Röznoma reminders: every 5 minutes the site sends due Telegram reminders.
-# Needs the repository secret CRON_SECRET (the same value as in Vercel).
+# Röznoma reminders: every 5 minutes the site sends the Telegram reminders
+# that are due (each one once a day). Nothing to set up.
 name: reminders
 on:
   schedule:
@@ -10,6 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - run: >
-          curl -fsS -m 100 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          https://nodinest.vercel.app/api/cron/reminders
+      - run: curl -sS -m 100 https://nodinest.vercel.app/api/cron/reminders || true

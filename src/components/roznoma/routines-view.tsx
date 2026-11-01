@@ -21,7 +21,12 @@ export function RoutinesView({ routines, today }: { routines: R[]; today: string
   const [list, setList] = useState(routines);
   const [editing, setEditing] = useState<R | "new" | null>(null);
   const days = t("weekdaysShort").split(",");
-  const ideas = t.raw("routineIdeas") as { title: string; amount: string; time: string }[];
+  const raw = t.raw("routineIdeas");
+  const ideas = (Array.isArray(raw) ? raw : []) as {
+    title: string;
+    amount: string;
+    time: string;
+  }[];
   const {
     list: dragList,
     shown,
