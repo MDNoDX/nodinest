@@ -58,6 +58,7 @@ export const resourceType = nodinest.enum("resource_type", [
   "interview",
   "article",
   "podcast",
+  "file",
   "other",
 ]);
 export const verificationStatus = nodinest.enum("verification_status", [
@@ -404,7 +405,10 @@ export const publishers = nodinest.table(
     country: text("country"),
     description: text("description"),
     websiteUrl: text("website_url"),
-    /** publisher | channel (YouTube…) | podcast | website | organization */
+    /** When it was founded (free text: a year or a date) and by whom. */
+    foundedOn: text("founded_on"),
+    founder: text("founder"),
+    /** publisher | channel (YouTube…) | podcast | website (a platform) | organization */
     kind: text("kind").notNull().default("publisher"),
     createdBy: uuid("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),

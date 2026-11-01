@@ -247,12 +247,12 @@
   },
   "types": {
     "book": "Book",
-    "course": "Course / textbook",
+    "course": "Course",
     "video": "Video",
     "lecture": "Lecture",
     "interview": "Interview",
     "article": "Article",
-    "podcast": "Podcast / audio",
+    "podcast": "Audio",
     "other": "Other",
     "plural": {
       "book": "Books",
@@ -262,8 +262,10 @@
       "interview": "Interviews",
       "article": "Articles",
       "podcast": "Podcasts",
-      "other": "Other"
-    }
+      "other": "Other",
+      "file": "Files"
+    },
+    "file": "File"
   },
   "status": {
     "planned": "Planned",
@@ -502,7 +504,9 @@
       "try": "Try: {example}"
     },
     "legalPdf": "Upload only a legal copy (bought, allowed by the author or free to share). The book, its text and audiobook are for you only — do not share them on Telegram or anywhere else.",
-    "legalPdfMore": "Details"
+    "legalPdfMore": "Details",
+    "originalTitlePh": "For a translation: the title in its own language, The Alchemist",
+    "identifiersHint": "A unique number such as an ISBN or a YouTube ID. It prevents duplicates and helps find the cover and length."
   },
   "record": {
     "status": "Status",
@@ -786,7 +790,7 @@
     "suggestedReview": "Sent to administrator review.",
     "usedTools": "Used: {tools}",
     "you": "You",
-    "ai": "NodiNote AI",
+    "ai": "Sadik AI",
     "unlimitedNote": "Superadmin: no app limit (only Google’s free quota applies).",
     "done": "Done",
     "notInLibrary": "Not in my library",
@@ -1363,7 +1367,7 @@
       "publisher": "Publisher",
       "channel": "YouTube / channel",
       "podcast": "Podcast",
-      "website": "Website / platform",
+      "website": "Platform",
       "organization": "Organisation"
     },
     "items": "{count, plural, =0 {nothing yet} one {# item} other {# items}}",
@@ -1377,7 +1381,9 @@
       "quotes": "Quotes",
       "notes": "Notes",
       "words": "Taqriz words"
-    }
+    },
+    "founded": "Founded",
+    "founder": "Founder"
   },
   "install": {
     "title": "Install the app (Mac and phone)",
@@ -1640,11 +1646,11 @@
     "decks": "Question decks",
     "noDecks": "No questions yet. Pick resources above and let the AI make questions, or ask the assistant “make questions from …”.",
     "makeTitle": "Make questions with AI",
-    "makeHint": "Pick resources: the AI studies the whole taqriz, your notes, quotes, video transcript / konspekt and book text and writes the questions a real test would ask — ideas, reasons, names, dates, meanings of terms and words.",
+    "makeHint": "Choose a source: the AI asks about its most important ideas. Earlier questions are not repeated.",
     "pickPlaceholder": "Book, video or lecture title…",
     "unpick": "Remove",
     "count": "Number of questions",
-    "focusPlaceholder": "Focus (optional): e.g. only chapter 3, key concepts, for the exam",
+    "focusPlaceholder": "What to focus on? e.g. only chapter 3",
     "make": "Make questions",
     "making": "Studying and writing…",
     "made": "“{deck}”: {n} questions ready",
@@ -1699,7 +1705,12 @@
     "standardHint": "Quick: main ideas, facts and terms.",
     "deepHint": "Exam level: causes, comparisons, exact names, dates and numbers; every answer is checked against the source. Takes 1–4 minutes.",
     "makingDeep": "Preparing in depth and checking…",
-    "moreOptions": "More options"
+    "moreOptions": "More options",
+    "mixed": "Mixed",
+    "findDeck": "Find a set…",
+    "howMany": "How many questions",
+    "max": "Max",
+    "makeTime": "The AI reads the source closely and writes questions that do not repeat. Usually 1–4 minutes."
   },
   "feedback": {
     "tabWrite": "Write to the admin",
@@ -2420,5 +2431,27 @@
         "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ]
+  },
+  "typeHints": {
+    "book": "Books, e-books, textbooks",
+    "course": "Courses, lessons, study programmes",
+    "article": "Articles, papers, research, blogs",
+    "video": "Video lessons, lectures, interviews, documentaries",
+    "podcast": "Podcasts, audiobooks, audio lectures",
+    "file": "PDF, Word, slides, presentations, spreadsheets",
+    "other": "Any other source",
+    "lecture": "Lectures",
+    "interview": "Talks and interviews"
+  },
+  "titleExample": {
+    "book": "e.g. Bygone Days",
+    "course": "e.g. Python basics",
+    "article": "e.g. How memory works",
+    "video": "e.g. Secrets of managing time",
+    "podcast": "e.g. Book talks",
+    "file": "e.g. Topic 3 slides",
+    "other": "Type a name",
+    "lecture": "e.g. A history lecture",
+    "interview": "e.g. A talk with a scientist"
   }
 }

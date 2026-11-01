@@ -62,7 +62,9 @@ export function FlexDateInput({
     }
   };
 
-  const modes: Mode[] = ["exact", "approx", "range", "century"];
+  // An exact date or a century; older entries keep what they were saved with.
+  const modes: Mode[] =
+    mode === "exact" || mode === "century" ? ["exact", "century"] : ["exact", mode, "century"];
   return (
     <div className="flex flex-col gap-1.5">
       <div

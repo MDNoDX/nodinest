@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Download,
   Eye,
-  Layers,
   Loader2,
   Pencil,
   Play,
@@ -45,6 +44,7 @@ type Deck = {
   due: number;
   learned: number;
   resourceId: string | null;
+  kind: string;
 };
 type Card = {
   id: string;
@@ -80,6 +80,16 @@ export function ReviewApp({
   const [session, setSession] = useState<Session | null>(null);
   const [expanded, setExpanded] = useState<string | null>(openDeck);
   const dueTotal = decks.reduce((a, d) => a + d.due, 0);
+  const tt = useTranslations("types");
+  const [q, setQ] = useState("");
+  const [kind, setKind] = useState("all");
+  // Sets are grouped by what they came from, and can be searched.
+  const kinds = [...new Set(decks.map((d) => d.kind))];
+  const shown = decks.filter(
+    (d) =>
+      (kind === "all" || d.kind === kind) && d.deck.toLowerCase().includes(q.trim().toLowerCase()),
+  );
+  const labelOf = (k: string) => (k === "mixed" ? t("mixed") : tt(`plural.${k}` as "plural.book"));
 
   const start = async (deck: string | null, practice = false) => {
     const r = practice ? await listCardsAction(deck!) : await dueCardsAction(deck);
@@ -117,18 +127,46 @@ export function ReviewApp({
         {decks.length === 0 ? (
           <p className="text-muted text-sm">{t("noDecks")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {decks.map((d) => (
-              <DeckRow
-                key={d.deck}
-                d={d}
-                open={expanded === d.deck}
-                setOpen={(o) => setExpanded(o ? d.deck : null)}
-                onReview={() => void start(d.deck)}
-                onPractice={() => void start(d.deck, true)}
-              />
-            ))}
-          </ul>
+          <>
+            {decks.length > 4 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={t("findDeck")}
+                  className="border-border-strong bg-surface h-9 min-w-40 flex-1 rounded-lg border px-3 text-sm"
+                />
+                {kinds.length > 1 &&
+                  ["all", ...kinds].map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setKind(k)}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-xs font-medium",
+                        kind === k
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted",
+                      )}
+                    >
+                      {k === "all" ? t("allDecks") : labelOf(k)}
+                    </button>
+                  ))}
+              </div>
+            )}
+            <ul className="flex flex-col gap-2">
+              {shown.map((d) => (
+                <DeckRow
+                  key={d.deck}
+                  d={d}
+                  open={expanded === d.deck}
+                  setOpen={(o) => setExpanded(o ? d.deck : null)}
+                  onReview={() => void start(d.deck)}
+                  onPractice={() => void start(d.deck, true)}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </section>
     </div>
@@ -153,13 +191,11 @@ function Maker({
   const query = useDebounced(q.trim(), 250);
   const [hits, setHits] = useState<Picked[]>([]);
   const [picked, setPicked] = useState<Picked[]>([]);
-  const [count, setCount] = useState("");
-  const [all, setAll] = useState(true);
+  // 5, 10, 20, or "max": everything worth asking in the material.
+  const [count, setCount] = useState<number | null>(10);
   const [focus, setFocus] = useState("");
-  const [deep, setDeep] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showHits, setShowHits] = useState(false);
-  const [more, setMore] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -178,12 +214,11 @@ function Maker({
 
   const make = async () => {
     setBusy(true);
-    const n = Number(count);
     const r = await generateCardsAction({
       resourceIds: picked.map((p) => p.id),
-      count: all || !Number.isInteger(n) || n < 1 ? null : Math.min(n, 200),
+      count,
       focus,
-      depth: deep ? "deep" : "standard",
+      depth: "deep",
     }).catch(() => null);
     setBusy(false);
     if (!r || !r.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
@@ -270,108 +305,39 @@ function Maker({
           ))}
         </div>
       )}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <span className="text-muted mr-1 text-xs">{t("howMany")}</span>
+        {[5, 10, 20, null].map((n) => (
+          <button
+            key={String(n)}
+            type="button"
+            aria-pressed={count === n}
+            onClick={() => setCount(n)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-sm tabular-nums transition",
+              count === n
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted hover:text-foreground",
+            )}
+          >
+            {n ?? t("max")}
+          </button>
+        ))}
+      </div>
+      <input
+        value={focus}
+        onChange={(e) => setFocus(e.target.value)}
+        placeholder={t("focusPlaceholder")}
+        aria-label={t("focusPlaceholder")}
+        className="border-border-strong bg-surface mt-3 h-10 w-full rounded-lg border px-3 text-sm"
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button disabled={!picked.length || busy} onClick={() => void make()}>
           {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          {busy ? (deep ? t("makingDeep") : t("making")) : t("make")}
+          {busy ? t("makingDeep") : t("make")}
         </Button>
-        <button
-          type="button"
-          onClick={() => setMore((m) => !m)}
-          aria-expanded={more}
-          className="text-muted hover:text-foreground inline-flex items-center gap-1 text-xs font-medium"
-        >
-          <ChevronDown className={cn("size-3.5 transition-transform", more && "rotate-180")} />
-          {t("moreOptions")}
-        </button>
+        <p className="text-muted min-w-40 flex-1 text-xs">{t("makeTime")}</p>
       </div>
-      {more && (
-        <>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <div className="border-border-strong bg-surface flex h-10 shrink-0 items-center gap-2 rounded-lg border px-2.5">
-              <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={all}
-                  onChange={(e) => setAll(e.target.checked)}
-                  className="size-4 accent-[var(--primary)]"
-                />
-                {t("allImportant")}
-              </label>
-              <span className="bg-border h-5 w-px" />
-              <input
-                type="number"
-                min={1}
-                max={200}
-                inputMode="numeric"
-                value={count}
-                disabled={all}
-                onChange={(e) => {
-                  setCount(e.target.value);
-                  if (e.target.value) setAll(false);
-                }}
-                onFocus={() => setAll(false)}
-                placeholder={t("countPlaceholder")}
-                aria-label={t("count")}
-                className="w-20 bg-transparent text-sm tabular-nums outline-none disabled:opacity-50"
-              />
-            </div>
-            <input
-              value={focus}
-              onChange={(e) => setFocus(e.target.value)}
-              placeholder={t("focusPlaceholder")}
-              className="border-border-strong bg-surface h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm"
-            />
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <div
-              role="radiogroup"
-              aria-label={t("depth")}
-              className="bg-surface-2 flex rounded-lg p-0.5 text-xs"
-            >
-              {([false, true] as const).map((d) => (
-                <button
-                  key={String(d)}
-                  type="button"
-                  role="radio"
-                  aria-checked={deep === d}
-                  onClick={() => setDeep(d)}
-                  className={cn(
-                    "flex items-center gap-1 rounded-md px-2.5 py-1 font-medium",
-                    deep === d
-                      ? "bg-surface text-foreground shadow-sm"
-                      : "text-muted hover:text-foreground",
-                  )}
-                >
-                  {d && <Layers className="size-3.5" />}
-                  {d ? t("deep") : t("standard")}
-                </button>
-              ))}
-            </div>
-            {[20, 50, 100].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => {
-                  setAll(false);
-                  setCount(String(n));
-                }}
-                className={cn(
-                  "rounded-full border px-2.5 py-0.5 text-xs tabular-nums",
-                  !all && count === String(n)
-                    ? "border-primary bg-primary-soft text-primary"
-                    : "border-border text-muted hover:text-foreground",
-                )}
-              >
-                {n}
-              </button>
-            ))}
-            <p className="text-muted w-full text-xs sm:w-auto sm:flex-1">
-              {deep ? t("deepHint") : t("standardHint")}
-            </p>
-          </div>
-        </>
-      )}
     </section>
   );
 }

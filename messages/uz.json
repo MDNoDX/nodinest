@@ -247,12 +247,12 @@
   },
   "types": {
     "book": "Kitob",
-    "course": "Kurs / darslik",
+    "course": "Kurs",
     "video": "Video",
     "lecture": "Ma’ruza",
     "interview": "Suhbat / intervyu",
     "article": "Maqola",
-    "podcast": "Podkast / audio",
+    "podcast": "Audio",
     "other": "Boşqa",
     "plural": {
       "book": "Kitoblar",
@@ -262,8 +262,10 @@
       "interview": "Suhbatlar",
       "article": "Maqolalar",
       "podcast": "Podkastlar",
-      "other": "Boşqalar"
-    }
+      "other": "Boşqalar",
+      "file": "Fayllar"
+    },
+    "file": "Fayl"
   },
   "status": {
     "planned": "Rejada",
@@ -370,8 +372,8 @@
     "classification": "Tasniflaş",
     "sourcesSection": "Manbalar va identifikatorlar",
     "type": "Manba turi",
-    "titleField": "Sarlavha",
-    "originalTitle": "Asl sarlavha",
+    "titleField": "Nomi",
+    "originalTitle": "Asl nomi",
     "description": "Tavsif / qisqaça mazmun",
     "cover": "Muqova rasmi",
     "coverUrl": "Yoki rasm havolasini qöying",
@@ -502,7 +504,9 @@
       "try": "Sinab köriş: {example}"
     },
     "legalPdf": "Faqat qonuniy nusxani yuklang (sotib olingan, muallif ruxsat bergan yoki erkin tarqatiladigan). Kitob, uning matni va audiokitobi faqat siz uçun — ularni Telegram yoki boşqa joylarda tarqatmang.",
-    "legalPdfMore": "Batafsil"
+    "legalPdfMore": "Batafsil",
+    "originalTitlePh": "Tarjima bölsa, asl tildagi nomi: The Alçemist",
+    "identifiersHint": "ISBN yoki YouTube ID kabi yagona raqam. Bir manba ikki marta qöşilmasligini tekşiradi va muqova, davomiylikni topişga yordam beradi."
   },
   "record": {
     "status": "Holati",
@@ -786,7 +790,7 @@
     "suggestedReview": "Administrator körib çiqişiga yuborildi.",
     "usedTools": "Işlatildi: {tools}",
     "you": "Siz",
-    "ai": "NodiNote AI",
+    "ai": "Sadik AI",
     "unlimitedNote": "Boş administrator: ilova çeklovi yöq (faqat Google bepul kvotasi amal qiladi).",
     "done": "Bajarildi",
     "notInLibrary": "Darsxonamda yöq",
@@ -1363,7 +1367,7 @@
       "publisher": "Naşriyot",
       "channel": "YouTube / kanal",
       "podcast": "Podkast",
-      "website": "Sayt / platforma",
+      "website": "Platforma",
       "organization": "Taşkilot"
     },
     "items": "{count, plural, =0 {material yöq} other {# ta material}}",
@@ -1377,7 +1381,9 @@
       "quotes": "Iqtiboslar",
       "notes": "Qaydlar",
       "words": "Taqrizdagi sözlar"
-    }
+    },
+    "founded": "Oçilgan sana",
+    "founder": "Asoşçisi"
   },
   "install": {
     "title": "Ilovani örnatiş (Mac va telefon)",
@@ -1640,11 +1646,11 @@
     "decks": "Savollar töplamlari",
     "noDecks": "Hali savollar yöq. Yuqorida manbalarni tanlab, AI’ga savol tuzdiring yoki AI yordamçiga «… dan savol tuzib ber» deng.",
     "makeTitle": "AI bilan savol tuziş",
-    "makeHint": "Manbalarni tanlang: AI butun taqriz, qaydlar, iqtiboslar, video matni/konspekti va kitob matnini çuqur örganib, testda tuşişi mumkin bölgan eng muhim savollarni tuzadi — ğoyalar, sabablar, ismlar, sanalar, atama va sözlarning ma’nosi.",
+    "makeHint": "Manbani tanlang: AI undagi eng muhim fikrlardan savol tuzadi. Oldin tuzilgan savollar takrorlanmaydi.",
     "pickPlaceholder": "Kitob, video yoki ma’ruza nomi…",
     "unpick": "Olib taşlaş",
     "count": "Savollar soni",
-    "focusPlaceholder": "E’tibor (ixtiyoriy): masalan, faqat 3-bob, asosiy tuşunçalar, imtihonga",
+    "focusPlaceholder": "Nimaga e’tibor bersin? Masalan: faqat 3-bob yoki imtihon mavzulari",
     "make": "Savollar tuziş",
     "making": "Çuqur örganib tuzilmoqda…",
     "made": "«{deck}»: {n} ta savol tayyor",
@@ -1699,7 +1705,12 @@
     "standardHint": "Tez: asosiy ğoyalar, faktlar va atamalar.",
     "deepHint": "Imtihon darajasida: sabab-oqibat, taqqoslaş, aniq ism, sana va raqamlar; har bir javob manbaga soliştirib tekşiriladi. 1–4 daqiqa oladi.",
     "makingDeep": "Çuqur tayyorlanmoqda va tekşirilmoqda…",
-    "moreOptions": "Qöşimça sozlamalar"
+    "moreOptions": "Qöşimça sozlamalar",
+    "mixed": "Aralaş",
+    "findDeck": "Töplamni topiş…",
+    "howMany": "Neçta savol",
+    "max": "Maks",
+    "makeTime": "AI manbani çuqur öqib, bir-birini takrorlamaydigan savollar tuzadi. Odatda 1–4 daqiqa oladi."
   },
   "feedback": {
     "tabWrite": "Adminga yoziş",
@@ -2420,5 +2431,27 @@
         "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ]
+  },
+  "typeHints": {
+    "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
+    "course": "Kurslar, darslar, ta’lim dasturlari",
+    "article": "Maqolalar, ilmiy işlar, tadqiqotlar, bloglar",
+    "video": "Videodarslar, ma’ruzalar, intervyular, hujjatli filmlar",
+    "podcast": "Podkastlar, audiokitoblar, audio ma’ruzalar",
+    "file": "PDF, Word, slaydlar, taqdimotlar, jadvallar",
+    "other": "Boşqa har qanday manba",
+    "lecture": "Ma’ruzalar",
+    "interview": "Suhbat va intervyular"
+  },
+  "titleExample": {
+    "book": "Masalan: Ötkan kunlar",
+    "course": "Masalan: Python asoslari",
+    "article": "Masalan: Xotira qanday işlaydi",
+    "video": "Masalan: Vaqtni boşqariş sirlari",
+    "podcast": "Masalan: Kitobxon suhbatlari",
+    "file": "Masalan: 3-mavzu slaydlari",
+    "other": "Nomini yozing",
+    "lecture": "Masalan: Tarix ma’ruzasi",
+    "interview": "Masalan: Olim bilan suhbat"
   }
 }

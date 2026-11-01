@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChevronDown,
   FileText,
+  Files,
   Film,
   Globe,
   GraduationCap,
@@ -47,13 +48,7 @@ import { cn } from "@/lib/cn";
 import type { FieldErrors } from "@/lib/errors";
 import { hueFor, hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
 import { youtubeIdFromUrl } from "@/lib/youtube";
-import {
-  BOOK_LIKE,
-  CONTRIBUTOR_ROLES,
-  MEDIA_LIKE,
-  RESOURCE_TYPES,
-  type ResourceType,
-} from "@/lib/validation";
+import { BOOK_LIKE, MEDIA_LIKE, type ResourceType } from "@/lib/validation";
 import type { Contributor, ResourceFormValue } from "./resource-form-value";
 import { pickName, type Locale } from "@/i18n/config";
 import { LegalPdfNote } from "./legal-pdf-note";
@@ -66,6 +61,7 @@ const TYPE_ICONS: Record<ResourceType, LucideIcon> = {
   interview: Mic,
   article: FileText,
   podcast: Headphones,
+  file: Files,
   other: Shapes,
 };
 
@@ -153,6 +149,30 @@ function toPayload(v: ResourceFormValue) {
       : null,
   };
 }
+
+/** What can be added (old lecture / interview entries keep their type). */
+const MAIN_TYPES: ResourceType[] = [
+  "book",
+  "course",
+  "article",
+  "video",
+  "podcast",
+  "file",
+  "other",
+];
+
+/** Who can take part depends on what it is. */
+const ROLES_BY_TYPE: Record<ResourceType, Contributor["role"][]> = {
+  book: ["author", "translator", "editor", "illustrator", "narrator", "other"],
+  course: ["instructor", "author", "other"],
+  article: ["author", "translator", "editor", "other"],
+  video: ["speaker", "host", "guest", "author", "other"],
+  lecture: ["speaker", "instructor", "other"],
+  interview: ["host", "guest", "other"],
+  podcast: ["host", "guest", "speaker", "narrator", "other"],
+  file: ["author", "editor", "other"],
+  other: ["author", "other"],
+};
 
 function SectionTitle({
   title,
@@ -385,7 +405,7 @@ export function ResourceForm({
           aria-label={t("resource.type")}
           className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
         >
-          {RESOURCE_TYPES.map((ty) => {
+          {(MAIN_TYPES.includes(v.type) ? MAIN_TYPES : [...MAIN_TYPES, v.type]).map((ty) => {
             const Icon = TYPE_ICONS[ty];
             const on = v.type === ty;
             return (
@@ -395,6 +415,7 @@ export function ResourceForm({
                 role="radio"
                 aria-checked={on}
                 onClick={() => set("type", ty)}
+                title={t(`typeHints.${ty}`)}
                 style={hueStyle(TYPE_HUE[ty])}
                 className={cn(
                   "flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all",
@@ -411,127 +432,127 @@ export function ResourceForm({
             );
           })}
         </div>
+        <p className="text-muted mt-3 text-sm">{t(`typeHints.${v.type}`)}</p>
       </fieldset>
 
-      {/* 2. Find online */}
-      <section
-        className="card relative flex flex-col gap-3 overflow-hidden p-5 sm:p-6"
-        style={hueStyle("sky")}
-      >
-        <span aria-hidden className="hue-bar absolute inset-y-0 left-0 w-1" />
-        <div className="flex items-center gap-2.5">
+      {/* 2. Find online (closed until wanted) */}
+      <details className="card group relative overflow-hidden" style={hueStyle("sky")}>
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 p-5 sm:p-6">
           <IconChip icon={<Globe />} hue="sky" />
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold tracking-tight">
               {t("resource.findOnline")}
             </div>
             <p className="text-muted text-sm">{t("resource.findOnlineHint")}</p>
           </div>
-        </div>
-        {/* What can be typed here: tap an example to try it. */}
-        <ul className="grid gap-2 text-sm sm:grid-cols-3">
-          {(
-            [
-              ["name", BookOpen, "Sapiens Harari"],
-              ["isbn", Barcode, "9780062316097"],
-              ["link", Link2, "https://www.youtube.com/watch?v=…"],
-            ] as const
-          ).map(([k, Icon, example]) => (
-            <li key={k} className="bg-surface-2/60 rounded-xl p-3">
-              <span className="flex items-center gap-1.5 font-medium">
-                <Icon className="size-4 text-[var(--c-sky)]" /> {t(`resource.find.${k}`)}
-              </span>
-              <span className="text-muted mt-0.5 block text-xs leading-snug">
-                {t(`resource.find.${k}Hint`)}
-              </span>
-              {k !== "link" && (
-                <button
-                  type="button"
-                  onClick={() => setQuery(example)}
-                  className="text-primary mt-1 text-xs font-medium hover:underline"
-                >
-                  {t("resource.find.try", { example })}
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                find();
-              }
-            }}
-            placeholder="Sapiens · 9780062316097 · https://…"
-            aria-label={t("resource.findOnline")}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={find}
-            loading={finding}
-            disabled={!query.trim()}
-          >
-            <Search /> {finding ? t("resource.searchingOnline") : t("resource.findOnline")}
-          </Button>
-        </div>
-        {candidates && (
-          <div className="mt-1">
-            {candidates.length === 0 ? (
-              <p className="text-muted text-sm">{t("resource.noOnlineResults")}</p>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {candidates.map((c, i) => (
-                  <li key={`${c.title}-${i}`}>
-                    <button
-                      type="button"
-                      onClick={() => pick(c)}
-                      className="border-border bg-surface hover:border-primary flex w-full gap-3 rounded-xl border p-2.5 text-left transition-colors"
-                    >
-                      {c.coverUrl ? (
-                        <img
-                          src={c.coverUrl}
-                          alt=""
-                          referrerPolicy="no-referrer"
-                          className="h-20 w-14 shrink-0 rounded-md object-cover"
-                        />
-                      ) : (
-                        <span className="bg-surface-2 grid h-20 w-14 shrink-0 place-items-center rounded-md">
-                          <BookOpen className="text-muted size-5" />
-                        </span>
-                      )}
-                      <span className="min-w-0">
-                        <span className="line-clamp-2 text-sm font-semibold">{c.title}</span>
-                        <span className="text-muted block truncate text-xs">
-                          {c.authors.join(", ")}
-                        </span>
-                        <span className="text-muted block text-xs">
-                          {[
-                            c.originalYear,
-                            c.editionDate && c.editionDate !== c.originalYear
-                              ? `(${c.editionDate})`
-                              : null,
-                            c.pageCount ? `${c.pageCount} b.` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                        <span className="text-primary mt-1 inline-block text-xs font-semibold">
-                          {t("resource.pickResult")} →
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <ChevronDown className="text-muted size-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="flex flex-col gap-3 px-5 pb-5 sm:px-6 sm:pb-6">
+          {/* What can be typed here: tap an example to try it. */}
+          <ul className="grid gap-2 text-sm sm:grid-cols-3">
+            {(
+              [
+                ["name", BookOpen, "Sapiens Harari"],
+                ["isbn", Barcode, "9780062316097"],
+                ["link", Link2, "https://www.youtube.com/watch?v=…"],
+              ] as const
+            ).map(([k, Icon, example]) => (
+              <li key={k} className="bg-surface-2/60 rounded-xl p-3">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Icon className="size-4 text-[var(--c-sky)]" /> {t(`resource.find.${k}`)}
+                </span>
+                <span className="text-muted mt-0.5 block text-xs leading-snug">
+                  {t(`resource.find.${k}Hint`)}
+                </span>
+                {k !== "link" && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery(example)}
+                    className="text-primary mt-1 text-xs font-medium hover:underline"
+                  >
+                    {t("resource.find.try", { example })}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  find();
+                }
+              }}
+              placeholder="Sapiens · 9780062316097 · https://…"
+              aria-label={t("resource.findOnline")}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={find}
+              loading={finding}
+              disabled={!query.trim()}
+            >
+              <Search /> {finding ? t("resource.searchingOnline") : t("resource.findOnline")}
+            </Button>
           </div>
-        )}
-      </section>
+          {candidates && (
+            <div className="mt-1">
+              {candidates.length === 0 ? (
+                <p className="text-muted text-sm">{t("resource.noOnlineResults")}</p>
+              ) : (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {candidates.map((c, i) => (
+                    <li key={`${c.title}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => pick(c)}
+                        className="border-border bg-surface hover:border-primary flex w-full gap-3 rounded-xl border p-2.5 text-left transition-colors"
+                      >
+                        {c.coverUrl ? (
+                          <img
+                            src={c.coverUrl}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="h-20 w-14 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="bg-surface-2 grid h-20 w-14 shrink-0 place-items-center rounded-md">
+                            <BookOpen className="text-muted size-5" />
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 text-sm font-semibold">{c.title}</span>
+                          <span className="text-muted block truncate text-xs">
+                            {c.authors.join(", ")}
+                          </span>
+                          <span className="text-muted block text-xs">
+                            {[
+                              c.originalYear,
+                              c.editionDate && c.editionDate !== c.originalYear
+                                ? `(${c.editionDate})`
+                                : null,
+                              c.pageCount ? `${c.pageCount} b.` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                          <span className="text-primary mt-1 inline-block text-xs font-semibold">
+                            {t("resource.pickResult")} →
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </details>
 
       {/* 3. Basics + cover */}
       <section className="card p-5 sm:p-6">
@@ -543,6 +564,7 @@ export function ResourceForm({
                 <Input
                   {...p}
                   required
+                  placeholder={t(`titleExample.${v.type}`)}
                   value={v.title}
                   onChange={(e) => set("title", e.target.value)}
                 />
@@ -552,6 +574,7 @@ export function ResourceForm({
               {(p) => (
                 <Input
                   {...p}
+                  placeholder={t("resource.originalTitlePh")}
                   value={v.originalTitle}
                   onChange={(e) => set("originalTitle", e.target.value)}
                 />
@@ -679,7 +702,10 @@ export function ResourceForm({
                   )
                 }
               >
-                {CONTRIBUTOR_ROLES.map((r) => (
+                {(ROLES_BY_TYPE[v.type].includes(c.role)
+                  ? ROLES_BY_TYPE[v.type]
+                  : [...ROLES_BY_TYPE[v.type], c.role]
+                ).map((r) => (
                   <option key={r} value={r}>
                     {t(`contributorRoles.${r}`)}
                   </option>
@@ -709,12 +735,7 @@ export function ResourceForm({
           ariaLabel={t("resource.addContributor")}
           createLabel={(q) => t("resource.createPerson", { name: q })}
           onPick={(o) => {
-            const role: Contributor["role"] =
-              isBook || v.type === "article"
-                ? "author"
-                : v.type === "course"
-                  ? "instructor"
-                  : "speaker";
+            const role: Contributor["role"] = ROLES_BY_TYPE[v.type][0];
             if (o.create)
               set("contributors", [
                 ...v.contributors,
@@ -729,10 +750,14 @@ export function ResourceForm({
         />
       </section>
 
-      {/* 5. Dates & details — books have their own set; every other type shares one */}
-      <section className="card p-5 sm:p-6">
-        <SectionTitle title={t("resource.details")} icon={<DetailsIcon />} hue={TYPE_HUE[v.type]} />
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* 5. Dates & details (closed): books have their own set; every other type shares one */}
+      <details className="card group p-5 sm:p-6">
+        <summary className="flex cursor-pointer list-none items-center gap-2.5">
+          <IconChip icon={<DetailsIcon />} hue={TYPE_HUE[v.type]} />
+          <span className="text-[15px] font-semibold tracking-tight">{t("resource.details")}</span>
+          <ChevronDown className="text-muted ml-auto size-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {isBook ? (
             <>
               <Field
@@ -938,7 +963,7 @@ export function ResourceForm({
             </Field>
           )}
         </div>
-      </section>
+      </details>
 
       {/* 6. Classification */}
       <section className="card p-5 sm:p-6">
@@ -1043,7 +1068,8 @@ export function ResourceForm({
             </>
           )}
           <div>
-            <div className="mb-2 text-sm font-medium">{t("resource.identifiers")}</div>
+            <div className="text-sm font-medium">{t("resource.identifiers")}</div>
+            <p className="text-muted mb-2 text-xs">{t("resource.identifiersHint")}</p>
             {err("identifiers") && (
               <p className="text-danger mb-2 text-xs">{t("validation.invalid_isbn")}</p>
             )}

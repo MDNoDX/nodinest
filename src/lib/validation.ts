@@ -82,11 +82,12 @@ export const RESOURCE_TYPES = [
   "interview",
   "article",
   "podcast",
+  "file",
   "other",
 ] as const;
 export type ResourceType = (typeof RESOURCE_TYPES)[number];
 /** Books have their own details; every other type shares one simple set. */
-export const BOOK_LIKE: ResourceType[] = ["book"];
+export const BOOK_LIKE: ResourceType[] = ["book", "file"];
 export const MEDIA_LIKE: ResourceType[] = [
   "course",
   "video",
@@ -311,6 +312,8 @@ export const publisherInput = z.object({
   country: optText(120),
   description: optText(5000),
   websiteUrl: optUrl,
+  foundedOn: optText(40),
+  founder: optText(200),
 });
 
 export const collectionInput = z.object({

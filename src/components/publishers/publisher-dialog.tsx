@@ -19,9 +19,12 @@ type P = {
   description: string | null;
   websiteUrl: string | null;
   kind?: string;
+  foundedOn?: string | null;
+  founder?: string | null;
 };
 
-export const KINDS = ["publisher", "channel", "podcast", "website", "organization"] as const;
+/** Offered when adding; "podcast" stays readable on old entries only. */
+export const KINDS = ["website", "channel", "publisher", "organization"] as const;
 
 export function PublisherDialog({ publisher }: { publisher?: P }) {
   const t = useTranslations();
@@ -35,6 +38,8 @@ export function PublisherDialog({ publisher }: { publisher?: P }) {
     country: publisher?.country ?? "",
     websiteUrl: publisher?.websiteUrl ?? "",
     description: publisher?.description ?? "",
+    foundedOn: publisher?.foundedOn ?? "",
+    founder: publisher?.founder ?? "",
   });
   const set = (k: keyof typeof v, x: string) => setV((s) => ({ ...s, [k]: x }));
   const { pending, exec } = useAction();
@@ -106,8 +111,15 @@ export function PublisherDialog({ publisher }: { publisher?: P }) {
             )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("publishers.city")} optional>
-              {(p) => <Input {...p} value={v.city} onChange={(e) => set("city", e.target.value)} />}
+            <Field label={t("publishers.founded")} optional>
+              {(p) => (
+                <Input
+                  {...p}
+                  placeholder="1998"
+                  value={v.foundedOn}
+                  onChange={(e) => set("foundedOn", e.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("publishers.country")} optional>
               {(p) => (
@@ -115,6 +127,11 @@ export function PublisherDialog({ publisher }: { publisher?: P }) {
               )}
             </Field>
           </div>
+          <Field label={t("publishers.founder")} optional>
+            {(p) => (
+              <Input {...p} value={v.founder} onChange={(e) => set("founder", e.target.value)} />
+            )}
+          </Field>
           <Field label={t("publishers.website")} optional error={errors.websiteUrl}>
             {(p) => (
               <Input

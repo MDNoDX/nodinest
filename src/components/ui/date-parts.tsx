@@ -2,7 +2,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { Input, Select } from "./input";
+import { Input } from "./input";
 import { toCyrillic } from "@/lib/uz-cyrl";
 
 type Parts = { y: string; m: string; d: string };
@@ -130,33 +130,39 @@ export function DateParts({
           update({ y: y.replace(/(?!^)-/g, "") });
         }}
       />
-      <Select
-        aria-label={t("month")}
-        value={shown.m}
-        className={cn("min-w-0 flex-1 px-2", !shown.m && "text-muted")}
-        onChange={(e) => update({ m: e.target.value })}
-      >
-        <option value="">{t("month")}</option>
-        {months.map((name, i) => (
-          <option key={i} value={pad(String(i + 1))}>
-            {name}
-          </option>
-        ))}
-      </Select>
-      <Select
+      <div className="relative min-w-0 flex-1">
+        <Input
+          aria-label={t("month")}
+          value={shown.m ? String(Number(shown.m)) : ""}
+          inputMode="numeric"
+          placeholder={t("month")}
+          maxLength={2}
+          className="px-2 tabular-nums"
+          onChange={(e) => {
+            const n = Number(e.target.value.replace(/\D/g, ""));
+            update({ m: n >= 1 && n <= 12 ? pad(String(n)) : "" });
+          }}
+        />
+        {shown.m && (
+          <span className="text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 truncate text-xs">
+            {months[Number(shown.m) - 1]}
+          </span>
+        )}
+      </div>
+      <Input
         aria-label={t("day")}
-        value={shown.d}
+        value={shown.d ? String(Number(shown.d)) : ""}
         disabled={!shown.m}
-        className={cn("w-[4.5rem] shrink-0 px-2", !shown.d && "text-muted")}
-        onChange={(e) => update({ d: e.target.value })}
-      >
-        <option value="">{t("day")}</option>
-        {Array.from({ length: daysIn(shown) }, (_, i) => (
-          <option key={i} value={pad(String(i + 1))}>
-            {i + 1}
-          </option>
-        ))}
-      </Select>
+        inputMode="numeric"
+        placeholder={t("day")}
+        maxLength={2}
+        className="w-[4rem] shrink-0 px-2 tabular-nums"
+        onChange={(e) => {
+          const n = Number(e.target.value.replace(/\D/g, ""));
+          // The month decides how far the day can go (30 in November, 28 or 29 in February).
+          update({ d: n >= 1 ? pad(String(Math.min(n, daysIn(shown)))) : "" });
+        }}
+      />
     </div>
   );
 }

@@ -528,13 +528,19 @@ export async function listDecks(ctx: AppContext) {
       due: number;
       learned: number;
       resource_id: string | null;
+      /** The resource type, or "mixed" when the deck spans several. */
+      kind: string;
     }>(sql`
-      select deck, count(*)::int as total,
-        count(*) filter (where due_at <= now() and not suspended)::int as due,
-        count(*) filter (where reps >= 2)::int as learned,
-        (array_agg(resource_id))[1] as resource_id
-      from nodinest.study_cards where user_id = ${ctx.userId}
-      group by deck order by max(created_at) desc`),
+      select c.deck, count(*)::int as total,
+        count(*) filter (where c.due_at <= now() and not c.suspended)::int as due,
+        count(*) filter (where c.reps >= 2)::int as learned,
+        (array_agg(c.resource_id))[1] as resource_id,
+        case when count(distinct r.type) = 1 and count(distinct c.resource_id) = 1
+          then min(r.type::text) else 'mixed' end as kind
+      from nodinest.study_cards c
+      left join nodinest.resources r on r.id = c.resource_id
+      where c.user_id = ${ctx.userId}
+      group by c.deck order by max(c.created_at) desc`),
   );
 }
 

@@ -28,6 +28,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: SP })
           due: d.due,
           learned: d.learned,
           resourceId: d.resource_id,
+          kind: d.kind,
         }))}
         openDeck={sp(p.deck)?.slice(0, 120) ?? null}
         preselect={sp(p.resource) ?? null}

@@ -37,7 +37,13 @@ export async function gate(ctx: AppContext, bucket: "ask" | "listen" | "audioboo
   const plan = await limitsFor(ctx);
   if (bucket === "audiobook" && !plan.audiobook)
     throw new AppError("PREMIUM_REQUIRED", "audiobook");
-  if (bucket === "cards" && !plan.studyCards) throw new AppError("PREMIUM_REQUIRED", "studyCards");
+  // Free accounts make questions once, to see what it is like.
+  if (
+    bucket === "cards" &&
+    !plan.studyCards &&
+    !(await hitRateLimit(db, `cards-trial:${ctx.userId}`, 1, 3650 * 86_400)).allowed
+  )
+    throw new AppError("PREMIUM_REQUIRED", "studyCards");
   if (bucket === "ask" || bucket === "cards") {
     await enforceRateLimit(db, `aiburst:${ctx.userId}`, 8, 60);
     const daily = await hitRateLimit(db, `ai:${ctx.userId}`, plan.aiDaily, 86_400);

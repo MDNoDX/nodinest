@@ -20,6 +20,7 @@ const TYPE_ICON = {
   interview: Mic,
   article: FileText,
   podcast: Headphones,
+  file: FileText,
   other: Shapes,
 } as const;
 
@@ -58,25 +59,100 @@ export function Cover({
         : portrait
           ? "w-full aspect-[2/3]"
           : "w-full aspect-video";
+  const face = src ? (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className="absolute inset-0 size-full object-cover"
+    />
+  ) : (
+    <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />
+  );
+  // Books and courses: a little 3D book (it turns on hover and shows its pages).
+  if (portrait && size !== "sm")
+    return (
+      <div className={cn("cover-3d relative shrink-0", dims, className)} style={typeHue(type)}>
+        <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[6px]">
+          {face}
+          <span aria-hidden className="cover-glare" />
+        </div>
+        <span aria-hidden className="cover-pages" />
+      </div>
+    );
+  // Audio: a square sleeve and its record.
+  if ((type === "podcast" || type === "interview") && size !== "sm")
+    return (
+      <div
+        className={cn(
+          "cover-square relative shrink-0",
+          size === "lg" ? "size-48" : "aspect-square w-full",
+          className,
+        )}
+        style={typeHue(type)}
+      >
+        <span aria-hidden className="cover-disc" />
+        <div className="cover-sleeve border-border bg-surface-2 absolute inset-0 overflow-hidden rounded-lg border shadow-md">
+          {face}
+        </div>
+      </div>
+    );
+  // Articles and files: a sheet of paper.
+  if ((type === "article" || type === "file") && size !== "sm")
+    return (
+      <div
+        className={cn(
+          "cover-paper bg-surface-2 relative shrink-0 overflow-hidden",
+          size === "lg" ? "aspect-[3/4] w-40" : "aspect-[3/4] w-full",
+          className,
+        )}
+        style={typeHue(type)}
+      >
+        {face}
+      </div>
+    );
+  const motion =
+    size === "sm"
+      ? ""
+      : type === "video" || type === "lecture"
+        ? "cover-video"
+        : type === "podcast" || type === "interview"
+          ? "cover-audio"
+          : "";
   return (
     <div
       className={cn(
         "border-border bg-surface-2 relative shrink-0 overflow-hidden rounded-lg border",
+        motion,
         dims,
         className,
       )}
       style={typeHue(type)}
     >
-      {src ? (
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 size-full object-cover"
-        />
-      ) : (
-        <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />
+      {face}
+      {motion === "cover-video" && (
+        <span aria-hidden className="cover-play absolute inset-0 grid place-items-center">
+          <span className="grid size-12 place-items-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm">
+            <svg viewBox="0 0 24 24" className="ml-0.5 size-5 fill-current">
+              <path d="M8 5.5v13l10.5-6.5z" />
+            </svg>
+          </span>
+        </span>
+      )}
+      {motion === "cover-audio" && (
+        <span
+          aria-hidden
+          className="cover-eq absolute inset-x-0 bottom-0 flex h-1/3 items-end justify-center gap-1 bg-gradient-to-t from-black/60 to-transparent pb-2"
+        >
+          {[0.1, 0.45, 0.2, 0.6, 0.3, 0.5, 0.15].map((d, i) => (
+            <span
+              key={i}
+              className="w-1 origin-bottom rounded-full bg-white/90"
+              style={{ height: `${40 + ((i * 17) % 45)}%`, animationDelay: `${d}s` }}
+            />
+          ))}
+        </span>
       )}
     </div>
   );
