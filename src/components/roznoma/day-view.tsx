@@ -30,6 +30,7 @@ import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
 import { uzScript } from "@/i18n/config";
 import { dayPercent, hijriDate, productivePercent } from "@/lib/roznoma";
+import { enqueue } from "@/lib/outbox";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
 import { Dictate } from "./dictate";
@@ -155,9 +156,19 @@ export function DayView({
       value: next.value,
       note: next.note2,
     }).catch(() => null);
-    if (!r?.ok) {
+    if (!r) {
+      // No network: the tick stays and goes out when the connection is back.
+      enqueue({
+        kind: "check",
+        id,
+        day,
+        state: { status: next.status, value: next.value, note: next.note2 },
+      });
+      return;
+    }
+    if (!r.ok) {
       setItems(before);
-      errorToast(te, r && !r.ok ? r : "INTERNAL");
+      errorToast(te, r);
     } else syncSoon();
   };
   const setState = (it: DayItem, next: PlanState) => {
@@ -232,7 +243,11 @@ export function DayView({
     setSavingLog(true);
     const r = await saveDayLogAction(day, next).catch(() => null);
     setSavingLog(false);
-    if (!r?.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
+    if (!r) {
+      enqueue({ kind: "day", day, log: next });
+      return void toast(t("savedOffline"));
+    }
+    if (!r.ok) return errorToast(te, r);
     toast.success(t("logSaved"), {
       action: r.data.bookId
         ? { label: t("openBook"), onClick: () => router.push(`/write/${r.data.bookId}`) }

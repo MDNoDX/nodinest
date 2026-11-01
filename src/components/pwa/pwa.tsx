@@ -25,6 +25,8 @@ const subscribe = (cb: () => void) => {
   };
 };
 
+const WARM = ["/", "/plans", "/library", "/write", "/notes", "/collections", "/review"];
+
 /** Registers the service worker (production only) and shows an offline strip. */
 export function Pwa() {
   const t = useTranslations("offline");
@@ -35,8 +37,15 @@ export function Pwa() {
   );
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
-    const register = () =>
+    const register = () => {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+      // Once a visit: the main pages are refreshed for use without a network.
+      void navigator.serviceWorker.ready.then((r) => {
+        if (sessionStorage.getItem("nn:warm") || !navigator.onLine) return;
+        sessionStorage.setItem("nn:warm", "1");
+        r.active?.postMessage({ type: "warm", urls: WARM });
+      });
+    };
     if (document.readyState === "complete") register();
     else window.addEventListener("load", register, { once: true });
   }, []);

@@ -81,6 +81,14 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
   parallel on the recording; ElevenLabs speaks sentence by sentence, Gemini streams PCM once per turn
   (few daily requests). Speaking over the answer stops it (`watchBarge`).
+- Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks and the
+  day page queue in `lib/outbox.ts` and go out on reconnect (`layout/outbox-sync.tsx`); the book editor
+  has its own drafts. AI needs the network. The Mac app's WKWebView has service workers too.
+- Reader (`components/reader/reader-app.tsx`): one sheet per PDF page, facing pages on wide screens;
+  blocks in `book_pages.formatted` come from `server/book-format.ts` (after upload, while reading, and
+  a little with each reminders cron); scanned books show the PDF pages.
+- Audiobook: the player lives in the top bar (`audiobook/header-player.tsx`), on every page. Its page
+  has one reader / with the characters (`analysis.cast`) and no text or analysis.
 - Taqriz bubble menu: «Iqtibos» wraps the selection in a blockquote AND saves a `quote` note;
   «Qaydnoma» saves a `note` and highlights the text with the `note` mark (`attrs.noteId`,
   `components/taqriz/note-mark.ts`, allowed in `sanitizeDoc`). Video files + `youtube` nodes too.

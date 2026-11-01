@@ -1,12 +1,25 @@
 "use client";
-import { ArrowLeft, ArrowRight, Sparkles, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  BookOpenText,
+  Brain,
+  CalendarCheck,
+  LifeBuoy,
+  PenLine,
+  Plus,
+  Quote,
+  Sparkles,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LogoSymbol } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
 
 /** Not an "nn:" key: sign-out clears those, and the tour should not come back. */
 const DONE_KEY = "nodinest-tour-v1";
@@ -25,6 +38,18 @@ const STEPS: Step[] = [
   { id: "write", target: "nav-write" },
   { id: "guide", target: "nav-settings" },
 ];
+
+const ICONS: Record<string, LucideIcon> = {
+  plans: CalendarCheck,
+  add: Plus,
+  library: BookOpen,
+  read: BookOpenText,
+  notes: Quote,
+  review: Brain,
+  assistant: Sparkles,
+  write: PenLine,
+  guide: LifeBuoy,
+};
 
 /** First visible element with data-tour=name (the phone menu has a copy). */
 function findTarget(name?: string): HTMLElement | null {
@@ -114,15 +139,11 @@ export function OnboardingTour({ aiLimit }: { aiLimit: number | null }) {
     height: rect.height + pad * 2,
   };
   // Card next to the lit element: right of it when there is room, else below / above.
-  const W = 320;
-  let card: React.CSSProperties = {
-    left: "50%",
-    top: "50%",
-    transform: "translate(-50%, -50%)",
-  };
+  const W = Math.min(340, window.innerWidth - 24);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let card: React.CSSProperties = { left: (vw - W) / 2, top: Math.max(12, vh / 2 - 130) };
   if (hole) {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
     if (hole.left + hole.width + 16 + W < vw)
       card = {
         left: hole.left + hole.width + 16,
@@ -140,6 +161,7 @@ export function OnboardingTour({ aiLimit }: { aiLimit: number | null }) {
       };
   }
 
+  const Icon = ICONS[step.id] ?? Sparkles;
   const body =
     step.id === "assistant"
       ? t("assistantBody", {
@@ -149,70 +171,69 @@ export function OnboardingTour({ aiLimit }: { aiLimit: number | null }) {
 
   return createPortal(
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label={t("label")}>
-      {/* Dim everything except the lit element (a huge shadow around a hole). */}
-      {hole ? (
-        <div
-          className="pointer-events-none absolute rounded-xl transition-all duration-300 ease-out"
-          style={{ ...hole, boxShadow: "0 0 0 9999px rgb(8 12 30 / 0.62)" }}
-        >
-          <span className="tour-ring absolute inset-0 rounded-xl" />
-        </div>
-      ) : (
-        <div className="absolute inset-0 bg-[rgb(8_12_30/0.62)]" />
-      )}
+      {/* Dim everything except the lit element: the hole glides from one to the next. */}
       <div
-        key={step.id}
-        className="border-border bg-surface animate-scale-in absolute w-[min(320px,calc(100vw-24px))] rounded-2xl border p-4 shadow-2xl"
-        style={card}
+        className="tour-hole pointer-events-none absolute rounded-xl"
+        style={hole ?? { left: vw / 2, top: vh / 2, width: 0, height: 0 }}
       >
-        <div className="mb-2 flex items-center gap-2">
-          {step.id === "welcome" ? (
-            <LogoSymbol className="size-8" />
-          ) : (
-            <span className="bg-primary-soft text-primary grid size-7 place-items-center rounded-lg">
-              <Sparkles className="size-4" />
-            </span>
-          )}
-          <h2 className="font-semibold">{t(`${step.id}Title` as "welcomeTitle")}</h2>
-          <button
-            type="button"
-            onClick={finish}
-            className="text-muted hover:text-foreground ml-auto rounded p-1"
-            aria-label={t("skip")}
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <p className="text-muted text-sm leading-relaxed">{body}</p>
-        <div className="mt-4 flex items-center gap-2">
-          <div className="flex gap-1" aria-hidden>
-            {STEPS.map((s, n) => (
-              <span
-                key={s.id}
-                className={cn(
-                  "h-1.5 rounded-full transition-all",
-                  n === i ? "bg-primary w-4" : "bg-border-strong w-1.5",
-                )}
-              />
-            ))}
+        {hole && <span className="tour-ring absolute inset-0 rounded-xl" />}
+      </div>
+      <div
+        className="tour-card border-border bg-surface absolute overflow-hidden rounded-2xl border shadow-2xl"
+        style={{ ...card, width: W }}
+      >
+        <span
+          aria-hidden
+          className="tour-progress absolute inset-x-0 top-0 h-1"
+          style={{ transform: `scaleX(${(i + 1) / STEPS.length})` }}
+        />
+        <div key={step.id} className="tour-text p-4 pt-5">
+          <div className="mb-2 flex items-center gap-2">
+            {step.id === "welcome" ? (
+              <LogoSymbol className="size-8" />
+            ) : (
+              <span className="bg-primary-soft text-primary grid size-8 place-items-center rounded-lg">
+                <Icon className="size-[18px]" />
+              </span>
+            )}
+            <h2 className="font-semibold">{t(`${step.id}Title` as "welcomeTitle")}</h2>
+            <button
+              type="button"
+              onClick={finish}
+              className="text-muted hover:text-foreground ml-auto rounded p-1"
+              aria-label={t("skip")}
+            >
+              <X className="size-4" />
+            </button>
           </div>
-          <div className="ml-auto flex gap-1.5">
-            {i > 0 && (
-              <Button size="sm" variant="ghost" onClick={() => setI(i - 1)} aria-label={t("back")}>
-                <ArrowLeft />
+          <p className="text-muted text-sm leading-relaxed">{body}</p>
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-muted text-xs tabular-nums">
+              {i + 1} / {STEPS.length}
+            </span>
+            <div className="ml-auto flex gap-1.5">
+              {i > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setI(i - 1)}
+                  aria-label={t("back")}
+                >
+                  <ArrowLeft />
+                </Button>
+              )}
+              {last && (
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/guide" onClick={finish}>
+                    {t("openGuide")}
+                  </Link>
+                </Button>
+              )}
+              <Button size="sm" onClick={() => (last ? finish() : setI(i + 1))}>
+                {last ? t("done") : i === 0 ? t("start") : t("next")}
+                {!last && <ArrowRight />}
               </Button>
-            )}
-            {last && (
-              <Button size="sm" variant="outline" asChild>
-                <Link href="/guide" onClick={finish}>
-                  {t("openGuide")}
-                </Link>
-              </Button>
-            )}
-            <Button size="sm" onClick={() => (last ? finish() : setI(i + 1))}>
-              {last ? t("done") : i === 0 ? t("start") : t("next")}
-              {!last && <ArrowRight />}
-            </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import { CommandPalette } from "./command-palette";
 import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
+import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
@@ -362,6 +363,7 @@ export function AppShell({
           )}
           <OnboardingTour aiLimit={aiDailyLimit} />
           {alarms.on && <AlarmWatcher sound={alarms.sound} />}
+          <OutboxSync />
         </div>
       </AudiobookProvider>
     </MediaDockProvider>

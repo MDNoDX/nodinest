@@ -10,7 +10,7 @@
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v6-reader";
+const VERSION = "v7-offline";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;
@@ -45,6 +45,17 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "clear")
     event.waitUntil(Promise.all([PAGES, FILES, IMAGES].map((k) => caches.delete(k))));
+  // The main pages are kept ready, so the app opens without a network.
+  if (event.data?.type === "warm")
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(PAGES);
+        for (const url of event.data.urls ?? []) {
+          const res = await fetch(url, { credentials: "same-origin" }).catch(() => null);
+          if (good(res)) await cache.put(url, res);
+        }
+      })(),
+    );
 });
 
 const good = (res) =>

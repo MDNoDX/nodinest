@@ -460,6 +460,42 @@ mark.taqriz-note-mark {
     box-shadow: 0 0 0 14px transparent;
   }
 }
+/* The first-visit guide: one card and one light that glide from step to step. */
+.tour-hole {
+  box-shadow: 0 0 0 9999px rgb(8 12 30 / 0.66);
+  transition:
+    left 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+    top 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+    height 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: fade-in 0.35s ease-out;
+}
+.tour-card {
+  transition:
+    left 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+    top 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: tour-in 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.tour-progress {
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--primary), var(--c-amber));
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.tour-text {
+  animation: tour-text 0.35s ease-out;
+}
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+@keyframes tour-text {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 .tour-ring {
   outline: 2px solid var(--primary);
   animation: tour-pulse 1.4s ease-out infinite;
