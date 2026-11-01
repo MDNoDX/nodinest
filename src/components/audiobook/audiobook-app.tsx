@@ -26,6 +26,7 @@ import {
   setVoiceAction,
 } from "@/app/actions/audiobook";
 import { Cover } from "@/components/library/cover";
+import { ShareSwitch } from "@/components/social/share-switch";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { AudiobookView } from "@/server/audiobook";
@@ -523,6 +524,10 @@ function Ready({
       </section>
 
       <section className="card flex flex-col gap-4 p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold">{t("title")}</span>
+          <ShareSwitch resourceId={resource.id} what="audiobook" initial={view.isPublic} />
+        </div>
         <ModeChoice cast={cast} onChange={(v) => void changeMode(v)} />
         <div className="grid gap-3 sm:grid-cols-2">
           <CastCard

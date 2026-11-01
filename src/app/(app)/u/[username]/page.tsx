@@ -1,4 +1,13 @@
-import { BookOpen, ChevronRight, Clock3, Eye, GraduationCap, Lock, Play } from "lucide-react";
+import {
+  BookOpen,
+  ChevronRight,
+  Clock3,
+  Eye,
+  GraduationCap,
+  Lock,
+  Play,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -11,7 +20,6 @@ import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
 import {
-  followingFeed,
   followingList,
   myItemsCount,
   profileByUsername,
@@ -34,9 +42,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const name = decodeURIComponent(username).toLowerCase();
   // My own page: everything is asked for at once (no waiting in turn).
   const mine = name === user.username?.toLowerCase();
-  const [p, feed, following, myItems, ownItems] = await Promise.all([
+  const [p, following, myItems, ownItems] = await Promise.all([
     profileByUsername(ctx, name),
-    mine ? followingFeed(ctx) : Promise.resolve([]),
     mine ? followingList(ctx) : Promise.resolve([]),
     mine ? myItemsCount(ctx) : Promise.resolve(0),
     mine ? publicItems(ctx, user.id) : Promise.resolve(null),
@@ -191,14 +198,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </p>
       )}
       {p.self && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold">{t("feed")}</h2>
-          {feed.length ? (
-            <ItemGrid items={feed} by />
-          ) : (
-            <EmptyState title={t("feedEmpty")} body={t("feedEmptyBody")} />
-          )}
-        </section>
+        <Link
+          href="/settings"
+          className="card hover:border-border-strong flex items-center gap-3 p-4 transition-colors"
+        >
+          <Settings className="text-muted size-5" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{t("manageAccount")}</span>
+            <span className="text-muted block text-xs">{t("manageAccountHint")}</span>
+          </span>
+          <ChevronRight className="text-muted size-4" />
+        </Link>
       )}
       {p.self && following.length > 0 && (
         <section>

@@ -1,10 +1,10 @@
-# Roznoma
+# Röznoma
 
 Loyiha xaritasi: [docs/README.md](docs/README.md). Ilovalar: [apps/README.md](apps/README.md).
 
 **Bilimlar uchun shaxsiy makon. — A home for everything you learn.**
 
-Roznoma is a bilingual (Uzbek Latin / English) personal knowledge library and learning
+Röznoma is a bilingual (Uzbek Latin / English) personal knowledge library and learning
 journal: books, videos, lectures, articles, podcasts and courses; the people behind them;
 your private notes and exact quotations; timed study sessions, goals and plans; universal
 search; insights from real data; and a Gemini-powered assistant that can only _propose_

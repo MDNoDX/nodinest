@@ -1,4 +1,4 @@
-# Roznoma: loyiha xaritasi
+# Röznoma: loyiha xaritasi
 
 Yangi usta shu sahifadan boshlaydi. Har bir narsa qayerda turgani shu yerda yozilgan.
 
@@ -43,6 +43,6 @@ Tekshiruv: `npm run typecheck && npm run lint && npm test && npm run test:e2e`.
 
 ## Eski nom haqida
 
-Mahsulot nomi **Roznoma**. Ombor nomi, baza sxemasi `nodinest`, `nn_*` cookie'lar va
+Mahsulot nomi **Röznoma**. Ombor nomi, baza sxemasi `nodinest`, `nn_*` cookie'lar va
 @nodinest_bot boti eski nomda qoldirilgan: ularni o'zgartirish foydalanuvchilarni sessiyasidan
 chiqaradi va ma'lumotlarni ko'chirishni talab qiladi.

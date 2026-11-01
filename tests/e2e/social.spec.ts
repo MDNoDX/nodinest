@@ -28,5 +28,17 @@ test("someone's public entry opens for others; their notes do not", async ({ pag
   await expect(other.getByRole("heading", { name: "Ochiq darslik" })).toBeVisible();
   await expect(other.getByRole("button", { name: "Özimga oliş" })).toBeVisible();
   await expect(other.getByText("Mening qaydlarim")).toHaveCount(0);
+  // A write-up stays private until its owner shows it.
+  await expect(other.getByRole("heading", { name: "Taqriz" })).toHaveCount(0);
+  const db2 = postgres(E2E_DB, { max: 1, onnotice: () => {} });
+  await db2`insert into nodinest.writeups (user_id, resource_id, doc, is_public) values (
+    ${u.id}, ${id}, ${db2.json({
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Ochiq fikr" }] }],
+    })}, true)`;
+  await db2.end();
+  await other.reload();
+  await expect(other.getByRole("heading", { name: "Taqriz" })).toBeVisible();
+  await expect(other.getByText("Ochiq fikr")).toBeVisible();
   await ctx.close();
 });

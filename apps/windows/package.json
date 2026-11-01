@@ -15,11 +15,32 @@
   },
   "build": {
     "appId": "uz.roznoma.windows",
-    "productName": "Roznoma",
-    "files": ["main.js", "preload.js", "offline.html"],
-    "directories": { "output": "../../dist/windows" },
-    "win": { "icon": "icon.png", "target": "nsis" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "Roznoma" },
-    "protocols": [{ "name": "Roznoma", "schemes": ["roznoma"] }]
+    "productName": "Röznoma",
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html"
+    ],
+    "directories": {
+      "output": "../../dist/windows"
+    },
+    "win": {
+      "icon": "icon.png",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Roznoma"
+    },
+    "protocols": [
+      {
+        "name": "Roznoma",
+        "schemes": [
+          "roznoma"
+        ]
+      }
+    ],
+    "artifactName": "Roznoma-Setup-${version}.${ext}"
   }
 }

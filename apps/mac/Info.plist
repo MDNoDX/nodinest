@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>Roznoma</string>
-  <key>CFBundleDisplayName</key><string>Roznoma</string>
+  <key>CFBundleDisplayName</key><string>Röznoma</string>
   <key>CFBundleIdentifier</key><string>app.nodinest.mac</string>
   <key>CFBundleExecutable</key><string>Roznoma</string>
   <key>CFBundlePackageType</key><string>APPL</string>

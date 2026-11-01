@@ -11,7 +11,7 @@ export async function LegalPage({ kind }: { kind: "privacy" | "terms" }) {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
       <Link href="/" className="mb-8 inline-flex items-center gap-2 font-semibold">
-        <LogoSymbol className="size-8" /> Roznoma
+        <LogoSymbol className="size-8" /> Röznoma
       </Link>
       <h1 className="text-3xl font-bold tracking-tight">{d.title}</h1>
       <p className="text-muted mt-1 text-sm">{t("updated", { date: LEGAL_UPDATED })}</p>

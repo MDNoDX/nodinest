@@ -1,6 +1,5 @@
-apps
-docs
-marketing
-brand
-assets
-tests
+/apps
+/docs
+/marketing
+/assets
+/tests

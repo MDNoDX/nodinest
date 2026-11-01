@@ -20,7 +20,7 @@ import { enforceDeviceLimit } from "@/server/account-security";
 const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
 
 export const auth = betterAuth({
-  appName: "Roznoma",
+  appName: "Röznoma",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {

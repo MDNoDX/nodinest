@@ -723,6 +723,7 @@ export type AudiobookView = {
   /** The PDF (to show picture pages) and its picture-only pages. */
   fileId: string | null;
   pictures: number[];
+  isPublic: boolean;
 };
 
 async function getRow(ctx: AppContext, resourceId: string) {
@@ -773,6 +774,7 @@ export async function getAudiobook(
     position: { idx: r.positionIdx, sec: r.positionSec },
     fileId: r.fileId,
     pictures: (plan?.pictures ?? []).map((x) => x.page),
+    isPublic: r.isPublic,
   };
 }
 
@@ -918,12 +920,17 @@ export async function segmentPreview(
  * AI script per segment, so it starts fast and never drops a word. Scanned
  * books still need the AI to read the page (its script, all in one voice).
  */
-async function narratorLines(ctx: AppContext, resourceId: string, idx: number) {
+async function narratorLines(
+  ctx: AppContext,
+  resourceId: string,
+  idx: number,
+  opts: { cachedOnly?: boolean } = {},
+) {
   const r = await getRow(ctx, resourceId);
   if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
   const a = r.analysis as Analysis;
   if ((r.plan as Plan).kind === "scan") {
-    const s = await segmentScript(ctx, resourceId, idx);
+    const s = await segmentScript(ctx, resourceId, idx, opts);
     return { lines: s.lines.map((l) => ({ ...l, speaker: "narrator" })), analysis: a };
   }
   const { lines } = await segmentPreview(ctx, resourceId, idx, { plain: true });
@@ -931,7 +938,12 @@ async function narratorLines(ctx: AppContext, resourceId: string, idx: number) {
   return { lines, analysis: a };
 }
 
-export async function segmentScript(ctx: AppContext, resourceId: string, idx: number) {
+export async function segmentScript(
+  ctx: AppContext,
+  resourceId: string,
+  idx: number,
+  opts: { cachedOnly?: boolean } = {},
+) {
   const r = await getRow(ctx, resourceId);
   if (!r || r.status !== "ready") throw new AppError("NOT_FOUND", "not_ready");
   const plan = r.plan as Plan;
@@ -945,6 +957,7 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
       .where(and(eq(audiobookScripts.audiobookId, r.id), eq(audiobookScripts.idx, idx))),
   );
   if (cached) return { lines: cached.script as ScriptLine[], page: seg[2], row: r, analysis: a };
+  if (opts.cachedOnly) throw new AppError("NOT_FOUND");
   await gate(ctx, "audiobook");
 
   let parts;
@@ -1080,12 +1093,16 @@ export async function segmentAudio(
   resourceId: string,
   idx: number,
   /** cast: each character in their own voice (an AI script per segment). */
-  opts: { cast?: boolean } = {},
+  opts: {
+    cast?: boolean;
+    /** For listeners of a shared book: what exists, never a new request to the voice. */
+    cachedOnly?: boolean;
+  } = {},
 ) {
-  await gate(ctx, "audiobook");
+  if (!opts.cachedOnly) await gate(ctx, "audiobook");
   const { lines: written, analysis: a } = opts.cast
-    ? await segmentScript(ctx, resourceId, idx)
-    : await narratorLines(ctx, resourceId, idx);
+    ? await segmentScript(ctx, resourceId, idx, opts)
+    : await narratorLines(ctx, resourceId, idx, opts);
   // Uzbek in Cyrillic is read with a Russian accent: the voice gets it in Latin.
   const uzbek = speechLanguage(a.language)?.code === "uz-UZ";
   const lines = uzbek ? written.map((l) => ({ ...l, text: uzCyrillicToLatin(l.text) })) : written;
@@ -1116,6 +1133,7 @@ export async function segmentAudio(
       /* the stored copy is unreadable: voice it again below */
     }
   }
+  if (opts.cachedOnly) throw new AppError("NOT_FOUND");
   const made = await voiceSegment(lines, voiceOf, a);
   if (tgStorageReady())
     later(async () => {

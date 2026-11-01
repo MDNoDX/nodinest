@@ -1,6 +1,6 @@
-# Roznoma (repo: NodiNest) — working notes for Claude Code
+# Röznoma (repo: NodiNest) — working notes for Claude Code
 
-The product is **Roznoma** (renamed from NodiNote on 2026-11-01). Repo, database schema `nodinest`,
+The product is **Röznoma** (renamed from NodiNote on 2026-11-01). Repo, database schema `nodinest`,
 cookies `nn_*` and the bot @nodinest_bot keep the old name on purpose.
 
 Read `AGENTS.md` too: this is **Next.js 16**; check `node_modules/next/dist/docs/` before
@@ -185,7 +185,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   profiles are public, items are public or private one by one (the add form defaults to public, the
   DB to private); a private profile is found by name but only accepted followers see inside
   (`follow_requests`, `canSee`). `/media` is a feed of small cards; "take" (`takeSource`) copies only the
-  card. Never expose notes, write-ups, files or book text of others.
+  card. Never expose notes, files or book text of others; a write-up or an audiobook only when its owner
+  turned it on (`is_public`, private by default; an audiobook asks first, and others hear only parts
+  already voiced).
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

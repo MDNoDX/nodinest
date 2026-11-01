@@ -156,8 +156,8 @@ export async function prepareAsk(ctx: AppContext, raw: unknown): Promise<Prepare
     : [];
   const system = [
     book
-      ? "You are Roznoma's reading companion. The user is reading this book and selected a word or passage, or asks about the book. Help them understand it deeply."
-      : "You are Roznoma's study assistant. The user is writing a taqriz (a review / study essay) and selected a word or passage. Help them understand it deeply.",
+      ? "You are Röznoma's reading companion. The user is reading this book and selected a word or passage, or asks about the book. Help them understand it deeply."
+      : "You are Röznoma's study assistant. The user is writing a taqriz (a review / study essay) and selected a word or passage. Help them understand it deeply.",
     book
       ? "Explain: the meaning (for a single word also its translation, origin and nuances), who the people and places mentioned are, the context (historical, literary, cultural), and how it connects to the story so far. If the book is in another language than the user's, translate the passage when it helps."
       : "Explain: the meaning (for a single word also its origin and nuances), the context it comes from (historical, literary, religious, scientific or terminological), how it connects to this work and its author, and anything worth noting for the essay.",

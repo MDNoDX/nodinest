@@ -1,0 +1,2 @@
+ALTER TABLE "nodinest"."audiobooks" ADD COLUMN "is_public" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "nodinest"."writeups" ADD COLUMN "is_public" boolean DEFAULT false NOT NULL;

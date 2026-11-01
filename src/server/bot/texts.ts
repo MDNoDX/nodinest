@@ -7,7 +7,7 @@ export const langOf = (code?: string | null): BotLang =>
 const T = {
   uz: {
     welcome: (name: string) =>
-      `Assalomu alaykum, <b>${name}</b>! 👋\n\n<b>Roznoma</b> — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar: kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar.\n\nBu bot orqali:\n• reja eslatmalari va bildirişnomalarni olasiz (Sozlamalar → Bildirişnomalar → Botni ulaş);\n• taklif va savollaringizni adminga yozasiz — javob şu yerga keladi;\n• yangiliklardan xabardor bölasiz.`,
+      `Assalomu alaykum, <b>${name}</b>! 👋\n\n<b>Röznoma</b> — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar: kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar.\n\nBu bot orqali:\n• reja eslatmalari va bildirişnomalarni olasiz (Sozlamalar → Bildirişnomalar → Botni ulaş);\n• taklif va savollaringizni adminga yozasiz — javob şu yerga keladi;\n• yangiliklardan xabardor bölasiz.`,
     open: "🌐 Saytni oçiş",
     suggest: "💬 Taklif yoziş",
     help: "❓ Yordam",
@@ -19,7 +19,7 @@ const T = {
     tooMany: "Bugun juda köp xabar yubordingiz. Iltimos, ertaga yozing.",
     textOnly: "Hozirça faqat matnli xabarlar qabul qilinadi.",
     loginAsk: (device: string) =>
-      `🔐 <b>Roznoma'ga kiriş</b>\n\nQurilma: <b>${device || "brauzer"}</b>\n\nAgar hozir saytga siz kirayotgan bölsangiz, «Tasdiqlaş»ni bosing. Siz bölmasangiz — «Bekor qiliş».`,
+      `🔐 <b>Röznoma'ga kiriş</b>\n\nQurilma: <b>${device || "brauzer"}</b>\n\nAgar hozir saytga siz kirayotgan bölsangiz, «Tasdiqlaş»ni bosing. Siz bölmasangiz — «Bekor qiliş».`,
     confirm: "✅ Tasdiqlaş",
     cancel: "❌ Bekor qiliş",
     loginOk: "✅ Tasdiqlandi! Saytga qayting — u özi oçiladi.",
@@ -34,7 +34,7 @@ const T = {
   },
   ru: {
     welcome: (name: string) =>
-      `Здравствуйте, <b>${name}</b>! 👋\n\n<b>Roznoma</b> — личный дневник того, что вы прочитали, посмотрели и изучили: книги, рецензии, цитаты, ИИ-помощник и аудиокниги.\n\nЧерез этого бота вы можете:\n• получать напоминания о планах и уведомления (Настройки → Уведомления → Подключить бота);\n• писать администратору предложения и вопросы — ответ придёт сюда;\n• узнавать о новостях.`,
+      `Здравствуйте, <b>${name}</b>! 👋\n\n<b>Röznoma</b> — личный дневник того, что вы прочитали, посмотрели и изучили: книги, рецензии, цитаты, ИИ-помощник и аудиокниги.\n\nЧерез этого бота вы можете:\n• получать напоминания о планах и уведомления (Настройки → Уведомления → Подключить бота);\n• писать администратору предложения и вопросы — ответ придёт сюда;\n• узнавать о новостях.`,
     open: "🌐 Открыть сайт",
     suggest: "💬 Написать предложение",
     help: "❓ Помощь",
@@ -46,7 +46,7 @@ const T = {
     tooMany: "Сегодня вы отправили слишком много сообщений. Пожалуйста, напишите завтра.",
     textOnly: "Пока принимаются только текстовые сообщения.",
     loginAsk: (device: string) =>
-      `🔐 <b>Вход в Roznoma</b>\n\nУстройство: <b>${device || "браузер"}</b>\n\nЕсли это вы сейчас входите на сайт, нажмите «Подтвердить». Если нет — «Отмена».`,
+      `🔐 <b>Вход в Röznoma</b>\n\nУстройство: <b>${device || "браузер"}</b>\n\nЕсли это вы сейчас входите на сайт, нажмите «Подтвердить». Если нет — «Отмена».`,
     confirm: "✅ Подтвердить",
     cancel: "❌ Отмена",
     loginOk: "✅ Подтверждено! Вернитесь на сайт — он откроется сам.",
@@ -62,7 +62,7 @@ const T = {
   },
   en: {
     welcome: (name: string) =>
-      `Hello, <b>${name}</b>! 👋\n\n<b>Roznoma</b> is a personal notebook for what you read, watch and learn: books, write-ups, quotes, an AI assistant and audiobooks.\n\nWith this bot you can:\n• get plan reminders and notifications (Settings → Notifications → Connect the bot);\n• send suggestions and questions to the admin — the answer comes here;\n• hear about what’s new.`,
+      `Hello, <b>${name}</b>! 👋\n\n<b>Röznoma</b> is a personal notebook for what you read, watch and learn: books, write-ups, quotes, an AI assistant and audiobooks.\n\nWith this bot you can:\n• get plan reminders and notifications (Settings → Notifications → Connect the bot);\n• send suggestions and questions to the admin — the answer comes here;\n• hear about what’s new.`,
     open: "🌐 Open the site",
     suggest: "💬 Send a suggestion",
     help: "❓ Help",
@@ -74,7 +74,7 @@ const T = {
     tooMany: "You have sent too many messages today. Please write again tomorrow.",
     textOnly: "Only text messages are accepted for now.",
     loginAsk: (device: string) =>
-      `🔐 <b>Sign in to Roznoma</b>\n\nDevice: <b>${device || "browser"}</b>\n\nIf you are signing in to the site right now, press “Confirm”. If not — “Cancel”.`,
+      `🔐 <b>Sign in to Röznoma</b>\n\nDevice: <b>${device || "browser"}</b>\n\nIf you are signing in to the site right now, press “Confirm”. If not — “Cancel”.`,
     confirm: "✅ Confirm",
     cancel: "❌ Cancel",
     loginOk: "✅ Confirmed! Go back to the site — it opens by itself.",

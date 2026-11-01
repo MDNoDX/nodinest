@@ -6,6 +6,7 @@ import {
   removeFollower,
   setItemVisibility,
   setProfilePublic,
+  setShared,
   takeSource,
 } from "@/server/social";
 import { run } from "./_run";
@@ -23,6 +24,17 @@ export async function answerFollowRequestAction(userId: string, accept: boolean)
     await answerFollowRequest(ctx, userId, !!accept);
     revalidatePath("/notifications");
     revalidatePath("/u", "layout");
+  });
+}
+
+export async function setSharedAction(
+  resourceId: string,
+  what: "writeup" | "audiobook",
+  on: boolean,
+) {
+  return run(async ({ ctx }) => {
+    await setShared(ctx, resourceId, what === "audiobook" ? "audiobook" : "writeup", on === true);
+    revalidatePath("/library");
   });
 }
 

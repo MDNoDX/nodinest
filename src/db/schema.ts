@@ -921,6 +921,8 @@ export const writeups = nodinest.table(
       .notNull()
       .references(() => resources.id, { onDelete: "cascade" }),
     doc: jsonb("doc").notNull(),
+    /** Shown on the owner's public card. Private until they choose. */
+    isPublic: boolean("is_public").notNull().default(false),
     plain: text("plain").notNull().default(""),
     words: integer("words").notNull().default(0),
     createdAt: createdAt(),
@@ -1310,6 +1312,8 @@ export const audiobooks = nodinest.table(
     fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
     /** analyzing | ready | failed */
     status: text("status").notNull().default("analyzing"),
+    /** Parts already voiced can be heard by others. Private until they choose. */
+    isPublic: boolean("is_public").notNull().default(false),
     error: text("error"),
     analysis: jsonb("analysis"),
     plan: jsonb("plan"),

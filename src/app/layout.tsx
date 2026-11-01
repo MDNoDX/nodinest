@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import { Fraunces, Inter, Source_Serif_4 } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -20,14 +20,22 @@ const serif = Source_Serif_4({
   display: "swap",
 });
 
+/** Only the name in the logo: warm, bookish, with a real Ö. */
+const brand = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  weight: "600",
+  variable: "--font-brand",
+  display: "swap",
+});
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("brand");
   return {
-    title: { default: "Roznoma", template: "%s · Roznoma" },
+    title: { default: "Röznoma", template: "%s · Röznoma" },
     description: t("tagline"),
-    applicationName: "Roznoma",
+    applicationName: "Röznoma",
     robots: { index: false, follow: false },
-    appleWebApp: { capable: true, title: "Roznoma", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "Röznoma", statusBarStyle: "default" },
     icons: {
       icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
       apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
@@ -46,7 +54,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale} suppressHydrationWarning className={`${inter.variable} ${serif.variable}`}>
+    <html
+      lang={locale}
+      suppressHydrationWarning
+      className={`${inter.variable} ${brand.variable} ${serif.variable}`}
+    >
       <body className="min-h-dvh">
         <ThemeProvider>
           <NextIntlClientProvider>

@@ -176,7 +176,7 @@ function bundleLabels(loc: Loc) {
       by: "автор",
       youtube: "Видео YouTube",
       online: "откроется при наличии интернета",
-      made: "Написано в Roznoma",
+      made: "Написано в Röznoma",
       intro: "Начало",
       readme:
         "Откройте index.html в любом браузере: текст, изображения, аудио и видео здесь и работают без интернета (для видео YouTube нужен интернет). Только текст — в файле .md. Чтобы напечатать или сохранить в PDF, используйте «Печать» в браузере.",
@@ -187,7 +187,7 @@ function bundleLabels(loc: Loc) {
         by: "by",
         youtube: "YouTube video",
         online: "plays when online",
-        made: "Made with Roznoma",
+        made: "Made with Röznoma",
         intro: "Beginning",
         readme:
           "Open index.html in any browser: the text, pictures, audio and video are all here and work offline (YouTube videos need the internet). The text alone is in the .md file. To print or save as PDF, use the browser's Print.",
@@ -197,7 +197,7 @@ function bundleLabels(loc: Loc) {
         by: "muallif",
         youtube: "YouTube video",
         online: "internet bölsa oçiladi",
-        made: "Roznoma’da yozilgan",
+        made: "Röznoma’da yozilgan",
         intro: "Boşlaniş",
         readme:
           "index.html faylini istalgan brauzerda oçing: matn, rasmlar, audio va videolar şu yerda, internetsiz ham işlaydi (YouTube videolari uçun internet kerak). Faqat matni .md faylida. Çop etiş yoki PDF qiliş uçun brauzerdagi “Çop etiş”dan foydalaning.",

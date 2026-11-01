@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "Roznoma",
+    "name": "Röznoma",
     "tagline": "Bilimlar uçun şaxsiy makon."
   },
   "common": {
@@ -1430,11 +1430,11 @@
   },
   "install": {
     "title": "Ilovani örnatiş (Mac va telefon)",
-    "why": "Roznoma’ni alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
+    "why": "Röznomani alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
     "installNow": "Hozir örnatiş",
     "installed": "Ilova örnatilgan — siz uni ilova oynasida işlatyapsiz.",
     "mac": "Mac",
-    "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «Roznoma’ni örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
+    "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «Röznomani örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
     "macSafari": "Safari: «Fayl» → «Dock’ga qöşiş» (Add to Dock). Ilova Dock va Launchpad’da paydo böladi.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): «Ulaşiş» tugmasi → «Boş ekranga qöşiş» (Add to Home Screen).",
@@ -1547,8 +1547,8 @@
     "resetOne": "Asl holiga qaytariş",
     "resetAll": "Hammasini asl holiga qaytariş",
     "changeHint": "Esc — bekor qiliş. Sozlamalar şu qurilmada saqlanadi.",
-    "systemMacApp": "Roznoma’da media oçiq bölmasa, töxtatiş tugmasi kompyuterdagi boşqa audio/videoni (boşqa oynadagi YouTube, Spotify…) boşqaradi.",
-    "systemWeb": "Brauzerda faqat Roznoma pleeri boşqariladi. Kompyuterdagi boşqa audio/videoni ham boşqariş uçun Roznoma Mac ilovasidan foydalaning.",
+    "systemMacApp": "Röznomada media oçiq bölmasa, töxtatiş tugmasi kompyuterdagi boşqa audio/videoni (boşqa oynadagi YouTube, Spotify…) boşqaradi.",
+    "systemWeb": "Brauzerda faqat Röznoma pleeri boşqariladi. Kompyuterdagi boşqa audio/videoni ham boşqariş uçun Röznoma Mac ilovasidan foydalaning.",
     "a": {
       "playPause": "Töxtatiş / davom ettiriş",
       "back5": "5 soniya orqaga",
@@ -1564,8 +1564,8 @@
     "typePause": "Yozayotganda avtomatik töxtatiş",
     "resumeAfter": "Qaçon davom etsin",
     "resumeAfterN": "{n} soniyadan keyin davom etsin",
-    "typePauseWeb": "Yoza boşlasangiz Roznoma pleeri töxtaydi va yozişdan töxtaganingizdan keyin 2 soniya orqadan davom etadi.",
-    "typePauseMacApp": "Yoza boşlasangiz töxtaydi, yozib bölgaç özi davom etadi. Taşqi dastur (Mutolaa, YouTube…) uçun: avval uni şu yerdagi töxtatiş tugmasi bilan yoqing — şunda Roznoma uning holatini biladi.",
+    "typePauseWeb": "Yoza boşlasangiz Röznoma pleeri töxtaydi va yozişdan töxtaganingizdan keyin 2 soniya orqadan davom etadi.",
+    "typePauseMacApp": "Yoza boşlasangiz töxtaydi, yozib bölgaç özi davom etadi. Taşqi dastur (Mutolaa, YouTube…) uçun: avval uni şu yerdagi töxtatiş tugmasi bilan yoqing — şunda Röznoma uning holatini biladi.",
     "playerExplain": "Pleer — saytning pastki burçagidagi kiçik oyna. Kitob sahifasida YouTube video yoki audio «Tinglab yoziş» bilan oçilganda u sahifadan sahifaga ötsangiz ham töxtamay ijro etadi: taqriz yozayotganda eşitib turasiz. Uni sudrab istalgan joyga qöyasiz, videoni yaşirib faqat ovozini qoldirasiz, yozayotganda özi töxtab turadi, töxtagan joyingiz esa akkauntingizda saqlanadi.",
     "replayTour": "Qöllanmani qayta köriş",
     "replayTourHint": "Asosiy tugmalar qisqaça tuşuntiriladi",
@@ -1606,7 +1606,7 @@
     "listening": "Tinglayapti — har daqiqa yozib boradi",
     "waitingPlay": "Video töxtatilgan — davom ettirsangiz yozişda davom etadi",
     "noMedia": "Bu manbada tinglanadigan video yoki audio yöq. Kitob sahifasida YouTube identifikatori yoki audio havolasini qöşing.",
-    "cannotCapture": "Bu fayl boşqa saytdan oçilgani uçun AI eşita olmaydi. Faylni Roznoma’ga yuklang yoki YouTube identifikatorini qöşing.",
+    "cannotCapture": "Bu fayl boşqa saytdan oçilgani uçun AI eşita olmaydi. Faylni Röznomaga yuklang yoki YouTube identifikatorini qöşing.",
     "queued": "Navbatda",
     "working": "Yozilmoqda…",
     "noSpeech": "Nutq yöq",
@@ -1795,7 +1795,7 @@
     "next": "Keyingi",
     "start": "Boşlaş",
     "done": "Tuşunarli!",
-    "welcomeTitle": "Roznoma’ga xuş kelibsiz!",
+    "welcomeTitle": "Röznomaga xuş kelibsiz!",
     "welcomeBody": "Bu — öqigan, körgan va örgangan hamma narsangiz uçun şaxsiy daftar. 1 daqiqada eng kerakli joylarni körsatib ötaman.",
     "libraryTitle": "Darsxona",
     "libraryBody": "Hamma kitob va videolaringiz şu yerda. Har birida holat (Rejada → Öqiyapman → Öqidim), baho va sanalar.",
@@ -2267,9 +2267,6 @@
     "results": "Topilganlar",
     "nobody": "Oçiq profil topilmadi.",
     "yourProfile": "Sizning profilingiz:",
-    "feed": "Kuzatayotganlaringiz nima öqiyapti",
-    "feedEmpty": "Hali heç narsa yöq",
-    "feedEmptyBody": "Yuqorida odamlarni toping va «Kuzatiş»ni bosing — ularning oçiq darsliklari şu yerda çiqadi.",
     "followingTitle": "Kuzatayotganlarim",
     "follow": "Kuzatiş",
     "following": "Kuzatyapsiz",
@@ -2327,7 +2324,19 @@
     "statVideos": "Video va audio",
     "statCourses": "Kurs",
     "statHours": "Soat (taxminan)",
-    "openSource": "Manbani oçiş"
+    "openSource": "Manbani oçiş",
+    "sharedOn": "Endi boşqalar köra oladi.",
+    "sharedOff": "Endi faqat özingiz körasiz.",
+    "shareWriteupHint": "Taqrizni profilingizdagi oçiq darslikda körsatiş",
+    "shareAudiobookHint": "Audiokitobni boşqalarga oçiş",
+    "shareAudiobookTitle": "Audiokitobni oçiq qilasizmi?",
+    "shareAudiobookWarn": "Kitob mualliflik huquqi bilan himoyalangan böladi. Faqat huquqingiz bor kitobni oçiq qiling: özingiz yozgan, muallif ruxsat bergan yoki erkin tarqatiladigan. Noqonuniy tarqatiş uçun javobgarlik sizda.",
+    "shareAudiobookYes": "Huquqim bor, oçiq qilaman",
+    "partNotReady": "Bu qism hali tayyorlanmagan.",
+    "manageAccount": "Hisobni boşqariş",
+    "manageAccountHint": "Profil, xavfsizlik, bildirişnomalar va körinişlar",
+    "sharedAudiobook": "Audiokitob",
+    "sharedWriteup": "Taqriz"
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2548,7 +2557,7 @@
       "goal_soon": "Maqsad muddatiga 3 kun qoldi",
       "goal_due": "Maqsad muddati bugun. Erişdingizmi?",
       "weekly": "Haftangiz yakuni tayyor",
-      "news": "Roznoma yangiligi"
+      "news": "Röznoma yangiligi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2584,7 +2593,8 @@
     "findPeople": "Odamlarni qidiriş",
     "waiting": "Sörovingiz javob kutmoqda",
     "ranking": "Eng faol",
-    "rankDone": "{n} ta tugatgan"
+    "rankDone": "{n} ta tugatgan",
+    "following": "Kuzatayotganlarim"
   },
   "sectionHint": {
     "close": "Yopiş",

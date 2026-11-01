@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Cover, coverSrc } from "@/components/library/cover";
+import { PublicAudio } from "@/components/social/public-audio";
 import { TakeButton } from "@/components/social/take-button";
+import { DocView } from "@/components/taqriz/doc-view";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/misc";
 import { pageContext } from "@/lib/page";
-import { publicItem } from "@/server/social";
+import { publicExtras, publicItem } from "@/server/social";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,7 @@ export default async function PublicItemPage({
   if (!it) notFound();
   if (it.ownerId === user.id) redirect(`/library/${id}`);
   const t = await getTranslations();
+  const extra = await publicExtras(it.ownerId, it.resourceId);
   const percent =
     it.progressCurrent && it.progressTotal
       ? Math.min(100, Math.round((it.progressCurrent / it.progressTotal) * 100))
@@ -75,6 +78,21 @@ export default async function PublicItemPage({
           </div>
         </div>
       </section>
+      {extra.parts ? (
+        <section className="card flex flex-col gap-3 p-5">
+          <h2 className="font-semibold">{t("social.sharedAudiobook")}</h2>
+          <PublicAudio
+            base={`/api/u/${it.username}/item/${it.resourceId}/audio`}
+            parts={extra.parts}
+          />
+        </section>
+      ) : null}
+      {extra.doc && (
+        <section className="card p-5 sm:p-7">
+          <h2 className="mb-3 font-semibold">{t("social.sharedWriteup")}</h2>
+          <DocView doc={extra.doc} />
+        </section>
+      )}
     </article>
   );
 }

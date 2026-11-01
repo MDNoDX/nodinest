@@ -231,14 +231,20 @@ async function readableFile(ctx: AppContext, fileId: string) {
 
 /** The cover of something its owner shows publicly: anyone who may see them may see it. */
 async function publicCover(ctx: AppContext, fileId: string) {
+  const seen = sql`(u.profile_public or exists(select 1 from nodinest.follows v
+    where v.follower_id = ${ctx.userId} and v.followee_id = u.id))`;
   const [f] = await db.execute<{ id: string }>(sql`
     select f.id from nodinest.files f
     join nodinest.resources r on r.cover_file_id = f.id and r.deleted_at is null
     join nodinest.learning_records lr on lr.resource_id = r.id and lr.visibility = 'public'
     join nodinest."user" u on u.id = lr.user_id
-    where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null
-      and (u.profile_public or exists(select 1 from nodinest.follows v
-        where v.follower_id = ${ctx.userId} and v.followee_id = u.id))
+    where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null and ${seen}
+    union
+    select f.id from nodinest.files f
+    join nodinest.writeups w on w.user_id = f.owner_id and w.is_public
+      and w.doc::text like ${`%${fileId}%`}
+    join nodinest."user" u on u.id = w.user_id
+    where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null and ${seen}
     limit 1`);
   if (!f) return null;
   const [row] = await db.select().from(files).where(eq(files.id, fileId));

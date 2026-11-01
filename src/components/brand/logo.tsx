@@ -1,13 +1,13 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Roznoma symbol: a spiral notebook (cover, rings, ruled lines) with a gold
+ * Röznoma symbol: a spiral notebook (cover, rings, ruled lines) with a gold
  * bookmark ribbon and a pencil — "write anything down". Inline SVG, themed
  * through CSS variables so it works in light and dark mode.
  */
 export function LogoSymbol({
   className,
-  title = "Roznoma",
+  title = "Röznoma",
 }: {
   className?: string;
   title?: string;
@@ -41,8 +41,11 @@ export function Logo({ className, compact }: { className?: string; compact?: boo
     <span className={cn("inline-flex items-center gap-2", className)}>
       <LogoSymbol className="size-8" />
       {!compact && (
-        <span className="text-foreground text-[1.15rem] font-semibold tracking-tight">
-          Roz<span className="text-primary">noma</span>
+        <span
+          className="text-foreground text-[1.3rem] leading-none"
+          style={{ fontFamily: "var(--font-brand), serif" }}
+        >
+          Röz<span className="text-primary">noma</span>
         </span>
       )}
     </span>

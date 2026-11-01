@@ -448,7 +448,7 @@ function BookPages({
           </View>
         )}
         <View fixed style={s.footer}>
-          <Text>Roznoma · {it.title.length > 70 ? `${it.title.slice(0, 70)}…` : it.title}</Text>
+          <Text>Röznoma · {it.title.length > 70 ? `${it.title.slice(0, 70)}…` : it.title}</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -475,13 +475,13 @@ export async function renderPdf(
           : `${items[0]?.docLabel ?? t.writeup} — ${items[0]?.title ?? ""}`
       }
       author={opts.owner}
-      creator="Roznoma"
-      producer="Roznoma"
+      creator="Röznoma"
+      producer="Röznoma"
       language={opts.loc}
     >
       {opts.combined && (
         <Page size="A4" style={[s.page, { justifyContent: "center" }]}>
-          <Text style={s.kicker}>Roznoma</Text>
+          <Text style={s.kicker}>Röznoma</Text>
           <Text style={[s.title, { fontSize: 34 }]}>{t.myWriteups}</Text>
           <Text style={[s.authors, { fontSize: 14 }]}>{opts.owner}</Text>
           <Text style={{ fontFamily: "Sans", fontSize: 10, color: MUTED, marginTop: 6 }}>

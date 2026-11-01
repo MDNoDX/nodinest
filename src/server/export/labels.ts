@@ -197,5 +197,5 @@ export function fileName(base: string, ext: string) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 120);
-  return `${clean || "Roznoma"}.${ext}`;
+  return `${clean || "Röznoma"}.${ext}`;
 }

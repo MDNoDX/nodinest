@@ -20,10 +20,17 @@ import {
 export async function getWriteup(database: Database, ctx: AppContext, resourceId: string) {
   return withUser(database, ctx, async (tx) => {
     const [w] = await tx
-      .select({ doc: writeups.doc, updatedAt: writeups.updatedAt, words: writeups.words })
+      .select({
+        doc: writeups.doc,
+        updatedAt: writeups.updatedAt,
+        isPublic: writeups.isPublic,
+        words: writeups.words,
+      })
       .from(writeups)
       .where(and(eq(writeups.userId, ctx.userId), eq(writeups.resourceId, resourceId)));
-    return w ? { doc: w.doc as WriteupDoc, updatedAt: w.updatedAt, words: w.words } : null;
+    return w
+      ? { doc: w.doc as WriteupDoc, updatedAt: w.updatedAt, isPublic: w.isPublic, words: w.words }
+      : null;
   });
 }
 

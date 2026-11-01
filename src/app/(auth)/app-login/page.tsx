@@ -5,7 +5,7 @@ import { SESSION_COOKIES, createHandoff } from "@/server/app-handoff";
 import { OpenApp } from "./open-app";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Roznoma" };
+export const metadata = { title: "Röznoma" };
 
 /** Opened by the installed apps in the system sign-in sheet. */
 export default async function AppLoginPage({

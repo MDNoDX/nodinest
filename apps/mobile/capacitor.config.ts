@@ -8,7 +8,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  */
 const config: CapacitorConfig = {
   appId: "uz.roznoma.app",
-  appName: "Roznoma",
+  appName: "Röznoma",
   webDir: "www",
   server: {
     url: process.env.ROZNOMA_URL ?? "https://nodinest.vercel.app",

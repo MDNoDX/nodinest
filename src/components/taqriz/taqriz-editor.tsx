@@ -53,6 +53,7 @@ import { importUrlAction } from "@/app/actions/catalog";
 import { storageStatusAction } from "@/app/actions/files";
 import { saveNoteAction, saveWriteupAction } from "@/app/actions/personal";
 import { ExportMenu } from "@/components/export/export-menu";
+import { ShareSwitch } from "@/components/social/share-switch";
 import { Cover } from "@/components/library/cover";
 import { useRecorder } from "@/components/media/use-recorder";
 import { uploadMedia } from "@/lib/upload-media";
@@ -94,7 +95,10 @@ export function TaqrizEditor({
   resume,
   mode = "taqriz",
   goalWords,
+  shared,
 }: {
+  /** Shown on the public card; null until there is something saved. */
+  shared?: boolean | null;
   /** "book" = the user's own book ("Kitob yozish"). */
   mode?: "taqriz" | "book";
   goalWords?: number | null;
@@ -1158,6 +1162,9 @@ export function TaqrizEditor({
               <Sparkles className="size-4" />
             </Tool>
             <span className="text-muted ml-auto flex shrink-0 items-center gap-3 pl-3 text-xs">
+              {shared != null && (
+                <ShareSwitch resourceId={resource.id} what="writeup" initial={shared} />
+              )}
               <ExportMenu
                 resourceId={resource.id}
                 book={book}

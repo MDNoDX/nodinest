@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "Roznoma",
+    "name": "Röznoma",
     "tagline": "A home for everything you learn."
   },
   "common": {
@@ -131,7 +131,7 @@
     "en": "English"
   },
   "auth": {
-    "signInTitle": "Welcome to Roznoma!",
+    "signInTitle": "Welcome to Röznoma!",
     "signInSubtitle": "Your personal library and learning journal. Sign in to continue.",
     "withGoogle": "Continue with Google",
     "googleMissing": "Google sign-in is not configured yet. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (see docs/DEPLOYMENT.md).",
@@ -1430,11 +1430,11 @@
   },
   "install": {
     "title": "Install the app (Mac and phone)",
-    "why": "Install Roznoma as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
+    "why": "Install Röznoma as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
     "installNow": "Install now",
     "installed": "Installed — you are using the app window.",
     "mac": "Mac",
-    "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install Roznoma”). It appears in Launchpad and the Dock.",
+    "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install Röznoma”). It appears in Launchpad and the Dock.",
     "macSafari": "Safari: File → Add to Dock. It appears in the Dock and Launchpad.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): Share → Add to Home Screen.",
@@ -1547,8 +1547,8 @@
     "resetOne": "Reset",
     "resetAll": "Reset all",
     "changeHint": "Esc cancels. Saved on this device.",
-    "systemMacApp": "When nothing plays in Roznoma, the play/pause key controls other audio/video on the computer (YouTube in another window, Spotify…).",
-    "systemWeb": "In a browser only the Roznoma player is controlled. Use the Roznoma Mac app to control other audio/video on the computer too.",
+    "systemMacApp": "When nothing plays in Röznoma, the play/pause key controls other audio/video on the computer (YouTube in another window, Spotify…).",
+    "systemWeb": "In a browser only the Röznoma player is controlled. Use the Röznoma Mac app to control other audio/video on the computer too.",
     "a": {
       "playPause": "Pause / resume",
       "back5": "Back 5 seconds",
@@ -1564,8 +1564,8 @@
     "typePause": "Pause automatically while typing",
     "resumeAfter": "Resume after",
     "resumeAfterN": "Resume after {n} s",
-    "typePauseWeb": "Typing pauses the Roznoma player; it resumes 2 s back once you stop typing.",
-    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so Roznoma knows it is playing.",
+    "typePauseWeb": "Typing pauses the Röznoma player; it resumes 2 s back once you stop typing.",
+    "typePauseMacApp": "Typing pauses, stopping resumes. For another app (Mutolaa, YouTube…): start it with the play/pause shortcut here first, so Röznoma knows it is playing.",
     "playerExplain": "The player is the small window in the corner. Opened from a resource with “Listen and write”, a YouTube video or audio keeps playing while you move between pages — listen while you write the taqriz. Drag it anywhere, hide the video to keep only the sound; it pauses while you type and remembers where you stopped on your account.",
     "replayTour": "Replay the guide",
     "replayTourHint": "A quick tour of the main buttons",
@@ -1606,7 +1606,7 @@
     "listening": "Listening — writes every minute",
     "waitingPlay": "Paused — writing continues when you resume",
     "noMedia": "This resource has no video or audio. Add a YouTube identifier or an audio link on its page.",
-    "cannotCapture": "This file comes from another site, so the AI cannot hear it. Upload it to Roznoma or add a YouTube identifier.",
+    "cannotCapture": "This file comes from another site, so the AI cannot hear it. Upload it to Röznoma or add a YouTube identifier.",
     "queued": "Queued",
     "working": "Writing…",
     "noSpeech": "No speech",
@@ -1795,7 +1795,7 @@
     "next": "Next",
     "start": "Start",
     "done": "Got it!",
-    "welcomeTitle": "Welcome to Roznoma!",
+    "welcomeTitle": "Welcome to Röznoma!",
     "welcomeBody": "A personal notebook for everything you read, watch and learn. Let me show you the essentials in one minute.",
     "libraryTitle": "Library",
     "libraryBody": "All your books and videos, each with its status (Planned → Reading → Read), rating and dates.",
@@ -2267,9 +2267,6 @@
     "results": "Results",
     "nobody": "No public profile found.",
     "yourProfile": "Your profile:",
-    "feed": "What the people you follow are reading",
-    "feedEmpty": "Nothing yet",
-    "feedEmptyBody": "Find people above and press “Follow” — their public items appear here.",
     "followingTitle": "Following",
     "follow": "Follow",
     "following": "Following",
@@ -2327,7 +2324,19 @@
     "statVideos": "Videos and audio",
     "statCourses": "Courses",
     "statHours": "Hours (about)",
-    "openSource": "Open the source"
+    "openSource": "Open the source",
+    "sharedOn": "Others can see it now.",
+    "sharedOff": "Only you can see it now.",
+    "shareWriteupHint": "Show this write-up on your public card",
+    "shareAudiobookHint": "Open this audiobook to others",
+    "shareAudiobookTitle": "Make this audiobook public?",
+    "shareAudiobookWarn": "Books are protected by copyright. Make public only what you have the right to: your own, allowed by the author, or free to share. You are responsible for any unlawful sharing.",
+    "shareAudiobookYes": "I have the right, make it public",
+    "partNotReady": "This part is not ready yet.",
+    "manageAccount": "Manage your account",
+    "manageAccountHint": "Profile, security, notifications and appearance",
+    "sharedAudiobook": "Audiobook",
+    "sharedWriteup": "Write-up"
   },
   "roznoma": {
     "tab_day": "Day",
@@ -2548,7 +2557,7 @@
       "goal_soon": "3 days left to your goal’s deadline",
       "goal_due": "Your goal is due today. Did you make it?",
       "weekly": "Your week’s result is ready",
-      "news": "News from Roznoma"
+      "news": "News from Röznoma"
     },
     "pref": {
       "people": "People",
@@ -2584,7 +2593,8 @@
     "findPeople": "Find people",
     "waiting": "Your requests are waiting",
     "ranking": "Most active",
-    "rankDone": "{n} finished"
+    "rankDone": "{n} finished",
+    "following": "People I follow"
   },
   "sectionHint": {
     "close": "Close",

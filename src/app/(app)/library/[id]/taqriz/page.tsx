@@ -73,6 +73,7 @@ export default async function TaqrizPage({
         }
       }
       userId={user.id}
+      shared={w?.isPublic ?? null}
     />
   );
 }

@@ -1,7 +1,8 @@
 /**
  * People and following. New profiles are public, of which only the library
  * items marked public are shown (title, type, status, rating, progress —
- * never notes, write-ups, files or book text). A private profile can still be
+ * never notes, files or book text; a write-up or an audiobook only when the
+ * owner shows it, each private by default). A private profile can still be
  * found by name, but its contents are seen only by people whose follow request
  * the owner accepted. These reads cross users, so they use the owner connection
  * with the visibility rules written into every query.
@@ -10,11 +11,12 @@ import "server-only";
 import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
-import { followRequests, follows, learningRecords, user } from "@/db/schema";
+import { audiobooks, followRequests, follows, learningRecords, user, writeups } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { normalizeUsername } from "@/lib/username";
 import { normalizeText, otherScript } from "@/lib/normalize";
+import type { WriteupDoc } from "@/lib/writeup-doc";
 import { notify } from "./notifications";
 import { enforceRateLimit } from "./rate-limit";
 import { ensureInLibrary } from "./records";
@@ -161,6 +163,48 @@ export async function publicItem(ctx: AppContext, username: string, resourceId: 
     where lower(u.username) = ${normalizeUsername(username)} and lr.resource_id = ${rid.data}
       and lr.visibility = 'public' and ${canSee(ctx)}`);
   return it ?? null;
+}
+
+/** What the owner chose to show besides the card: the write-up and the audiobook. */
+export async function publicExtras(ownerId: string, resourceId: string) {
+  const [x] = await db.execute<{
+    doc: WriteupDoc | null;
+    parts: number | null;
+    cast: boolean | null;
+  }>(sql`
+    select
+      (select w.doc from nodinest.writeups w
+        where w.user_id = ${ownerId} and w.resource_id = ${resourceId} and w.is_public) as doc,
+      (select jsonb_array_length(a.plan->'segs') from nodinest.audiobooks a
+        where a.user_id = ${ownerId} and a.resource_id = ${resourceId}
+          and a.is_public and a.status = 'ready') as parts,
+      (select (a.analysis->>'cast')::boolean from nodinest.audiobooks a
+        where a.user_id = ${ownerId} and a.resource_id = ${resourceId}) as cast`);
+  return x;
+}
+
+/** Shows or hides a write-up or an audiobook; showing one shows its card too. */
+export async function setShared(
+  ctx: AppContext,
+  resourceId: string,
+  what: "writeup" | "audiobook",
+  on: boolean,
+) {
+  const rid = z.string().uuid().parse(resourceId);
+  await withUser(db, ctx, async (tx) => {
+    const t = what === "writeup" ? writeups : audiobooks;
+    const done = await tx
+      .update(t)
+      .set({ isPublic: on })
+      .where(and(eq(t.userId, ctx.userId), eq(t.resourceId, rid)))
+      .returning({ id: t.id });
+    if (!done.length) throw new AppError("NOT_FOUND");
+    if (on)
+      await tx
+        .update(learningRecords)
+        .set({ visibility: "public" })
+        .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, rid)));
+  });
 }
 
 /** Someone whose public card of this entry I may open (for old links to /library/id). */
@@ -441,7 +485,8 @@ export type MediaItem = PublicItem & {
 
 /** "Media": what people share, the ones I follow first, newest first. */
 export async function mediaFeed(ctx: AppContext, opts: { kind?: string; before?: string } = {}) {
-  const kind = opts.kind && opts.kind !== "all" ? opts.kind : null;
+  const followed = opts.kind === "following";
+  const kind = opts.kind && opts.kind !== "all" && !followed ? opts.kind : null;
   const before = opts.before ? new Date(opts.before) : null;
   return db.execute<MediaItem>(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
@@ -456,6 +501,12 @@ export async function mediaFeed(ctx: AppContext, opts: { kind?: string; before?:
     join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
     where lr.visibility = 'public' and lr.user_id <> ${ctx.userId} and ${canSee(ctx)}
       ${kind ? sql`and r.type::text = ${kind}` : sql``}
+      ${
+        followed
+          ? sql`and exists(select 1 from nodinest.follows f
+              where f.follower_id = ${ctx.userId} and f.followee_id = u.id)`
+          : sql``
+      }
       ${before ? sql`and lr.updated_at < ${before}` : sql``}
     order by lr.updated_at desc
     limit 30`);

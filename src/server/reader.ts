@@ -1,5 +1,5 @@
 /**
- * Kitobni o'qish: the book's PDF text read inside Roznoma. Pages come from
+ * Kitobni o'qish: the book's PDF text read inside Röznoma. Pages come from
  * `book_pages`, chapters from the book structure; quotes and notes the user
  * saved while reading are highlighted again; the page reached is kept as the
  * reading progress of the user's Darsxona entry.

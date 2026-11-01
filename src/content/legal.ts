@@ -13,7 +13,7 @@ export type LegalDoc = { title: string; intro: string; sections: { h: string; p:
 const uzPrivacy: LegalDoc = {
   title: "Maxfiylik siyosati",
   intro:
-    "Roznoma — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar. Bu yerda qaysi ma’lumotlaringiz saqlanişi, ularni kim körişi va qanday öçirişingiz mumkinligi oddiy tilda yozilgan.",
+    "Röznoma — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar. Bu yerda qaysi ma’lumotlaringiz saqlanişi, ularni kim körişi va qanday öçirişingiz mumkinligi oddiy tilda yozilgan.",
   sections: [
     {
       h: "Nima saqlanadi",
@@ -33,7 +33,7 @@ const uzPrivacy: LegalDoc = {
       h: "Kim köra oladi",
       p: [
         "Qaydlar, taqrizlar, iqtiboslar, kartoçkalar va fayllaringiz faqat sizga körinadi. Katta fayllar şifrlangan holda saqlanadi.",
-        "Siz yuklagan kitob va undan tayyorlangan audiokitob boşqalarga berilmaydi. Faqat qonuniy nusxalarni yuklang va ularni tarqatmang (Foydalaniş şartlariga qarang).",
+        "Siz yuklagan kitob va undan tayyorlangan audiokitob özingiz oçiq qilmaguningizça boşqalarga berilmaydi. Faqat qonuniy nusxalarni yuklang va ularni tarqatmang (Foydalaniş şartlariga qarang).",
         "Yangi hisob profili oçiq: boşqalar ismingiz, rasmingiz, username va «oçiq» deb belgilagan manbalaringizni (nomi, holati, bahosi) köradi va sizni kuzatişi mumkin. Profilni Sozlamalarda yopişingiz mumkin: yopiq profil qidiruvda ism va rasm bilan topiladi, içidagini esa faqat kuzatiş sörovini siz qabul qilgan odamlar köradi. Manba qöşganda har birini oçiq yoki yopiq qilasiz, keyin ham özgartirasiz.",
         "Premium uçun tölov sörovida yozgan summa va izohingiz faqat admin tomonidan tekşiriladi; karta ma’lumotlaringiz saytga kiritilmaydi.",
         "Katalog (kitob, muallif, naşriyot yozuvlari) umumiy: siz qöşgan katalog yozuvini boşqalar ham köradi. Şaxsiy fikrlaringiz katalogga ötmaydi.",
@@ -59,7 +59,7 @@ const uzPrivacy: LegalDoc = {
 const enPrivacy: LegalDoc = {
   title: "Privacy policy",
   intro:
-    "Roznoma is a personal notebook for what you read, watch and learn. This page says in plain words what is kept, who can see it and how you can delete it.",
+    "Röznoma is a personal notebook for what you read, watch and learn. This page says in plain words what is kept, who can see it and how you can delete it.",
   sections: [
     {
       h: "What is kept",
@@ -79,7 +79,7 @@ const enPrivacy: LegalDoc = {
       h: "Who can see it",
       p: [
         "Your notes, write-ups, quotes, cards and files are visible only to you. Big files are stored encrypted.",
-        "A book you upload and the audiobook made from it are never given to others. Upload only legal copies and do not share them (see the Terms of use).",
+        "A book you upload and the audiobook made from it are never given to others unless you make the audiobook public. Upload only legal copies and do not share them (see the Terms of use).",
         "A new account has a public profile: others see your name, picture, username and the items you mark public (title, status, rating) and may follow you. You can make it private in Settings: a private profile can still be found by name and picture, but only people whose follow request you accept see what is inside. Every item you add can be public or private, and you can change that later.",
         "For Premium, the amount and note in your payment request are seen only by the admin; your card details are never entered on the site.",
         "The catalog (books, authors, publishers) is shared: catalog entries you add are visible to others. Your personal thoughts never go into the catalog.",
@@ -104,7 +104,7 @@ const enPrivacy: LegalDoc = {
 
 const uzTerms: LegalDoc = {
   title: "Foydalaniş şartlari",
-  intro: "Roznoma’dan foydalanib, quyidagi oddiy şartlarga rozilik bildirasiz.",
+  intro: "Röznoma’dan foydalanib, quyidagi oddiy şartlarga rozilik bildirasiz.",
   sections: [
     {
       h: "Xizmat",
@@ -117,7 +117,7 @@ const uzTerms: LegalDoc = {
       h: "Sizning kontentingiz",
       p: [
         "Yozganlaringiz sizniki. Faqat qonuniy nusxalarni yuklang: sotib olingan, muallif yoki nashriyot ruxsat bergan yoki erkin tarqatiladigan kitoblar. Mualliflik huquqi bilan himoyalangan kitobning noqonuniy (ögirlangan) PDF’ini yuklaş taqiqlanadi.",
-        "Kitob matni, öquvçi va AI tayyorlagan audiokitob faqat sizning şaxsiy foydalanişingiz uçun. Ularni Telegram kanallari, guruhlar yoki boşqa joylarda tarqatiş, sotiş yoki ommaga joylaş mumkin emas. Huquq egasi murojaat qilsa, tegişli fayl va audiokitob öçiriladi, qoidabuzar hisob esa töxtatilishi mumkin.",
+        "Kitob matni, öquvçi va AI tayyorlagan audiokitob faqat sizning şaxsiy foydalanişingiz uçun. Audiokitobni boşqalarga oçiq qilsangiz, unga huquqingiz borligiga özingiz javob berasiz. Ularni Telegram kanallari, guruhlar yoki boşqa joylarda tarqatiş, sotiş yoki ommaga joylaş mumkin emas. Huquq egasi murojaat qilsa, tegişli fayl va audiokitob öçiriladi, qoidabuzar hisob esa töxtatilishi mumkin.",
         "Katalogga qöşgan yozuvlaringiz (kitob nomi, muallif, naşriyot) umumiy böladi va boşqalar ularni töldirişi mumkin.",
       ],
     },
@@ -133,7 +133,7 @@ const uzTerms: LegalDoc = {
 
 const enTerms: LegalDoc = {
   title: "Terms of use",
-  intro: "By using Roznoma you agree to these simple terms.",
+  intro: "By using Röznoma you agree to these simple terms.",
   sections: [
     {
       h: "The service",
@@ -146,7 +146,7 @@ const enTerms: LegalDoc = {
       h: "Your content",
       p: [
         "What you write is yours. Upload only legal copies: books you bought, that the author or publisher allows, or that are free to share. Uploading pirated PDFs of copyrighted books is forbidden.",
-        "The book’s text, the reader and AI-made audiobooks are for your personal use only. Do not share, sell or post them in Telegram channels, groups or anywhere else. After a rights holder’s complaint the file and audiobook are removed and the account may be suspended.",
+        "The book’s text, the reader and AI-made audiobooks are for your personal use only. If you make an audiobook public, you answer for having the right to do so. Do not share, sell or post them in Telegram channels, groups or anywhere else. After a rights holder’s complaint the file and audiobook are removed and the account may be suspended.",
         "Catalog entries you add (titles, authors, publishers) become shared and may be completed by others.",
       ],
     },
@@ -163,7 +163,7 @@ const enTerms: LegalDoc = {
 const ruPrivacy: LegalDoc = {
   title: "Политика конфиденциальности",
   intro:
-    "Roznoma — личный дневник того, что вы прочитали, посмотрели и изучили. Здесь простыми словами описано, какие данные хранятся, кто их видит и как их удалить.",
+    "Röznoma — личный дневник того, что вы прочитали, посмотрели и изучили. Здесь простыми словами описано, какие данные хранятся, кто их видит и как их удалить.",
   sections: [
     {
       h: "Что хранится",
@@ -208,7 +208,7 @@ const ruPrivacy: LegalDoc = {
 
 const ruTerms: LegalDoc = {
   title: "Условия использования",
-  intro: "Пользуясь Roznoma, вы соглашаетесь с этими простыми условиями.",
+  intro: "Пользуясь Röznoma, вы соглашаетесь с этими простыми условиями.",
   sections: [
     {
       h: "Сервис",

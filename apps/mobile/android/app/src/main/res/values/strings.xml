@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Roznoma</string>
-    <string name="title_activity_main">Roznoma</string>
+    <string name="app_name">Röznoma</string>
+    <string name="title_activity_main">Röznoma</string>
     <string name="package_name">uz.roznoma.app</string>
     <string name="custom_url_scheme">uz.roznoma.app</string>
 </resources>

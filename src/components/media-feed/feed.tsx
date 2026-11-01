@@ -13,7 +13,7 @@ import { useAction } from "@/lib/use-action";
 import { youtubeIdFromUrl } from "@/lib/youtube";
 import type { MediaItem } from "@/server/social";
 
-const KINDS = ["all", "book", "video", "podcast", "course", "article"];
+const KINDS = ["all", "following", "book", "video", "podcast", "course", "article"];
 
 /** What people add, as small cards; a YouTube video opens in place. */
 export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string }) {
@@ -58,7 +58,7 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
                 : "border-border text-muted",
             )}
           >
-            {k === "all" ? t("all") : tt(`plural.${k}` as "plural.book")}
+            {k === "all" || k === "following" ? t(k) : tt(`plural.${k}` as "plural.book")}
           </Link>
         ))}
       </nav>
@@ -123,10 +123,7 @@ function Card({ it }: { it: MediaItem }) {
             <Avatar name={it.name} image={it.image} className="size-5" />
             <span className="truncate font-medium">{it.name}</span>
           </Link>
-          <Link
-            href={href}
-            className="line-clamp-2 text-sm leading-snug font-semibold"
-          >
+          <Link href={href} className="line-clamp-2 text-sm leading-snug font-semibold">
             {it.title}
           </Link>
           {it.description && <p className="text-muted line-clamp-1 text-xs">{it.description}</p>}
