@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AllItems } from "@/components/social/all-items";
 import { ItemsVisibility } from "@/components/social/items-visibility";
@@ -22,7 +22,8 @@ export default async function ProfileItemsPage({
   const { ctx, user } = await pageContext();
   const t = await getTranslations("social");
   const p = await profileByUsername(ctx, decodeURIComponent(username));
-  if (!p || !p.visible) notFound();
+  if (!p) notFound();
+  if (!p.visible) redirect(`/u/${p.username}`);
   const [items, mine] = await Promise.all([
     p.self ? Promise.resolve([]) : publicItems(ctx, p.id, 500),
     p.self ? myItemsVisibility(ctx) : Promise.resolve([]),

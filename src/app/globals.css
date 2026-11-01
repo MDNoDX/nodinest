@@ -889,3 +889,20 @@ nav.overflow-x-auto,
 .overflow-x-auto:has(> a[aria-current]) {
   scrollbar-width: none;
 }
+
+/* The main action: a soft gradient that lifts a little under the cursor. */
+.btn-primary {
+  background-image: linear-gradient(
+    135deg,
+    var(--primary),
+    color-mix(in oklab, var(--primary) 62%, var(--c-violet))
+  );
+  box-shadow: 0 6px 16px -8px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}

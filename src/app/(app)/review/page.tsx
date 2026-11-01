@@ -20,7 +20,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: SP })
   const decks = await listDecks(ctx);
   return (
     <>
-      <PageHeader section="review" title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader section="review" title={t("title")} />
       <ReviewApp
         decks={decks.map((d) => ({
           deck: d.deck,

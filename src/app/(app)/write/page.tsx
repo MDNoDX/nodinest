@@ -19,7 +19,7 @@ export default async function WritePage() {
   ]);
   return (
     <>
-      <PageHeader section="write" title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader section="write" title={t("title")} />
       <WriteHome
         author={user.name}
         storage={used == null ? null : { used, quota: userQuotaBytes() }}

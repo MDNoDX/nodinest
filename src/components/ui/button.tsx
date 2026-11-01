@@ -6,7 +6,7 @@ type Variant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "link"
 type Size = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+  primary: "btn-primary text-primary-foreground",
   secondary: "bg-surface-2 text-foreground hover:bg-surface-3",
   ghost: "text-foreground hover:bg-surface-2",
   outline: "border border-border-strong bg-surface text-foreground hover:bg-surface-2",
@@ -37,7 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <Comp
       ref={ref}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors duration-150 select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+        "inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-[color,background-color,filter,transform] duration-150 select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
         variants[variant],
         sizes[size],
         className,
