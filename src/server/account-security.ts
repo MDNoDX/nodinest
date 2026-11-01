@@ -100,7 +100,7 @@ function deviceName(ua: string | null) {
           : /Linux/.test(u)
             ? "Linux"
             : "";
-  const app = /NodiNest|NodiNote/.test(u) ? "NodiNote" : "";
+  const app = /NodiNest|Roznoma/.test(u) ? "Roznoma" : "";
   const br = /Edg\//.test(u)
     ? "Edge"
     : /OPR\//.test(u)

@@ -88,6 +88,7 @@ function Card({ it }: { it: MediaItem }) {
   const { pending, exec } = useAction();
   const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
   const portrait = it.type === "book" || it.type === "course";
+  const href = it.mine ? `/library/${it.resourceId}` : `/u/${it.username}/item/${it.resourceId}`;
   return (
     <li className={cn("card flex flex-col gap-3 p-3", playing && "col-span-full")}>
       {playing && yt && (
@@ -100,7 +101,7 @@ function Card({ it }: { it: MediaItem }) {
       )}
       <div className="flex min-w-0 flex-1 gap-3">
         <div className={cn("relative shrink-0 self-start", portrait ? "w-16" : "w-28")}>
-          <Link href={`/library/${it.resourceId}`} className="block">
+          <Link href={href} className="block">
             <Cover type={it.type as "book"} title={it.title} src={coverSrc(it)} />
           </Link>
           {yt && !playing && (
@@ -123,7 +124,7 @@ function Card({ it }: { it: MediaItem }) {
             <span className="truncate font-medium">{it.name}</span>
           </Link>
           <Link
-            href={`/library/${it.resourceId}`}
+            href={href}
             className="line-clamp-2 text-sm leading-snug font-semibold"
           >
             {it.title}

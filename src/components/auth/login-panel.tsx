@@ -1,4 +1,5 @@
 "use client";
+import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useSyncExternalStore, useTransition } from "react";
@@ -32,12 +33,19 @@ function GoogleIcon() {
   );
 }
 
+/** Apps' own browsers (Telegram, Instagram…): Google refuses to sign in there. */
+const IN_APP =
+  /FBAN|FBAV|Instagram|Telegram|TikTok|musical_ly|Line\/|MicroMessenger|; wv\)|(iPhone|iPad|iPod)(?!.*Safari)/i;
+
 export function LoginPanel({
   googleEnabled,
+  googleFailed = false,
   devEnabled,
   next = "/",
 }: {
   googleEnabled: boolean;
+  /** Back from Google without success. */
+  googleFailed?: boolean;
   devEnabled: boolean;
   /** Where to go after signing in (validated same-site path). */
   next?: string;
@@ -51,6 +59,13 @@ export function LoginPanel({
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [login, setLogin] = useState({ name: "", password: "" });
   const [forgot, setForgot] = useState(false);
+  const [signup, setSignup] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const inApp = useSyncExternalStore(
+    () => () => {},
+    () => IN_APP.test(navigator.userAgent),
+    () => false,
+  );
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -60,8 +75,12 @@ export function LoginPanel({
   const google = () =>
     start(async () => {
       setError(null);
-      const r = await authClient.signIn.social({ provider: "google", callbackURL: next });
-      if (r.error) setError(t("failed"));
+      const r = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: next,
+        errorCallbackURL: `/login?google=failed&next=${encodeURIComponent(next)}`,
+      });
+      if (r.error) setError(t("googleFailed"));
     });
 
   const password = () =>
@@ -93,14 +112,19 @@ export function LoginPanel({
   return (
     <div className="card p-6 shadow-sm" data-hydrated={hydrated ? "true" : undefined}>
       <div className="flex flex-col gap-3">
-        {forgot ? (
+        {forgot || signup ? (
           <ForgotPassword
-            onBack={() => setForgot(false)}
+            signup={signup}
+            onBack={() => {
+              setForgot(false);
+              setSignup(false);
+            }}
             onDone={async (who, pass) => {
               const r = await loginAction(who, pass);
               if (r.ok) window.location.assign(next);
               else {
                 setForgot(false);
+                setSignup(false);
                 setError(t("failed"));
               }
             }}
@@ -143,16 +167,42 @@ export function LoginPanel({
             </button>
           </form>
         )}
-        {!forgot && (
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={google}
-            disabled={!googleEnabled}
-            loading={pending && googleEnabled}
-          >
-            <GoogleIcon /> {t("withGoogle")}
-          </Button>
+        {!forgot && !signup && (
+          <>
+            {inApp ? (
+              <div className="bg-warning-soft text-warning flex flex-col gap-2 rounded-lg p-3 text-sm">
+                <p>{t("inAppBrowser")}</p>
+                <button
+                  type="button"
+                  className="self-start font-semibold underline"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(window.location.href);
+                    setCopied(true);
+                  }}
+                >
+                  {t(copied ? "linkCopied" : "copyLink")}
+                </button>
+              </div>
+            ) : (
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={google}
+                disabled={!googleEnabled}
+                loading={pending && googleEnabled}
+              >
+                <GoogleIcon /> {t("withGoogle")}
+              </Button>
+            )}
+            {googleFailed && !inApp && (
+              <p role="alert" className="bg-danger-soft text-danger rounded-lg p-3 text-sm">
+                {t("googleFailed")}
+              </p>
+            )}
+            <Button size="lg" variant="outline" onClick={() => setSignup(true)}>
+              <Mail /> {t("signupWithEmail")}
+            </Button>
+          </>
         )}
         {!googleEnabled && (
           <p className="bg-warning-soft text-warning rounded-lg p-3 text-xs">

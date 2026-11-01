@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "NodiNote",
-    short_name: "NodiNote",
+    name: "Roznoma",
+    short_name: "Roznoma",
     description: "Bilimlar uçun şaxsiy makon — A home for everything you learn.",
     lang: "uz",
     start_url: "/?source=app",

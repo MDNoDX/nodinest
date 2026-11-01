@@ -27,7 +27,8 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const next = safeNext((await searchParams).next);
+  const sp = await searchParams;
+  const next = safeNext(sp.next);
   if (await getCurrentUser()) redirect(next);
   const t = await getTranslations();
   const features = [
@@ -69,6 +70,7 @@ export default async function LoginPage({
           </div>
           <LoginPanel
             googleEnabled={authProviders.google}
+            googleFailed={sp.google === "failed"}
             devEnabled={authProviders.devLogin}
             next={next}
           />

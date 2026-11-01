@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { amountTarget, itemScore, type CheckStatus } from "@/lib/roznoma";
+import { clockText, useHour12 } from "@/lib/time-format";
 import { PlanIcon } from "./plan-icon";
 import type { RoutineValue } from "./routine-dialog";
 
@@ -39,6 +40,7 @@ export function Tick({
   const x = status === "skipped" || missed;
   const partial = status === "partial";
   const size = small ? "size-6" : "size-8";
+  const fill = Math.round(score * 100);
   return (
     <button
       type="button"
@@ -53,7 +55,7 @@ export function Tick({
       className={cn("tick grid shrink-0 place-items-center rounded-full border-2", size)}
       style={
         partial
-          ? ({ "--tick-fill": `${Math.round(score * 360)}deg` } as React.CSSProperties)
+          ? ({ "--tick-fill": `${fill * 3.6}deg`, "--done": `${fill}%` } as React.CSSProperties)
           : undefined
       }
     >
@@ -89,6 +91,7 @@ export function PlanItem({
   onEditSub: (sub: SubRow) => void;
 }) {
   const t = useTranslations("roznoma");
+  const h12 = useHour12();
   const [open, setOpen] = useState(false);
   const target = amountTarget(it.amount);
   const unit = it.amount?.replace(/^[\s\d.,]+/, "").trim() || "";
@@ -104,7 +107,8 @@ export function PlanItem({
     const full = target ? v >= target : v >= 100;
     onState(
       full
-        ? { status: "done", value: null, note2: null }
+        ? // More than planned stays on record: 5 hours of a 3-hour plan.
+          { status: "done", value: target && v > target ? v : null, note2: null }
         : { status: "partial", value: v, note2: null },
     );
     setOpen(false);
@@ -117,11 +121,16 @@ export function PlanItem({
         it.done
           ? "border-[var(--c-emerald)]/30 bg-[var(--c-emerald)]/6"
           : it.status === "partial"
-            ? "border-[var(--c-amber)]/35 bg-[var(--c-amber)]/6"
+            ? "plan-partial"
             : skipped || missed
               ? "border-border bg-surface-2/50"
               : "border-border bg-surface",
       )}
+      style={
+        it.status === "partial"
+          ? ({ "--done": `${Math.round(score * 100)}%` } as React.CSSProperties)
+          : undefined
+      }
     >
       <div
         role="button"
@@ -132,17 +141,14 @@ export function PlanItem({
         className="flex cursor-pointer items-center gap-3 px-3 py-2.5"
       >
         <span className="text-muted w-11 shrink-0 text-center text-xs font-semibold tabular-nums">
-          {it.time ?? <span className="bg-border-strong mx-auto block size-1.5 rounded-full" />}
-        </span>
-        <span
-          className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-xl transition-colors",
-            it.done
-              ? "bg-[var(--c-emerald)]/15 text-[var(--c-emerald)]"
-              : "bg-primary-soft text-primary",
+          {it.time ? (
+            clockText(it.time, h12)
+          ) : (
+            <span className="bg-border-strong mx-auto block size-1.5 rounded-full" />
           )}
-        >
-          <PlanIcon name={it.icon} className="size-[18px]" />
+        </span>
+        <span className="bg-surface-2 grid size-9 shrink-0 place-items-center rounded-xl">
+          <PlanIcon name={it.icon} className="size-[22px]" />
         </span>
         <div className="min-w-0 flex-1">
           <div
@@ -155,8 +161,12 @@ export function PlanItem({
           </div>
           <div className="text-muted flex flex-wrap items-center gap-x-2 text-xs">
             {it.status === "partial" && !hasSubs ? (
-              <span className="font-medium text-[var(--c-amber)] tabular-nums">
+              <span className="plan-partial-text font-medium tabular-nums">
                 {target ? `${it.value} / ${target} ${unit}` : `${Math.round(score * 100)}%`}
+              </span>
+            ) : it.done && it.value != null && target ? (
+              <span className="font-medium text-[var(--c-emerald)] tabular-nums">
+                {it.value} / {target} {unit}
               </span>
             ) : (
               it.amount && <span>{it.amount}</span>
@@ -196,7 +206,7 @@ export function PlanItem({
               <ul className="flex flex-col gap-1">
                 {it.subs.map((s) => (
                   <li key={s.id} className="flex items-center gap-2.5 py-0.5 pl-1">
-                    <PlanIcon name={s.icon} className="text-muted size-4 shrink-0" />
+                    <PlanIcon name={s.icon} className="size-5 shrink-0" />
                     <span
                       className={cn("min-w-0 flex-1 truncate", s.status === "done" && "text-muted")}
                     >
@@ -266,25 +276,6 @@ export function PlanItem({
                 )}
               </div>
             )}
-            <div className="flex gap-2">
-              <Input
-                className="h-8"
-                maxLength={200}
-                placeholder={t("skipPh")}
-                value={why}
-                onChange={(e) => setWhy(e.target.value)}
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  onState({ status: "skipped", value: null, note2: why.trim() || null });
-                  setOpen(false);
-                }}
-              >
-                <X /> {t("skipSave")}
-              </Button>
-            </div>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" variant="ghost" onClick={onAddSub}>
                 <Plus /> {t("addSub")}
@@ -309,6 +300,25 @@ export function PlanItem({
                   {t("clearState")}
                 </Button>
               )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                className="h-8"
+                maxLength={200}
+                placeholder={t("skipPh")}
+                value={why}
+                onChange={(e) => setWhy(e.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onState({ status: "skipped", value: null, note2: why.trim() || null });
+                  setOpen(false);
+                }}
+              >
+                <X /> {t("skipSave")}
+              </Button>
             </div>
           </div>
         </div>

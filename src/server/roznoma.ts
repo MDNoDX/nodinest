@@ -175,7 +175,7 @@ const DEFAULTS: Record<"uz" | "ru" | "en", Record<string, string>> = {
   },
 };
 const UNIT_WORDS: Record<"uz" | "ru" | "en", Record<string, string>> = {
-  uz: { min: "daqiqa", page: "bet", piece: "ta", hour: "soat" },
+  uz: { min: "daqiqa", page: "sahifa", piece: "ta", hour: "soat" },
   ru: { min: "минут", page: "страниц", piece: "", hour: "часов" },
   en: { min: "minutes", page: "pages", piece: "", hour: "hours" },
 };
@@ -360,7 +360,8 @@ export async function checkRoutine(
           .where(and(eq(routineChecks.routineId, target), eq(routineChecks.day, d)));
         continue;
       }
-      const v = { status: st, value: st === "partial" ? value : null, note };
+      // "done" keeps a number only when more than planned was done.
+      const v = { status: st, value: st === "skipped" ? null : value, note };
       await tx
         .insert(routineChecks)
         .values({ routineId: target, day: d, userId: ctx.userId, ...v })

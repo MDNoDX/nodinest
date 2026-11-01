@@ -38,6 +38,7 @@ import { listTextSources } from "@/server/booktext";
 import { getResourceDetail, getResourceHeader } from "@/server/catalog";
 import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
+import { publicOwnerOf } from "@/server/social";
 import { AddMenu } from "@/components/library/add-menu";
 import { VisibilityToggle } from "@/components/social/visibility-toggle";
 import { pickName } from "@/i18n/config";
@@ -77,7 +78,12 @@ export default async function ResourcePage({
     listTextSources(ctx, id),
     getResume(db, ctx, id),
   ]);
-  if (!d) notFound();
+  if (!d) {
+    // Someone else's entry: its public card, when they show it.
+    const owner = await publicOwnerOf(ctx, id);
+    if (owner) redirect(`/u/${owner}/item/${id}`);
+    notFound();
+  }
   // An own book opens in the writing studio.
   if (await getOwnBook(ctx, id)) redirect(`/write/${id}`);
   const r = d.resource;

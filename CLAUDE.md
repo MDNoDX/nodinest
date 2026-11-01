@@ -1,4 +1,7 @@
-# NodiNest — working notes for Claude Code
+# Roznoma (repo: NodiNest) — working notes for Claude Code
+
+The product is **Roznoma** (renamed from NodiNote on 2026-11-01). Repo, database schema `nodinest`,
+cookies `nn_*` and the bot @nodinest_bot keep the old name on purpose.
 
 Read `AGENTS.md` too: this is **Next.js 16**; check `node_modules/next/dist/docs/` before
 using unfamiliar APIs (e.g. `proxy.ts` replaced `middleware.ts`, async `params`).

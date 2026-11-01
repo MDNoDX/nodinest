@@ -27,16 +27,7 @@ export const Textarea = forwardRef<
 export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
   function Select({ className, children, ...props }, ref) {
     return (
-      <select
-        ref={ref}
-        className={cn(
-          base,
-          "h-10 appearance-none bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat pr-8",
-          "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2378857c%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')]",
-          className,
-        )}
-        {...props}
-      >
+      <select ref={ref} className={cn(base, "h-10", className)} {...props}>
         {children}
       </select>
     );

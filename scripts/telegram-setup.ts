@@ -29,10 +29,10 @@ async function call(method: string, body: Record<string, unknown> | FormData) {
 
 const T = {
   uz: {
-    name: "NodiNote",
+    name: "Roznoma",
     short:
       "Öqigan, körgan va örganganlaringiz daftari. Saytga bir bosişda kiriş, takliflar va javoblar.",
-    desc: "📚 NodiNote — kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar uçun şaxsiy daftar.\n\nBu bot:\n• saytga telefon raqamisiz, bir bosişda kirgizadi;\n• taklif va savollaringizni adminga yetkazadi — javob şu yerga keladi;\n• yangiliklardan xabar beradi.\n\nBoşlaş uçun «Start»ni bosing.",
+    desc: "📚 Roznoma — kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar uçun şaxsiy daftar.\n\nBu bot:\n• saytga telefon raqamisiz, bir bosişda kirgizadi;\n• taklif va savollaringizni adminga yetkazadi — javob şu yerga keladi;\n• yangiliklardan xabar beradi.\n\nBoşlaş uçun «Start»ni bosing.",
     commands: [
       ["start", "Boşlaş"],
       ["taklif", "Adminga xabar yozish"],
@@ -41,9 +41,9 @@ const T = {
     ],
   },
   ru: {
-    name: "NodiNote",
+    name: "Roznoma",
     short: "Дневник прочитанного и изученного. Вход на сайт в одно касание, предложения и ответы.",
-    desc: "📚 NodiNote — личный дневник для книг, рецензий, цитат, ИИ-помощника и аудиокниг.\n\nЭтот бот:\n• входит на сайт в одно касание, без номера телефона;\n• передаёт ваши предложения и вопросы администратору — ответ придёт сюда;\n• сообщает о новостях.\n\nНажмите «Start», чтобы начать.",
+    desc: "📚 Roznoma — личный дневник для книг, рецензий, цитат, ИИ-помощника и аудиокниг.\n\nЭтот бот:\n• входит на сайт в одно касание, без номера телефона;\n• передаёт ваши предложения и вопросы администратору — ответ придёт сюда;\n• сообщает о новостях.\n\nНажмите «Start», чтобы начать.",
     commands: [
       ["start", "Начать"],
       ["taklif", "Написать администратору"],
@@ -52,9 +52,9 @@ const T = {
     ],
   },
   en: {
-    name: "NodiNote",
+    name: "Roznoma",
     short: "A notebook for what you read and learn. One-tap sign-in, suggestions and answers.",
-    desc: "📚 NodiNote — a personal notebook for books, write-ups, quotes, an AI assistant and audiobooks.\n\nThis bot:\n• signs you in to the site in one tap, no phone number;\n• passes your suggestions and questions to the admin — the answer comes here;\n• tells you what’s new.\n\nPress “Start” to begin.",
+    desc: "📚 Roznoma — a personal notebook for books, write-ups, quotes, an AI assistant and audiobooks.\n\nThis bot:\n• signs you in to the site in one tap, no phone number;\n• passes your suggestions and questions to the admin — the answer comes here;\n• tells you what’s new.\n\nPress “Start” to begin.",
     commands: [
       ["start", "Start"],
       ["taklif", "Write to the admin"],
@@ -100,7 +100,7 @@ async function main() {
     await call("setChatDescription", {
       chat_id: chat,
       description:
-        "NodiNote monitoringi: takliflar (javob = reply), yangi foydalanuvçilar, xatolar, Premium tölovlari va kunlik hisobot. Buyruqlar: /stat, /hammaga <matn>, /arxiv, /test.",
+        "Roznoma monitoringi: takliflar (javob = reply), yangi foydalanuvçilar, xatolar, Premium tölovlari va kunlik hisobot. Buyruqlar: /stat, /hammaga <matn>, /arxiv, /test.",
     });
   }
 }

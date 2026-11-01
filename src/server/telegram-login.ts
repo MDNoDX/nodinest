@@ -42,7 +42,7 @@ export function deviceOf(ua: string) {
             : /Safari\//.test(ua)
               ? "Safari"
               : /NodiNest/i.test(ua)
-                ? "NodiNote Mac"
+                ? "Roznoma Mac"
                 : "Brauzer";
   const os = /iPhone|iPad/.test(ua)
     ? "iOS"

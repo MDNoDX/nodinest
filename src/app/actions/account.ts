@@ -23,9 +23,17 @@ export async function loginAction(login: string, password: string): Promise<Acti
 }
 
 /** Also before a session. An e-mail gets the same answer whether or not it has an account. */
-export async function requestResetAction(login: string): Promise<ActionResult<ResetAnswer>> {
+export async function requestResetAction(
+  login: string,
+  signup = false,
+): Promise<ActionResult<ResetAnswer>> {
   try {
-    return { ok: true, data: await requestReset(z.string().trim().min(1).max(120).parse(login)) };
+    return {
+      ok: true,
+      data: await requestReset(z.string().trim().min(1).max(120).parse(login), {
+        signup: signup === true,
+      }),
+    };
   } catch (err) {
     return toActionError(err);
   }

@@ -11,6 +11,7 @@
 :root {
   --background: #f6f4ef;
   --surface: #fffefb;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2345475a' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --surface-2: #f0ece4;
   --surface-3: #e6e0d4;
   --foreground: #1a1c29;
@@ -56,6 +57,7 @@
 .dark {
   --background: #0d0e15;
   --surface: #15161f;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c9cbe0' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --surface-2: #1c1e2a;
   --surface-3: #262938;
   --foreground: #ecebf3;
@@ -501,6 +503,20 @@ mark.taqriz-note-mark {
   animation: tour-pulse 1.4s ease-out infinite;
 }
 
+/* Every select: the same clear arrow, inside the box, not against its edge. */
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 2.15rem;
+  background-color: var(--surface);
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 15px;
+}
+select:not([multiple])::-ms-expand {
+  display: none;
+}
+
 /* ── Plans: the tick and the opening row ──────────────────────────────── */
 .tick {
   --tick-fill: 0deg;
@@ -524,9 +540,22 @@ mark.taqriz-note-mark {
   box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-emerald) 55%, transparent);
 }
 .tick[data-state="partial"] {
-  border-color: var(--c-amber);
-  background: conic-gradient(var(--c-amber) var(--tick-fill), transparent 0);
+  --tick-c: color-mix(in oklab, var(--c-emerald) var(--done, 0%), var(--c-amber));
+  border-color: var(--tick-c);
+  background: conic-gradient(var(--tick-c) var(--tick-fill), transparent 0);
   animation: tick-pop 0.4s ease-out;
+}
+/* Part done: amber turning to green as the share grows. */
+.plan-partial,
+.plan-partial-text {
+  --part: color-mix(in oklab, var(--c-emerald) var(--done, 0%), var(--c-amber));
+}
+.plan-partial {
+  border-color: color-mix(in oklab, var(--part) 38%, transparent);
+  background: color-mix(in oklab, var(--part) 7%, transparent);
+}
+.plan-partial-text {
+  color: var(--part);
 }
 .tick[data-state="x"] {
   border-color: color-mix(in oklab, var(--danger, #e5484d) 70%, transparent);

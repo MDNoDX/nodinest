@@ -226,7 +226,7 @@ export function AppShell({
           collapsed && !mobile && "justify-center px-0",
         )}
       >
-        <Link href="/" className="rounded-md" aria-label="NodiNote">
+        <Link href="/" className="rounded-md" aria-label="Roznoma">
           <Logo compact={collapsed && !mobile} />
         </Link>
         {mobile && (
@@ -327,7 +327,7 @@ export function AppShell({
               >
                 <Menu className="size-5" />
               </button>
-              <Link href="/" className="lg:hidden" aria-label="NodiNote">
+              <Link href="/" className="lg:hidden" aria-label="Roznoma">
                 <Logo compact />
               </Link>
               <CommandPalette />

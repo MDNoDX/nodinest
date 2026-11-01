@@ -8,16 +8,26 @@ import type { PublicItem } from "@/server/social";
 export function ItemGrid({
   items,
   by,
+  owner,
 }: {
-  items: (PublicItem & { name?: string })[];
+  items: (PublicItem & { name?: string; username?: string })[];
   by?: boolean;
+  /** Whose items these are; none means my own, which open in my library. */
+  owner?: string;
 }) {
   const t = useTranslations();
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {items.map((it) => (
         <li key={`${it.resourceId}-${it.name ?? ""}`}>
-          <Link href={`/library/${it.resourceId}`} className="group block">
+          <Link
+            href={
+              (it.username ?? owner)
+                ? `/u/${it.username ?? owner}/item/${it.resourceId}`
+                : `/library/${it.resourceId}`
+            }
+            className="group block"
+          >
             <Cover
               type={it.type as "book"}
               title={it.title}

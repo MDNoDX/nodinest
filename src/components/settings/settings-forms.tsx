@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
+import { setHour12, useHour12 } from "@/lib/time-format";
 import { useAction } from "@/lib/use-action";
 import { LOCALES, localeKey } from "@/i18n/config";
 
@@ -61,6 +62,7 @@ export function AppearanceForm() {
     () => false,
   );
   const [, start] = useTransition();
+  const h12 = useHour12();
   const opts = [
     ["light", Sun],
     ["dark", Moon],
@@ -68,6 +70,25 @@ export function AppearanceForm() {
   ] as const;
   return (
     <div className="flex flex-col gap-5">
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium">{t("settings.timeFormat")}</legend>
+        <div className="bg-surface-2 grid w-fit grid-cols-2 gap-0.5 rounded-lg p-0.5 text-sm">
+          {[false, true].map((on) => (
+            <button
+              key={String(on)}
+              type="button"
+              aria-pressed={h12 === on}
+              onClick={() => setHour12(on)}
+              className={cn(
+                "rounded-md px-3 py-1.5 font-medium",
+                h12 === on ? "bg-surface shadow-sm" : "text-muted",
+              )}
+            >
+              {t(on ? "settings.time12" : "settings.time24")}
+            </button>
+          ))}
+        </div>
+      </fieldset>
       <fieldset>
         <legend className="mb-2 text-sm font-medium">{t("theme.label")}</legend>
         <div className="grid grid-cols-3 gap-2" role="radiogroup">

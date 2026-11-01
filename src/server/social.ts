@@ -83,6 +83,97 @@ export async function profileByUsername(ctx: AppContext, username: string) {
   };
 }
 
+/** What a person has done, counted from what they show publicly. */
+export async function profileStats(ctx: AppContext, userId: string) {
+  const [s] = await db.execute<{
+    books: number;
+    videos: number;
+    courses: number;
+    audio: number;
+    pages: number;
+    seconds: number;
+  }>(sql`
+    select
+      count(*) filter (where lr.status = 'completed' and r.type = 'book')::int as books,
+      count(*) filter (where lr.status = 'completed'
+        and r.type::text in ('video', 'lecture', 'interview'))::int as videos,
+      count(*) filter (where lr.status = 'completed' and r.type = 'course')::int as courses,
+      count(*) filter (where lr.status = 'completed' and r.type = 'podcast')::int as audio,
+      coalesce(sum(lr.progress_current) filter (where lr.progress_unit = 'pages'), 0)::int as pages,
+      coalesce(sum(m.duration_seconds) filter (where lr.status = 'completed'), 0)::int as seconds
+    from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id
+    left join nodinest.media_details m on m.resource_id = r.id
+    where lr.user_id = ${userId} and lr.visibility = 'public' and ${canSee(ctx)}`);
+  // A page takes about a minute and a half to read.
+  return { ...s, hours: Math.round((s.seconds + s.pages * 90) / 3600) };
+}
+
+/** People who show the most finished work; a private profile never appears. */
+export async function ranking(limit = 10) {
+  return db.execute<{
+    id: string;
+    name: string;
+    username: string;
+    image: string | null;
+    done: number;
+  }>(sql`
+    select u.id, u.name, u.username, u.image, count(*)::int as done
+    from nodinest.learning_records lr
+    join nodinest."user" u on u.id = lr.user_id
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    where lr.visibility = 'public' and lr.status = 'completed' and u.profile_public
+      and u.status = 'active' and u.username is not null
+    group by u.id
+    order by done desc, u.name
+    limit ${limit}`);
+}
+
+/** One thing a person shows publicly: its card, never their notes, files or text. */
+export async function publicItem(ctx: AppContext, username: string, resourceId: string) {
+  const rid = z.string().uuid().safeParse(resourceId);
+  if (!rid.success) return null;
+  const [it] = await db.execute<
+    PublicItem & {
+      ownerId: string;
+      name: string;
+      username: string;
+      image: string | null;
+      description: string | null;
+      sourceUrl: string | null;
+      authors: string | null;
+      mine: boolean;
+    }
+  >(sql`
+    select lr.resource_id as "resourceId", r.title, r.type::text as type,
+      r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
+      lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
+      lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
+      r.description, r.source_url as "sourceUrl",
+      (select string_agg(p.full_name, ', ') from nodinest.resource_contributors c
+        join nodinest.people p on p.id = c.person_id where c.resource_id = r.id) as authors,
+      exists(select 1 from nodinest.learning_records m
+        where m.user_id = ${ctx.userId} and m.resource_id = r.id) as mine
+    from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active'
+    where lower(u.username) = ${normalizeUsername(username)} and lr.resource_id = ${rid.data}
+      and lr.visibility = 'public' and ${canSee(ctx)}`);
+  return it ?? null;
+}
+
+/** Someone whose public card of this entry I may open (for old links to /library/id). */
+export async function publicOwnerOf(ctx: AppContext, resourceId: string) {
+  const [o] = await db.execute<{ username: string }>(sql`
+    select u.username from nodinest.learning_records lr
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active'
+    where lr.resource_id = ${resourceId} and lr.visibility = 'public'
+      and u.username is not null and ${canSee(ctx)}
+    limit 1`);
+  return o?.username ?? null;
+}
+
 /** A person's public library (only when their profile is public, or it is you). */
 export async function publicItems(ctx: AppContext, userId: string, limit = 120) {
   return db.execute<PublicItem>(sql`

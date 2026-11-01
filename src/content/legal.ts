@@ -13,7 +13,7 @@ export type LegalDoc = { title: string; intro: string; sections: { h: string; p:
 const uzPrivacy: LegalDoc = {
   title: "Maxfiylik siyosati",
   intro:
-    "NodiNote — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar. Bu yerda qaysi ma’lumotlaringiz saqlanişi, ularni kim körişi va qanday öçirişingiz mumkinligi oddiy tilda yozilgan.",
+    "Roznoma — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar. Bu yerda qaysi ma’lumotlaringiz saqlanişi, ularni kim körişi va qanday öçirişingiz mumkinligi oddiy tilda yozilgan.",
   sections: [
     {
       h: "Nima saqlanadi",
@@ -59,7 +59,7 @@ const uzPrivacy: LegalDoc = {
 const enPrivacy: LegalDoc = {
   title: "Privacy policy",
   intro:
-    "NodiNote is a personal notebook for what you read, watch and learn. This page says in plain words what is kept, who can see it and how you can delete it.",
+    "Roznoma is a personal notebook for what you read, watch and learn. This page says in plain words what is kept, who can see it and how you can delete it.",
   sections: [
     {
       h: "What is kept",
@@ -104,7 +104,7 @@ const enPrivacy: LegalDoc = {
 
 const uzTerms: LegalDoc = {
   title: "Foydalaniş şartlari",
-  intro: "NodiNote’dan foydalanib, quyidagi oddiy şartlarga rozilik bildirasiz.",
+  intro: "Roznoma’dan foydalanib, quyidagi oddiy şartlarga rozilik bildirasiz.",
   sections: [
     {
       h: "Xizmat",
@@ -133,7 +133,7 @@ const uzTerms: LegalDoc = {
 
 const enTerms: LegalDoc = {
   title: "Terms of use",
-  intro: "By using NodiNote you agree to these simple terms.",
+  intro: "By using Roznoma you agree to these simple terms.",
   sections: [
     {
       h: "The service",
@@ -163,7 +163,7 @@ const enTerms: LegalDoc = {
 const ruPrivacy: LegalDoc = {
   title: "Политика конфиденциальности",
   intro:
-    "NodiNote — личный дневник того, что вы прочитали, посмотрели и изучили. Здесь простыми словами описано, какие данные хранятся, кто их видит и как их удалить.",
+    "Roznoma — личный дневник того, что вы прочитали, посмотрели и изучили. Здесь простыми словами описано, какие данные хранятся, кто их видит и как их удалить.",
   sections: [
     {
       h: "Что хранится",
@@ -208,7 +208,7 @@ const ruPrivacy: LegalDoc = {
 
 const ruTerms: LegalDoc = {
   title: "Условия использования",
-  intro: "Пользуясь NodiNote, вы соглашаетесь с этими простыми условиями.",
+  intro: "Пользуясь Roznoma, вы соглашаетесь с этими простыми условиями.",
   sections: [
     {
       h: "Сервис",

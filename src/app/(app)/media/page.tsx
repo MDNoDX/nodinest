@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/misc";
 import { pageContext, sp, type SP } from "@/lib/page";
-import { mediaFeed, myFollowRequests } from "@/server/social";
+import { mediaFeed, myFollowRequests, ranking } from "@/server/social";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -17,7 +17,11 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
   const { ctx } = await pageContext();
   const t = await getTranslations("media");
   const kind = sp((await searchParams).kind) || "all";
-  const [items, asked] = await Promise.all([mediaFeed(ctx, { kind }), myFollowRequests(ctx)]);
+  const [items, asked, top] = await Promise.all([
+    mediaFeed(ctx, { kind }),
+    myFollowRequests(ctx),
+    ranking(),
+  ]);
   return (
     <>
       <PageHeader title={t("title")} />
@@ -46,6 +50,32 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
           </div>
         )}
       </section>
+      {top.length > 1 && (
+        <section aria-label={t("ranking")} className="mb-4">
+          <h2 className="text-muted mb-2 text-xs font-semibold">{t("ranking")}</h2>
+          <ol className="flex gap-2 overflow-x-auto pb-1">
+            {top.map((p, i) => (
+              <li key={p.id} className="shrink-0">
+                <Link
+                  href={`/u/${p.username}`}
+                  className="card hover:border-border-strong flex items-center gap-2 py-2 pr-3 pl-2 transition-colors"
+                >
+                  <span className="text-muted w-4 text-center text-xs font-bold tabular-nums">
+                    {i + 1}
+                  </span>
+                  <Avatar name={p.name} image={p.image} className="size-7" />
+                  <span className="min-w-0">
+                    <span className="block max-w-28 truncate text-xs font-semibold">{p.name}</span>
+                    <span className="text-muted block text-[11px] tabular-nums">
+                      {t("rankDone", { n: p.done })}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <MediaFeed key={kind} items={[...items]} kind={kind} />
     </>
   );

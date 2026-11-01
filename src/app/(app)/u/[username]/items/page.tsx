@@ -41,7 +41,7 @@ export default async function ProfileItemsPage({
       ) : (
         <>
           <h1 className="text-xl font-bold tracking-tight">{t("library")}</h1>
-          <AllItems items={[...items]} />
+          <AllItems items={[...items]} owner={p.username} />
         </>
       )}
     </div>

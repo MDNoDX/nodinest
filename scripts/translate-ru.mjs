@@ -9,8 +9,8 @@ if (!KEY) throw new Error("GEMINI_API_KEY is not set");
 const MODELS = (
   process.env.MODELS ?? "gemini-3.8-flash,gemini-flash-latest,gemini-flash-lite-latest"
 ).split(",");
-const SYSTEM = `You translate the UI of NodiNote, a personal reading & learning notebook web app, from English into natural, concise Russian as used in modern apps.
-Keep ICU MessageFormat EXACTLY: {name} placeholders unchanged; in {count, plural, ...} use Russian categories one/few/many/other with correct forms and keep #; keep <tag>…</tag> names. Keep product names (NodiNote, Telegram, Google, YouTube, AI, PDF, EPUB, ISBN, Premium). "Taqriz" → «рецензия», "Darsxona" → «Библиотека». Return a JSON object with the same keys.`;
+const SYSTEM = `You translate the UI of Roznoma, a personal reading & learning notebook web app, from English into natural, concise Russian as used in modern apps.
+Keep ICU MessageFormat EXACTLY: {name} placeholders unchanged; in {count, plural, ...} use Russian categories one/few/many/other with correct forms and keep #; keep <tag>…</tag> names. Keep product names (Roznoma, Telegram, Google, YouTube, AI, PDF, EPUB, ISBN, Premium). "Taqriz" → «рецензия», "Darsxona" → «Библиотека». Return a JSON object with the same keys.`;
 
 const en = JSON.parse(readFileSync("messages/en.json", "utf8"));
 const ru = JSON.parse(readFileSync("messages/ru.json", "utf8"));

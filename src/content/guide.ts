@@ -1,5 +1,5 @@
 /**
- * "Qo'llanma": every part of NodiNote explained in plain words, section by
+ * "Qo'llanma": every part of Roznoma explained in plain words, section by
  * section. Shown at /guide (linked from the menu, Settings and the first-visit
  * tour). Kept here rather than in messages/*.json: it is long prose, not UI
  * labels. Both languages must keep the same section ids.
@@ -23,7 +23,7 @@ const uz: GuideSection[] = [
     icon: "rocket",
     title: "Boşlaş: 3 qadam",
     intro:
-      "NodiNote — öqigan, körgan va örgangan hamma narsangiz uçun şaxsiy daftar. Boşlaş uçun şu uç qadam yetarli.",
+      "Roznoma — öqigan, körgan va örgangan hamma narsangiz uçun şaxsiy daftar. Boşlaş uçun şu uç qadam yetarli.",
     items: [
       {
         title: "1. Kitob qöşing",
@@ -378,7 +378,7 @@ const en: GuideSection[] = [
     icon: "rocket",
     title: "Getting started: 3 steps",
     intro:
-      "NodiNote is a personal notebook for everything you read, watch and learn. These three steps are enough to begin.",
+      "Roznoma is a personal notebook for everything you read, watch and learn. These three steps are enough to begin.",
     items: [
       {
         title: "1. Add a book",

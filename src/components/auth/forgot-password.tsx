@@ -10,12 +10,15 @@ import { passwordOk } from "@/lib/password";
 
 const RESEND_S = 60;
 
-/** Back into an account without Google: who you are, the code, a new password. */
+/** In without Google: who you are, the code, a password. Also opens a new account. */
 export function ForgotPassword({
   login: known = "",
+  signup = false,
   onDone,
   onBack,
 }: {
+  /** Someone new: a code goes to their e-mail and the password opens an account. */
+  signup?: boolean;
   /** Signed in: who we are is known, so the first step is one button. */
   login?: string;
   /** Saved; the caller signs in with these. */
@@ -40,7 +43,7 @@ export function ForgotPassword({
   const ask = () =>
     start(async () => {
       setError(null);
-      const r = await requestResetAction(v.login);
+      const r = await requestResetAction(v.login, signup);
       if (!r.ok) return setError(t(r.code === "RATE_LIMITED" ? "tooMany" : "failed"));
       if (!r.data.to && !r.data.bot) return setError(t("resetNoUser"));
       setSentTo(r.data.bot ? t("resetSentBot") : t("resetSentTo", { to: r.data.to ?? "" }));
@@ -78,13 +81,14 @@ export function ForgotPassword({
       {step === "who" && (
         <>
           {!known && (
-            <Field label={t("usernameOrEmail")}>
+            <Field label={signup ? t("email") : t("usernameOrEmail")}>
               {(p) => (
                 <Input
                   {...p}
                   required
                   autoFocus
-                  autoComplete="username"
+                  type={signup ? "email" : "text"}
+                  autoComplete={signup ? "email" : "username"}
                   autoCapitalize="none"
                   spellCheck={false}
                   value={v.login}
@@ -93,7 +97,7 @@ export function ForgotPassword({
               )}
             </Field>
           )}
-          <p className="text-muted text-sm">{t("resetHint")}</p>
+          <p className="text-muted text-sm">{t(signup ? "signupHint" : "resetHint")}</p>
           <Button type="submit" loading={pending} disabled={!v.login.trim()}>
             {t("sendCode")}
           </Button>
@@ -130,7 +134,7 @@ export function ForgotPassword({
       )}
       {step === "password" && (
         <>
-          <p className="text-muted text-sm">{t("resetNewHint")}</p>
+          <p className="text-muted text-sm">{t(signup ? "signupNewHint" : "resetNewHint")}</p>
           <Field label={t("newPassword")}>
             {(p) => (
               <PasswordInput

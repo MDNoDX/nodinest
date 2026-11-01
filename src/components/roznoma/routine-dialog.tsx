@@ -1,14 +1,21 @@
 "use client";
 import { Archive, ChevronDown, Music, Play } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveRoutineAction, setArchivedAction } from "@/app/actions/roznoma";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import { ALARM_SOUNDS, PICKER_ICONS, UNITS, guessIcon, type Unit } from "@/lib/plan-icons";
+import {
+  ALARM_SOUNDS,
+  PICKER_ICONS,
+  UNITS,
+  guessIcon,
+  type AddedIcon,
+  type Unit,
+} from "@/lib/plan-icons";
 import { uploadMedia } from "@/lib/upload-media";
 import { useAction } from "@/lib/use-action";
 import { playAlarm } from "./alarm-sound";
@@ -51,13 +58,23 @@ const EMPTY: RoutineValue = {
   inJournal: false,
 };
 
-/** Splits "20 bet" into its number and the unit the form offers. */
+/** Words of items saved before the units changed. */
+const OLD_UNITS: Record<string, Unit> = {
+  bet: "page",
+  marta: "piece",
+  times: "piece",
+  раз: "piece",
+};
+const OLD_FULL = /^(tugagun[cç]h?a|to the end|до конца)$/i;
+
+/** Splits "20 sahifa" into its number and the unit the form offers. */
 function parseAmount(a: string | null, words: Record<Unit, string>) {
-  if (!a) return { n: "", unit: "page" as Unit, free: "" };
-  if (a === words.end) return { n: "", unit: "end" as Unit, free: "" };
+  if (!a) return { n: "", unit: "none" as Unit };
+  if (a === words.full || OLD_FULL.test(a.trim())) return { n: "", unit: "full" as Unit };
   const m = /^([\d.,]+)\s*(.*)$/.exec(a.trim());
-  const unit = (Object.keys(words) as Unit[]).find((k) => m && words[k] === m[2]);
-  return m && unit ? { n: m[1], unit, free: "" } : { n: "", unit: "page" as Unit, free: a };
+  if (!m) return { n: "", unit: "none" as Unit };
+  const unit = (Object.keys(words) as Unit[]).find((k) => words[k] === m[2]);
+  return { n: m[1], unit: unit ?? OLD_UNITS[m[2]] ?? ("none" as Unit) };
 }
 
 /** Add or change a plan item: everything but the name is optional. */
@@ -96,8 +113,21 @@ export function RoutineDialog({
   const [uploading, setUploading] = useState(false);
   const days = t("weekdaysShort").split(",");
   const inner = !!(parentId ?? initial?.parentId);
-  const icon = v.icon ?? guessIcon(v.title);
-  const amount = unit === "end" ? words.end : n ? `${n} ${words[unit]}`.trim() : null;
+  const [added, setAdded] = useState<AddedIcon[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let on = true;
+    fetch("/api/plan-icons")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: AddedIcon[]) => on && setAdded(list))
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [open]);
+  const icon = v.icon ?? guessIcon(v.title, added);
+  const amount =
+    unit === "full" ? words.full : !n ? null : unit === "none" ? n : `${n} ${words[unit]}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,9 +165,9 @@ export function RoutineDialog({
               onClick={() => setIconsOpen((o) => !o)}
               aria-expanded={iconsOpen}
               aria-label={t("chooseIcon")}
-              className="bg-primary-soft text-primary hover:ring-primary/40 grid size-11 shrink-0 place-items-center rounded-xl transition hover:ring-2"
+              className="bg-surface-2 hover:ring-primary/40 grid size-11 shrink-0 place-items-center rounded-xl transition hover:ring-2"
             >
-              <PlanIcon name={icon} className="size-5" />
+              <PlanIcon name={icon} className="size-7" />
             </button>
             <div className="min-w-0 flex-1">
               <Field label={t("itemTitle")}>
@@ -157,7 +187,7 @@ export function RoutineDialog({
           </div>
           {iconsOpen && (
             <div className="bg-surface-2 grid max-h-48 grid-cols-6 gap-1 overflow-y-auto rounded-xl p-2 sm:grid-cols-10">
-              {PICKER_ICONS.map((k) => (
+              {[...added.map((a) => `c:${a.id}`), ...PICKER_ICONS].map((k) => (
                 <button
                   key={k}
                   type="button"
@@ -168,10 +198,10 @@ export function RoutineDialog({
                   }}
                   className={cn(
                     "hover:bg-surface grid aspect-square place-items-center rounded-lg transition",
-                    icon === k && "bg-primary text-primary-foreground hover:bg-primary",
+                    icon === k && "bg-primary-soft ring-primary ring-2",
                   )}
                 >
-                  <PlanIcon name={k} className="size-4.5" />
+                  <PlanIcon name={k} className="size-6" />
                 </button>
               ))}
             </div>
@@ -181,7 +211,7 @@ export function RoutineDialog({
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">{t("amount")}</span>
               <div className="flex gap-2">
-                {unit !== "end" && (
+                {unit !== "full" && (
                   <Input
                     inputMode="decimal"
                     className="w-20"
@@ -191,18 +221,18 @@ export function RoutineDialog({
                     onChange={(e) => setN(e.target.value.replace(/[^\d.,]/g, ""))}
                   />
                 )}
-                <select
+                <Select
                   value={unit}
                   aria-label={t("unit")}
                   onChange={(e) => setUnit(e.target.value as Unit)}
-                  className="border-border-strong bg-surface h-10 min-w-0 flex-1 rounded-lg border px-2 text-sm"
+                  className="min-w-0 flex-1"
                 >
                   {UNITS.map((u) => (
                     <option key={u} value={u}>
                       {words[u]}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
             {!inner && (

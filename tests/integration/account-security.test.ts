@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { session } from "@/db/schema";
+import { session, user } from "@/db/schema";
 import { passwordOk } from "@/lib/password";
 import { makeUser, testDb } from "../helpers/db";
 
@@ -97,5 +97,15 @@ describe("account security", () => {
       bot: false,
     });
     await expect(requestReset("nobody_here")).resolves.toEqual({ to: null, bot: false });
+    // Nothing was sent to it, so no code can open an account there.
+    await expect(confirmReset("nobody-here@example.test", "123456", "Abcdefg1")).rejects.toThrow();
+    // Asking to sign up does: the code opens the account, once.
+    const fresh = `new-${Date.now()}@example.test`;
+    await requestReset(fresh, { signup: true });
+    await expect(confirmReset(fresh, "000000", "Abcdefg1")).rejects.toThrow();
+    await confirmReset(fresh, "123456", "Abcdefg1");
+    const [made] = await db.select().from(user).where(eq(user.email, fresh));
+    expect(made?.emailVerified).toBe(true);
+    await expect(confirmReset(fresh, "123456", "Abcdefg2")).rejects.toThrow();
   });
 });

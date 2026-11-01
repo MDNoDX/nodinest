@@ -2,10 +2,10 @@
 import { Clock, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { TimeField } from "@/components/roznoma/time-field";
 import { parseReadingDate } from "@/lib/reading-date";
 import { Button } from "./button";
 import { DateParts } from "./date-parts";
-import { Input } from "./input";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const localDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -89,17 +89,15 @@ export function ReadingDateInput({
       {fullDay &&
         (showTime ? (
           <div className="flex items-center gap-1.5">
-            <Clock className="text-muted size-4" />
-            <Input
-              type="time"
-              aria-label={t("dates.time")}
-              className="w-28 px-2"
-              value={time}
-              onChange={(e) => {
-                setTime(e.target.value);
-                onChange(toValue(date, e.target.value));
-              }}
-            />
+            <div className="flex w-32">
+              <TimeField
+                value={time || null}
+                onChange={(v) => {
+                  setTime(v ?? "");
+                  onChange(toValue(date, v ?? ""));
+                }}
+              />
+            </div>
             <button
               type="button"
               className="text-muted hover:text-foreground text-xs"

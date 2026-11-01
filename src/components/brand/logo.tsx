@@ -1,13 +1,13 @@
 import { cn } from "@/lib/cn";
 
 /**
- * NodiNote symbol: a spiral notebook (cover, rings, ruled lines) with a gold
+ * Roznoma symbol: a spiral notebook (cover, rings, ruled lines) with a gold
  * bookmark ribbon and a pencil — "write anything down". Inline SVG, themed
  * through CSS variables so it works in light and dark mode.
  */
 export function LogoSymbol({
   className,
-  title = "NodiNote",
+  title = "Roznoma",
 }: {
   className?: string;
   title?: string;
@@ -42,7 +42,7 @@ export function Logo({ className, compact }: { className?: string; compact?: boo
       <LogoSymbol className="size-8" />
       {!compact && (
         <span className="text-foreground text-[1.15rem] font-semibold tracking-tight">
-          Nodi<span className="text-primary">Note</span>
+          Roz<span className="text-primary">noma</span>
         </span>
       )}
     </span>

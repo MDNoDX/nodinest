@@ -1,8 +1,10 @@
-import { CircleCheck } from "lucide-react";
-import { PLAN_ICONS } from "@/lib/plan-icons";
+/* eslint-disable @next/next/no-img-element */
+import { iconKey } from "@/lib/plan-icons";
 
-/** The icon of a plan item (a plain tick when it has none). */
+/** The colour picture of a plan item: one of ours, or one the owner added ("c:<id>"). */
 export function PlanIcon({ name, className }: { name: string | null; className?: string }) {
-  const I = (name && PLAN_ICONS[name]) || CircleCheck;
-  return <I className={className} aria-hidden />;
+  const src = name?.startsWith("c:")
+    ? `/api/plan-icons/${name.slice(2)}`
+    : `/plan-icons/${iconKey(name)}.svg`;
+  return <img src={src} alt="" aria-hidden className={className} />;
 }

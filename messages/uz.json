@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "NodiNote",
+    "name": "Roznoma",
     "tagline": "Bilimlar uçun şaxsiy makon."
   },
   "common": {
@@ -197,7 +197,14 @@
     "resetCheck": "Davom etiş",
     "resetAgain": "Kodni qayta yuboriş",
     "resetWait": "Qayta yuboriş: {n} s",
-    "resetNewHint": "Kod to'g'ri. Yangi parol qo'ying, keyin akkauntingizga kirasiz."
+    "resetNewHint": "Kod töğri. Yangi parol qöying, keyin akkauntingizga kirasiz.",
+    "signupWithEmail": "Email bilan röyxatdan ötiş",
+    "signupHint": "Emailingizni yozing, unga kod yuboramiz. Keyin parol qöyasiz va akkauntingiz oçiladi.",
+    "signupNewHint": "Kod töğri. Parol qöying, akkauntingiz oçiladi.",
+    "googleFailed": "Google orqali kirib bölmadi. Email bilan davom eting.",
+    "inAppBrowser": "Google bu ilova içidagi brauzerda işlamaydi. Havolani Chrome yoki Safari'da oçing, yoki email bilan davom eting.",
+    "copyLink": "Havolani nusxalaş",
+    "linkCopied": "Nusxalandi"
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -1097,7 +1104,10 @@
       "confirmAll": "Bu qurilmadagi barça keş öçirilsinmi? Hisobingizdagi ma’lumotlar öçmaydi.",
       "safeTitle": "Nimalar öçmaydi",
       "safeBody": "Kitoblaringiz, qaydlar, iqtiboslar, taqrizlar, Röznoma va tayyor audiokitoblar serverda saqlanadi. Tozalaş faqat şu qurilmadagi nusxalarni olib taşlaydi, ular kerak bölganda qayta yuklanadi."
-    }
+    },
+    "timeFormat": "Vaqt körinişi",
+    "time24": "24 soatlik",
+    "time12": "AM / PM"
   },
   "admin": {
     "title": "Boşqaruv",
@@ -1176,7 +1186,18 @@
     "insightsTop": "Eng köp qiziqişlar",
     "memLevel": "Daraja",
     "memLanguage": "Til va söz boyligi",
-    "memGoals": "Maqsadlar"
+    "memGoals": "Maqsadlar",
+    "icons": "Ikonkalar",
+    "iconSearch": "Inglizça qidiring: prayer, book, sound…",
+    "iconFind": "Topiş",
+    "iconHint": "Rangli ikonkalar Iconify'dan topiladi va saytga saqlanadi. Tanlang, nom bering va qaysi sözlarda avtomatik çiqişini vergul bilan yozing.",
+    "iconNone": "Heç narsa topilmadi.",
+    "iconName": "Nomi",
+    "iconWords": "Sözlar: tasbeh, zikr, namoz",
+    "iconAdd": "Qöşiş",
+    "iconAdded": "Ikonka qöşildi.",
+    "iconEmpty": "Hali ikonka qöşilmagan.",
+    "iconRemove": "Öçiriş"
   },
   "upload": {
     "choose": "Yuklaş",
@@ -1361,7 +1382,10 @@
     "day": "Kun",
     "time": "Vaqt",
     "addTime": "Vaqtini ham qöşiş",
-    "noTime": "Vaqtsiz"
+    "noTime": "Vaqtsiz",
+    "hour": "Soat",
+    "minute": "Daqiqa",
+    "clearTime": "Vaqtni olib taşlaş"
   },
   "card": {
     "pages": "{count} bet",
@@ -1406,11 +1430,11 @@
   },
   "install": {
     "title": "Ilovani örnatiş (Mac va telefon)",
-    "why": "NodiNote’ni alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
+    "why": "Roznoma’ni alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
     "installNow": "Hozir örnatiş",
     "installed": "Ilova örnatilgan — siz uni ilova oynasida işlatyapsiz.",
     "mac": "Mac",
-    "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «NodiNote’ni örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
+    "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «Roznoma’ni örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
     "macSafari": "Safari: «Fayl» → «Dock’ga qöşiş» (Add to Dock). Ilova Dock va Launchpad’da paydo böladi.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): «Ulaşiş» tugmasi → «Boş ekranga qöşiş» (Add to Home Screen).",
@@ -1523,8 +1547,8 @@
     "resetOne": "Asl holiga qaytariş",
     "resetAll": "Hammasini asl holiga qaytariş",
     "changeHint": "Esc — bekor qiliş. Sozlamalar şu qurilmada saqlanadi.",
-    "systemMacApp": "NodiNote’da media oçiq bölmasa, töxtatiş tugmasi kompyuterdagi boşqa audio/videoni (boşqa oynadagi YouTube, Spotify…) boşqaradi.",
-    "systemWeb": "Brauzerda faqat NodiNote pleeri boşqariladi. Kompyuterdagi boşqa audio/videoni ham boşqariş uçun NodiNote Mac ilovasidan foydalaning.",
+    "systemMacApp": "Roznoma’da media oçiq bölmasa, töxtatiş tugmasi kompyuterdagi boşqa audio/videoni (boşqa oynadagi YouTube, Spotify…) boşqaradi.",
+    "systemWeb": "Brauzerda faqat Roznoma pleeri boşqariladi. Kompyuterdagi boşqa audio/videoni ham boşqariş uçun Roznoma Mac ilovasidan foydalaning.",
     "a": {
       "playPause": "Töxtatiş / davom ettiriş",
       "back5": "5 soniya orqaga",
@@ -1540,8 +1564,8 @@
     "typePause": "Yozayotganda avtomatik töxtatiş",
     "resumeAfter": "Qaçon davom etsin",
     "resumeAfterN": "{n} soniyadan keyin davom etsin",
-    "typePauseWeb": "Yoza boşlasangiz NodiNote pleeri töxtaydi va yozişdan töxtaganingizdan keyin 2 soniya orqadan davom etadi.",
-    "typePauseMacApp": "Yoza boşlasangiz töxtaydi, yozib bölgaç özi davom etadi. Taşqi dastur (Mutolaa, YouTube…) uçun: avval uni şu yerdagi töxtatiş tugmasi bilan yoqing — şunda NodiNote uning holatini biladi.",
+    "typePauseWeb": "Yoza boşlasangiz Roznoma pleeri töxtaydi va yozişdan töxtaganingizdan keyin 2 soniya orqadan davom etadi.",
+    "typePauseMacApp": "Yoza boşlasangiz töxtaydi, yozib bölgaç özi davom etadi. Taşqi dastur (Mutolaa, YouTube…) uçun: avval uni şu yerdagi töxtatiş tugmasi bilan yoqing — şunda Roznoma uning holatini biladi.",
     "playerExplain": "Pleer — saytning pastki burçagidagi kiçik oyna. Kitob sahifasida YouTube video yoki audio «Tinglab yoziş» bilan oçilganda u sahifadan sahifaga ötsangiz ham töxtamay ijro etadi: taqriz yozayotganda eşitib turasiz. Uni sudrab istalgan joyga qöyasiz, videoni yaşirib faqat ovozini qoldirasiz, yozayotganda özi töxtab turadi, töxtagan joyingiz esa akkauntingizda saqlanadi.",
     "replayTour": "Qöllanmani qayta köriş",
     "replayTourHint": "Asosiy tugmalar qisqaça tuşuntiriladi",
@@ -1582,7 +1606,7 @@
     "listening": "Tinglayapti — har daqiqa yozib boradi",
     "waitingPlay": "Video töxtatilgan — davom ettirsangiz yozişda davom etadi",
     "noMedia": "Bu manbada tinglanadigan video yoki audio yöq. Kitob sahifasida YouTube identifikatori yoki audio havolasini qöşing.",
-    "cannotCapture": "Bu fayl boşqa saytdan oçilgani uçun AI eşita olmaydi. Faylni NodiNote’ga yuklang yoki YouTube identifikatorini qöşing.",
+    "cannotCapture": "Bu fayl boşqa saytdan oçilgani uçun AI eşita olmaydi. Faylni Roznoma’ga yuklang yoki YouTube identifikatorini qöşing.",
     "queued": "Navbatda",
     "working": "Yozilmoqda…",
     "noSpeech": "Nutq yöq",
@@ -1771,7 +1795,7 @@
     "next": "Keyingi",
     "start": "Boşlaş",
     "done": "Tuşunarli!",
-    "welcomeTitle": "NodiNote’ga xuş kelibsiz!",
+    "welcomeTitle": "Roznoma’ga xuş kelibsiz!",
     "welcomeBody": "Bu — öqigan, körgan va örgangan hamma narsangiz uçun şaxsiy daftar. 1 daqiqada eng kerakli joylarni körsatib ötaman.",
     "libraryTitle": "Darsxona",
     "libraryBody": "Hamma kitob va videolaringiz şu yerda. Har birida holat (Rejada → Öqiyapman → Öqidim), baho va sanalar.",
@@ -1997,13 +2021,13 @@
     "modeSolo": "Bitta öquvçi",
     "modeSoloHint": "Butun kitobni bir ovoz öqiydi",
     "preparing": "Tayyorlanmoqda…",
-    "voiceComing": "Ovoz tayyorlanmoqda. Kutmasangiz ham boşqa qismga o'tişingiz mumkin.",
+    "voiceComing": "Ovoz tayyorlanmoqda. Kutmasangiz ham boşqa qismga ötişingiz mumkin.",
     "partsMap": "Kitob qismlari",
-    "partsHint": "Tayyor qismni bossangiz o'ynaydi. Tayyor bo'lmaganini bossangiz navbatga qo'şiladi va o'zi tayyorlanadi.",
+    "partsHint": "Tayyor qismni bossangiz öynaydi. Tayyor bölmaganini bossangiz navbatga qöşiladi va özi tayyorlanadi.",
     "chapters": "Boblar",
     "readyCount": "{n} / {total} tayyor",
     "prepareAll": "Hammasini tayyorlaş",
-    "queueStop": "To'xtatiş ({n} qoldi)",
+    "queueStop": "Töxtatiş ({n} qoldi)",
     "queueResume": "Davom ettiriş ({n})",
     "queueStopped": "Bugungi ovoz limiti tugadi. Navbat saqlandi, keyinroq davom ettirasiz.",
     "sleepLeft": "{n} daqiqa qoldi",
@@ -2298,7 +2322,12 @@
     "requested": "Javob kutilmoqda",
     "askToFollow": "Kuzatişni söraş",
     "requestSent": "Sörov yuborildi. Egasi qabul qilsa, sizga xabar keladi.",
-    "requestedHint": "Javob kutilmoqda. Bekor qiliş uçun bosing."
+    "requestedHint": "Javob kutilmoqda. Bekor qiliş uçun bosing.",
+    "statBooks": "Kitob öqigan",
+    "statVideos": "Video va audio",
+    "statCourses": "Kurs",
+    "statHours": "Soat (taxminan)",
+    "openSource": "Manbani oçiş"
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2353,13 +2382,11 @@
     "itemTitlePh": "Bomdod, kitob öqiş, maşq…",
     "amount": "Qançaligi",
     "unit": "Ölçov",
-    "unit_page": "bet",
+    "unit_page": "sahifa",
     "unit_min": "daqiqa",
     "unit_hour": "soat",
     "unit_piece": "ta",
-    "unit_time": "marta",
     "unit_chapter": "bob",
-    "unit_end": "tugagunça",
     "timeRange": "Vaqti",
     "repeat_daily": "Har kuni",
     "repeat_weekly": "Hafta kunlari",
@@ -2471,7 +2498,10 @@
     ],
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
     "speakDay": "Aytib beriş",
-    "savedOffline": "Saqlandi. Internet qaytganda yuboriladi."
+    "savedOffline": "Saqlandi. Internet qaytganda yuboriladi.",
+    "unit_none": "–",
+    "unit_rakat": "rakat",
+    "unit_full": "töliq"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
@@ -2513,7 +2543,7 @@
       "goal_soon": "Maqsad muddatiga 3 kun qoldi",
       "goal_due": "Maqsad muddati bugun. Erişdingizmi?",
       "weekly": "Haftangiz yakuni tayyor",
-      "news": "NodiNote yangiligi"
+      "news": "Roznoma yangiligi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2547,7 +2577,9 @@
     "taken": "Manba kutubxonangizga qöşildi",
     "inLibrary": "Kutubxonamda bor",
     "findPeople": "Odamlarni qidiriş",
-    "waiting": "Sörovingiz javob kutmoqda"
+    "waiting": "Sörovingiz javob kutmoqda",
+    "ranking": "Eng faol",
+    "rankDone": "{n} ta tugatgan"
   },
   "sectionHint": {
     "close": "Yopiş",

@@ -1,4 +1,4 @@
-# NodiNote — katta ish rejasi
+# Roznoma — katta ish rejasi
 
 Egasining barcha talablari bitta joyda, bajarish tartibida. Har bosqich alohida
 tekshiriladi va deploy qilinadi. `[Q]` — egasining qarori kerak.

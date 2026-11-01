@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, Eye, Lock } from "lucide-react";
+import { BookOpen, ChevronRight, Clock3, Eye, GraduationCap, Lock, Play } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -15,6 +15,7 @@ import {
   followingList,
   myItemsCount,
   profileByUsername,
+  profileStats,
   publicItems,
 } from "@/server/social";
 import { PersonCard } from "@/components/social/person-card";
@@ -41,7 +42,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     mine ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
   if (!p) notFound();
-  const items = ownItems ?? (p.visible ? await publicItems(ctx, p.id) : []);
+  const [items, done] = await Promise.all([
+    ownItems ?? (p.visible ? publicItems(ctx, p.id) : Promise.resolve([])),
+    p.visible ? profileStats(ctx, p.id) : Promise.resolve(null),
+  ]);
   const stat = (n: number, label: string, href?: string) => {
     const body = (
       <>
@@ -118,6 +122,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           {stat(p.followers, t("statFollowers"), `/u/${p.username}/followers`)}
           {stat(p.following, t("statFollowing"), `/u/${p.username}/following`)}
         </div>
+        {done && (
+          <div className="mx-5 mb-5 grid grid-cols-2 gap-2 sm:mx-7 sm:grid-cols-4">
+            {(
+              [
+                [done.books, t("statBooks"), BookOpen, "var(--c-blue)"],
+                [done.videos + done.audio, t("statVideos"), Play, "var(--c-rose)"],
+                [done.courses, t("statCourses"), GraduationCap, "var(--c-teal)"],
+                [done.hours, t("statHours"), Clock3, "var(--c-amber)"],
+              ] as const
+            ).map(([n, label, Icon, color]) => (
+              <div key={label} className="bg-surface-2 flex items-center gap-2.5 rounded-xl p-3">
+                <Icon className="size-5 shrink-0" style={{ color }} />
+                <span className="min-w-0">
+                  <span className="block text-lg leading-tight font-bold tabular-nums">{n}</span>
+                  <span className="text-muted block truncate text-xs">{label}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {!p.visible ? (
@@ -143,7 +167,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               </Link>
             )}
           </div>
-          <ItemGrid items={items.slice(0, 5)} />
+          <ItemGrid items={items.slice(0, 5)} owner={p.self ? undefined : p.username} />
         </section>
       )}
       {p.self && myItems > 0 && (

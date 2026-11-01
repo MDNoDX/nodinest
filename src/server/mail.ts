@@ -30,9 +30,9 @@ export async function sendMail(m: { to: string; subject: string; text: string; h
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const RESET = {
-  ru: { s: "Сброс пароля NodiNote", h: "Код для сброса пароля" },
-  en: { s: "Reset your NodiNote password", h: "Your password reset code" },
-  uz: { s: "NodiNote parolini tiklaş", h: "Parolni tiklaş kodi" },
+  ru: { s: "Сброс пароля Roznoma", h: "Код для сброса пароля" },
+  en: { s: "Reset your Roznoma password", h: "Your password reset code" },
+  uz: { s: "Roznoma parolini tiklaş", h: "Parolni tiklaş kodi" },
 };
 
 /** The sign-in (or password reset) code letter in the user's language. */
@@ -40,18 +40,18 @@ export function codeMail(code: string, locale: string, purpose: "sign-in" | "res
   const base =
     locale === "ru"
       ? {
-          s: "Код для входа в NodiNote",
+          s: "Код для входа в Roznoma",
           h: "Ваш код для входа",
           n: "Код действует 10 минут. Если это были не вы, просто проигнорируйте письмо.",
         }
       : locale === "en"
         ? {
-            s: "Your NodiNote sign-in code",
+            s: "Your Roznoma sign-in code",
             h: "Your sign-in code",
             n: "The code is valid for 10 minutes. If this wasn’t you, just ignore this e-mail.",
           }
         : {
-            s: "NodiNote’ga kiriş kodi",
+            s: "Roznoma’ga kiriş kodi",
             h: "Kiriş kodingiz",
             n: "Kod 10 daqiqa amal qiladi. Agar bu siz bölmasangiz, xatni e’tiborsiz qoldiring.",
           };
@@ -61,7 +61,7 @@ export function codeMail(code: string, locale: string, purpose: "sign-in" | "res
     subject: `${L.s}: ${code}`,
     text: `${L.h}: ${code}\n\n${L.n}`,
     html: `<div style="font-family:system-ui,sans-serif;max-width:420px;margin:auto;padding:24px">
-<h2 style="margin:0 0 8px">NodiNote</h2><p style="margin:0 0 16px;color:#555">${esc(L.h)}:</p>
+<h2 style="margin:0 0 8px">Roznoma</h2><p style="margin:0 0 16px;color:#555">${esc(L.h)}:</p>
 <p style="font-size:32px;font-weight:700;letter-spacing:8px;margin:0 0 16px">${esc(code)}</p>
 <p style="color:#777;font-size:13px">${esc(L.n)}</p></div>`,
   };
