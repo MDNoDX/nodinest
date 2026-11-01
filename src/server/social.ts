@@ -14,7 +14,7 @@ import { followRequests, follows, learningRecords, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { normalizeUsername } from "@/lib/username";
-import { normalizeText } from "@/lib/normalize";
+import { normalizeText, otherScript } from "@/lib/normalize";
 import { notify } from "./notifications";
 import { enforceRateLimit } from "./rate-limit";
 import { ensureInLibrary } from "./records";
@@ -195,6 +195,10 @@ export async function searchPeople(ctx: AppContext, q: string) {
   const esc = k.replace(/[%_\\]/g, "\\$&");
   const like = k.length < 3 ? `${esc}%` : `%${esc}%`;
   const word = `% ${esc}%`;
+  // The same name in the other Uzbek alphabet: "Muhammad" finds "Муҳаммад".
+  const other = normalizeText(otherScript(k)).replace(/[%_\\]/g, "\\$&");
+  const otherLike = k.length < 3 ? `${other}%` : `%${other}%`;
+  const otherWord = `% ${other}%`;
   return db.execute<PersonCard & { isFollowing: boolean; requested: boolean }>(sql`
     select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
       case when ${canSee(ctx)} then (select count(*)::int from nodinest.learning_records lr
@@ -205,7 +209,9 @@ export async function searchPeople(ctx: AppContext, q: string) {
     from nodinest."user" u
     where u.status = 'active' and u.username is not null and u.id <> ${ctx.userId}
       and (lower(u.username) like ${like} or nodinest.nn_norm(u.name) like ${like}
-           or nodinest.nn_norm(u.name) like ${word})
+           or nodinest.nn_norm(u.name) like ${word}
+           or nodinest.nn_norm(u.name) like ${otherLike}
+           or nodinest.nn_norm(u.name) like ${otherWord})
     order by (lower(u.username) = ${k}) desc, (lower(u.username) like ${`${esc}%`}) desc, items desc
     limit 12`);
 }
