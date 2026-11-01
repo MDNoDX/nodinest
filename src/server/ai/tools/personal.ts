@@ -30,6 +30,7 @@ import {
   moveToRank,
   resourceRef,
   resourceRefSchema,
+  assertUrlAllowed,
 } from "./helpers";
 import { asLocale } from "@/i18n/config";
 
@@ -408,8 +409,9 @@ export const PERSONAL_TOOLS = {
       "Make a book searchable: extract its full text from the user's uploaded PDF, or from a public reading link (PDF or web page). Needed before search_in_books / read_book_pages.",
     parameters: obj({ ...resourceRef, url: str("Optional public URL of the PDF / reading page") }),
     args: z.object({ ...resourceRefSchema, url: httpUrl.optional() }),
-    run: async (ctx, a) => {
+    run: async (ctx, a, env) => {
       const id = await resolveResource(ctx, a);
+      if (a.url) assertUrlAllowed(a.url, env);
       if (a.url) return { indexed: true, ...(await indexFromUrl(ctx, id, a.url)) };
       const [pdf] = await withUser(db, ctx, (tx) =>
         tx

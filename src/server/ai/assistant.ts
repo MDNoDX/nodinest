@@ -423,7 +423,14 @@ export async function runAssistant(
       (!toolDef(t).ownerOnly || !!ctx.superadminAccount),
   );
   const tools = allowed.length ? [{ functionDeclarations: toolsForGemini(allowed) }] : undefined;
-  const env = { timeZone: input.timeZone, locale: input.locale };
+  const env = {
+    timeZone: input.timeZone,
+    locale: input.locale,
+    userText: [
+      ...history.filter((h) => h.role === "user").map((h) => h.parts?.[0]?.text ?? ""),
+      message,
+    ].join("\n"),
+  };
 
   const contents: Content[] = [
     ...history,

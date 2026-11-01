@@ -14,6 +14,7 @@ import { auth } from "@/lib/auth/config";
 import { AppError } from "@/lib/errors";
 import { passwordOk } from "@/lib/password";
 import { normalizeUsername } from "@/lib/username";
+import { later } from "./later";
 import { codeMail, mailConfigured, sendMail } from "./mail";
 import { tgTo } from "./monitor/telegram";
 import { hitRateLimit } from "./rate-limit";
@@ -57,6 +58,9 @@ export async function requestReset(login: string) {
   if (!a.allowed || !b.allowed) throw new AppError("RATE_LIMITED");
   const u = await find(login);
   if (!u) return;
+  // A username and an e-mail name the same person.
+  if (!(await hitRateLimit(db, `reset-user:${u.id}`, 3, 3600)).allowed)
+    throw new AppError("RATE_LIMITED");
   const code = String(randomInt(100_000, 1_000_000));
   await db.delete(verification).where(eq(verification.identifier, keyOf(u.id)));
   await db.insert(verification).values({
@@ -64,25 +68,34 @@ export async function requestReset(login: string) {
     value: JSON.stringify({ h: hashOf(u.id, code), tries: 0 }),
     expiresAt: new Date(Date.now() + TTL),
   });
-  if (mailConfigured() && !u.email.endsWith(".invalid"))
-    await sendMail({ to: u.email, ...codeMail(code, u.locale, "reset") }).catch((e) =>
-      console.error("[nodinest] reset mail failed:", e instanceof Error ? e.message : e),
-    );
-  const [bot] = await db
-    .select({ tg: botUsers.tgId })
-    .from(botUsers)
-    .where(and(eq(botUsers.userId, u.id), eq(botUsers.blocked, false)));
-  if (bot) {
-    const say = u.locale === "ru" ? TG.ru : u.locale === "en" ? TG.en : TG.uz;
-    await tgTo(bot.tg, say(code)).catch(() => null);
-  }
+  // After the answer: its speed must not tell whether the account exists.
+  later(async () => {
+    if (mailConfigured() && !u.email.endsWith(".invalid"))
+      await sendMail({ to: u.email, ...codeMail(code, u.locale, "reset") }).catch((e) =>
+        console.error("[nodinest] reset mail failed:", e instanceof Error ? e.message : e),
+      );
+    const [bot] = await db
+      .select({ tg: botUsers.tgId })
+      .from(botUsers)
+      .where(and(eq(botUsers.userId, u.id), eq(botUsers.blocked, false)));
+    if (bot) {
+      const say = u.locale === "ru" ? TG.ru : u.locale === "en" ? TG.en : TG.uz;
+      await tgTo(bot.tg, say(code)).catch(() => null);
+    }
+  });
 }
 
 export async function confirmReset(login: string, code: string, password: string) {
   if (!passwordOk(password)) throw new AppError("VALIDATION", "weak_password");
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  if (!(await hitRateLimit(db, `reset-try-ip:${ip}`, 30, 3600)).allowed)
+    throw new AppError("RATE_LIMITED");
   const u = await find(login);
   const bad = new AppError("VALIDATION", "bad_code");
   if (!u) throw bad;
+  // Counted before comparing, so guesses sent at once cannot share one try.
+  if (!(await hitRateLimit(db, `reset-try:${u.id}`, MAX_TRIES * 2, 3600)).allowed)
+    throw new AppError("RATE_LIMITED");
   const [row] = await db
     .select()
     .from(verification)

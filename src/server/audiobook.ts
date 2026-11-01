@@ -930,6 +930,7 @@ export async function segmentScript(ctx: AppContext, resourceId: string, idx: nu
       .where(and(eq(audiobookScripts.audiobookId, r.id), eq(audiobookScripts.idx, idx))),
   );
   if (cached) return { lines: cached.script as ScriptLine[], page: seg[2], row: r, analysis: a };
+  await gate(ctx, "audiobook");
 
   let parts;
   let source = "";

@@ -15,6 +15,7 @@ export const TOUR_EVENT = "nodinest:tour";
 type Step = { id: string; target?: string };
 const STEPS: Step[] = [
   { id: "welcome" },
+  { id: "plans", target: "nav-plans" },
   { id: "add", target: "add" },
   { id: "library", target: "nav-library" },
   { id: "read" },

@@ -1,9 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { getCurrentUser, toCtx } from "@/lib/auth/session";
-import { AppError } from "@/lib/errors";
 import { segmentPreview, segmentScript } from "@/server/audiobook";
-import { apiError, json } from "../../../../_utils";
+import { apiError, apiUser, json } from "../../../../_utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -14,16 +12,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string; idx: string }> },
 ) {
   try {
-    const u = await getCurrentUser();
-    if (!u) throw new AppError("UNAUTHENTICATED");
+    const { ctx } = await apiUser();
     const p = await params;
     const id = z.string().uuid().parse(p.id);
     const idx = z.coerce.number().int().min(0).max(100_000).parse(p.idx);
     // ?fast=1: never waits for the AI (the book's own text until the script exists).
     const sp = req.nextUrl.searchParams;
     if (sp.get("fast"))
-      return json(await segmentPreview(toCtx(u), id, idx, { plain: sp.get("plain") === "1" }));
-    const s = await segmentScript(toCtx(u), id, idx);
+      return json(await segmentPreview(ctx, id, idx, { plain: sp.get("plain") === "1" }));
+    const s = await segmentScript(ctx, id, idx);
     return json({ lines: s.lines, page: s.page, draft: false });
   } catch (err) {
     return apiError(err);

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { dailySummary } from "@/server/monitor/summary";
 import { dailyNudges } from "@/server/roznoma";
+import { sweepOrphanBlobs } from "@/server/storage";
 import { moveWaiting } from "@/server/tg-storage";
 
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
     return new Response("forbidden", { status: 403 });
   // Big files still in Blob move to the Telegram store, then the summary.
   await moveWaiting(200_000).catch(() => 0);
+  await sweepOrphanBlobs().catch((e) => console.error("sweep", e));
   await dailyNudges().catch((e) => console.error("nudges", e));
   await dailySummary();
   return new Response("ok");

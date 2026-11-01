@@ -1,5 +1,5 @@
 "use client";
-import { BookOpen, Home, Menu, NotebookPen, Sparkles } from "lucide-react";
+import { BookOpen, CalendarCheck, Home, Menu, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
@@ -9,9 +9,9 @@ export const IMMERSIVE_RE = /^\/(library\/[^/]+\/(read|taqriz)|write\/[^/]+)/;
 
 const TABS = [
   { href: "/", key: "dashboard", icon: Home, also: [] as string[] },
+  { href: "/plans", key: "plans", icon: CalendarCheck, also: [] },
   { href: "/library", key: "library", icon: BookOpen, also: ["/people", "/publishers"] },
   { href: "/assistant", key: "assistant", icon: Sparkles, also: [] },
-  { href: "/notes", key: "notes", icon: NotebookPen, also: [] },
 ];
 
 const SHORT: Record<string, string> = { dashboard: "home", notes: "notesShort", assistant: "ai" };

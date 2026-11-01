@@ -883,3 +883,9 @@ html[data-reader-full] .book-frame {
     transform: rotateY(180deg);
   }
 }
+
+/* Tab rows scroll by swipe; a scrollbar under them is only noise. */
+nav.overflow-x-auto,
+.overflow-x-auto:has(> a[aria-current]) {
+  scrollbar-width: none;
+}

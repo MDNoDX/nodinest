@@ -81,6 +81,14 @@ describe("account security", () => {
     expect(await db.select().from(session).where(eq(session.userId, u.userId))).toHaveLength(0);
     const { hasPassword } = await import("@/server/account-security");
     expect(await hasPassword(u.userId)).toBe(true);
+    // Guesses sent all at once cannot get past the count, even with the right code.
+    const v = await makeUser(db);
+    await requestReset(v.email);
+    await Promise.allSettled(
+      Array.from({ length: 12 }, () => confirmReset(v.email, "000000", "Abcdefg1")),
+    );
+    await expect(confirmReset(v.email, "123456", "Abcdefg1")).rejects.toThrow();
+    expect(await hasPassword(v.userId)).toBe(false);
     // An unknown account gets the same quiet answer.
     await expect(requestReset("nobody-here@example.test")).resolves.toBeUndefined();
   });

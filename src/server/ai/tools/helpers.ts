@@ -20,7 +20,26 @@ export const dateTime = z
   .max(40)
   .refine((v) => parseReadingDate(v) !== null, "INVALID_DATE");
 
-export type ToolEnv = { timeZone: string; locale: string };
+export type ToolEnv = {
+  timeZone: string;
+  locale: string;
+  /** What the user wrote in this conversation (the assistant fills it). */
+  userText?: string;
+};
+
+const TRUSTED_HOSTS =
+  /(^|\.)(wikipedia\.org|wikimedia\.org|youtube\.com|youtu\.be|openlibrary\.org|books\.google\.com|googleapis\.com)$/;
+
+/**
+ * The model may open only addresses the user gave or well-known reference
+ * sites: a page or PDF it read must not be able to send the user's data to a
+ * server of its own through a URL.
+ */
+export function assertUrlAllowed(url: string, env: ToolEnv) {
+  if (env.userText == null) return;
+  if (TRUSTED_HOSTS.test(new URL(url).hostname) || env.userText.includes(url)) return;
+  throw new AppError("FORBIDDEN", "url_not_from_user");
+}
 export type Mode = "read" | "act" | "confirm";
 
 export type ToolDef<S extends z.ZodTypeAny> = {

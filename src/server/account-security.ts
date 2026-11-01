@@ -49,8 +49,11 @@ export async function loginWithPassword(login: string, password: string) {
     .from(user)
     .where(sql`lower(${user.username}) = ${name} or lower(${user.email}) = ${name}`)
     .limit(1);
-  if (!u || u.role === "superadmin" || password.length > 128)
+  if (!u || u.role === "superadmin" || password.length > 128) {
+    // The same work as a real check, so timing does not tell who has an account.
+    await (await auth.$context).password.hash(password.slice(0, 128));
     throw new AppError("VALIDATION", "bad_login");
+  }
   try {
     await auth.api.signInEmail({ body: { email: u.email, password }, headers: h });
   } catch {

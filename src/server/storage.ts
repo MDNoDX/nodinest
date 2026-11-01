@@ -9,8 +9,8 @@
  */
 import "server-only";
 import { later } from "./later";
-import { del, get, head } from "@vercel/blob";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { del, get, head, list } from "@vercel/blob";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { files } from "@/db/schema";
 import { AppError } from "@/lib/errors";
@@ -98,6 +98,34 @@ export function sanitizeFilename(name: string): string {
   return base || "file";
 }
 
+/** Daily: uploads that were never registered take no one's quota, so they go. */
+export async function sweepOrphanBlobs() {
+  if (!isStorageConfigured()) return 0;
+  const before = Date.now() - 24 * 3600_000;
+  let cursor: string | undefined;
+  let gone = 0;
+  do {
+    const page = await list({ prefix: "u/", limit: 1000, cursor });
+    cursor = page.cursor;
+    const old = page.blobs.filter((b) => b.uploadedAt.getTime() < before);
+    if (!old.length) continue;
+    const known = await db
+      .select({ path: files.path })
+      .from(files)
+      .where(
+        inArray(
+          files.path,
+          old.map((b) => b.pathname),
+        ),
+      );
+    const have = new Set(known.map((k) => k.path));
+    const orphans = old.filter((b) => !have.has(b.pathname)).map((b) => b.url);
+    if (orphans.length) await del(orphans);
+    gone += orphans.length;
+  } while (cursor);
+  return gone;
+}
+
 export async function storageUsage(ctx: AppContext): Promise<number> {
   const [r] = await db.execute<{ total: number }>(
     sql`select coalesce(sum(size_bytes), 0)::bigint as total from nodinest.files where owner_id = ${ctx.userId} and deleted_at is null`,
@@ -125,6 +153,9 @@ export async function authorizeUpload(
   )
     throw new AppError("VALIDATION", "file_too_large");
   await enforceRateLimit(db, `upload:${ctx.userId}`, 60, 3600);
+  // The quota counts registered files; big uploads are limited before that.
+  if (payload.size > 10 * 1024 * 1024)
+    await enforceRateLimit(db, `upload-big:${ctx.userId}`, 20, 86_400);
   if ((await storageUsage(ctx)) + payload.size > userQuotaBytes())
     throw new AppError("VALIDATION", "quota_exceeded");
   return {

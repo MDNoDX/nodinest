@@ -131,10 +131,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Audiobook text: the player asks `/api/audiobook/[id]/script/[idx]?fast=1` first
   (`segmentPreview`: cached script, else the book's own text reflowed — no AI), then the full
   speaker script once the voice exists. `bookText()` caches the cleaned book per warm function.
-- Sign-in: Google + Telegram (`lib/auth/telegram.ts` Better Auth plugin, on only when
-  `TELEGRAM_BOT_TOKEN` is set; the browser goes to oauth.telegram.org and back to /login/telegram,
-  which posts `tgAuthResult` to /api/auth/telegram/callback; users get a placeholder email
-  `tg<id>@telegram.nodinest.invalid`). BotFather `/setdomain` must name the site's domain.
+- Sign-in: Google, username + password (`server/account-security.ts`), e-mail code when mail is
+  configured. Raw Better Auth endpoints for these are off in production (`disabledPaths`); forgotten
+  passwords go through `server/password-reset.ts` (code to e-mail and the linked bot).
 - Public legal pages /privacy and /terms (`src/content/legal.ts`, uz + en): keep them true when
   adding services, cookies or data. Settings → delete account (`server/account.ts`: DB cascade +
   Blob files; never the superadmin). Vercel Web Analytics (`components/pwa/analytics.tsx`, ids
@@ -145,8 +144,6 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   Takliflar), new users, every server error with stack (instrumentation.ts → report.ts, deduped),
   AI-paused notices, Premium payments (✅/❌ buttons, channel admins only) and the daily summary
   (Vercel cron `/api/cron/daily`, CRON_SECRET). Commands in the channel: /stat /hammaga /arxiv /test.
-- Telegram sign-in = bot confirmation (`server/telegram-login.ts`, plugin `lib/auth/telegram.ts`):
-  code bound to an httpOnly cookie of the browser, confirmed with a button in the bot, one use.
 - Big files (> 2 MB) move from Vercel Blob to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
   ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
@@ -187,7 +184,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - New UI strings: add to `messages/uz.json`, `ru.json` AND `en.json` (unit test enforces parity and
   placeholders). Uzbek is written in the **2026 Latin alphabet** (law OʻRQ–1184: Ö Ğ Ş Ç instead of
   Oʻ Gʻ Sh Ch; "ng" is not a separate letter): write it so, or run `npx tsx scripts/uz-latin.ts
-  messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fails on old letters.
+messages/uz.json` (ICU-aware; `lib/uz-latin.ts`, foreign words kept). A test fails on old letters.
   Uzbek Cyrillic (`uz-Cyrl`) is GENERATED: after editing uz.json run `npx tsx scripts/uz-cyrl.ts`
   (a test checks it); content (guide, legal, templates, export labels) is converted at runtime
   (`lib/uz-cyrl.ts`, `uzScript()` / `isUz()` in i18n/config). Locale-name keys: `localeKey()`.

@@ -268,7 +268,7 @@
       "lecture": "Ma’ruzalar",
       "interview": "Suhbatlar",
       "article": "Maqolalar",
-      "podcast": "Podkastlar",
+      "podcast": "Audio",
       "other": "Boşqalar",
       "file": "Fayllar"
     },
@@ -363,7 +363,8 @@
     "notFinished": "Hali tugatilmagan",
     "unknownYear": "Yili noma’lum",
     "audiobooks": "Audiokitoblar",
-    "seeAll": "Hammasi ({count})"
+    "seeAll": "Hammasi ({count})",
+    "filters": "Filtrlar"
   },
   "resource": {
     "newTitle": "Manba qöşiş",
@@ -1786,7 +1787,9 @@
     "readBody": "PDF’i bor kitob sahifasida «Öqiş» va «Audiokitob» tugmalari çiqadi. Öqiyotganda matnni belgilang: «Iqtibos», «Qaydnoma» yoki «AI’dan söraş».",
     "guideTitle": "Batafsil qöllanma",
     "guideBody": "Batafsil qöllanma Sozlamalar içida turadi: har bir bölim oddiy tilda tuşuntirilgan. Istalgan payt öşa yerdan örganişingiz mumkin. Omad!",
-    "openGuide": "Qöllanmani oçiş"
+    "openGuide": "Qöllanmani oçiş",
+    "plansTitle": "1. Rejalar",
+    "plansBody": "Har kuni şu yerdan boşlang: işlaringizni belgilang, foiz özi hisoblanadi."
   },
   "write": {
     "title": "Kitob yoziş",
@@ -2452,17 +2455,32 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
+        "steps": [
+          "Boblar rejasi",
+          "Har kuni 500 söz",
+          "Tahrir",
+          "Nusxa çiqariş"
+        ]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
+        "steps": [
+          "A1",
+          "A2",
+          "B1",
+          "Ona tilida gaplaşuvçi bilan suhbat"
+        ]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": ["3 km", "5 km", "7 km", "10 km"]
+        "steps": [
+          "3 km",
+          "5 km",
+          "7 km",
+          "10 km"
+        ]
       }
     ],
     "placeRough": "Joylaşuv taxminan aniqlandi. Namoz vaqtlari şunga qarab hisoblanadi.",
@@ -2544,5 +2562,15 @@
     "taken": "Manba kutubxonangizga qöşildi",
     "inLibrary": "Kutubxonamda bor",
     "findPeople": "Odamlarni qidiriş"
+  },
+  "sectionHint": {
+    "close": "Yopiş",
+    "library": "Bu yerda öqiyotgan, körayotgan va örganayotgan hamma manbangiz turadi.",
+    "notes": "Kitobdan belgilagan iqtibos va fikrlaringiz şu yerga yiğiladi.",
+    "review": "Manbani tanlang, AI savol tuzadi, sizga esdan çiqiş arafasida qayta söraydi.",
+    "collections": "Manbalarni mavzu böyiça töplamlarga ajrating.",
+    "write": "Öz kitobingiz şu yerda yoziladi. Yil kundaligi Rejalardan özi töladi.",
+    "assistant": "Sadik AI kitoblaringiz va rejalaringizni biladi. Yozing yoki «Jonli suhbat»ni bosing.",
+    "stats": "Öqigan va örganganlaringiz raqamlarda."
   }
 }

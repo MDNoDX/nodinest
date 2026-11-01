@@ -1,3 +1,4 @@
+import { SectionHint } from "@/components/onboarding/section-hint";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { hueStyle, TYPE_HUE, type Hue } from "@/lib/hues";
@@ -150,25 +151,28 @@ export function PageHeader({
   }
   hue = "blue";
   return (
-    <header className="mb-7 flex flex-col gap-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex min-w-0 items-start gap-3.5">
-        {icon && (
-          <IconChip icon={icon} hue={hue} className="mt-0.5 size-11 rounded-xl [&_svg]:size-5" />
-        )}
-        <div className="min-w-0">
-          {eyebrow && (
-            <div className="text-muted mb-1 text-xs font-medium tracking-wide uppercase">
-              {eyebrow}
-            </div>
+    <>
+      <header className="mb-7 flex flex-col gap-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3.5">
+          {icon && (
+            <IconChip icon={icon} hue={hue} className="mt-0.5 size-11 rounded-xl [&_svg]:size-5" />
           )}
-          <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-[1.9rem]">
-            {title}
-          </h1>
-          {subtitle && <p className="text-muted mt-1.5 max-w-2xl text-sm">{subtitle}</p>}
+          <div className="min-w-0">
+            {eyebrow && (
+              <div className="text-muted mb-1 text-xs font-medium tracking-wide uppercase">
+                {eyebrow}
+              </div>
+            )}
+            <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-[1.9rem]">
+              {title}
+            </h1>
+            {subtitle && <p className="text-muted mt-1.5 max-w-2xl text-sm">{subtitle}</p>}
+          </div>
         </div>
-      </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </header>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      </header>
+      {section && <SectionHint section={section} />}
+    </>
   );
 }
 

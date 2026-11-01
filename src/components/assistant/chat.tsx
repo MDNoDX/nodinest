@@ -139,7 +139,20 @@ const FIELDS = [
   "contact",
 ];
 
-function MiniCover({ src, title }: { src: string | null; title: string }) {
+/** Only known image hosts load before the user confirms: a picture URL can carry data out. */
+const COVER_HOSTS =
+  /(^|\.)(googleusercontent\.com|books\.google\.com|openlibrary\.org|wikimedia\.org|ytimg\.com)$/;
+function safeCover(src: string | null) {
+  if (!src || src.startsWith("/api/files/")) return src;
+  try {
+    return COVER_HOSTS.test(new URL(src).hostname) ? src : null;
+  } catch {
+    return null;
+  }
+}
+
+function MiniCover({ src: raw, title }: { src: string | null; title: string }) {
+  const src = safeCover(raw);
   return src ? (
     <img
       src={src}

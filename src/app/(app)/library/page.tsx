@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { coverSrc } from "@/components/library/cover";
 import { CoverTile } from "@/components/library/cover-tile";
+import { MoreFilters } from "@/components/library/more-filters";
 import { AutoSubmitForm } from "@/components/ui/auto-submit";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -179,86 +180,88 @@ export default async function LibraryPage({ searchParams }: { searchParams: SP }
             className="pl-9"
           />
         </div>
-        <Select name="type" defaultValue={filters.type ?? ""} aria-label={t("common.type")}>
-          <option value="">{t("library.allTypes")}</option>
-          {RESOURCE_TYPES.map((ty) => (
-            <option key={ty} value={ty}>
-              {t(`types.plural.${ty}`)}
-            </option>
-          ))}
-        </Select>
-        <Select
-          name="status"
-          defaultValue={filters.status ?? ""}
-          aria-label={t("library.myStatus")}
-        >
-          <option value="">{t("library.anyStatus")}</option>
-          {LEARNING_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {t(`status.${s}`)}
-            </option>
-          ))}
-          <option value="none">{t("status.none")}</option>
-        </Select>
-        <Select
-          name="category"
-          defaultValue={filters.categoryId ?? ""}
-          aria-label={t("library.category")}
-        >
-          <option value="">{t("library.anyCategory")}</option>
-          {cats.map((c) => (
-            <option key={c.id} value={c.id}>
-              {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
-            </option>
-          ))}
-        </Select>
-        <Select name="sort" defaultValue={filters.sort} aria-label={t("common.sort")}>
-          <option value="updated">{t("library.sortUpdated")}</option>
-          <option value="added">{t("library.sortAdded")}</option>
-          <option value="title">{t("library.sortTitle")}</option>
-          <option value="read">{t("library.sortRead")}</option>
-          <option value="year">{t("library.sortYear")}</option>
-          <option value="date">{t("library.sortDate")}</option>
-        </Select>
-        <Select
-          name="ryear"
-          defaultValue={filters.readYear?.toString() ?? ""}
-          aria-label={t("library.readYear")}
-        >
-          <option value="">{t("library.anyReadYear")}</option>
-          {readYears.map((y) => (
-            <option key={y} value={y}>
-              {t("library.readIn", { year: y })}
-            </option>
-          ))}
-        </Select>
-        {filters.personId && <input type="hidden" name="person" value={filters.personId} />}
-        {filters.scope === "all" && <input type="hidden" name="scope" value="all" />}
-        <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-6">
-          {user.role === "superadmin" && (
-            <label className="text-muted flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="archived"
-                value="1"
-                defaultChecked={filters.archived}
-                className="size-4 accent-[var(--primary)]"
-              />
-              {t("library.showArchived")}
-            </label>
-          )}
-          <Button type="submit" variant="secondary" size="sm">
-            {t("common.apply")}
-          </Button>
-          {hasFilters && (
-            <Link href="/library" className="text-muted hover:text-foreground text-sm">
-              {t("common.reset")}
-            </Link>
-          )}
-          <span className="text-muted ml-auto text-sm">
-            {t("common.results", { count: data.total })}
-          </span>
-        </div>
+        <MoreFilters active={hasFilters}>
+          <Select name="type" defaultValue={filters.type ?? ""} aria-label={t("common.type")}>
+            <option value="">{t("library.allTypes")}</option>
+            {RESOURCE_TYPES.map((ty) => (
+              <option key={ty} value={ty}>
+                {t(`types.plural.${ty}`)}
+              </option>
+            ))}
+          </Select>
+          <Select
+            name="status"
+            defaultValue={filters.status ?? ""}
+            aria-label={t("library.myStatus")}
+          >
+            <option value="">{t("library.anyStatus")}</option>
+            {LEARNING_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {t(`status.${s}`)}
+              </option>
+            ))}
+            <option value="none">{t("status.none")}</option>
+          </Select>
+          <Select
+            name="category"
+            defaultValue={filters.categoryId ?? ""}
+            aria-label={t("library.category")}
+          >
+            <option value="">{t("library.anyCategory")}</option>
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
+              </option>
+            ))}
+          </Select>
+          <Select name="sort" defaultValue={filters.sort} aria-label={t("common.sort")}>
+            <option value="updated">{t("library.sortUpdated")}</option>
+            <option value="added">{t("library.sortAdded")}</option>
+            <option value="title">{t("library.sortTitle")}</option>
+            <option value="read">{t("library.sortRead")}</option>
+            <option value="year">{t("library.sortYear")}</option>
+            <option value="date">{t("library.sortDate")}</option>
+          </Select>
+          <Select
+            name="ryear"
+            defaultValue={filters.readYear?.toString() ?? ""}
+            aria-label={t("library.readYear")}
+          >
+            <option value="">{t("library.anyReadYear")}</option>
+            {readYears.map((y) => (
+              <option key={y} value={y}>
+                {t("library.readIn", { year: y })}
+              </option>
+            ))}
+          </Select>
+          {filters.personId && <input type="hidden" name="person" value={filters.personId} />}
+          {filters.scope === "all" && <input type="hidden" name="scope" value="all" />}
+          <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-6">
+            {user.role === "superadmin" && (
+              <label className="text-muted flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="archived"
+                  value="1"
+                  defaultChecked={filters.archived}
+                  className="size-4 accent-[var(--primary)]"
+                />
+                {t("library.showArchived")}
+              </label>
+            )}
+            <Button type="submit" variant="secondary" size="sm">
+              {t("common.apply")}
+            </Button>
+            {hasFilters && (
+              <Link href="/library" className="text-muted hover:text-foreground text-sm">
+                {t("common.reset")}
+              </Link>
+            )}
+            <span className="text-muted ml-auto text-sm">
+              {t("common.results", { count: data.total })}
+            </span>
+          </div>
+        </MoreFilters>
       </AutoSubmitForm>
 
       {data.items.length === 0 ? (

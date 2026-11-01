@@ -15,6 +15,7 @@ import * as schema from "@/db/schema";
 import { bootstrapSuperadmin, isUserSuspended, seedNewUser } from "./bootstrap";
 import { isDevLoginEnabled } from "./dev-login";
 import { notifyNewUser } from "@/server/monitor/events";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { eq, sql } from "drizzle-orm";
 import { codeMail, mailConfigured, sendMail } from "@/server/mail";
@@ -64,6 +65,50 @@ export const auth = betterAuth({
     disableSignUp: !isDevLoginEnabled(),
     autoSignIn: true,
     minPasswordLength: 8,
+  },
+  // The app has its own guarded ways for these (server/account-security,
+  // password-reset); only development signs in through the raw endpoints.
+  disabledPaths: isDevLoginEnabled()
+    ? []
+    : [
+        "/sign-in/email",
+        "/change-password",
+        "/set-password",
+        "/update-user",
+        "/change-email",
+        "/delete-user",
+        "/request-password-reset",
+        "/reset-password",
+        "/verify-password",
+        "/email-otp/request-password-reset",
+        "/forget-password/email-otp",
+        "/email-otp/reset-password",
+        "/email-otp/check-verification-otp",
+        "/email-otp/verify-email",
+      ],
+  hooks: {
+    // E-mail codes: the plugin stores a fresh code on every request, so the
+    // limits and the superadmin rule must stand in front of it.
+    before: createAuthMiddleware(async (c) => {
+      if (c.path !== "/email-otp/send-verification-otp" && c.path !== "/sign-in/email-otp") return;
+      const email = String(c.body?.email ?? "")
+        .trim()
+        .toLowerCase();
+      const ip = c.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+      const owners = (process.env.SUPERADMIN_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase());
+      const [u] = await db
+        .select({ role: schema.user.role })
+        .from(schema.user)
+        .where(eq(sql`lower(${schema.user.email})`, email));
+      if (owners.includes(email) || u?.role === "superadmin")
+        throw new APIError("FORBIDDEN", { message: "Not allowed" });
+      const a = await hitRateLimit(db, `otp-gate:${c.path}:${email}`, 8, 3600);
+      const b = await hitRateLimit(db, `otp-gate-ip:${ip}`, 40, 3600);
+      if (!a.allowed || !b.allowed)
+        throw new APIError("TOO_MANY_REQUESTS", { message: "Too many attempts" });
+    }),
   },
   socialProviders: googleConfigured
     ? {

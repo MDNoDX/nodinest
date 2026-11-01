@@ -8,7 +8,8 @@ import "server-only";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
-import { bookPages, bookTextSources, learningRecords, notes } from "@/db/schema";
+import { bookPages, bookTextSources, learningRecords, notes, resources } from "@/db/schema";
+import { AppError } from "@/lib/errors";
 import { getStructure, type Structure } from "./book-structure";
 
 export type ReaderMark = { id: string; kind: "quote" | "note"; text: string; page: number | null };
@@ -118,8 +119,14 @@ export async function saveReadingPage(
     })
     .parse({ page: rawPage, total: rawTotal });
   const now = new Date();
-  await withUser(db, ctx, (tx) =>
-    tx
+  await withUser(db, ctx, async (tx) => {
+    // Only an entry this user may see: a record would open a private one to them.
+    const [seen] = await tx
+      .select({ id: resources.id })
+      .from(resources)
+      .where(eq(resources.id, resourceId));
+    if (!seen) throw new AppError("NOT_FOUND");
+    await tx
       .insert(learningRecords)
       .values({
         userId: ctx.userId,
@@ -143,8 +150,8 @@ export async function saveReadingPage(
           startedAt: sql`coalesce(${learningRecords.startedAt}, ${now.toISOString()}::timestamptz)`,
           startedPrecision: sql`coalesce(${learningRecords.startedPrecision}, 'day')`,
         },
-      }),
-  );
+      });
+  });
 }
 
 /** Which of these resources have their text on the site (can be opened in the reader). */

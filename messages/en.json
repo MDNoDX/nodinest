@@ -268,7 +268,7 @@
       "lecture": "Lectures",
       "interview": "Interviews",
       "article": "Articles",
-      "podcast": "Podcasts",
+      "podcast": "Audio",
       "other": "Other",
       "file": "Files"
     },
@@ -363,7 +363,8 @@
     "notFinished": "Not finished yet",
     "unknownYear": "Year unknown",
     "audiobooks": "Audiobooks",
-    "seeAll": "All ({count})"
+    "seeAll": "All ({count})",
+    "filters": "Filters"
   },
   "resource": {
     "newTitle": "Add a resource",
@@ -1786,7 +1787,9 @@
     "readBody": "A book with its PDF gets “Read” and “Audiobook” buttons. While reading, select text: “Quote”, “Note” or “Ask AI”.",
     "guideTitle": "The full guide",
     "guideBody": "The full guide lives in Settings: every section explained in plain words. Learn from there whenever you like. Enjoy!",
-    "openGuide": "Open the guide"
+    "openGuide": "Open the guide",
+    "plansTitle": "1. Plans",
+    "plansBody": "Start each day here: tick your tasks and the percent counts itself."
   },
   "write": {
     "title": "Write a book",
@@ -2544,5 +2547,15 @@
     "taken": "Added to your library",
     "inLibrary": "In my library",
     "findPeople": "Find people"
+  },
+  "sectionHint": {
+    "close": "Close",
+    "library": "Everything you read, watch and learn lives here.",
+    "notes": "The quotes and thoughts you mark in books gather here.",
+    "review": "Pick a source: the AI writes questions and asks again just before you forget.",
+    "collections": "Sort your sources into topics.",
+    "write": "Your own book is written here. The year’s journal fills itself from Plans.",
+    "assistant": "Sadik AI knows your books and plans. Type, or press Live talk.",
+    "stats": "What you read and learned, in numbers."
   }
 }
