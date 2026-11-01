@@ -9,7 +9,6 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { ALARM_SOUNDS, PICKER_ICONS, UNITS, guessIcon, type Unit } from "@/lib/plan-icons";
-import { PRAYERS, type Prayer } from "@/lib/prayer";
 import { uploadMedia } from "@/lib/upload-media";
 import { useAction } from "@/lib/use-action";
 import { playAlarm } from "./alarm-sound";
@@ -24,7 +23,6 @@ export type RoutineValue = {
   amount: string | null;
   time: string | null;
   endTime: string | null;
-  prayer: Prayer | null;
   repeat: "daily" | "weekly" | "once";
   weekdays: number[];
   onDay: string | null;
@@ -43,7 +41,6 @@ const EMPTY: RoutineValue = {
   amount: null,
   time: null,
   endTime: null,
-  prayer: null,
   repeat: "daily",
   weekdays: [1, 2, 3, 4, 5],
   onDay: null,
@@ -95,7 +92,7 @@ export function RoutineDialog({
   const [n, setN] = useState(parsed.n);
   const [unit, setUnit] = useState<Unit>(parsed.unit);
   const [more, setMore] = useState(
-    !!(initial?.note || initial?.startsOn || initial?.endsOn || initial?.sound || initial?.prayer),
+    !!(initial?.note || initial?.startsOn || initial?.endsOn || initial?.sound),
   );
   const [iconsOpen, setIconsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -214,11 +211,7 @@ export function RoutineDialog({
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">{t("timeRange")}</span>
                 <div className="flex items-center gap-1.5">
-                  <TimeField
-                    value={v.time}
-                    disabled={!!v.prayer}
-                    onChange={(x) => setV({ ...v, time: x })}
-                  />
+                  <TimeField value={v.time} onChange={(x) => setV({ ...v, time: x })} />
                   <span className="text-muted">–</span>
                   <TimeField value={v.endTime} onChange={(x) => setV({ ...v, endTime: x })} />
                 </div>
@@ -283,7 +276,7 @@ export function RoutineDialog({
             </div>
           )}
 
-          {(v.time || v.prayer) && !inner && (
+          {v.time && !inner && (
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -306,28 +299,6 @@ export function RoutineDialog({
           </button>
           {more && (
             <div className="flex flex-col gap-4">
-              {!inner && (
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">{t("prayerTime")}</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PRAYERS.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setV({ ...v, prayer: v.prayer === p ? null : p })}
-                        className={cn(
-                          "rounded-full border px-3 py-1 text-xs font-medium transition",
-                          v.prayer === p
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border text-muted hover:text-foreground",
-                        )}
-                      >
-                        {t(`prayer_${p}`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <Field label={t("description")} optional>
                 {(p) => (
                   <Input

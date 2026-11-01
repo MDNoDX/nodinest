@@ -2305,9 +2305,6 @@
     "quickPh": "Yangi iş yozing…",
     "notifAsk": "Ogohlantirişlarni yoqiş",
     "notifOn": "Ogohlantirişlar yoqildi.",
-    "placeAsk": "Namoz vaqti uçun joylaşuvni aniqlaş",
-    "placeSaved": "Namoz vaqtlari joylaşuvingizga moslandi.",
-    "placeDenied": "Joylaşuvga ruxsat berilmadi. Hozirça Toşkent vaqti olinadi.",
     "pickTitle": "Rejadan qöşiş",
     "pickEmpty": "Saqlangan reja qolmadi.",
     "close": "Yopiş",
@@ -2349,12 +2346,6 @@
     "unit_chapter": "bob",
     "unit_end": "tugagunça",
     "timeRange": "Vaqti",
-    "prayerTime": "Namoz vaqtiga bağlaş",
-    "prayer_fajr": "Bomdod",
-    "prayer_dhuhr": "Peşin",
-    "prayer_asr": "Asr",
-    "prayer_maghrib": "Şom",
-    "prayer_isha": "Xufton",
     "repeat_daily": "Har kuni",
     "repeat_weekly": "Hafta kunlari",
     "repeat_once": "Bir kun",
@@ -2455,38 +2446,22 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": [
-          "Boblar rejasi",
-          "Har kuni 500 söz",
-          "Tahrir",
-          "Nusxa çiqariş"
-        ]
+        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": [
-          "A1",
-          "A2",
-          "B1",
-          "Ona tilida gaplaşuvçi bilan suhbat"
-        ]
+        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": [
-          "3 km",
-          "5 km",
-          "7 km",
-          "10 km"
-        ]
+        "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ],
-    "placeRough": "Joylaşuv taxminan aniqlandi. Namoz vaqtlari şunga qarab hisoblanadi.",
-    "placeHelp": "Joylaşuvni aniqlab bölmadi. Brauzerda manzil satridagi belgini bosib, «Joylaşuv»ga ruxsat bering.",
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
-    "placeSetting": "Namoz vaqti uçun joylaşuv"
+    "hijriBack": "Hijriy sanani bir kun orqaga",
+    "hijriForward": "Hijriy sanani bir kun oldinga"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",

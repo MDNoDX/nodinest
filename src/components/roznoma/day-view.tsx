@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  MapPin,
   Moon,
   Plus,
   Quote,
@@ -23,6 +22,7 @@ import {
   saveRoutineAction,
   setArchivedAction,
   syncDayAction,
+  shiftHijriAction,
 } from "@/app/actions/roznoma";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -32,7 +32,6 @@ import { errorToast } from "@/lib/error-toast";
 import { dayPercent, productivePercent } from "@/lib/roznoma";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
-import { useLocate } from "./use-locate";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
@@ -82,6 +81,7 @@ export function DayView({
   today,
   dateLabel,
   hijri,
+  hijriEdit,
   prevHref,
   nextHref,
   initialItems,
@@ -89,12 +89,13 @@ export function DayView({
   motto: initialMotto,
   stored,
   userId,
-  placeSet,
 }: {
   day: string;
   today: string;
   dateLabel: string;
   hijri: string;
+  /** The owner can move the Hijri date a day for everyone. */
+  hijriEdit?: boolean;
   prevHref: string;
   nextHref: string;
   initialItems: DayItem[];
@@ -103,8 +104,6 @@ export function DayView({
   /** The plans not on the day: "+ Add" picks from these. */
   stored: StoredItem[];
   userId: string;
-  /** The user shared a place (prayer times are for it). */
-  placeSet: boolean;
 }) {
   const t = useTranslations("roznoma");
   const te = useTranslations("errors");
@@ -215,8 +214,6 @@ export function DayView({
     else toast(t("archived"));
   };
 
-  const { locate, busy: locating } = useLocate(() => router.refresh());
-
   const addQuick = async () => {
     const title = quick.trim();
     if (!title) return;
@@ -260,6 +257,26 @@ export function DayView({
             {hijri && (
               <p className="text-muted flex items-center justify-center gap-1 text-xs font-medium">
                 <Moon className="size-3.5" /> {hijri}
+                {hijriEdit && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={t("hijriBack")}
+                      className="hover:text-foreground px-1"
+                      onClick={() => void shiftHijriAction(-1).then(() => router.refresh())}
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t("hijriForward")}
+                      className="hover:text-foreground px-1"
+                      onClick={() => void shiftHijriAction(1).then(() => router.refresh())}
+                    >
+                      +
+                    </button>
+                  </>
+                )}
               </p>
             )}
             <h2 className="text-lg font-bold tracking-tight sm:text-xl">
@@ -416,16 +433,6 @@ export function DayView({
               className="bg-primary-soft text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
             >
               <Bell className="size-3.5" /> {t("notifAsk")}
-            </button>
-          )}
-          {!placeSet && items.some((i) => i.prayer) && (
-            <button
-              type="button"
-              onClick={locate}
-              disabled={locating}
-              className="bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
-            >
-              <MapPin className="size-3.5" /> {t("placeAsk")}
             </button>
           )}
         </div>

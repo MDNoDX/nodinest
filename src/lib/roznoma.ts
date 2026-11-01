@@ -33,10 +33,10 @@ export function dueOn(r: RoutineLike, day: string): boolean {
 const HIJRI_UZ = [
   "Muharram",
   "Safar",
-  "Rabiul-avval",
-  "Rabiul-oxir",
-  "Jumodul-avval",
-  "Jumodul-oxir",
+  "Rabiul avval",
+  "Rabiul oxir",
+  "Jumodil avval",
+  "Jumodil oxir",
   "Rajab",
   "Şa’bon",
   "Ramazon",
@@ -73,16 +73,20 @@ const HIJRI_EN = [
   "Dhu al-Hijjah",
 ];
 
-/** "26 Rabiul-avval 1448" (tabular civil calendar — matches the Uzbek calendars), or "" if unsupported. */
-export function hijriDate(day: string, locale: string): string {
+/**
+ * "21 Jumodil avval 1448", or "" if unsupported. Umm al-Qura follows the real
+ * moon (the tabular "civil" calendar was a day behind); `offset` days correct
+ * it when the crescent was seen a day apart (set by the owner, see getDay).
+ */
+export function hijriDate(day: string, locale: string, offset = 0): string {
   try {
     const [y, m, d] = day.split("-").map(Number);
-    const parts = new Intl.DateTimeFormat("en-u-ca-islamic-civil-nu-latn", {
+    const parts = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
       day: "numeric",
       month: "numeric",
       year: "numeric",
       timeZone: "UTC",
-    }).formatToParts(new Date(Date.UTC(y, m - 1, d, 12)));
+    }).formatToParts(new Date(Date.UTC(y, m - 1, d + offset, 12)));
     const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
     const hm = get("month");
     const names = locale === "ru" ? HIJRI_RU : locale === "en" ? HIJRI_EN : HIJRI_UZ;

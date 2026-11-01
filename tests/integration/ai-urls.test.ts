@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-
 describe("URLs the AI may open", () => {
   it("only what the user gave, or reference sites", async () => {
     const { assertUrlAllowed } = await import("@/server/ai/tools/helpers");

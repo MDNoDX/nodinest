@@ -179,8 +179,6 @@ export const user = nodinest.table(
     /** Default plans were created (once, so deleting them all sticks). */
     plansSeeded: boolean("plans_seeded").notNull().default(false),
     /** Where prayer times are computed for (Tashkent until the user shares it). */
-    lat: real("lat"),
-    lng: real("lng"),
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
     /** Parts of the admin given by the superadmin (lib/admin-perms.ts). */
@@ -807,8 +805,6 @@ export const routines = nodinest.table(
     /** "HH:MM" in the user's time zone, or NULL (any time of the day). */
     time: text("time"),
     endTime: text("end_time"),
-    /** The time follows this prayer (fajr, dhuhr, asr, maghrib, isha) at the user's place. */
-    prayer: text("prayer"),
     /** Goes into the year's Röznoma book when done. */
     inJournal: boolean("in_journal").notNull().default(true),
     /** Alarm sound: a built-in name or `file:<id>` (the user's own). */

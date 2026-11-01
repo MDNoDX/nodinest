@@ -1,11 +1,6 @@
 "use server";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
-import { z } from "zod";
-import { db } from "@/db";
-import { user } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import {
   addGoalStep,
   checkRoutine,
@@ -18,6 +13,7 @@ import {
   setArchived,
   setGoalStep,
   syncDay,
+  shiftHijri,
 } from "@/server/roznoma";
 import { run } from "./_run";
 
@@ -114,29 +110,9 @@ export async function resolveGoalAction(id: string, reached: boolean) {
   });
 }
 
-/** Where prayer times are computed for (rounded: about a kilometre is enough). */
-/** The rough place from the network, when the browser gives none. */
-export async function savePlaceFromIpAction() {
+export async function shiftHijriAction(delta: number) {
   return run(async ({ ctx }) => {
-    const h = await headers();
-    const lat = Number(h.get("x-vercel-ip-latitude"));
-    const lng = Number(h.get("x-vercel-ip-longitude"));
-    if (!h.get("x-vercel-ip-latitude") || !Number.isFinite(lat) || !Number.isFinite(lng))
-      return false;
-    await db.update(user).set({ lat, lng }).where(eq(user.id, ctx.userId));
-    fresh();
-    return true;
-  });
-}
-
-export async function savePlaceAction(lat: number, lng: number) {
-  return run(async ({ ctx }) => {
-    const a = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) });
-    const p = a.parse({ lat, lng });
-    await db
-      .update(user)
-      .set({ lat: Math.round(p.lat * 100) / 100, lng: Math.round(p.lng * 100) / 100 })
-      .where(eq(user.id, ctx.userId));
+    await shiftHijri(ctx, delta > 0 ? 1 : -1);
     fresh();
   });
 }

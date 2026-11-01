@@ -80,10 +80,9 @@ export function RoutinesView({
             {r.amount ? ` · ${r.amount}` : ""}
           </span>
         </span>
-        {(r.time || r.prayer) && (
+        {r.time && (
           <span className="bg-surface-2 text-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs tabular-nums">
-            {r.alarm && <AlarmClock className="size-3" />}{" "}
-            {r.prayer ? t(`prayer_${r.prayer}`) : r.time}
+            {r.alarm && <AlarmClock className="size-3" />} {r.time}
           </span>
         )}
       </button>

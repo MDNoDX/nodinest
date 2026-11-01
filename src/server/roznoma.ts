@@ -6,12 +6,14 @@
  * user's own book "Röznoma <year>" (Kitob yozish), so the year becomes a book.
  */
 import "server-only";
+import { uzScript } from "@/i18n/config";
 import { readPrefs } from "@/lib/notify-prefs";
 import { notify } from "./notifications";
 import { and, asc, between, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
+  appSettings,
   botUsers,
   dayLogs,
   goalSteps,
@@ -27,7 +29,6 @@ import { addDays, dayKey } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { GOAL_KINDS, guessIcon } from "@/lib/plan-icons";
-import { PRAYERS, prayerTimes, type Prayer } from "@/lib/prayer";
 import {
   amountTarget,
   type CheckStatus,
@@ -52,7 +53,6 @@ export const routineInput = z.object({
   amount: z.string().trim().max(60).nullish(),
   time: z.string().trim().max(5).nullish(),
   endTime: z.string().trim().max(5).nullish(),
-  prayer: z.enum(PRAYERS).nullish(),
   repeat: z.enum(["daily", "weekly", "once"]).default("daily"),
   weekdays: z.array(z.number().int().min(1).max(7)).max(7).default([]),
   onDay: dayStr.nullish(),
@@ -75,7 +75,6 @@ export type Routine = {
   amount: string | null;
   time: string | null;
   endTime: string | null;
-  prayer: Prayer | null;
   repeat: "daily" | "weekly" | "once";
   weekdays: number[];
   onDay: string | null;
@@ -97,7 +96,6 @@ const cols = {
   amount: routines.amount,
   time: routines.time,
   endTime: routines.endTime,
-  prayer: routines.prayer,
   repeat: routines.repeat,
   weekdays: routines.weekdays,
   onDay: routines.onDay,
@@ -196,7 +194,7 @@ export async function ensureDefaults(ctx: AppContext, locale: string) {
   const amount = (n: number, k: string) => `${n} ${U[k]}`.trim();
   type Seed = Partial<Routine> & { title: string };
   const day: Seed[] = [
-    { title: T.wake, icon: "sunrise", prayer: "fajr" },
+    { title: T.wake, icon: "sunrise", time: "06:00" },
     { title: T.move, icon: "dumbbell", amount: amount(20, "min"), time: "07:00" },
     { title: T.read, icon: "book", amount: amount(20, "page"), time: "21:00" },
     { title: T.sleep, icon: "bed", time: "23:00", alarm: false },
@@ -222,7 +220,6 @@ export async function ensureDefaults(ctx: AppContext, locale: string) {
         icon: r.icon ?? null,
         amount: r.amount ?? null,
         time: r.time ?? null,
-        prayer: r.prayer ?? null,
         alarm: r.alarm ?? true,
         repeat: "daily" as const,
         position: i,
@@ -239,9 +236,8 @@ export async function saveRoutine(ctx: AppContext, raw: unknown, id?: string) {
     icon: a.icon || guessIcon(a.title),
     note: a.note || null,
     amount: a.amount || null,
-    time: a.prayer ? null : normalizeTime(a.time),
+    time: normalizeTime(a.time),
     endTime: normalizeTime(a.endTime),
-    prayer: a.prayer ?? null,
     repeat: a.repeat,
     weekdays: a.repeat === "weekly" ? [...new Set(a.weekdays)].sort() : [],
     onDay: a.repeat === "once" ? (a.onDay ?? null) : null,
@@ -452,17 +448,29 @@ function dayItems(all: Routine[], checks: Check[], day: string) {
   });
 }
 
+const HIJRI_KEY = "hijri_offset";
+
+/** The owner's ±1 day when the crescent was seen a day apart from the calculation. */
+export async function shiftHijri(ctx: AppContext, delta: 1 | -1) {
+  if (!ctx.superadminAccount) throw new AppError("FORBIDDEN");
+  const [r] = await db
+    .select({ v: appSettings.value })
+    .from(appSettings)
+    .where(eq(appSettings.key, HIJRI_KEY));
+  const value = Math.max(-2, Math.min(2, Number(r?.v ?? 0) + delta));
+  await db
+    .insert(appSettings)
+    .values({ key: HIJRI_KEY, value })
+    .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+}
+
 /** Everything of one day: its list (with state), its page and the motto. */
 export async function getDay(ctx: AppContext, day: string, locale: string) {
   const d = dayStr.parse(day);
-  const [all, [place]] = await Promise.all([
+  const [all, [shift]] = await Promise.all([
     loadRoutines(ctx),
-    db
-      .select({ lat: user.lat, lng: user.lng, tz: user.timezone })
-      .from(user)
-      .where(eq(user.id, ctx.userId)),
+    db.select({ v: appSettings.value }).from(appSettings).where(eq(appSettings.key, HIJRI_KEY)),
   ]);
-  const times = prayerTimes(d, place ?? { lat: null, lng: null }, place?.tz ?? "Asia/Tashkent");
   const [checks, logs, lastMotto] = await withUser(db, ctx, (tx) =>
     Promise.all([
       tx
@@ -508,8 +516,7 @@ export async function getDay(ctx: AppContext, day: string, locale: string) {
   };
   const items: DayItem[] = dayItems(all, checks, d).map((r) => ({
     ...r,
-    // A prayer-linked item shows that prayer's time at the user's place.
-    time: r.prayer ? times[r.prayer] : r.time,
+    time: r.time,
     done: r.status === "done",
     streak: r.repeat === "once" ? 0 : streakOf(r),
   }));
@@ -527,14 +534,13 @@ export async function getDay(ctx: AppContext, day: string, locale: string) {
     : EMPTY_LOG;
   return {
     day: d,
-    hijri: hijriDate(d, locale),
+    hijri: uzScript(locale, hijriDate(d, locale, Number(shift?.v ?? 0))),
     items,
     log,
     motto: log.motto ?? lastMotto[0]?.motto ?? null,
     done: items.filter((i) => i.done).length,
     total: items.length,
     percent: dayPercent(items),
-    prayers: times,
   };
 }
 

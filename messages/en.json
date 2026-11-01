@@ -2305,9 +2305,6 @@
     "quickPh": "New task…",
     "notifAsk": "Turn on reminders",
     "notifOn": "Reminders are on.",
-    "placeAsk": "Find my place for prayer times",
-    "placeSaved": "Prayer times now follow your place.",
-    "placeDenied": "No access to your place. Using Tashkent for now.",
     "pickTitle": "Add from plans",
     "pickEmpty": "No stored plans left.",
     "close": "Close",
@@ -2349,12 +2346,6 @@
     "unit_chapter": "chapters",
     "unit_end": "to the end",
     "timeRange": "Time",
-    "prayerTime": "Link to a prayer",
-    "prayer_fajr": "Fajr",
-    "prayer_dhuhr": "Dhuhr",
-    "prayer_asr": "Asr",
-    "prayer_maghrib": "Maghrib",
-    "prayer_isha": "Isha",
     "repeat_daily": "Every day",
     "repeat_weekly": "Weekdays",
     "repeat_once": "One day",
@@ -2468,10 +2459,9 @@
         "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ],
-    "placeRough": "Your place was found roughly. Prayer times use it.",
-    "placeHelp": "Couldn’t find your place. Click the icon in the address bar and allow location.",
     "simpleHint": "Done something? Tap the circle on the right. The percent counts itself. Type a new task in the box below.",
-    "placeSetting": "Place for prayer times"
+    "hijriBack": "One day back",
+    "hijriForward": "One day forward"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",

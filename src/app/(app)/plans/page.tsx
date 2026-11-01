@@ -12,8 +12,6 @@ import { fmtDay } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listGoalsWithProgress } from "@/server/goals";
 import { ensureDefaults, getDay, history, listRoutines } from "@/server/roznoma";
-import { eq } from "drizzle-orm";
-import { user as userTable } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -44,11 +42,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
   await ensureDefaults(ctx, locale);
   let body: React.ReactNode = null;
   if (tab === "day") {
-    const [d, all, me] = await Promise.all([
-      getDay(ctx, day, locale),
-      listRoutines(ctx),
-      db.select({ lat: userTable.lat }).from(userTable).where(eq(userTable.id, ctx.userId)),
-    ]);
+    const [d, all] = await Promise.all([getDay(ctx, day, locale), listRoutines(ctx)]);
     const onDay = new Set(d.items.map((i) => i.id));
     const wd = fmtDay(day, locale, { weekday: "long" });
     const date = `${fmtDay(day, locale, { day: "numeric", month: "long", year: "numeric" }).replace(",", "")} | ${wd.charAt(0).toUpperCase()}${wd.slice(1)}`;
@@ -59,6 +53,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
         today={today}
         dateLabel={date}
         hijri={d.hijri}
+        hijriEdit={!!ctx.superadminAccount}
         prevHref={`/plans?day=${addDays(day, -1)}`}
         nextHref={`/plans?day=${addDays(day, 1)}`}
         initialItems={d.items}
@@ -66,7 +61,6 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
         motto={d.motto}
         stored={all.filter((r) => !r.parentId && !onDay.has(r.id) && r.archived)}
         userId={ctx.userId}
-        placeSet={me[0]?.lat != null}
       />
     );
   } else if (tab === "goals") {
