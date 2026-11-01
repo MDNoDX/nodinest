@@ -101,9 +101,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               profilePublic={user.profilePublic}
               bio={user.bio}
             />
-          ) : p.visible ? (
-            <FollowButton userId={p.id} initial={p.isFollowing} />
-          ) : null}
+          ) : (
+            <FollowButton
+              userId={p.id}
+              initial={p.isFollowing}
+              requested={p.requested}
+              locked={!p.profilePublic}
+            />
+          )}
         </div>
         {p.bio && (
           <p className="max-w-2xl px-5 pb-4 text-sm leading-relaxed whitespace-pre-line sm:px-7">

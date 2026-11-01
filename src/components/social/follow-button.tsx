@@ -1,5 +1,5 @@
 "use client";
-import { UserCheck, UserPlus } from "lucide-react";
+import { Clock, UserCheck, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { followAction } from "@/app/actions/social";
@@ -9,23 +9,37 @@ import { useAction } from "@/lib/use-action";
 export function FollowButton({
   userId,
   initial,
+  requested = false,
+  locked = false,
   size,
 }: {
   userId: string;
   initial: boolean;
+  /** A request is already waiting for the owner's answer. */
+  requested?: boolean;
+  /** A private profile: the button asks instead of following. */
+  locked?: boolean;
   size?: "sm" | "md";
 }) {
   const t = useTranslations("social");
-  const [on, setOn] = useState(initial);
+  const [state, setState] = useState(initial ? "following" : requested ? "requested" : "none");
   const { pending, exec } = useAction();
+  const on = state !== "none";
   return (
     <Button
       variant={on ? "outline" : "primary"}
       size={size}
       loading={pending}
-      onClick={() => exec(() => followAction(userId, !on), { onSuccess: () => setOn(!on) })}
+      onClick={() => exec(() => followAction(userId, !on), { onSuccess: (s) => setState(s) })}
     >
-      {on ? <UserCheck /> : <UserPlus />} {on ? t("following") : t("follow")}
+      {state === "following" ? <UserCheck /> : state === "requested" ? <Clock /> : <UserPlus />}{" "}
+      {state === "following"
+        ? t("following")
+        : state === "requested"
+          ? t("requested")
+          : locked
+            ? t("askToFollow")
+            : t("follow")}
     </Button>
   );
 }

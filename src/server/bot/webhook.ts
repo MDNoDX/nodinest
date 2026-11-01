@@ -18,6 +18,7 @@ import { postFeedback } from "@/server/monitor/events";
 import { dailySummary } from "@/server/monitor/summary";
 import { esc, tgRaw, tgSend, tgTo } from "@/server/monitor/telegram";
 import { forgetStorageChat, moveWaiting } from "@/server/tg-storage";
+import { notifyEveryone, redeemBotLink } from "@/server/notifications";
 import { decidePayment } from "@/server/premium";
 import { botText, langOf, type BotLang } from "./texts";
 
@@ -105,6 +106,12 @@ async function onPrivate(m: Msg) {
         ],
       },
     });
+    return;
+  }
+  const link = /^\/start\s+link_([A-Za-z0-9_-]{43})$/.exec(text);
+  if (link) {
+    const name = await redeemBotLink(from.id, link[1]);
+    await tgTo(m.chat.id, name ? T.linkOk(esc(name)) : T.linkGone, { reply_markup: menu(L) });
     return;
   }
   if (/^\/start\b/.test(text)) {
@@ -290,7 +297,10 @@ async function onChannel(m: Msg) {
   }
   const bc = /^\/(hammaga|broadcast)\s+([\s\S]+)/.exec(text);
   if (bc) {
-    after(() => broadcast(bc[2].trim()));
+    after(async () => {
+      await notifyEveryone(bc[2].trim());
+      await broadcast(bc[2].trim());
+    });
     await react("👀");
     return;
   }

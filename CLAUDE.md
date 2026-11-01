@@ -152,10 +152,16 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
 - People: no separate community page — "Profil" (/profile → /u/<me>) shows follows and their
   activity; the top of /search finds people live from the first letter (`/api/people`).
-- Profiles: `/welcome` (language, photo, first/last name, unique username — required before the
-  app), Settings → profile. Social (`server/social.ts`, `/community`, `/u/[username]`): everything
-  private by default; public profile + per-item visibility; follows. Never expose notes, write-ups,
-  files or book text of others.
+- Profiles: `/welcome` (language, photo, first/last name, unique username, password — required
+  before the app), Settings → profile. Social (`server/social.ts`, `/u/[username]`, `/media`): new
+  profiles are public, items are public or private one by one (the add form defaults to public, the
+  DB to private); a private profile is found by name but only accepted followers see inside
+  (`follow_requests`, `canSee`). `/media` is a Reels-like feed; "take" (`takeSource`) copies only the
+  card. Never expose notes, write-ups, files or book text of others.
+- Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
+  `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
+  Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).
+  New kinds need `PREF_OF` and `notifications.kind.*` in all locales. Daily cron: `dailyNudges`.
 - Premium (`server/premium.ts`, `/premium`, Admin → Premium): manual payments (card / Payme /
   Click) confirmed by the admin; plan limits (aiDaily, audiobook, studyCards, listenMinutes, ads)
   are admin settings; `gate()` in ai/study.ts and `limitsFor()` enforce them (PREMIUM_REQUIRED).

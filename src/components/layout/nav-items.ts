@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Sparkles,
   CircleUserRound,
+  Clapperboard,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -47,6 +48,7 @@ export const NAV_PRIMARY: NavItem[] = [
 
 export const NAV_SECONDARY: NavItem[] = [
   { href: "/profile", key: "profile", icon: CircleUserRound, includes: ["/u", "/community"] },
+  { href: "/media", key: "media", icon: Clapperboard },
   { href: "/search", key: "search", icon: Search },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },

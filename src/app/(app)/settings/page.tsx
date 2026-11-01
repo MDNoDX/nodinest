@@ -1,5 +1,6 @@
 import {
   AppWindow,
+  Bell,
   HardDrive,
   Keyboard,
   LifeBuoy,
@@ -28,6 +29,9 @@ import { DeleteAccount } from "@/components/settings/delete-account";
 import { NavOrderSettings } from "@/components/settings/nav-order";
 import { ProfileVisibility } from "@/components/social/profile-visibility";
 import { PremiumBadge } from "@/components/premium/premium-badge";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { readPrefs } from "@/lib/notify-prefs";
+import { botStatus } from "@/server/notifications";
 import { isStorageConfigured, storageUsage, userQuotaBytes } from "@/server/storage";
 import { StorageHint } from "@/components/write/storage-hint";
 import { Button } from "@/components/ui/button";
@@ -43,6 +47,7 @@ const TABS = [
   ["profile", UserRound],
   ["premium", null],
   ["security", ShieldCheck],
+  ["notifications", Bell],
   ["look", Palette],
   ["menu", ListOrdered],
   ["keys", Keyboard],
@@ -98,6 +103,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             </Card>
           )}
           {tab === "premium" && <PremiumPanel ctx={ctx} user={user} />}
+          {tab === "notifications" && (
+            <section className="card p-5 sm:p-6">
+              <NotificationSettings prefs={readPrefs(user.notify)} bot={await botStatus(ctx)} />
+            </section>
+          )}
           {tab === "help" && (
             <Card className="border-[var(--c-teal)]/30">
               <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">

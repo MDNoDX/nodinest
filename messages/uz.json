@@ -114,7 +114,8 @@
     "more": "Menyu",
     "guide": "Qöllanma",
     "community": "Hamjamiyat",
-    "profile": "Profil"
+    "profile": "Profil",
+    "media": "Media"
   },
   "theme": {
     "label": "Mavzu",
@@ -1052,7 +1053,8 @@
       "storage": "Xotira",
       "privacy": "Maxfiylik va hisob",
       "help": "Qöllanma",
-      "security": "Xavfsizlik"
+      "security": "Xavfsizlik",
+      "notifications": "Bildirişnomalar"
     },
     "security": {
       "password": "Parol",
@@ -2218,11 +2220,11 @@
     "itemsN": "{n} ta oçiq darslik",
     "editProfile": "Profilni tahrirlaş",
     "privateTitle": "Bu profil yopiq",
-    "privateBody": "Egasi profilini faqat özi köradigan qilgan.",
+    "privateBody": "Köriş uçun kuzatiş sörovini yuboring.",
     "noPublic": "Hali oçiq darslik yöq",
     "noPublicSelf": "Quyida, «Profilimda nima körinadi» bölimida oçiq qiling.",
     "library": "Oçiq darsliklar",
-    "selfPrivateNote": "Profilingiz yopiq: boşqalar uni körmaydi. «Profilni tahrirlaş» orqali oçiş mumkin.",
+    "selfPrivateNote": "Profilingiz yopiq: içidagini faqat sörovini qabul qilgan odamlaringiz köradi. Sozlamalarda oçişingiz mumkin.",
     "public": "Oçiq",
     "private": "Yopiq",
     "publicHint": "Profilingizda körinadi — bosib yoping",
@@ -2258,7 +2260,9 @@
     "whatOthersSee": "Profilimda nima körinadi",
     "whatOthersSeeHint": "{total} tadan {open} tasi oçiq. Har birini şu yerda almaştiring.",
     "filterItems": "Manbani topiş…",
-    "showAllN": "Hammasini körsatiş ({n})"
+    "showAllN": "Hammasini körsatiş ({n})",
+    "requested": "Sörov yuborildi",
+    "askToFollow": "Kuzatişni söraş"
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2466,5 +2470,57 @@
     "other": "Nomini yozing",
     "lecture": "Masalan: Tarix ma’ruzasi",
     "interview": "Masalan: Olim bilan suhbat"
+  },
+  "notifications": {
+    "title": "Bildirişnomalar",
+    "unread": "{n} ta yangi bildirişnoma",
+    "settings": "Sozlaş",
+    "requests": "Kuzatiş sörovlari: {n}",
+    "accept": "Qabul qiliş",
+    "decline": "Rad etiş",
+    "remove": "Öçiriş",
+    "empty": "Bildirişnoma yöq",
+    "emptyBody": "Kimdir kuzatsa, maqsad muddati yaqinlaşsa yoki yangilik bölsa, şu yerda köring.",
+    "kind": {
+      "follow": "{name} sizni kuzata boşladi",
+      "follow_request": "{name} sizni kuzatişni sörayapti",
+      "follow_accepted": "{name} sörovingizni qabul qildi",
+      "copied": "{name} manbangizni özi uçun oldi",
+      "goal_soon": "Maqsad muddatiga 3 kun qoldi",
+      "goal_due": "Maqsad muddati bugun. Erişdingizmi?",
+      "weekly": "Haftangiz yakuni tayyor",
+      "news": "NodiNote yangiligi"
+    },
+    "pref": {
+      "people": "Odamlar",
+      "plans": "Rejalar",
+      "goals": "Maqsadlar",
+      "news": "Yangiliklar",
+      "telegram": "Telegramga ham yuborilsin",
+      "sound": "Ovoz"
+    },
+    "prefHint": {
+      "people": "Kuzatiş, sörov, manbangizni oliş",
+      "plans": "Eslatmalar va haftalik yakun",
+      "goals": "Muddat yaqinlaşganda",
+      "news": "Sayt haqidagi xabarlar",
+      "telegram": "Yuqoridagi yoqilgan bildirişnomalar botga ham keladi",
+      "sound": "Reja eslatmasi ovoz bilan çalinadi"
+    },
+    "botTitle": "Telegram bot",
+    "botHint": "Sayt yopiq bölsa ham eslatmalar botga keladi.",
+    "botLinked": "Ulangan: {name}",
+    "botLink": "Botni ulaş",
+    "botUnlink": "Uziş"
+  },
+  "media": {
+    "title": "Media",
+    "all": "Hammasi",
+    "empty": "Hozirça heç narsa yöq",
+    "emptyBody": "Odamlar oçiq manba qöşganda şu yerda çiqadi.",
+    "play": "Ijro etiş",
+    "take": "Özimga oliş",
+    "taken": "Manba kutubxonangizga qöşildi",
+    "inLibrary": "Kutubxonamda bor"
   }
 }

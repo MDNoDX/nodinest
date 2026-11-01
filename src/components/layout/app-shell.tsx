@@ -14,6 +14,7 @@ import { SECTION_HUE, hueStyle } from "@/lib/hues";
 import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
 import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
+import { NotificationBell } from "@/components/notifications/bell";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
@@ -158,6 +159,8 @@ function NavList({
 export function AppShell({
   user,
   pendingSuggestions,
+  unread,
+  alarms,
   timerSlot,
   aiDailyLimit,
   sideAd,
@@ -169,6 +172,8 @@ export function AppShell({
   aiDailyLimit: number | null;
   user: ShellUser;
   pendingSuggestions: number;
+  unread: number;
+  alarms: { on: boolean; sound: boolean };
   timerSlot: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -321,6 +326,7 @@ export function AppShell({
               <CommandPalette />
               <div className="ml-auto flex items-center gap-1.5">
                 {timerSlot}
+                <NotificationBell count={unread} />
                 <UserMenu user={user} />
               </div>
             </header>
@@ -344,7 +350,7 @@ export function AppShell({
             />
           )}
           <OnboardingTour aiLimit={aiDailyLimit} />
-          <AlarmWatcher />
+          {alarms.on && <AlarmWatcher sound={alarms.sound} />}
         </div>
       </AudiobookProvider>
     </MediaDockProvider>

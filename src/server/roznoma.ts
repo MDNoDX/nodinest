@@ -6,6 +6,8 @@
  * user's own book "Röznoma <year>" (Kitob yozish), so the year becomes a book.
  */
 import "server-only";
+import { readPrefs } from "@/lib/notify-prefs";
+import { notify } from "./notifications";
 import { and, asc, between, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
@@ -972,14 +974,55 @@ export async function resolveGoal(ctx: AppContext, id: string, reached: boolean)
  * (once a day per routine) and, at 21:30 local time, what is still undone.
  * Only for users who connected the bot.
  */
+/**
+ * Once a day (cron): goals near their deadline, and every Monday the week's
+ * result compared with the week before.
+ */
+export async function dailyNudges(now = new Date()) {
+  const due = await db.execute<{ id: string; user_id: string; title: string; left: number }>(sql`
+    select g.id, g.user_id, g.title, (g.due_on - (now() at time zone u.timezone)::date)::int as left
+    from nodinest.goals g
+    join nodinest."user" u on u.id = g.user_id and u.status = 'active'
+    where g.status = 'active' and g.due_on is not null
+      and (g.due_on - (now() at time zone u.timezone)::date) in (0, 3)`);
+  for (const g of due)
+    await notify(g.user_id, g.left === 0 ? "goal_due" : "goal_soon", {
+      body: g.title,
+      href: "/plans?tab=goals",
+    });
+  if (new Date(now.getTime() + 5 * 3600_000).getUTCDay() !== 1) return;
+  const people = await db
+    .selectDistinct({ userId: routines.userId, tz: user.timezone })
+    .from(routines)
+    .innerJoin(user, eq(user.id, routines.userId))
+    .where(eq(user.status, "active"));
+  for (const p of people) {
+    const h = await history({ userId: p.userId, role: "user" }, dayKey(now, p.tz));
+    if (h.week.pct == null) continue;
+    const diff = h.prev.pct == null ? null : h.week.pct - h.prev.pct;
+    await notify(p.userId, "weekly", {
+      body: `${h.week.pct} %${diff == null ? "" : ` (${diff >= 0 ? "+" : ""}${diff})`}`,
+      href: "/plans?tab=stats",
+    });
+  }
+}
+
 export async function sendReminders(now = new Date()) {
   const people = await db
-    .select({ userId: user.id, tz: user.timezone, tg: botUsers.tgId, locale: user.locale })
+    .select({
+      userId: user.id,
+      tz: user.timezone,
+      tg: botUsers.tgId,
+      locale: user.locale,
+      notify: user.notify,
+    })
     .from(botUsers)
     .innerJoin(user, eq(user.id, botUsers.userId))
     .where(and(eq(botUsers.blocked, false), eq(user.status, "active")));
   let sent = 0;
   for (const p of people) {
+    const prefs = readPrefs(p.notify);
+    if (!prefs.plans || !prefs.telegram) continue;
     const ctx: AppContext = { userId: p.userId, role: "user" };
     const today = dayKey(now, p.tz);
     const hm = new Intl.DateTimeFormat("en-GB", {

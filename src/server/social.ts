@@ -1,21 +1,28 @@
 /**
- * People and following. Everything is private by default: a profile is seen
- * by others only when its owner makes it public, and of a public profile only
- * the library items marked public are shown (title, type, status, rating,
- * progress — never notes, write-ups, files or book text). A private profile
- * hides everything at once. These reads cross users, so they use the owner
- * connection with the visibility rules written into every query.
+ * People and following. New profiles are public, of which only the library
+ * items marked public are shown (title, type, status, rating, progress —
+ * never notes, write-ups, files or book text). A private profile can still be
+ * found by name, but its contents are seen only by people whose follow request
+ * the owner accepted. These reads cross users, so they use the owner connection
+ * with the visibility rules written into every query.
  */
 import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
-import { follows, learningRecords, user } from "@/db/schema";
+import { followRequests, follows, learningRecords, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { normalizeUsername } from "@/lib/username";
 import { normalizeText } from "@/lib/normalize";
+import { notify } from "./notifications";
 import { enforceRateLimit } from "./rate-limit";
+import { ensureInLibrary } from "./records";
+
+/** The person `u` can be seen by me: public, me, or I am an accepted follower. */
+const canSee = (ctx: AppContext) =>
+  sql`(u.profile_public or u.id = ${ctx.userId} or exists(
+    select 1 from nodinest.follows v where v.follower_id = ${ctx.userId} and v.followee_id = u.id))`;
 
 export type PublicItem = {
   resourceId: string;
@@ -47,12 +54,18 @@ export async function profileByUsername(ctx: AppContext, username: string) {
     .where(sql`lower(${user.username}) = ${name}`);
   if (!u || u.status !== "active") return null;
   const self = u.id === ctx.userId;
-  const [c] = await db.execute<{ followers: number; following: number; me: boolean }>(sql`
+  const [c] = await db.execute<{
+    followers: number;
+    following: number;
+    me: boolean;
+    asked: boolean;
+  }>(sql`
     select
       (select count(*)::int from nodinest.follows where followee_id = ${u.id}) as followers,
       (select count(*)::int from nodinest.follows where follower_id = ${u.id}) as following,
-      exists(select 1 from nodinest.follows where follower_id = ${ctx.userId} and followee_id = ${u.id}) as me`);
-  const visible = self || u.profilePublic;
+      exists(select 1 from nodinest.follows where follower_id = ${ctx.userId} and followee_id = ${u.id}) as me,
+      exists(select 1 from nodinest.follow_requests where requester_id = ${ctx.userId} and target_id = ${u.id}) as asked`);
+  const visible = self || u.profilePublic || c.me;
   return {
     id: u.id,
     name: u.name,
@@ -66,6 +79,7 @@ export async function profileByUsername(ctx: AppContext, username: string) {
     followers: c.followers,
     following: c.following,
     isFollowing: c.me,
+    requested: c.asked,
   };
 }
 
@@ -79,27 +93,70 @@ export async function publicItems(ctx: AppContext, userId: string, limit = 120) 
     from nodinest.learning_records lr
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
     join nodinest."user" u on u.id = lr.user_id
-    where lr.user_id = ${userId} and lr.visibility = 'public'
-      and (u.profile_public or u.id = ${ctx.userId})
+    where lr.user_id = ${userId} and lr.visibility = 'public' and ${canSee(ctx)}
     order by lr.updated_at desc
     limit ${limit}`);
 }
 
+/** Follow / unfollow; a private profile gets a request instead. */
 export async function follow(ctx: AppContext, targetId: string, on: boolean) {
   const id = z.string().uuid().parse(targetId);
   if (id === ctx.userId) throw new AppError("VALIDATION", "self");
-  if (on) {
-    await enforceRateLimit(db, `follow:${ctx.userId}`, 100, 86_400);
-    const [u] = await db.select({ pub: user.profilePublic }).from(user).where(eq(user.id, id));
-    if (!u?.pub) throw new AppError("FORBIDDEN", "private");
-    await db
-      .insert(follows)
-      .values({ followerId: ctx.userId, followeeId: id })
-      .onConflictDoNothing();
-  } else
+  if (!on) {
     await db
       .delete(follows)
       .where(and(eq(follows.followerId, ctx.userId), eq(follows.followeeId, id)));
+    await db
+      .delete(followRequests)
+      .where(and(eq(followRequests.requesterId, ctx.userId), eq(followRequests.targetId, id)));
+    return "none" as const;
+  }
+  await enforceRateLimit(db, `follow:${ctx.userId}`, 100, 86_400);
+  const [u] = await db
+    .select({ pub: user.profilePublic, status: user.status })
+    .from(user)
+    .where(eq(user.id, id));
+  if (!u || u.status !== "active") throw new AppError("NOT_FOUND");
+  if (!u.pub) {
+    await db
+      .insert(followRequests)
+      .values({ requesterId: ctx.userId, targetId: id })
+      .onConflictDoNothing();
+    await notify(id, "follow_request", { actorId: ctx.userId, href: "/notifications" });
+    return "requested" as const;
+  }
+  await db.insert(follows).values({ followerId: ctx.userId, followeeId: id }).onConflictDoNothing();
+  await notify(id, "follow", { actorId: ctx.userId });
+  return "following" as const;
+}
+
+export type FollowRequest = {
+  id: string;
+  name: string;
+  username: string;
+  image: string | null;
+};
+
+/** People waiting for my answer. */
+export async function followRequestsForMe(ctx: AppContext) {
+  return db.execute<FollowRequest>(sql`
+    select u.id, u.name, u.username, u.image
+    from nodinest.follow_requests r
+    join nodinest."user" u on u.id = r.requester_id and u.status = 'active'
+    where r.target_id = ${ctx.userId} and u.username is not null
+    order by r.created_at desc
+    limit 200`);
+}
+
+export async function answerFollowRequest(ctx: AppContext, requesterId: string, accept: boolean) {
+  const id = z.string().uuid().parse(requesterId);
+  const gone = await db
+    .delete(followRequests)
+    .where(and(eq(followRequests.requesterId, id), eq(followRequests.targetId, ctx.userId)))
+    .returning({ id: followRequests.requesterId });
+  if (!gone.length || !accept) return;
+  await db.insert(follows).values({ followerId: id, followeeId: ctx.userId }).onConflictDoNothing();
+  await notify(id, "follow_accepted", { actorId: ctx.userId });
 }
 
 export type PersonCard = {
@@ -109,11 +166,14 @@ export type PersonCard = {
   image: string | null;
   premium: boolean;
   items: number;
+  /** A private profile I cannot see into. */
+  locked?: boolean;
 };
 
 /**
- * Public profiles by name or @username, from the first letter (prefix match
- * for 1–2 letters, anywhere in the name after that), with "do I follow".
+ * Profiles by name or @username, from the first letter (prefix match for 1–2
+ * letters, anywhere in the name after that), with "do I follow". Private ones
+ * are found too, but only their name and picture; no item count.
  */
 export async function searchPeople(ctx: AppContext, q: string) {
   const k = normalizeText(q).replace(/^@/, "").slice(0, 60);
@@ -124,18 +184,19 @@ export async function searchPeople(ctx: AppContext, q: string) {
   const word = `% ${esc}%`;
   return db.execute<PersonCard & { isFollowing: boolean }>(sql`
     select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
-      (select count(*)::int from nodinest.learning_records lr
-        where lr.user_id = u.id and lr.visibility = 'public') as items,
+      case when ${canSee(ctx)} then (select count(*)::int from nodinest.learning_records lr
+        where lr.user_id = u.id and lr.visibility = 'public') else 0 end as items,
+      not ${canSee(ctx)} as locked,
       exists(select 1 from nodinest.follows f where f.follower_id = ${ctx.userId} and f.followee_id = u.id) as "isFollowing"
     from nodinest."user" u
-    where u.profile_public and u.status = 'active' and u.username is not null and u.id <> ${ctx.userId}
+    where u.status = 'active' and u.username is not null and u.id <> ${ctx.userId}
       and (lower(u.username) like ${like} or nodinest.nn_norm(u.name) like ${like}
            or nodinest.nn_norm(u.name) like ${word})
     order by (lower(u.username) = ${k}) desc, (lower(u.username) like ${`${esc}%`}) desc, items desc
     limit 12`);
 }
 
-/** People I follow (only those whose profile is public now). */
+/** People I follow. */
 export async function followingList(ctx: AppContext) {
   return db.execute<PersonCard>(sql`
     select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
@@ -143,15 +204,15 @@ export async function followingList(ctx: AppContext) {
         where lr.user_id = u.id and lr.visibility = 'public') as items
     from nodinest.follows f
     join nodinest."user" u on u.id = f.followee_id
-    where f.follower_id = ${ctx.userId} and u.profile_public and u.status = 'active'
+    where f.follower_id = ${ctx.userId} and u.status = 'active'
     order by f.created_at desc
     limit 200`);
 }
 
 /**
  * Who follows a person / whom they follow (Instagram-style lists). Shown when
- * the profile can be seen (public, or it is you); private accounts in the list
- * appear only to their own owner's eyes — others see public profiles only.
+ * the profile can be seen; private accounts in the list appear only to the
+ * list's owner — others see public profiles only.
  */
 export async function followList(
   ctx: AppContext,
@@ -159,8 +220,10 @@ export async function followList(
   which: "followers" | "following",
 ) {
   const id = z.string().uuid().parse(userId);
-  const [owner] = await db.select({ pub: user.profilePublic }).from(user).where(eq(user.id, id));
-  if (!owner || (!owner.pub && id !== ctx.userId)) return [];
+  const [owner] = await db.execute<{ ok: boolean }>(
+    sql`select ${canSee(ctx)} as ok from nodinest."user" u where u.id = ${id}`,
+  );
+  if (!owner?.ok) return [];
   const join = which === "followers" ? sql`u.id = f.follower_id` : sql`u.id = f.followee_id`;
   const where = which === "followers" ? sql`f.followee_id = ${id}` : sql`f.follower_id = ${id}`;
   return db.execute<PersonCard & { isFollowing: boolean; visible: boolean }>(sql`
@@ -177,7 +240,7 @@ export async function followList(
     limit 500`);
 }
 
-/** Removes someone from my followers (they can follow again while I am public). */
+/** Removes someone from my followers (they keep no access to a private profile). */
 export async function removeFollower(ctx: AppContext, followerId: string) {
   const id = z.string().uuid().parse(followerId);
   await db
@@ -193,7 +256,7 @@ export async function followingFeed(ctx: AppContext) {
       lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
       lr.updated_at as "updatedAt", u.name, u.username, u.image
     from nodinest.follows f
-    join nodinest."user" u on u.id = f.followee_id and u.profile_public and u.status = 'active'
+    join nodinest."user" u on u.id = f.followee_id and u.status = 'active'
     join nodinest.learning_records lr on lr.user_id = u.id and lr.visibility = 'public'
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
     where f.follower_id = ${ctx.userId} and lr.updated_at > now() - interval '60 days'
@@ -210,6 +273,18 @@ export async function setProfilePublic(ctx: AppContext, on: boolean, bio: string
       .set({ profilePublic: on, bio: b || null, updatedAt: new Date() })
       .where(eq(user.id, ctx.userId)),
   );
+  // Opening the profile answers everyone who was waiting.
+  if (on) {
+    const waiting = await db
+      .delete(followRequests)
+      .where(eq(followRequests.targetId, ctx.userId))
+      .returning({ id: followRequests.requesterId });
+    if (waiting.length)
+      await db
+        .insert(follows)
+        .values(waiting.map((w) => ({ followerId: w.id, followeeId: ctx.userId })))
+        .onConflictDoNothing();
+  }
 }
 
 /** My whole library with who may see each item (for the profile's switches). */
@@ -234,4 +309,55 @@ export async function setItemVisibility(ctx: AppContext, resourceId: string, pub
       .set({ visibility: pub ? "public" : "private" })
       .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id))),
   );
+}
+
+export type MediaItem = PublicItem & {
+  ownerId: string;
+  name: string;
+  username: string;
+  image: string | null;
+  sourceUrl: string | null;
+  description: string | null;
+  mine: boolean;
+};
+
+/** "Media": what people share, the ones I follow first, newest first. */
+export async function mediaFeed(ctx: AppContext, opts: { kind?: string; before?: string } = {}) {
+  const kind = opts.kind && opts.kind !== "all" ? opts.kind : null;
+  const before = opts.before ? new Date(opts.before) : null;
+  return db.execute<MediaItem>(sql`
+    select lr.resource_id as "resourceId", r.title, r.type::text as type,
+      r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
+      lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
+      lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
+      r.source_url as "sourceUrl", r.description,
+      exists(select 1 from nodinest.learning_records m
+        where m.user_id = ${ctx.userId} and m.resource_id = r.id) as mine
+    from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
+    where lr.visibility = 'public' and lr.user_id <> ${ctx.userId} and ${canSee(ctx)}
+      ${kind ? sql`and r.type::text = ${kind}` : sql``}
+      ${before ? sql`and lr.updated_at < ${before}` : sql``}
+    order by lr.updated_at desc
+    limit 30`);
+}
+
+/** Takes a public source to my library: only its card, never files or text. */
+export async function takeSource(ctx: AppContext, resourceId: string, ownerId: string) {
+  const rid = z.string().uuid().parse(resourceId);
+  const oid = z.string().uuid().parse(ownerId);
+  const [ok] = await db.execute<{ title: string }>(sql`
+    select r.title from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active'
+    where lr.user_id = ${oid} and lr.resource_id = ${rid} and lr.visibility = 'public' and ${canSee(ctx)}`);
+  if (!ok) throw new AppError("NOT_FOUND");
+  await withUser(db, ctx, (tx) => ensureInLibrary(tx, ctx.userId, rid));
+  if (oid !== ctx.userId)
+    await notify(oid, "copied", {
+      actorId: ctx.userId,
+      body: ok.title,
+      href: `/library/${rid}`,
+    });
 }

@@ -170,7 +170,9 @@ export const user = nodinest.table(
     /** Premium while this is in the future (set when the admin confirms a payment). */
     premiumUntil: ts("premium_until"),
     /** The profile (/u/<username>) and its public items can be seen by others. */
-    profilePublic: boolean("profile_public").notNull().default(false),
+    profilePublic: boolean("profile_public").notNull().default(true),
+    /** Notification switches (lib/notify-prefs.ts); a missing key means on. */
+    notify: jsonb("notify").$type<Record<string, boolean>>().notNull().default({}),
     bio: text("bio"),
     /** Optional, private: only the owner (and the site admin) sees it. */
     phone: text("phone"),
@@ -1427,6 +1429,43 @@ export const aiMemory = nodinest.table("ai_memory", {
   pending: integer("pending").notNull().default(0),
   updatedAt: updatedAt(),
 });
+
+/** Waiting for a private profile's owner to say yes. */
+export const followRequests = nodinest.table(
+  "follow_requests",
+  {
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetId: uuid("target_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.requesterId, t.targetId] }),
+    index("follow_requests_target_idx").on(t.targetId),
+  ],
+);
+
+/** The notification centre: one row per thing to tell a person. */
+export const notifications = nodinest.table(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    actorId: uuid("actor_id").references(() => user.id, { onDelete: "set null" }),
+    /** Free text: a title (goal, source) or the announcement itself. */
+    body: text("body"),
+    href: text("href"),
+    readAt: ts("read_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+);
 
 /** Who follows whom (a teacher follows students, friends follow each other). */
 export const follows = nodinest.table(

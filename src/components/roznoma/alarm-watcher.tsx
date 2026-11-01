@@ -33,7 +33,7 @@ const minutesIn = (tz: string, d = new Date()) => {
  * rings and shows a notification with "Done"; at 21:30 it says what is left.
  * (When the site is closed, the Telegram bot reminds instead.)
  */
-export function AlarmWatcher() {
+export function AlarmWatcher({ sound = true }: { sound?: boolean }) {
   const t = useTranslations("roznoma");
   const router = useRouter();
   useEffect(() => {
@@ -78,7 +78,7 @@ export function AlarmWatcher() {
               } catch {
                 /* ignore */
               }
-              playAlarm(i.sound);
+              if (sound) playAlarm(i.sound);
               const body = `${i.time} · ${i.title}${i.amount ? ` — ${i.amount}` : ""}`;
               notify(t("alarmTitle"), body);
               toast(`⏰ ${body}`, {
@@ -137,6 +137,6 @@ export function AlarmWatcher() {
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("pointerdown", unlock);
     };
-  }, [t, router]);
+  }, [t, router, sound]);
   return null;
 }

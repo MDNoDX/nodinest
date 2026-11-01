@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PremiumBadge } from "@/components/premium/premium-badge";
@@ -17,7 +18,14 @@ export function PersonCard({ p }: { p: P }) {
           {p.name} {p.premium && <PremiumBadge />}
         </span>
         <span className="text-muted block truncate text-xs">
-          @{p.username} · {t("itemsN", { n: p.items })}
+          @{p.username} ·{" "}
+          {p.locked ? (
+            <>
+              <Lock className="inline size-3" /> {t("private")}
+            </>
+          ) : (
+            t("itemsN", { n: p.items })
+          )}
         </span>
       </span>
     </Link>

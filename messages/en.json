@@ -114,7 +114,8 @@
     "more": "Menu",
     "guide": "Guide",
     "community": "Community",
-    "profile": "Profile"
+    "profile": "Profile",
+    "media": "Media"
   },
   "theme": {
     "label": "Theme",
@@ -1052,7 +1053,8 @@
       "storage": "Storage",
       "privacy": "Privacy & account",
       "help": "Guide",
-      "security": "Security"
+      "security": "Security",
+      "notifications": "Notifications"
     },
     "security": {
       "password": "Password",
@@ -2218,11 +2220,11 @@
     "itemsN": "{n} public items",
     "editProfile": "Edit profile",
     "privateTitle": "This profile is private",
-    "privateBody": "Its owner keeps it to themselves.",
+    "privateBody": "Send a follow request to see this profile.",
     "noPublic": "No public items yet",
     "noPublicSelf": "Make items public below, in “What my profile shows”.",
     "library": "Public lessons",
-    "selfPrivateNote": "Your profile is private: others cannot see it. You can open it in Settings.",
+    "selfPrivateNote": "Your profile is private: only people whose request you accepted see inside. You can open it in Settings.",
     "public": "Public",
     "private": "Private",
     "publicHint": "Shown on your profile — press to hide",
@@ -2258,7 +2260,9 @@
     "whatOthersSee": "What my profile shows",
     "whatOthersSeeHint": "{open} of {total} items are public. Switch each one right here.",
     "filterItems": "Find an item…",
-    "showAllN": "Show all ({n})"
+    "showAllN": "Show all ({n})",
+    "requested": "Requested",
+    "askToFollow": "Ask to follow"
   },
   "roznoma": {
     "tab_day": "Day",
@@ -2466,5 +2470,57 @@
     "other": "Type a name",
     "lecture": "e.g. A history lecture",
     "interview": "e.g. A talk with a scientist"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unread": "{n} new notifications",
+    "settings": "Settings",
+    "requests": "Follow requests: {n}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "remove": "Remove",
+    "empty": "No notifications",
+    "emptyBody": "Follows, goal deadlines and news will show up here.",
+    "kind": {
+      "follow": "{name} started following you",
+      "follow_request": "{name} asks to follow you",
+      "follow_accepted": "{name} accepted your request",
+      "copied": "{name} took your source",
+      "goal_soon": "3 days left to your goal’s deadline",
+      "goal_due": "Your goal is due today. Did you make it?",
+      "weekly": "Your week’s result is ready",
+      "news": "News from NodiNote"
+    },
+    "pref": {
+      "people": "People",
+      "plans": "Plans",
+      "goals": "Goals",
+      "news": "News",
+      "telegram": "Send to Telegram too",
+      "sound": "Sound"
+    },
+    "prefHint": {
+      "people": "Follows, requests, sources taken",
+      "plans": "Reminders and the weekly result",
+      "goals": "When a deadline is near",
+      "news": "Messages about the site",
+      "telegram": "The notifications that are on also reach the bot",
+      "sound": "Plan reminders ring"
+    },
+    "botTitle": "Telegram bot",
+    "botHint": "Reminders reach the bot even when the site is closed.",
+    "botLinked": "Connected: {name}",
+    "botLink": "Connect the bot",
+    "botUnlink": "Disconnect"
+  },
+  "media": {
+    "title": "Media",
+    "all": "All",
+    "empty": "Nothing here yet",
+    "emptyBody": "People’s public sources will appear here.",
+    "play": "Play",
+    "take": "Take it",
+    "taken": "Added to your library",
+    "inLibrary": "In my library"
   }
 }

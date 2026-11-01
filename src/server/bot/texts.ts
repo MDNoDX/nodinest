@@ -7,7 +7,7 @@ export const langOf = (code?: string | null): BotLang =>
 const T = {
   uz: {
     welcome: (name: string) =>
-      `Assalomu alaykum, <b>${name}</b>! 👋\n\n<b>NodiNote</b> — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar: kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar.\n\nBu bot orqali:\n• saytga bir bosişda kirasiz (telefon raqami kerak emas);\n• taklif va savollaringizni adminga yozasiz — javob şu yerga keladi;\n• yangiliklardan xabardor bölasiz.`,
+      `Assalomu alaykum, <b>${name}</b>! 👋\n\n<b>NodiNote</b> — öqigan, körgan va örgangan narsalaringiz uçun şaxsiy daftar: kitoblar, taqrizlar, iqtiboslar, AI yordamçi va audiokitoblar.\n\nBu bot orqali:\n• reja eslatmalari va bildirişnomalarni olasiz (Sozlamalar → Bildirişnomalar → Botni ulaş);\n• taklif va savollaringizni adminga yozasiz — javob şu yerga keladi;\n• yangiliklardan xabardor bölasiz.`,
     open: "🌐 Saytni oçiş",
     suggest: "💬 Taklif yoziş",
     help: "❓ Yordam",
@@ -27,11 +27,14 @@ const T = {
     loginGone: "⌛ Bu kiriş havolasi eskirgan. Saytda «Telegram orqali kiriş»ni qayta bosing.",
     loginCancelled:
       "Kiriş bekor qilindi. Agar bu siz bölmagan bölsangiz, hammasi joyida — hisobingiz xavfsiz.",
+    linkOk: (name: string) =>
+      `✅ Bot <b>${name}</b> hisobiga ulandi. Endi eslatma va bildirişnomalar şu yerga keladi.`,
+    linkGone: "⌛ Bu havola eskirgan. Saytda Sozlamalar → Bildirişnomalar böliminda qayta bosing.",
     reply: (title: string, text: string) => `📩 <b>Admin javobi</b>\n<i>${title}</i>\n\n${text}`,
   },
   ru: {
     welcome: (name: string) =>
-      `Здравствуйте, <b>${name}</b>! 👋\n\n<b>NodiNote</b> — личный дневник того, что вы прочитали, посмотрели и изучили: книги, рецензии, цитаты, ИИ-помощник и аудиокниги.\n\nЧерез этого бота вы можете:\n• входить на сайт в одно касание (без номера телефона);\n• писать администратору предложения и вопросы — ответ придёт сюда;\n• узнавать о новостях.`,
+      `Здравствуйте, <b>${name}</b>! 👋\n\n<b>NodiNote</b> — личный дневник того, что вы прочитали, посмотрели и изучили: книги, рецензии, цитаты, ИИ-помощник и аудиокниги.\n\nЧерез этого бота вы можете:\n• получать напоминания о планах и уведомления (Настройки → Уведомления → Подключить бота);\n• писать администратору предложения и вопросы — ответ придёт сюда;\n• узнавать о новостях.`,
     open: "🌐 Открыть сайт",
     suggest: "💬 Написать предложение",
     help: "❓ Помощь",
@@ -51,12 +54,15 @@ const T = {
     loginGone: "⌛ Эта ссылка для входа устарела. Нажмите «Войти через Telegram» на сайте ещё раз.",
     loginCancelled:
       "Вход отменён. Если это были не вы — всё в порядке, ваш аккаунт в безопасности.",
+    linkOk: (name: string) =>
+      `✅ Бот подключён к аккаунту <b>${name}</b>. Напоминания и уведомления будут приходить сюда.`,
+    linkGone: "⌛ Ссылка устарела. Нажмите ещё раз на сайте: Настройки → Уведомления.",
     reply: (title: string, text: string) =>
       `📩 <b>Ответ администратора</b>\n<i>${title}</i>\n\n${text}`,
   },
   en: {
     welcome: (name: string) =>
-      `Hello, <b>${name}</b>! 👋\n\n<b>NodiNote</b> is a personal notebook for what you read, watch and learn: books, write-ups, quotes, an AI assistant and audiobooks.\n\nWith this bot you can:\n• sign in to the site in one tap (no phone number);\n• send suggestions and questions to the admin — the answer comes here;\n• hear about what’s new.`,
+      `Hello, <b>${name}</b>! 👋\n\n<b>NodiNote</b> is a personal notebook for what you read, watch and learn: books, write-ups, quotes, an AI assistant and audiobooks.\n\nWith this bot you can:\n• get plan reminders and notifications (Settings → Notifications → Connect the bot);\n• send suggestions and questions to the admin — the answer comes here;\n• hear about what’s new.`,
     open: "🌐 Open the site",
     suggest: "💬 Send a suggestion",
     help: "❓ Help",
@@ -76,6 +82,9 @@ const T = {
     loginGone:
       "⌛ This sign-in link has expired. Press “Continue with Telegram” on the site again.",
     loginCancelled: "Sign-in cancelled. If it wasn’t you, all is well — your account is safe.",
+    linkOk: (name: string) =>
+      `✅ The bot is linked to <b>${name}</b>. Reminders and notifications will come here.`,
+    linkGone: "⌛ This link has expired. Press it again on the site: Settings → Notifications.",
     reply: (title: string, text: string) => `📩 <b>Admin’s answer</b>\n<i>${title}</i>\n\n${text}`,
   },
 } as const;

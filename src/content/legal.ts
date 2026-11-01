@@ -34,7 +34,7 @@ const uzPrivacy: LegalDoc = {
       p: [
         "Qaydlar, taqrizlar, iqtiboslar, kartoçkalar va fayllaringiz faqat sizga körinadi. Katta fayllar şifrlangan holda saqlanadi.",
         "Siz yuklagan kitob va undan tayyorlangan audiokitob boşqalarga berilmaydi. Faqat qonuniy nusxalarni yuklang va ularni tarqatmang (Foydalaniş şartlariga qarang).",
-        "Profilingiz sukut böyiça yopiq. Uni oçiq qilsangiz, boşqalar ismingiz, rasmingiz, username va «oçiq» deb belgilagan darsliklaringizni (nomi, holati, bahosi) köradi va sizni kuzatişi mumkin. Profilni yopsangiz, hammasi darhol yaşiriladi.",
+        "Yangi hisob profili oçiq: boşqalar ismingiz, rasmingiz, username va «oçiq» deb belgilagan manbalaringizni (nomi, holati, bahosi) köradi va sizni kuzatişi mumkin. Profilni Sozlamalarda yopişingiz mumkin: yopiq profil qidiruvda ism va rasm bilan topiladi, içidagini esa faqat kuzatiş sörovini siz qabul qilgan odamlar köradi. Manba qöşganda har birini oçiq yoki yopiq qilasiz, keyin ham özgartirasiz.",
         "Premium uçun tölov sörovida yozgan summa va izohingiz faqat admin tomonidan tekşiriladi; karta ma’lumotlaringiz saytga kiritilmaydi.",
         "Katalog (kitob, muallif, naşriyot yozuvlari) umumiy: siz qöşgan katalog yozuvini boşqalar ham köradi. Şaxsiy fikrlaringiz katalogga ötmaydi.",
         "AI imkoniyatlaridan foydalanganingizda yozgan savolingiz, tanlagan matn yoki yuborgan faylingiz javob tayyorlaş uçun AI xizmatiga (Google Gemini) yuboriladi. Juda şaxsiy ma’lumotni AI ga yubormang.",
@@ -80,7 +80,7 @@ const enPrivacy: LegalDoc = {
       p: [
         "Your notes, write-ups, quotes, cards and files are visible only to you. Big files are stored encrypted.",
         "A book you upload and the audiobook made from it are never given to others. Upload only legal copies and do not share them (see the Terms of use).",
-        "Your profile is private by default. If you make it public, others see your name, picture, username and the items you mark public (title, status, rating) and may follow you. Making it private hides everything at once.",
+        "A new account has a public profile: others see your name, picture, username and the items you mark public (title, status, rating) and may follow you. You can make it private in Settings: a private profile can still be found by name and picture, but only people whose follow request you accept see what is inside. Every item you add can be public or private, and you can change that later.",
         "For Premium, the amount and note in your payment request are seen only by the admin; your card details are never entered on the site.",
         "The catalog (books, authors, publishers) is shared: catalog entries you add are visible to others. Your personal thoughts never go into the catalog.",
         "When you use AI features, your question, the selected text or the file you send goes to an AI service (Google Gemini) to prepare the answer. Do not send very personal data to the AI.",
@@ -184,7 +184,7 @@ const ruPrivacy: LegalDoc = {
       p: [
         "Ваши заметки, рецензии, цитаты, карточки и файлы видны только вам. Большие файлы хранятся в зашифрованном виде.",
         "Загруженная вами книга и аудиокнига из неё никому не передаются. Загружайте только легальные копии и не распространяйте их (см. Условия использования).",
-        "Профиль по умолчанию закрыт. Если вы его откроете, другие увидят ваше имя, фото, username и отмеченные как открытые материалы (название, статус, оценка) и смогут подписаться на вас. Закрыв профиль, вы сразу всё скроете.",
+        "Новый профиль открыт: другие видят ваше имя, фото, username и материалы, отмеченные как открытые (название, статус, оценка), и могут подписаться на вас. В Настройках профиль можно закрыть: закрытый профиль находится в поиске по имени и фото, а содержимое видят только те, чью заявку вы приняли. Каждый материал можно сделать открытым или закрытым и изменить это позже.",
         "Для Premium сумму и комментарий в заявке на оплату видит только администратор; данные карты на сайте не вводятся.",
         "Каталог (книги, авторы, издательства) общий: добавленные вами записи каталога видят и другие. Ваши личные мысли в каталог не попадают.",
         "Когда вы пользуетесь ИИ, ваш вопрос, выделенный текст или файл отправляются в ИИ-сервис (Google Gemini) для подготовки ответа. Не отправляйте ИИ очень личные данные.",

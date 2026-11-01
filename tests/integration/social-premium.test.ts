@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { learningRecords, user } from "@/db/schema";
+import { botUsers, learningRecords, user } from "@/db/schema";
 import { submitResource } from "@/server/suggestions";
 import { makeUser, testDb } from "../helpers/db";
 
@@ -18,13 +18,16 @@ async function withUsername(u: { userId: string }, name: string) {
 }
 
 describe("profiles and public items", () => {
-  it("shows only public items of public profiles", async () => {
-    const { follow, profileByUsername, publicItems, setProfilePublic, setItemVisibility } =
-      await import("@/server/social");
+  it("shows only public items, and a private profile only to accepted followers", async () => {
+    const social = await import("@/server/social");
+    const { listNotifications } = await import("@/server/notifications");
     const a = await makeUser(db);
     const b = await makeUser(db);
+    const c = await makeUser(db);
     const ua = `a${Date.now().toString(36)}`;
     await withUsername(a, ua);
+    await withUsername(b, `b${ua}`);
+    await withUsername(c, `c${ua}`);
     const r1 = await submitResource(db, a, { type: "book", title: "Public Book" });
     const r2 = await submitResource(db, a, { type: "book", title: "Secret Book" });
     if (r1.mode !== "applied" || r2.mode !== "applied") throw new Error("applied");
@@ -35,25 +38,78 @@ describe("profiles and public items", () => {
         { userId: a.userId, resourceId: r2.id, status: "planned" },
       ])
       .onConflictDoNothing();
-    await setItemVisibility(a, r1.id, true);
+    await social.setItemVisibility(a, r1.id, true);
 
-    // Private profile: nothing shows, and it cannot be followed.
-    let p = await profileByUsername(b, ua);
-    expect(p?.visible).toBe(false);
-    expect(await publicItems(b, a.userId)).toHaveLength(0);
-    await expect(follow(b, a.userId, true)).rejects.toThrow();
-
-    await setProfilePublic(a, true, "hi");
-    p = await profileByUsername(b, ua);
-    expect(p?.visible).toBe(true);
-    const items = await publicItems(b, a.userId);
+    // New accounts are public, and only the item marked public shows.
+    expect((await social.profileByUsername(b, ua))?.visible).toBe(true);
+    let items = await social.publicItems(b, a.userId);
     expect(items.map((i) => i.title)).toEqual(["Public Book"]);
-    await follow(b, a.userId, true);
-    expect((await profileByUsername(b, ua))?.isFollowing).toBe(true);
 
-    // Making the profile private hides everything again.
-    await setProfilePublic(a, false, null);
-    expect(await publicItems(b, a.userId)).toHaveLength(0);
+    // Private: found by name, nothing inside, following becomes a request.
+    await social.setProfilePublic(a, false, null);
+    expect((await social.profileByUsername(b, ua))?.visible).toBe(false);
+    expect(await social.publicItems(b, a.userId)).toHaveLength(0);
+    const found = await social.searchPeople(b, ua);
+    expect(found[0]).toMatchObject({ id: a.userId, locked: true, items: 0 });
+    await expect(social.takeSource(b, r1.id, a.userId)).rejects.toThrow();
+    expect(await social.follow(b, a.userId, true)).toBe("requested");
+    expect((await social.profileByUsername(b, ua))?.requested).toBe(true);
+    expect(await social.publicItems(b, a.userId)).toHaveLength(0);
+    expect((await social.followRequestsForMe(a)).map((r) => r.id)).toEqual([b.userId]);
+    expect((await listNotifications(a)).map((n) => n.kind)).toEqual(["follow_request"]);
+    expect(await listNotifications(c)).toHaveLength(0);
+
+    // A stranger cannot answer a request meant for someone else.
+    await social.answerFollowRequest(c, b.userId, true);
+    expect(await social.publicItems(b, a.userId)).toHaveLength(0);
+
+    await social.answerFollowRequest(a, b.userId, true);
+    expect((await social.profileByUsername(b, ua))?.visible).toBe(true);
+    items = await social.publicItems(b, a.userId);
+    expect(items.map((i) => i.title)).toEqual(["Public Book"]);
+    expect(await social.publicItems(c, a.userId)).toHaveLength(0);
+    expect((await listNotifications(b)).map((n) => n.kind)).toEqual(["follow_accepted"]);
+
+    // Removed followers lose access at once.
+    await social.removeFollower(a, b.userId);
+    expect(await social.publicItems(b, a.userId)).toHaveLength(0);
+
+    // Opening the profile answers whoever waits.
+    await social.follow(c, a.userId, true);
+    await social.setProfilePublic(a, true, null);
+    expect((await social.profileByUsername(c, ua))?.isFollowing).toBe(true);
+    await social.setItemVisibility(a, r1.id, true);
+
+    // Taking a source: the public one only, and the owner hears of it.
+    await expect(social.takeSource(b, r2.id, a.userId)).rejects.toThrow();
+    await social.takeSource(b, r1.id, a.userId);
+    const mine = await db
+      .select({ id: learningRecords.id, visibility: learningRecords.visibility })
+      .from(learningRecords)
+      .where(eq(learningRecords.userId, b.userId));
+    expect(mine).toHaveLength(1);
+    expect(mine[0].visibility).toBe("private");
+    expect((await listNotifications(a)).some((n) => n.kind === "copied")).toBe(true);
+
+    const feed = await social.mediaFeed(c);
+    expect(feed.some((i) => i.resourceId === r1.id && i.ownerId === a.userId)).toBe(true);
+    expect(feed.some((i) => i.resourceId === r2.id)).toBe(false);
+  });
+
+  it("links the bot once, with a code that cannot be forged", async () => {
+    const { botLinkCode, redeemBotLink } = await import("@/server/notifications");
+    process.env.BETTER_AUTH_SECRET ||= "test-secret";
+    const a = await makeUser(db);
+    const tgId = Math.floor(Math.random() * 1e9) + 1e9;
+    await db.insert(botUsers).values({ tgId });
+    const code = botLinkCode(a.userId);
+    const flip = code[0] === "A" ? "B" : "A";
+    expect(await redeemBotLink(tgId, flip + code.slice(1))).toBeNull();
+    expect(await redeemBotLink(tgId, botLinkCode(a.userId, Date.now() - 3_600_000))).toBeNull();
+    expect(await redeemBotLink(tgId, code)).toBeTruthy();
+    expect(await redeemBotLink(tgId, code)).toBeNull();
+    const [row] = await db.select().from(botUsers).where(eq(botUsers.tgId, tgId));
+    expect(row.userId).toBe(a.userId);
   });
 });
 
