@@ -21,7 +21,6 @@ import {
   reorderRoutinesAction,
   saveDayLogAction,
   saveRoutineAction,
-  savePlaceAction,
   setArchivedAction,
   syncDayAction,
 } from "@/app/actions/roznoma";
@@ -33,6 +32,7 @@ import { errorToast } from "@/lib/error-toast";
 import { dayPercent, productivePercent } from "@/lib/roznoma";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { PlanIcon } from "./plan-icon";
+import { useLocate } from "./use-locate";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
 import { RoutineDialog, type RoutineValue } from "./routine-dialog";
 
@@ -117,6 +117,15 @@ export function DayView({
     stored?: boolean;
   } | null>(null);
   const [picking, setPicking] = useState(false);
+  // One short explanation, until it is closed.
+  const [firstTime, setFirstTime] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("nn:plans-hint")) queueMicrotask(() => setFirstTime(true));
+    } catch {
+      /* no storage: no hint */
+    }
+  }, []);
   const [quick, setQuick] = useState("");
   const [savingLog, setSavingLog] = useState(false);
   const [mottoEdit, setMottoEdit] = useState(false);
@@ -206,18 +215,7 @@ export function DayView({
     else toast(t("archived"));
   };
 
-  const locate = () =>
-    navigator.geolocation?.getCurrentPosition(
-      async (p) => {
-        const r = await savePlaceAction(p.coords.latitude, p.coords.longitude);
-        if (r.ok) {
-          toast.success(t("placeSaved"));
-          router.refresh();
-        }
-      },
-      () => toast.error(t("placeDenied")),
-      { timeout: 10_000 },
-    );
+  const { locate, busy: locating } = useLocate(() => router.refresh());
 
   const addQuick = async () => {
     const title = quick.trim();
@@ -334,11 +332,35 @@ export function DayView({
             </p>
             {rate && <p className="text-xs font-medium text-[var(--c-emerald)]">{rate}</p>}
           </div>
-          <Button size="sm" variant="outline" onClick={() => setPicking(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => (stored.length ? setPicking(true) : setEditing({ item: null }))}
+          >
             <Plus /> {t("add")}
           </Button>
         </div>
 
+        {firstTime && (
+          <div className="bg-primary-soft/60 mb-3 flex items-start gap-2 rounded-xl p-3 text-sm">
+            <p className="min-w-0 flex-1">{t("simpleHint")}</p>
+            <button
+              type="button"
+              aria-label={t("close")}
+              className="text-muted hover:text-foreground"
+              onClick={() => {
+                setFirstTime(false);
+                try {
+                  localStorage.setItem("nn:plans-hint", "1");
+                } catch {
+                  /* it just shows again */
+                }
+              }}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
         {items.length > 0 && (
           <ol ref={dragList as React.RefObject<HTMLOListElement>} className="flex flex-col gap-2">
             {shown.map((it) => (
@@ -400,6 +422,7 @@ export function DayView({
             <button
               type="button"
               onClick={locate}
+              disabled={locating}
               className="bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
             >
               <MapPin className="size-3.5" /> {t("placeAsk")}

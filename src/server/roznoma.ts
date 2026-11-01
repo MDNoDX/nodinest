@@ -198,22 +198,8 @@ export async function ensureDefaults(ctx: AppContext, locale: string) {
   const day: Seed[] = [
     { title: T.wake, icon: "sunrise", prayer: "fajr" },
     { title: T.move, icon: "dumbbell", amount: amount(20, "min"), time: "07:00" },
-    { title: T.l1, icon: "grad", time: "09:00" },
-    { title: T.l2, icon: "grad", time: "11:00" },
-    { title: T.l3, icon: "grad", time: "15:00" },
-    { title: T.rest, icon: "rest", time: "21:30", alarm: false },
-  ];
-  const stored: Seed[] = [
-    { title: T.fajr, icon: "hand", prayer: "fajr" },
-    { title: T.dhikr, icon: "sparkles", amount: amount(100, "piece") },
-    { title: T.study, icon: "bulb", amount: amount(1, "hour") },
     { title: T.read, icon: "book", amount: amount(20, "page"), time: "21:00" },
-    { title: T.lang, icon: "languages", amount: amount(30, "min"), time: "18:00" },
-    { title: T.water, icon: "waves", amount: amount(8, "piece") },
-    { title: T.walk, icon: "footprints", amount: amount(30, "min") },
-    { title: T.review, icon: "notebook", amount: amount(10, "min"), time: "22:00" },
-    { title: T.sleep, icon: "bed", time: "23:00" },
-    { title: T.move, icon: "activity", amount: amount(20, "min") },
+    { title: T.sleep, icon: "bed", time: "23:00", alarm: false },
   ];
   await db.transaction(async (tx) => {
     // Only the first caller seeds, even with two tabs open at once.
@@ -227,9 +213,10 @@ export async function ensureDefaults(ctx: AppContext, locale: string) {
       .select({ n: sql<number>`count(*)::int` })
       .from(routines)
       .where(eq(routines.userId, ctx.userId));
-    // Someone who already planned keeps the list; only the ideas are added.
+    // Someone who already planned keeps the list.
+    if (n) return;
     await tx.insert(routines).values(
-      [...(n ? [] : day), ...stored].map((r, i) => ({
+      day.map((r, i) => ({
         userId: ctx.userId,
         title: r.title,
         icon: r.icon ?? null,
@@ -238,8 +225,7 @@ export async function ensureDefaults(ctx: AppContext, locale: string) {
         prayer: r.prayer ?? null,
         alarm: r.alarm ?? true,
         repeat: "daily" as const,
-        position: n + i,
-        archived: stored.includes(r),
+        position: i,
       })),
     );
   });

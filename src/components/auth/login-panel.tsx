@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { loginAction } from "@/app/actions/account";
 import { authClient } from "@/lib/auth/client";
+import { toast } from "sonner";
 import { EmailCode } from "./email-code";
+import { ForgotPassword } from "./forgot-password";
 import { LOCALES, localeKey } from "@/i18n/config";
 
 function GoogleIcon() {
@@ -53,6 +55,7 @@ export function LoginPanel({
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [login, setLogin] = useState({ name: "", password: "" });
+  const [forgot, setForgot] = useState(false);
   const hydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -108,36 +111,53 @@ export function LoginPanel({
           <span className="bg-border h-px flex-1" /> {t("or")}{" "}
           <span className="bg-border h-px flex-1" />
         </div>
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            password();
-          }}
-        >
-          <Input
-            required
-            value={login.name}
-            onChange={(e) => setLogin({ ...login, name: e.target.value })}
-            autoComplete="username"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder={t("usernameOrEmail")}
-            aria-label={t("usernameOrEmail")}
+        {forgot ? (
+          <ForgotPassword
+            onBack={() => setForgot(false)}
+            onDone={() => {
+              setForgot(false);
+              toast.success(t("passwordReset"));
+            }}
           />
-          <PasswordInput
-            required
-            value={login.password}
-            onChange={(e) => setLogin({ ...login, password: e.target.value })}
-            autoComplete="current-password"
-            placeholder={t("password")}
-            aria-label={t("password")}
-          />
-          <Button type="submit" size="lg" loading={pending}>
-            {t("signIn")}
-          </Button>
-        </form>
-        {emailEnabled && (
+        ) : (
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              password();
+            }}
+          >
+            <Input
+              required
+              value={login.name}
+              onChange={(e) => setLogin({ ...login, name: e.target.value })}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder={t("usernameOrEmail")}
+              aria-label={t("usernameOrEmail")}
+            />
+            <PasswordInput
+              required
+              value={login.password}
+              onChange={(e) => setLogin({ ...login, password: e.target.value })}
+              autoComplete="current-password"
+              placeholder={t("password")}
+              aria-label={t("password")}
+            />
+            <Button type="submit" size="lg" loading={pending}>
+              {t("signIn")}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setForgot(true)}
+              className="text-muted hover:text-foreground self-center text-sm"
+            >
+              {t("forgot")}
+            </button>
+          </form>
+        )}
+        {emailEnabled && !forgot && (
           <>
             <EmailCode next={next} />
           </>

@@ -8,7 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import { ALARM_SOUNDS, PLAN_ICONS, UNITS, guessIcon, type Unit } from "@/lib/plan-icons";
+import { ALARM_SOUNDS, PICKER_ICONS, UNITS, guessIcon, type Unit } from "@/lib/plan-icons";
 import { PRAYERS, type Prayer } from "@/lib/prayer";
 import { uploadMedia } from "@/lib/upload-media";
 import { useAction } from "@/lib/use-action";
@@ -95,7 +95,7 @@ export function RoutineDialog({
   const [n, setN] = useState(parsed.n);
   const [unit, setUnit] = useState<Unit>(parsed.unit);
   const [more, setMore] = useState(
-    !!(initial?.note || initial?.startsOn || initial?.endsOn || initial?.sound),
+    !!(initial?.note || initial?.startsOn || initial?.endsOn || initial?.sound || initial?.prayer),
   );
   const [iconsOpen, setIconsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -161,8 +161,8 @@ export function RoutineDialog({
             </div>
           </div>
           {iconsOpen && (
-            <div className="bg-surface-2 grid max-h-44 grid-cols-8 gap-1 overflow-y-auto rounded-xl p-2 sm:grid-cols-10">
-              {Object.keys(PLAN_ICONS).map((k) => (
+            <div className="bg-surface-2 grid grid-cols-5 gap-1 rounded-xl p-2 sm:grid-cols-10">
+              {PICKER_ICONS.map((k) => (
                 <button
                   key={k}
                   type="button"
@@ -225,29 +225,6 @@ export function RoutineDialog({
               </div>
             )}
           </div>
-
-          {!inner && (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">{t("prayerTime")}</span>
-              <div className="flex flex-wrap gap-1.5">
-                {PRAYERS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setV({ ...v, prayer: v.prayer === p ? null : p })}
-                    className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-medium transition",
-                      v.prayer === p
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted hover:text-foreground",
-                    )}
-                  >
-                    {t(`prayer_${p}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {!inner && (
             <div className="flex flex-col gap-2">
@@ -329,6 +306,28 @@ export function RoutineDialog({
           </button>
           {more && (
             <div className="flex flex-col gap-4">
+              {!inner && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">{t("prayerTime")}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRAYERS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setV({ ...v, prayer: v.prayer === p ? null : p })}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs font-medium transition",
+                          v.prayer === p
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border text-muted hover:text-foreground",
+                        )}
+                      >
+                        {t(`prayer_${p}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Field label={t("description")} optional>
                 {(p) => (
                   <Input

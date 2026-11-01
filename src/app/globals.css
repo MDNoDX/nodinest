@@ -595,7 +595,9 @@ mark.taqriz-note-mark {
   transition:
     transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
     filter 0.6s;
-  transform: perspective(1000px) rotateY(0deg);
+  /* Always a little turned: the page block is seen before and during hover. */
+  transform: perspective(900px) rotateY(-17deg);
+  filter: drop-shadow(7px 8px 8px rgb(0 0 0 / 0.28));
 }
 .cover-3d .cover-face {
   box-shadow:
@@ -607,13 +609,13 @@ mark.taqriz-note-mark {
   top: 1.5%;
   bottom: 1.5%;
   right: 0;
-  width: 14px;
+  width: clamp(16px, 13%, 30px);
   transform-origin: right center;
   transform: rotateY(90deg);
   border-radius: 0 2px 2px 0;
   background:
-    linear-gradient(90deg, rgb(0 0 0 / 0.25), transparent 30%),
-    repeating-linear-gradient(90deg, #f4efe2 0 1px, #d8cfba 1px 2px);
+    linear-gradient(90deg, rgb(0 0 0 / 0.3), transparent 25%, rgb(0 0 0 / 0.12)),
+    repeating-linear-gradient(90deg, #f6f1e4 0 1.5px, #cfc5ad 1.5px 3px);
 }
 .cover-3d .cover-glare {
   position: absolute;
@@ -632,7 +634,7 @@ mark.taqriz-note-mark {
 .group:hover .cover-3d,
 .cover-3d:hover,
 a:focus-visible .cover-3d {
-  transform: perspective(1000px) rotateY(-24deg) translateX(-4px);
+  transform: perspective(900px) rotateY(-27deg) translateX(-4px);
   filter: drop-shadow(14px 12px 14px rgb(0 0 0 / 0.35));
 }
 .group:hover .cover-3d .cover-glare,
@@ -698,7 +700,7 @@ a:focus-visible .cover-3d {
   }
   .group:hover .cover-3d,
   .cover-3d:hover {
-    transform: none;
+    transform: perspective(900px) rotateY(-17deg);
   }
 }
 
@@ -714,6 +716,8 @@ a:focus-visible .cover-3d {
     radial-gradient(circle, #f5a524 0 12%, #111 13% 16%, transparent 17%),
     repeating-radial-gradient(circle, #1a1a1a 0 2px, #0c0c0c 2px 4px);
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
+  /* The record always peeks out of its sleeve. */
+  transform: translateX(14%);
   transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .cover-sleeve {
@@ -738,6 +742,8 @@ a:focus-visible .cover-3d {
 }
 /* Articles and files: a sheet of paper with a turned corner. */
 .cover-paper {
+  filter: drop-shadow(3px 4px 0 var(--surface-2)) drop-shadow(3px 4px 0 var(--border-strong))
+    drop-shadow(4px 6px 6px rgb(0 0 0 / 0.25));
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
   transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
 }

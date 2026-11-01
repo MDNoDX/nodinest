@@ -1,8 +1,14 @@
 import { and, eq } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { session } from "@/db/schema";
 import { passwordOk } from "@/lib/password";
 import { makeUser, testDb } from "../helpers/db";
+
+vi.mock("node:crypto", async (orig) => {
+  const c = await orig<typeof import("node:crypto")>();
+  return { ...c, default: c, randomInt: vi.fn(() => 123456) };
+});
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 
 const db = testDb();
 afterAll(async () => {
@@ -61,5 +67,21 @@ describe("account security", () => {
       .from(session)
       .where(eq(session.userId, boss.userId));
     expect(kept).toHaveLength(ids.length + 1);
+  });
+
+  it("resets a password with a code: one use, limited tries, all sessions end", async () => {
+    const { confirmReset, requestReset } = await import("@/server/password-reset");
+    const u = await makeUser(db);
+    await addSession(u.userId, 1);
+    await requestReset(u.email);
+    await expect(confirmReset(u.email, "000000", "Abcdefg1")).rejects.toThrow();
+    await expect(confirmReset(u.email, "123456", "weak")).rejects.toThrow();
+    await confirmReset(u.email, "123456", "Abcdefg1");
+    await expect(confirmReset(u.email, "123456", "Abcdefg2")).rejects.toThrow();
+    expect(await db.select().from(session).where(eq(session.userId, u.userId))).toHaveLength(0);
+    const { hasPassword } = await import("@/server/account-security");
+    expect(await hasPassword(u.userId)).toBe(true);
+    // An unknown account gets the same quiet answer.
+    await expect(requestReset("nobody-here@example.test")).resolves.toBeUndefined();
   });
 });

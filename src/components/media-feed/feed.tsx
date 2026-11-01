@@ -43,7 +43,7 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
     return () => io.disconnect();
   }, [more]);
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="w-full">
       <nav className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {KINDS.map((k) => (
           <Link
@@ -64,7 +64,7 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
       {list.length === 0 ? (
         <EmptyState title={t("empty")} body={t("emptyBody")} />
       ) : (
-        <ul className="h-[calc(100dvh-11rem-var(--bottom-nav,0px))] snap-y snap-mandatory [scrollbar-width:none] overflow-y-auto rounded-2xl">
+        <ul className="h-[calc(100dvh-9rem-var(--bottom-nav,0px))] snap-y snap-mandatory [scrollbar-width:none] overflow-y-auto rounded-2xl">
           {list.map((it) => (
             <Card key={`${it.resourceId}-${it.ownerId}`} it={it} />
           ))}
@@ -87,7 +87,7 @@ function Card({ it }: { it: MediaItem }) {
   const { pending, exec } = useAction();
   const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
   return (
-    <li className="relative flex h-full snap-start flex-col overflow-hidden bg-neutral-950 text-white">
+    <li className="relative flex h-full snap-start flex-col overflow-hidden bg-neutral-950 text-white md:flex-row">
       <div className="relative grid min-h-0 flex-1 place-items-center p-6">
         {playing && yt ? (
           <iframe
@@ -119,7 +119,7 @@ function Card({ it }: { it: MediaItem }) {
           </>
         )}
       </div>
-      <div className="flex flex-col gap-2 bg-gradient-to-t from-black to-black/40 p-4">
+      <div className="flex flex-col gap-2 bg-gradient-to-t from-black to-black/40 p-4 md:w-80 md:justify-end md:bg-gradient-to-l">
         <Link href={`/u/${it.username}`} className="flex items-center gap-2 text-sm">
           <Avatar name={it.name} image={it.image} className="size-8" />
           <span className="min-w-0 truncate font-semibold">{it.name}</span>

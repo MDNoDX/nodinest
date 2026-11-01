@@ -21,10 +21,8 @@ export function ItemsVisibility({
   const t = useTranslations("social");
   const tt = useTranslations("types");
   const [q, setQ] = useState("");
-  const [all, setAll] = useState(false);
   const k = q.trim().toLowerCase();
-  const list = items.filter((i) => !k || i.title.toLowerCase().includes(k));
-  const shown = all || k ? list : list.slice(0, 8);
+  const shown = items.filter((i) => !k || i.title.toLowerCase().includes(k));
   const open = items.filter((i) => i.public).length;
   return (
     <section className="card flex flex-col gap-3 p-5 sm:p-6">
@@ -39,7 +37,7 @@ export function ItemsVisibility({
           </p>
         </div>
       </div>
-      {items.length > 8 && (
+      {items.length > 5 && (
         <div className="relative">
           <Search className="text-muted absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -65,15 +63,6 @@ export function ItemsVisibility({
           </li>
         ))}
       </ul>
-      {!all && !k && list.length > 8 && (
-        <button
-          type="button"
-          onClick={() => setAll(true)}
-          className="text-primary self-start text-sm font-medium hover:underline"
-        >
-          {t("showAllN", { n: list.length })}
-        </button>
-      )}
     </section>
   );
 }

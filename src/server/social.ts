@@ -7,7 +7,7 @@
  * with the visibility rules written into every query.
  */
 import "server-only";
-import { and, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { followRequests, follows, learningRecords, user } from "@/db/schema";
@@ -157,6 +157,8 @@ export async function answerFollowRequest(ctx: AppContext, requesterId: string, 
   if (!gone.length || !accept) return;
   await db.insert(follows).values({ followerId: id, followeeId: ctx.userId }).onConflictDoNothing();
   await notify(id, "follow_accepted", { actorId: ctx.userId });
+  // The owner sees the new follower too, and can follow back.
+  await notify(ctx.userId, "follow", { actorId: id });
 }
 
 export type PersonCard = {
@@ -182,12 +184,13 @@ export async function searchPeople(ctx: AppContext, q: string) {
   const esc = k.replace(/[%_\\]/g, "\\$&");
   const like = k.length < 3 ? `${esc}%` : `%${esc}%`;
   const word = `% ${esc}%`;
-  return db.execute<PersonCard & { isFollowing: boolean }>(sql`
+  return db.execute<PersonCard & { isFollowing: boolean; requested: boolean }>(sql`
     select u.id, u.name, u.username, u.image, coalesce(u.premium_until > now(), false) as premium,
       case when ${canSee(ctx)} then (select count(*)::int from nodinest.learning_records lr
         where lr.user_id = u.id and lr.visibility = 'public') else 0 end as items,
       not ${canSee(ctx)} as locked,
-      exists(select 1 from nodinest.follows f where f.follower_id = ${ctx.userId} and f.followee_id = u.id) as "isFollowing"
+      exists(select 1 from nodinest.follows f where f.follower_id = ${ctx.userId} and f.followee_id = u.id) as "isFollowing",
+      exists(select 1 from nodinest.follow_requests q where q.requester_id = ${ctx.userId} and q.target_id = u.id) as requested
     from nodinest."user" u
     where u.status = 'active' and u.username is not null and u.id <> ${ctx.userId}
       and (lower(u.username) like ${like} or nodinest.nn_norm(u.name) like ${like}
@@ -285,6 +288,13 @@ export async function setProfilePublic(ctx: AppContext, on: boolean, bio: string
         .values(waiting.map((w) => ({ followerId: w.id, followeeId: ctx.userId })))
         .onConflictDoNothing();
   }
+}
+
+export async function myItemsCount(ctx: AppContext) {
+  const [r] = await withUser(db, ctx, (tx) =>
+    tx.select({ n: count() }).from(learningRecords).where(eq(learningRecords.userId, ctx.userId)),
+  );
+  return r?.n ?? 0;
 }
 
 /** My whole library with who may see each item (for the profile's switches). */

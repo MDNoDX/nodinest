@@ -29,9 +29,15 @@ export async function sendMail(m: { to: string; subject: string; text: string; h
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/** The sign-in code letter in the user's language. */
-export function codeMail(code: string, locale: string) {
-  const L =
+const RESET = {
+  ru: { s: "Сброс пароля NodiNote", h: "Код для сброса пароля" },
+  en: { s: "Reset your NodiNote password", h: "Your password reset code" },
+  uz: { s: "NodiNote parolini tiklaş", h: "Parolni tiklaş kodi" },
+};
+
+/** The sign-in (or password reset) code letter in the user's language. */
+export function codeMail(code: string, locale: string, purpose: "sign-in" | "reset" = "sign-in") {
+  const base =
     locale === "ru"
       ? {
           s: "Код для входа в NodiNote",
@@ -49,6 +55,8 @@ export function codeMail(code: string, locale: string) {
             h: "Kiriş kodingiz",
             n: "Kod 10 daqiqa amal qiladi. Agar bu siz bölmasangiz, xatni e’tiborsiz qoldiring.",
           };
+  const reset = locale === "ru" ? RESET.ru : locale === "en" ? RESET.en : RESET.uz;
+  const L = purpose === "reset" ? { ...base, ...reset } : base;
   return {
     subject: `${L.s}: ${code}`,
     text: `${L.h}: ${code}\n\n${L.n}`,

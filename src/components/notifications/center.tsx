@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { deleteNotificationsAction, markReadAction } from "@/app/actions/notifications";
 import { answerFollowRequestAction } from "@/app/actions/social";
+import { FollowButton } from "@/components/social/follow-button";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
@@ -31,7 +32,15 @@ export type Note = {
   href: string | null;
   unread: boolean;
   when: string;
-  actor: { name: string; username: string | null; image: string | null } | null;
+  actor: {
+    id: string;
+    name: string;
+    username: string | null;
+    image: string | null;
+    profilePublic: boolean;
+  } | null;
+  following: boolean;
+  requested: boolean;
 };
 type Req = { id: string; name: string; username: string; image: string | null };
 
@@ -139,6 +148,15 @@ export function NotificationCenter({ notes, requests }: { notes: Note[]; request
                   </Link>
                 ) : (
                   <div className="flex min-w-0 flex-1 items-center gap-3 p-2.5">{inner}</div>
+                )}
+                {n.kind === "follow" && n.actor && !n.following && (
+                  <FollowButton
+                    userId={n.actor.id}
+                    initial={false}
+                    requested={n.requested}
+                    locked={!n.actor.profilePublic}
+                    size="sm"
+                  />
                 )}
                 <button
                   type="button"

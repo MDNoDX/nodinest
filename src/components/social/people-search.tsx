@@ -1,12 +1,12 @@
 "use client";
-import { Loader2, Search, UserCheck, UserPlus } from "lucide-react";
+import { Loader2, Lock, Search } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { followAction } from "@/app/actions/social";
 import { PremiumBadge } from "@/components/premium/premium-badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { FollowButton } from "./follow-button";
 
 type Person = {
   id: string;
@@ -16,6 +16,8 @@ type Person = {
   premium: boolean;
   items: number;
   isFollowing: boolean;
+  requested: boolean;
+  locked: boolean;
 };
 
 /** Search people on the site as you type (from the first letter) and follow them. */
@@ -45,15 +47,6 @@ export function PeopleSearch() {
     return () => clearTimeout(id);
   }, [q]);
 
-  const toggle = async (p: Person) => {
-    setList((l) => l?.map((x) => (x.id === p.id ? { ...x, isFollowing: !x.isFollowing } : x)) ?? l);
-    const r = await followAction(p.id, !p.isFollowing);
-    if (!r.ok)
-      setList(
-        (l) => l?.map((x) => (x.id === p.id ? { ...x, isFollowing: p.isFollowing } : x)) ?? l,
-      );
-  };
-
   return (
     <section className="flex flex-col gap-3">
       <div className="relative">
@@ -74,7 +67,7 @@ export function PeopleSearch() {
         (list.length === 0 ? (
           <p className="text-muted text-sm">{t("nobody")}</p>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {list.map((p) => (
               <li key={p.id} className="card flex items-center gap-3 p-3">
                 <Link href={`/u/${p.username}`} className="flex min-w-0 flex-1 items-center gap-3">
@@ -84,26 +77,25 @@ export function PeopleSearch() {
                       {p.name} {p.premium && <PremiumBadge />}
                     </span>
                     <span className="text-muted block truncate text-xs">
-                      @{p.username} · {t("itemsN", { n: p.items })}
+                      @{p.username} ·{" "}
+                      {p.locked ? (
+                        <>
+                          <Lock className="inline size-3" /> {t("private")}
+                        </>
+                      ) : (
+                        t("itemsN", { n: p.items })
+                      )}
                     </span>
                   </span>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => void toggle(p)}
-                  className={
-                    p.isFollowing
-                      ? "border-border text-muted inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium"
-                      : "bg-primary text-primary-foreground inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium"
-                  }
-                >
-                  {p.isFollowing ? (
-                    <UserCheck className="size-3.5" />
-                  ) : (
-                    <UserPlus className="size-3.5" />
-                  )}
-                  {p.isFollowing ? t("following") : t("follow")}
-                </button>
+                <FollowButton
+                  key={String(p.isFollowing)}
+                  userId={p.id}
+                  initial={p.isFollowing}
+                  requested={p.requested}
+                  locked={p.locked}
+                  size="sm"
+                />
               </li>
             ))}
           </ul>

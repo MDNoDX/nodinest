@@ -1,0 +1,119 @@
+/**
+ * "I forgot my password": a 6-digit code to the e-mail and the linked Telegram
+ * bot. The answer never says whether an account exists; the code is stored
+ * hashed, lives 10 minutes and allows 5 tries. Success ends every session. The
+ * superadmin account signs in with Google only, so it has no reset.
+ */
+import "server-only";
+import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import { and, eq, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import { db } from "@/db";
+import { account, botUsers, session, user, verification } from "@/db/schema";
+import { auth } from "@/lib/auth/config";
+import { AppError } from "@/lib/errors";
+import { passwordOk } from "@/lib/password";
+import { normalizeUsername } from "@/lib/username";
+import { codeMail, mailConfigured, sendMail } from "./mail";
+import { tgTo } from "./monitor/telegram";
+import { hitRateLimit } from "./rate-limit";
+
+const TTL = 10 * 60_000;
+const MAX_TRIES = 5;
+const keyOf = (userId: string) => `pw-reset:${userId}`;
+const hashOf = (userId: string, code: string) =>
+  createHash("sha256").update(`${process.env.BETTER_AUTH_SECRET}:${userId}:${code}`).digest("hex");
+
+async function find(login: string) {
+  const name = normalizeUsername(login).slice(0, 120);
+  const [u] = await db
+    .select({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      locale: user.locale,
+    })
+    .from(user)
+    .where(sql`lower(${user.username}) = ${name} or lower(${user.email}) = ${name}`)
+    .limit(1);
+  return u && u.role !== "superadmin" && u.status === "active" ? { ...u, name } : null;
+}
+
+const TG = {
+  uz: (c: string) =>
+    `🔐 Parolni tiklaş kodi: <b>${c}</b>\n\nKod 10 daqiqa amal qiladi. Bu siz bölmasangiz, hech kimga aytmang.`,
+  ru: (c: string) =>
+    `🔐 Код для сброса пароля: <b>${c}</b>\n\nДействует 10 минут. Если это не вы, никому его не сообщайте.`,
+  en: (c: string) =>
+    `🔐 Password reset code: <b>${c}</b>\n\nValid for 10 minutes. If this wasn’t you, tell it to no one.`,
+};
+
+export async function requestReset(login: string) {
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const name = normalizeUsername(login).slice(0, 120);
+  const a = await hitRateLimit(db, `reset-ip:${ip}`, 10, 3600);
+  const b = await hitRateLimit(db, `reset-name:${name}`, 3, 3600);
+  if (!a.allowed || !b.allowed) throw new AppError("RATE_LIMITED");
+  const u = await find(login);
+  if (!u) return;
+  const code = String(randomInt(100_000, 1_000_000));
+  await db.delete(verification).where(eq(verification.identifier, keyOf(u.id)));
+  await db.insert(verification).values({
+    identifier: keyOf(u.id),
+    value: JSON.stringify({ h: hashOf(u.id, code), tries: 0 }),
+    expiresAt: new Date(Date.now() + TTL),
+  });
+  if (mailConfigured() && !u.email.endsWith(".invalid"))
+    await sendMail({ to: u.email, ...codeMail(code, u.locale, "reset") }).catch((e) =>
+      console.error("[nodinest] reset mail failed:", e instanceof Error ? e.message : e),
+    );
+  const [bot] = await db
+    .select({ tg: botUsers.tgId })
+    .from(botUsers)
+    .where(and(eq(botUsers.userId, u.id), eq(botUsers.blocked, false)));
+  if (bot) {
+    const say = u.locale === "ru" ? TG.ru : u.locale === "en" ? TG.en : TG.uz;
+    await tgTo(bot.tg, say(code)).catch(() => null);
+  }
+}
+
+export async function confirmReset(login: string, code: string, password: string) {
+  if (!passwordOk(password)) throw new AppError("VALIDATION", "weak_password");
+  const u = await find(login);
+  const bad = new AppError("VALIDATION", "bad_code");
+  if (!u) throw bad;
+  const [row] = await db
+    .select()
+    .from(verification)
+    .where(eq(verification.identifier, keyOf(u.id)));
+  if (!row || row.expiresAt < new Date()) throw bad;
+  const v = JSON.parse(row.value) as { h: string; tries: number };
+  const got = Buffer.from(hashOf(u.id, code.trim()));
+  const want = Buffer.from(v.h);
+  if (got.length !== want.length || !timingSafeEqual(got, want)) {
+    if (v.tries + 1 >= MAX_TRIES) await db.delete(verification).where(eq(verification.id, row.id));
+    else
+      await db
+        .update(verification)
+        .set({ value: JSON.stringify({ ...v, tries: v.tries + 1 }) })
+        .where(eq(verification.id, row.id));
+    throw bad;
+  }
+  const c = await auth.$context;
+  const hash = await c.password.hash(password);
+  const [has] = await db
+    .select({ id: account.id })
+    .from(account)
+    .where(and(eq(account.userId, u.id), eq(account.providerId, "credential")));
+  if (has) await c.internalAdapter.updatePassword(u.id, hash);
+  else
+    await c.internalAdapter.linkAccount({
+      userId: u.id,
+      providerId: "credential",
+      accountId: u.id,
+      password: hash,
+    });
+  await db.delete(verification).where(eq(verification.id, row.id));
+  await db.delete(session).where(eq(session.userId, u.id));
+}

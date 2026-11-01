@@ -1,8 +1,10 @@
 "use client";
 import { Laptop, LogOut, Smartphone } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { changePasswordAction, removeDeviceAction, setPasswordAction } from "@/app/actions/account";
+import { ForgotPassword } from "@/components/auth/forgot-password";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { PasswordInput, PasswordRules } from "@/components/ui/password-input";
@@ -10,11 +12,23 @@ import { passwordOk } from "@/lib/password";
 import { useAction } from "@/lib/use-action";
 
 /** Set a first password, or change it (asks for the current one). */
-export function PasswordForm({ has }: { has: boolean }) {
+export function PasswordForm({ has, login }: { has: boolean; login: string }) {
   const t = useTranslations("auth");
   const { pending, exec } = useAction();
   const [v, setV] = useState({ current: "", next: "", again: "" });
+  const [forgot, setForgot] = useState(false);
+  const router = useRouter();
   const ok = passwordOk(v.next) && v.next === v.again && (!has || !!v.current);
+  if (forgot)
+    return (
+      <div className="max-w-md">
+        <ForgotPassword
+          login={login}
+          onBack={() => setForgot(false)}
+          onDone={() => router.replace("/login")}
+        />
+      </div>
+    );
   return (
     <form
       className="flex max-w-md flex-col gap-3"
@@ -63,9 +77,20 @@ export function PasswordForm({ has }: { has: boolean }) {
           />
         )}
       </Field>
-      <Button type="submit" className="self-start" loading={pending} disabled={!ok}>
-        {t("savePassword")}
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" loading={pending} disabled={!ok}>
+          {t("savePassword")}
+        </Button>
+        {has && (
+          <button
+            type="button"
+            onClick={() => setForgot(true)}
+            className="text-muted hover:text-foreground text-sm"
+          >
+            {t("forgot")}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

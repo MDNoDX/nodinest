@@ -191,7 +191,13 @@
     "currentPassword": "Current password",
     "passwordsDiffer": "The passwords do not match.",
     "savePassword": "Save password",
-    "passwordSaved": "Password saved."
+    "passwordSaved": "Password saved.",
+    "forgot": "Forgot your password?",
+    "back": "Back",
+    "resetCode": "6-digit code",
+    "resetHint": "The code goes to your account’s e-mail and the linked Telegram bot.",
+    "resetSent": "If the account exists, the code was sent. Check your e-mail and the bot.",
+    "passwordReset": "Password updated. Now sign in."
   },
   "dashboard": {
     "greetingMorning": "Good morning, {name}",
@@ -1714,7 +1720,7 @@
     "mixed": "Mixed",
     "findDeck": "Find a set…",
     "howMany": "How many questions",
-    "max": "Max",
+    "max": "Full",
     "makeTime": "The AI reads the source closely and writes questions that do not repeat. Usually 1–4 minutes."
   },
   "feedback": {
@@ -2261,8 +2267,10 @@
     "whatOthersSeeHint": "{open} of {total} items are public. Switch each one right here.",
     "filterItems": "Find an item…",
     "showAllN": "Show all ({n})",
-    "requested": "Requested",
-    "askToFollow": "Ask to follow"
+    "requested": "Waiting",
+    "askToFollow": "Ask to follow",
+    "requestSent": "Request sent. You’ll be told when it’s accepted.",
+    "requestedHint": "Waiting for an answer. Click to cancel."
   },
   "roznoma": {
     "tab_day": "Day",
@@ -2447,7 +2455,11 @@
         "kind": "sport",
         "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
-    ]
+    ],
+    "placeRough": "Your place was found roughly. Prayer times use it.",
+    "placeHelp": "Couldn’t find your place. Click the icon in the address bar and allow location.",
+    "simpleHint": "Done something? Tap the circle on the right. The percent counts itself. Type a new task in the box below.",
+    "placeSetting": "Place for prayer times"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",
@@ -2521,6 +2533,7 @@
     "play": "Play",
     "take": "Take it",
     "taken": "Added to your library",
-    "inLibrary": "In my library"
+    "inLibrary": "In my library",
+    "findPeople": "Find people"
   }
 }

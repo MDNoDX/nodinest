@@ -1,4 +1,4 @@
-import { BookOpen, Lock, UserSearch } from "lucide-react";
+import { BookOpen, ChevronRight, Eye, Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -13,13 +13,11 @@ import { pageContext } from "@/lib/page";
 import {
   followingFeed,
   followingList,
-  myItemsVisibility,
+  myItemsCount,
   profileByUsername,
   publicItems,
 } from "@/server/social";
-import { ItemsVisibility } from "@/components/social/items-visibility";
 import { PersonCard } from "@/components/social/person-card";
-import { PeopleSearch } from "@/components/social/people-search";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +37,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     profileByUsername(ctx, name),
     mine ? followingFeed(ctx) : Promise.resolve([]),
     mine ? followingList(ctx) : Promise.resolve([]),
-    mine ? myItemsVisibility(ctx) : Promise.resolve([]),
+    mine ? myItemsCount(ctx) : Promise.resolve(0),
     mine ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
   if (!p) notFound();
@@ -122,21 +120,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </div>
       </header>
 
-      {p.self && (
-        <section className="card flex flex-col gap-3 p-5 sm:p-6">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-[var(--c-violet)]/12 text-[var(--c-violet)]">
-              <UserSearch className="size-5" />
-            </span>
-            <div>
-              <h2 className="font-semibold">{t("findPeople")}</h2>
-              <p className="text-muted text-xs">{t("findPeopleHint")}</p>
-            </div>
-          </div>
-          <PeopleSearch />
-        </section>
-      )}
-
       {!p.visible ? (
         <EmptyState icon={<Lock />} title={t("privateTitle")} body={t("privateBody")} />
       ) : items.length === 0 ? (
@@ -147,14 +130,36 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         />
       ) : (
         <section>
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-            <BookOpen className="text-muted size-4" /> {t("library")}
-          </h2>
-          <ItemGrid items={items} />
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <BookOpen className="text-muted size-4" /> {t("library")}
+            </h2>
+            {items.length > 5 && (
+              <Link
+                href={`/u/${p.username}/items`}
+                className="text-primary text-sm font-medium hover:underline"
+              >
+                {t("showAllN", { n: items.length })}
+              </Link>
+            )}
+          </div>
+          <ItemGrid items={items.slice(0, 5)} />
         </section>
       )}
-      {p.self && myItems.length > 0 && (
-        <ItemsVisibility items={myItems} profilePublic={user.profilePublic} />
+      {p.self && myItems > 0 && (
+        <Link
+          href={`/u/${p.username}/items`}
+          className="card hover:border-border-strong flex items-center gap-3 p-4 transition-colors"
+        >
+          <Eye className="size-5 text-[var(--c-emerald)]" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{t("whatOthersSee")}</span>
+            <span className="text-muted block text-xs">
+              {t("whatOthersSeeHint", { open: items.length, total: myItems })}
+            </span>
+          </span>
+          <ChevronRight className="text-muted size-4" />
+        </Link>
       )}
       {p.self && !p.profilePublic && (
         <p className="bg-surface-2 text-muted flex items-center gap-2 rounded-xl px-4 py-3 text-sm">

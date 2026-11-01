@@ -1,4 +1,5 @@
 "use server";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
@@ -114,6 +115,20 @@ export async function resolveGoalAction(id: string, reached: boolean) {
 }
 
 /** Where prayer times are computed for (rounded: about a kilometre is enough). */
+/** The rough place from the network, when the browser gives none. */
+export async function savePlaceFromIpAction() {
+  return run(async ({ ctx }) => {
+    const h = await headers();
+    const lat = Number(h.get("x-vercel-ip-latitude"));
+    const lng = Number(h.get("x-vercel-ip-longitude"));
+    if (!h.get("x-vercel-ip-latitude") || !Number.isFinite(lat) || !Number.isFinite(lng))
+      return false;
+    await db.update(user).set({ lat, lng }).where(eq(user.id, ctx.userId));
+    fresh();
+    return true;
+  });
+}
+
 export async function savePlaceAction(lat: number, lng: number) {
   return run(async ({ ctx }) => {
     const a = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) });

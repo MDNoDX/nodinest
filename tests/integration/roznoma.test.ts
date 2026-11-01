@@ -97,7 +97,7 @@ describe("Röznoma", () => {
     await r.ensureDefaults(u, "uz");
     const all = await r.listRoutines(u);
     expect(all.filter((x) => !x.archived).map((x) => x.title)).toContain("Badan tarbiya");
-    expect(all.filter((x) => x.archived).length).toBe(10);
+    expect(all.map((x) => x.title)).toHaveLength(4);
     const d = await r.getDay(u, "2026-11-01", "uz");
     expect(d.items.find((i) => i.prayer === "fajr")?.time).toMatch(/^0[45]:\d\d$/);
   });

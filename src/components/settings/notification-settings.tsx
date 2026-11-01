@@ -1,9 +1,10 @@
 "use client";
-import { Send, Unlink } from "lucide-react";
+import { MapPin, Send, Unlink } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { botLinkAction, setNotifyPrefAction, unlinkBotAction } from "@/app/actions/notifications";
+import { useLocate } from "@/components/roznoma/use-locate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { NotifyKey, NotifyPrefs } from "@/lib/notify-prefs";
@@ -21,6 +22,8 @@ export function NotificationSettings({
 }) {
   const t = useTranslations("notifications");
   const te = useTranslations("errors");
+  const tr = useTranslations("roznoma");
+  const { locate, busy } = useLocate();
   const [v, setV] = useState(prefs);
   const { exec, pending } = useAction();
   const [linking, startLink] = useTransition();
@@ -62,9 +65,14 @@ export function NotificationSettings({
   );
   return (
     <div className="flex flex-col gap-6">
-      <ul className="divide-border divide-y">
-        {KEYS.map(row)}
-      </ul>
+      <ul className="divide-border divide-y">{KEYS.map(row)}</ul>
+      <div className="border-border flex items-center gap-3 rounded-2xl border p-4">
+        <MapPin className="text-muted size-5 shrink-0" />
+        <span className="min-w-0 flex-1 text-sm font-medium">{tr("placeSetting")}</span>
+        <Button variant="outline" size="sm" loading={busy} onClick={locate}>
+          {tr("placeAsk")}
+        </Button>
+      </div>
       <section className="border-border rounded-2xl border p-4">
         <div className="flex items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#229ED9] text-white">
@@ -101,9 +109,7 @@ export function NotificationSettings({
             </Button>
           )}
         </div>
-        {bot.linked && (
-          <ul className="mt-2">{row("telegram")}</ul>
-        )}
+        {bot.linked && <ul className="mt-2">{row("telegram")}</ul>}
       </section>
     </div>
   );

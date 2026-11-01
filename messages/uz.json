@@ -191,7 +191,13 @@
     "currentPassword": "Hozirgi parol",
     "passwordsDiffer": "Parollar bir xil emas.",
     "savePassword": "Parolni saqlaş",
-    "passwordSaved": "Parol saqlandi."
+    "passwordSaved": "Parol saqlandi.",
+    "forgot": "Parolni unutdingizmi?",
+    "back": "Orqaga",
+    "resetCode": "6 xonali kod",
+    "resetHint": "Kod hisobingizdagi emailga va ulangan Telegram botga yuboriladi.",
+    "resetSent": "Hisob topilsa, kod yuborildi. Email va botni tekşiring.",
+    "passwordReset": "Parol yangilandi. Endi kiring."
   },
   "dashboard": {
     "greetingMorning": "Xayrli tong, {name}",
@@ -1714,7 +1720,7 @@
     "mixed": "Aralaş",
     "findDeck": "Töplamni topiş…",
     "howMany": "Neçta savol",
-    "max": "Maks",
+    "max": "Töliq",
     "makeTime": "AI manbani çuqur öqib, bir-birini takrorlamaydigan savollar tuzadi. Odatda 1–4 daqiqa oladi."
   },
   "feedback": {
@@ -2261,8 +2267,10 @@
     "whatOthersSeeHint": "{total} tadan {open} tasi oçiq. Har birini şu yerda almaştiring.",
     "filterItems": "Manbani topiş…",
     "showAllN": "Hammasini körsatiş ({n})",
-    "requested": "Sörov yuborildi",
-    "askToFollow": "Kuzatişni söraş"
+    "requested": "Javob kutilmoqda",
+    "askToFollow": "Kuzatişni söraş",
+    "requestSent": "Sörov yuborildi. Egasi qabul qilsa, sizga xabar keladi.",
+    "requestedHint": "Javob kutilmoqda. Bekor qiliş uçun bosing."
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2447,7 +2455,11 @@
         "kind": "sport",
         "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
-    ]
+    ],
+    "placeRough": "Joylaşuv taxminan aniqlandi. Namoz vaqtlari şunga qarab hisoblanadi.",
+    "placeHelp": "Joylaşuvni aniqlab bölmadi. Brauzerda manzil satridagi belgini bosib, «Joylaşuv»ga ruxsat bering.",
+    "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
+    "placeSetting": "Namoz vaqti uçun joylaşuv"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
@@ -2521,6 +2533,7 @@
     "play": "Ijro etiş",
     "take": "Özimga oliş",
     "taken": "Manba kutubxonangizga qöşildi",
-    "inLibrary": "Kutubxonamda bor"
+    "inLibrary": "Kutubxonamda bor",
+    "findPeople": "Odamlarni qidiriş"
   }
 }

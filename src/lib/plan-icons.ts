@@ -1,4 +1,7 @@
-/** Icons for plan items (about 50 of the most useful) and a guess from the title. */
+/**
+ * Icons for plan items: 20 are offered (PICKER_ICONS); older items may keep any
+ * of the rest. Plus a guess from the title.
+ */
 import {
   Activity,
   AlarmClock,
@@ -48,6 +51,7 @@ import {
   ShowerHead,
   Sparkles,
   Sprout,
+  Star,
   Sun,
   Sunrise,
   Target,
@@ -59,8 +63,11 @@ import {
   Waves,
   type LucideIcon,
 } from "lucide-react";
+import { MosqueIcon } from "@/components/roznoma/mosque-icon";
 
 export const PLAN_ICONS: Record<string, LucideIcon> = {
+  star: Star,
+  mosque: MosqueIcon,
   sunrise: Sunrise,
   sun: Sun,
   moon: Moon,
@@ -120,11 +127,34 @@ export const PLAN_ICONS: Record<string, LucideIcon> = {
   rest: Armchair,
 };
 
+/** What the picker shows, the most used first. */
+export const PICKER_ICONS = [
+  "book",
+  "star",
+  "brain",
+  "dumbbell",
+  "mosque",
+  "hand",
+  "grad",
+  "pen",
+  "footprints",
+  "shower",
+  "briefcase",
+  "sunrise",
+  "bed",
+  "languages",
+  "notebook",
+  "chef",
+  "users",
+  "wallet",
+  "target",
+  "check",
+];
+
 const GUESS: [RegExp, string][] = [
-  [
-    /bomdod|peşin|peshin|asr|şom|shom|xufton|namoz|qazo|tahorat|zikr|duo|tasbeh|qur|istihora|prayer|молитв|намаз/i,
-    "hand",
-  ],
+  [/bomdod|peşin|peshin|asr|şom|shom|xufton|namoz|qazo|tahorat|prayer|намаз/i, "mosque"],
+  [/zikr|duo|tasbeh|qur|istihora|молитв|дуа|dua/i, "hand"],
+  [/kitob yoz|write a book|написать книг/i, "pen"],
   [/kitob|öqi|oqi|book|read|книг|чтен/i, "book"],
   [/dars|lesson|урок|kurs|course/i, "grad"],
   [/badan|sport|maşq|mashq|maşğ|shug|şuğ|gym|workout|exercise|спорт|зарядк|трениров/i, "dumbbell"],

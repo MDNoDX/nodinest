@@ -2,6 +2,7 @@
 import { Clock, UserCheck, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 import { followAction } from "@/app/actions/social";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/lib/use-action";
@@ -30,7 +31,15 @@ export function FollowButton({
       variant={on ? "outline" : "primary"}
       size={size}
       loading={pending}
-      onClick={() => exec(() => followAction(userId, !on), { onSuccess: (s) => setState(s) })}
+      title={state === "requested" ? t("requestedHint") : undefined}
+      onClick={() =>
+        exec(() => followAction(userId, !on), {
+          onSuccess: (s) => {
+            setState(s);
+            if (s === "requested") toast(t("requestSent"));
+          },
+        })
+      }
     >
       {state === "following" ? <UserCheck /> : state === "requested" ? <Clock /> : <UserPlus />}{" "}
       {state === "following"

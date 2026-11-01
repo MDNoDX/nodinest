@@ -236,7 +236,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             <Card>
               <CardHeader title={t("settings.security.password")} />
               <div className="px-5 pb-5">
-                <PasswordForm has={pw} />
+                <PasswordForm has={pw} login={user.username ?? user.email} />
               </div>
             </Card>
           )}
