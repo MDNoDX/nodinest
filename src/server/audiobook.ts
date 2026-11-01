@@ -51,6 +51,7 @@ import {
   planText,
   runs,
   type ScriptLine,
+  UNNAMED,
 } from "@/lib/audiobook-plan";
 import { type Locale } from "@/i18n/config";
 
@@ -809,7 +810,7 @@ const SCRIPT_SYSTEM = (a: Analysis) =>
       ? `Pronunciation: ${a.pronunciation.map((p) => `"${p.written}" → "${p.spoken}"`).join("; ")}.`
       : "",
     "Rules:",
-    "- Output the passage as lines with a speaker: 'narrator' for the author's text, or a character's name (exactly as listed) for that character's direct speech. If unsure who speaks, use 'narrator'.",
+    "- Output the passage as lines with a speaker: 'narrator' for the author's text, or a character's name (exactly as listed) for that character's direct speech. A person who speaks but is not listed is 'man' or 'woman'. Direct speech is never 'narrator', unless you cannot tell even that much.",
     "- The words around a quote belong to the narrator line COMPLETE, with the speaker's name: “We should start back,” Gared urged as the woods… → Gared: 'We should start back,' / narrator: 'Gared urged as the woods…'. Likewise '— dedi Otabek' → narrator: 'dedi Otabek'.",
     "- A chapter or section title is its own narrator line with heading: true (written normally, not in capitals).",
     "- Do not put the dialogue dashes (—) into the text: they only show who speaks. Keep ALL other punctuation exactly (, . ! ? … : ;) — it carries the intonation; a character's line keeps its own final comma, '!' or '?'.",
@@ -1043,6 +1044,14 @@ export function speechLanguage(language: string | null | undefined) {
 }
 
 /** MP3 of segment `idx`, voiced with the book's cast. */
+/** A voice for someone without a name: the right gender, not the narrator's, the least used. */
+function unnamedVoice(who: (typeof UNNAMED)[number], a: Analysis) {
+  const uses = (n: VoiceName) => a.characters.filter((c) => c.voice === n).length;
+  return CURATED.filter((n) => VOICES[n].g === (who === "man" ? "m" : "f"))
+    .filter((n) => n !== a.narration.voice)
+    .sort((x, y) => uses(x) - uses(y))[0];
+}
+
 export async function segmentAudio(
   ctx: AppContext,
   resourceId: string,
@@ -1059,6 +1068,7 @@ export async function segmentAudio(
   const lines = uzbek ? written.map((l) => ({ ...l, text: uzCyrillicToLatin(l.text) })) : written;
   const voice = new Map<string, string>([["narrator", a.narration.voice]]);
   for (const c of a.characters) voice.set(c.name, c.voice);
+  for (const who of UNNAMED) voice.set(who, unnamedVoice(who, a));
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;
   // The same lines in the same voices were voiced before (this or another
   // reader of the same book): served from the store, no speech request.
@@ -1066,6 +1076,8 @@ export async function segmentAudio(
     .update(
       JSON.stringify({
         v: AUDIO_PIPELINE,
+        // Older copies of a scene may have the narrator reading its people.
+        cast: lines.some((l) => l.speaker !== "narrator") ? CAST_PIPELINE : undefined,
         lines: lines.map((l) => [voiceOf(l.speaker), l.text]),
         lang: a.language,
         style: a.narration.style ?? "",
@@ -1095,6 +1107,7 @@ export async function segmentAudio(
 
 /** Bump when the voicing pipeline changes (style, pauses, timing): old copies are not reused. */
 const AUDIO_PIPELINE = 3;
+const CAST_PIPELINE = 2;
 
 async function voiceSegment(lines: ScriptLine[], voiceOf: (s: string) => string, a: Analysis) {
   const groups = runs(lines);

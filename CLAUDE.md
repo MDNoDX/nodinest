@@ -85,8 +85,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   day page queue in `lib/outbox.ts` and go out on reconnect (`layout/outbox-sync.tsx`); the book editor
   has its own drafts. AI needs the network. The Mac app's WKWebView has service workers too.
 - Reader (`components/reader/reader-app.tsx`): one page at a time, never two; it fills the width up
-  to the side panel, fits the window (`Sheet` tries font sizes), zoom makes the text bigger and the
-  page scrolls; full screen covers everything. Blocks in `book_pages.formatted` come from
+  to the side panel, the text is the same size on every page (`prefs.size` × zoom), a long page scrolls;
+  full screen covers everything. Blocks in `book_pages.formatted` come from
   `server/book-format.ts` (after upload, while reading, and a little with each reminders cron); `d`
   blocks carry the speaker `s`; lines repeated at the edge of pages (`repeatedLines`) stay on their
   first page only; `blocksFromParas` splits speech without AI. Scanned books show the PDF pages.
@@ -117,7 +117,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   gemini.ts (≤ 2 voices per request; 3.8 TTS models use `speechMetadata`, older ones a
   "SpeakerN: …" transcript) → MP3 (lamejs) at `/api/audiobook/[id]/segment/[idx]?v=rev.voiceRev`,
   cached in the browser (Cache API, `blob:` in CSP media-src). Free tier: ~10 speech requests per
-  model per day, so `runs()` keeps ≤ 3 requests per segment. A new PDF re-runs the analysis via
+  model per day, so `runs()` keeps ≤ 6 requests per segment (short tags join the speech, then the quietest go to the narrator). A new PDF re-runs the analysis via
   `after()`.
 - Book structure (`server/book-structure.ts`, columns `book_text_sources.outline/chapters`, 0026):
   PDF bookmarks (stored at index time) + heading-like lines of every page (`headingCandidates`)

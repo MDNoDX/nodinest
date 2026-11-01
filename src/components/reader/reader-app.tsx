@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { saveNoteAction } from "@/app/actions/personal";
@@ -42,8 +42,6 @@ const AHEAD = 6;
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
 const ZOOMS = [1, 1.2, 1.4, 1.7, 2];
-/** The page's text is tried from 1.3 × the chosen size down, 0.03 at a time. */
-const FIT_STEPS = 19;
 const WHO = ["--c-blue", "--c-teal", "--c-rose", "--c-amber", "--c-violet", "--c-emerald"];
 /** Each speaker keeps a colour through the whole book. */
 const whoColor = (name: string) => {
@@ -211,12 +209,26 @@ export function ReaderApp({
       const el = e.target as Element;
       if (el.closest?.("input,textarea,[contenteditable]") || e.metaKey || e.ctrlKey || e.altKey)
         return;
-      if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+      const body = stage.current?.querySelector<HTMLElement>("[data-sheet=one] .book-body");
+      const left = body ? body.scrollHeight - body.clientHeight - body.scrollTop : 0;
+      if (e.key === "ArrowRight") {
         e.preventDefault();
         turn(1);
-      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+      } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         turn(-1);
+      } else if (e.key === "PageDown" || e.key === " ") {
+        // A long page is read to its end first.
+        e.preventDefault();
+        if (body && left > 1) body.scrollBy({ top: body.clientHeight * 0.85 });
+        else turn(1);
+      } else if (e.key === "PageUp") {
+        e.preventDefault();
+        if (body && body.scrollTop > 1) body.scrollBy({ top: -body.clientHeight * 0.85 });
+        else turn(-1);
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        body?.scrollBy({ top: e.key === "ArrowDown" ? 70 : -70 });
       } else if (e.key.toLowerCase() === "f") toggleFull();
     };
     const onFull = () => {
@@ -537,7 +549,7 @@ export function ReaderApp({
   );
 }
 
-/** One page of the book, numbered as in the PDF: it fits the window until zoomed. */
+/** One page of the book, numbered as in the PDF: the same text size on every page; a long one scrolls. */
 function Sheet({
   n,
   page,
@@ -568,42 +580,6 @@ function Sheet({
   onMark: (m: Mark, x: number, y: number) => void;
 }) {
   const t = useTranslations("reader");
-  const body = useRef<HTMLDivElement>(null);
-  // Before paint: the page turn copies this sheet at its final size.
-  useLayoutEffect(() => {
-    const el = body.current;
-    if (!el) return;
-    const fit = () => {
-      if (zoom > 1) {
-        el.style.overflowY = "auto";
-        el.style.fontSize = `${size * zoom}px`;
-        return;
-      }
-      el.style.overflowY = "hidden";
-      const fits = (step: number) => {
-        el.style.fontSize = `${size * (1.3 - step * 0.03)}px`;
-        return el.scrollHeight <= el.clientHeight + 1;
-      };
-      // Too long even at the smallest size: it scrolls, nothing is cut.
-      if (!fits(FIT_STEPS)) {
-        el.style.overflowY = "auto";
-        return;
-      }
-      let lo = 0;
-      let hi = FIT_STEPS;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (fits(mid)) hi = mid;
-        else lo = mid + 1;
-      }
-      fits(lo);
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [size, leading, zoom, page, picture]);
-
   const text = (s: string) =>
     marked(s, marks, term).map((piece, k) =>
       typeof piece === "string" ? (
@@ -634,9 +610,8 @@ function Sheet({
   return (
     <section data-sheet="one" data-page={n} className="book-sheet">
       <div
-        ref={body}
         className={cn("book-body", zoom > 1 && "book-zoomed")}
-        style={{ fontSize: size, lineHeight: leading }}
+        style={{ fontSize: size * zoom, lineHeight: leading }}
         lang="und"
       >
         {picture && fileId ? (

@@ -54,6 +54,7 @@ describe("cleanLines", () => {
         { speaker: "narrator", text: "—" },
         { speaker: "QIZIM", text: "— Salom, dada!" },
         { speaker: "Begona", text: "Kim bor?" },
+        { speaker: "woman", text: "Men!" },
       ],
       cast,
     );
@@ -62,6 +63,7 @@ describe("cleanLines", () => {
       { speaker: "narrator", text: "U kirdi." },
       { speaker: "Dilnoza", text: "Salom, dada!" },
       { speaker: "narrator", text: "Kim bor?" },
+      { speaker: "woman", text: "Men!" },
     ]);
   });
 });
@@ -75,17 +77,47 @@ describe("runs", () => {
     for (const g of runs(lines))
       expect(new Set(g.map((l) => l.speaker)).size).toBeLessThanOrEqual(2);
   });
-  it("lets the narrator read the quietest characters when a scene needs too many requests", () => {
-    const turn = ["A", "B", "C", "A", "B", "C", "A", "B"];
+  it("keeps everyone's own voice in a talk of three", () => {
+    const turn = ["narrator", "A", "narrator", "B", "narrator", "C", "narrator", "A", "narrator"];
+    const lines = turn.map((speaker, i) => ({ speaker, text: `Gap raqami ${i}.` }));
+    const out = runs(lines);
+    expect(out.flat()).toEqual(lines);
+  });
+  it("in a long talk the short words between speakers join the speech", () => {
+    const talk = Array.from({ length: 14 }, (_, i) => [
+      { speaker: i % 2 ? "B" : "A", text: `Gap raqami ${i}, bir oz so‘z bilan.` },
+      { speaker: "narrator", text: "dedi u." },
+    ]).flat();
+    const lines = [...talk, { speaker: "A", text: "Oxirgi gap." }];
+    const out = runs(lines);
+    expect(out.length).toBeLessThanOrEqual(6);
+    expect(out.flat().map((l) => l.text)).toEqual(lines.map((l) => l.text));
+    // Nobody who speaks loses their voice.
+    const said = out.flat().filter((l) => l.text.startsWith("Gap"));
+    expect(said.map((l) => l.speaker)).toEqual(
+      lines.filter((l) => l.text.startsWith("Gap")).map((l) => l.speaker),
+    );
+    // A long piece of narration stays the narrator's.
+    const long =
+      "U uzoq vaqt jim turdi, keyin derazaga qaradi va yomg‘ir to‘xtaganini ko‘rib, sekin yo‘lga tushdi.";
+    const scene = [...lines.slice(0, 5), { speaker: "narrator", text: long }, ...lines.slice(5)];
+    expect(
+      runs(scene)
+        .flat()
+        .find((l) => l.text === long)?.speaker,
+    ).toBe("narrator");
+  });
+  it("lets the narrator read the quietest only when a crowd needs too many requests", () => {
+    const turn = Array.from({ length: 40 }, (_, i) => "ABCDEF"[i % 6]);
     const lines = turn.map((speaker, i) => ({
       speaker,
-      text: speaker === "C" ? "Ha." : `Uzunroq gap raqami ${i}, bir oz ko‘proq so‘z bilan.`,
+      text: speaker === "F" ? "Ha." : `Uzunroq gap raqami ${i}, bir oz ko‘proq so‘z bilan.`,
     }));
     const out = runs(lines);
-    expect(out.length).toBeLessThanOrEqual(3);
+    expect(out.length).toBeLessThanOrEqual(6);
     // Every word is still spoken, in order.
     expect(out.flat().map((l) => l.text)).toEqual(lines.map((l) => l.text));
-    expect(out.flat().some((l) => l.speaker === "C")).toBe(false);
+    expect(out.flat().some((l) => l.speaker === "F")).toBe(false);
   });
 });
 

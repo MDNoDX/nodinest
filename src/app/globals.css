@@ -852,9 +852,6 @@ html[data-reader-full] main {
 .book-body {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-}
-.book-zoomed {
   overflow-y: auto;
 }
 .book-foot {

@@ -376,7 +376,7 @@ function Ready({
   const engine = useAudiobook()!;
   const { idx, playing, loading, time } = engine;
   const { go, toggle, seek, seekTo, open } = engine;
-  const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${cast ? "c" : "s"}.${AUDIO_VERSION}`;
+  const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${cast ? "c2" : "s"}.${AUDIO_VERSION}`;
   // The book enters the site-wide player (one that is already playing goes on).
   useEffect(() => {
     open({

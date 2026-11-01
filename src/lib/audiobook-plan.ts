@@ -6,6 +6,8 @@
 import { lineKey } from "./reflow";
 
 export type ScriptLine = { speaker: string; text: string };
+/** Speakers of the script that are not in the book's list of characters. */
+export const UNNAMED = ["man", "woman"] as const;
 export type Seg = [number, number, number];
 type Cast = { characters: { name: string; aliases: string[] }[] };
 
@@ -179,7 +181,8 @@ export function locateHeading(
 
 export function cleanLines(raw: unknown, a: Cast): ScriptLine[] {
   type L = ScriptLine & { heading?: boolean };
-  const names = new Map<string, string>();
+  // Someone who speaks once and has no name still is not the narrator.
+  const names = new Map<string, string>(UNNAMED.map((w) => [w, w]));
   for (const c of a.characters) {
     names.set(c.name.toLowerCase(), c.name);
     for (const al of c.aliases) names.set(al.toLowerCase(), c.name);
@@ -207,7 +210,10 @@ export function cleanLines(raw: unknown, a: Cast): ScriptLine[] {
 }
 
 const RUN_CHARS = 3200;
-const MAX_RUNS = 3;
+/** Speech requests one part may take: enough for a scene of several people. */
+const MAX_RUNS = 6;
+/** Words like "he said." between two people speaking. */
+const TAG_CHARS = 60;
 
 /** Lines grouped into requests of at most two voices and ~RUN_CHARS characters. */
 function group(lines: ScriptLine[]) {
@@ -241,18 +247,43 @@ function group(lines: ScriptLine[]) {
 }
 
 /**
- * Requests for one segment. Each costs one of the few free speech requests,
- * so when a scene needs too many (three or more characters taking turns),
- * the characters who say least are read by the narrator's voice.
+ * Between two people speaking, a few words of narration make the talk one
+ * request instead of many: the one who just spoke says them.
+ */
+function tagsToSpeakers(lines: ScriptLine[]) {
+  return lines.map((l, i) => {
+    const before = lines[i - 1]?.speaker;
+    const after = lines[i + 1]?.speaker;
+    const tag =
+      l.speaker === "narrator" &&
+      l.text.length <= TAG_CHARS &&
+      before &&
+      after &&
+      before !== "narrator" &&
+      after !== "narrator" &&
+      before !== after;
+    return tag ? { ...l, speaker: before } : l;
+  });
+}
+
+/**
+ * Requests for one segment. Everyone speaks in their own voice as long as the
+ * scene fits: each request costs one of the few free speech requests. When it
+ * does not, first the short words between two speakers join their speech, and
+ * only then does the narrator read the people who say least.
  */
 export function runs(lines: ScriptLine[]) {
   let cur = lines;
   let out = group(cur);
-  const minor = [...new Set(lines.map((l) => l.speaker))]
+  if (out.length > MAX_RUNS) {
+    cur = tagsToSpeakers(lines);
+    out = group(cur);
+  }
+  const minor = [...new Set(cur.map((l) => l.speaker))]
     .filter((s) => s !== "narrator")
     .map((s) => ({
       s,
-      n: lines.filter((l) => l.speaker === s).reduce((a, l) => a + l.text.length, 0),
+      n: cur.filter((l) => l.speaker === s).reduce((a, l) => a + l.text.length, 0),
     }))
     .sort((a, b) => a.n - b.n);
   while (out.length > MAX_RUNS && minor.length) {

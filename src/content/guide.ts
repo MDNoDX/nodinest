@@ -132,7 +132,7 @@ const uz: GuideSection[] = [
       },
       {
         title: "Limit",
-        text: "Ovoz Google’ning bepul tarifida yaratiladi: butun sayt uçun kuniga taxminan 1–2 soat audio. Limit tugasa, ertaga davom etadi; tayyor qismlar yöqolmaydi.",
+        text: "Ovoz Google’ning bepul tarifida yaratiladi: butun sayt uçun kuniga taxminan 1–2 soat audio. «Qahramonlar bilan» rejimi har bir qismga köproq limit sarflaydi. Limit tugasa, ertaga davom etadi; tayyor qismlar yöqolmaydi.",
       },
     ],
   },
@@ -487,7 +487,7 @@ const en: GuideSection[] = [
       },
       {
         title: "Limit",
-        text: "Voices are made on Google’s free tier: about 1–2 hours of audio a day for the whole site. When it runs out, it continues tomorrow; finished parts are kept.",
+        text: "Voices are made on Google’s free tier: about 1–2 hours of audio a day for the whole site. “With the characters” uses more of the limit for each part. When it runs out, it continues tomorrow; finished parts are kept.",
       },
     ],
   },
