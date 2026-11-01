@@ -10,6 +10,8 @@ const MS = 820;
 const TILT = 0.2;
 /** A fold is round, so the part laid back looks narrower than flat paper. */
 const ROUND = 0.84;
+/** The longest step of one frame: a slow frame pauses the turn, it never jumps. */
+const STEP = 40;
 
 const ease = (t: number) => 1 - (1 - t) ** 2.5;
 
@@ -93,14 +95,16 @@ export function turnPage({
   paint(dir === 1 ? 0 : 1);
 
   let frame = 0;
-  let first = 0;
+  let last = 0;
+  let spent = 0;
   const stop = () => {
     cancelAnimationFrame(frame);
     layer.remove();
   };
   const tick = (now: number) => {
-    first ||= now;
-    const t = Math.min(1, (now - first) / MS);
+    spent += last ? Math.min(now - last, STEP) : 0;
+    last = now;
+    const t = Math.min(1, spent / MS);
     paint(dir === 1 ? ease(t) : 1 - ease(t));
     if (t < 1) frame = requestAnimationFrame(tick);
     else stop();

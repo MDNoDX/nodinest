@@ -42,6 +42,8 @@ const AHEAD = 6;
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
 const ZOOMS = [1, 1.2, 1.4, 1.7, 2];
+/** The page's text is tried from 1.3 × the chosen size down, 0.03 at a time. */
+const FIT_STEPS = 19;
 const WHO = ["--c-blue", "--c-teal", "--c-rose", "--c-amber", "--c-violet", "--c-emerald"];
 /** Each speaker keeps a colour through the whole book. */
 const whoColor = (name: string) => {
@@ -578,12 +580,23 @@ function Sheet({
         return;
       }
       el.style.overflowY = "hidden";
-      for (let k = 1.3; k >= 0.72; k -= 0.03) {
-        el.style.fontSize = `${size * k}px`;
-        if (el.scrollHeight <= el.clientHeight + 1) return;
-      }
+      const fits = (step: number) => {
+        el.style.fontSize = `${size * (1.3 - step * 0.03)}px`;
+        return el.scrollHeight <= el.clientHeight + 1;
+      };
       // Too long even at the smallest size: it scrolls, nothing is cut.
-      el.style.overflowY = "auto";
+      if (!fits(FIT_STEPS)) {
+        el.style.overflowY = "auto";
+        return;
+      }
+      let lo = 0;
+      let hi = FIT_STEPS;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (fits(mid)) hi = mid;
+        else lo = mid + 1;
+      }
+      fits(lo);
     };
     fit();
     const ro = new ResizeObserver(fit);
