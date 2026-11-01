@@ -11,7 +11,7 @@ import { aiActions, aiConversations, aiMessages } from "@/db/schema";
 import { AppError, toActionError } from "@/lib/errors";
 import { enforceRateLimit, hitRateLimit } from "../rate-limit";
 import { getAiSettings } from "../settings";
-import { generate, isAiConfigured } from "./gemini";
+import { generate, generateLive, isAiConfigured } from "./gemini";
 import { attachmentParts, describeFiles } from "./media";
 import { openRouterReady } from "./openrouter";
 import {
@@ -337,6 +337,12 @@ export async function runAssistant(
     attachments?: string[];
     /** Live voice talk: the reply is spoken aloud (short, no lists or formatting). */
     spoken?: boolean;
+    /** The language of the words just spoken (two letters). */
+    spokenLang?: string;
+    /** The reply's text while it is being written. */
+    onText?: (piece: string) => void;
+    /** The conversation is known (before the model answers). */
+    onConversation?: (id: string) => void;
   },
 ): Promise<AssistantTurn> {
   const attachments = await describeFiles(ctx, [...new Set(input.attachments ?? [])].slice(0, 6));
@@ -392,6 +398,7 @@ export async function runAssistant(
     conversationId = c.id;
   }
   const convId = conversationId;
+  input.onConversation?.(convId);
   const [history, [context, profile, memory], earlier, fileParts] = await Promise.all([
     loadHistory(ctx, convId),
     Promise.all([userContext(ctx), learnerProfile(ctx), getMemory(ctx.userId)]).then(
@@ -429,18 +436,24 @@ export async function runAssistant(
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const t0 = Date.now();
-    const res = await generate(contents, {
+    const config = {
       systemInstruction:
         persona(!!ctx.superadminAccount, profile, memory) +
         "\n\n" +
         systemInstruction(input.locale, input.timeZone, context + earlier) +
-        (input.spoken ? SPOKEN : ""),
+        (input.spoken ? SPOKEN : "") +
+        (input.spokenLang
+          ? `\n- The user just spoke in the language with code "${input.spokenLang}": answer in that language.`
+          : ""),
       tools,
       temperature: 0.7,
       maxOutputTokens: 4096,
       // A little thought is enough for talk; speed matters more here.
       thinkingConfig: { thinkingBudget: 512 },
-    });
+    };
+    const res = input.onText
+      ? await generateLive(contents, config, input.onText)
+      : await generate(contents, config);
     const calls: FunctionCall[] = res.functionCalls ?? [];
     if (process.env.NODE_ENV !== "production")
       console.info(

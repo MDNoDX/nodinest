@@ -106,36 +106,51 @@ async function elevenLabs(text: string, kind: "female" | "male", lang: string) {
 const GEMINI_VOICE = { female: "Sulafat", male: "Charon" } as const;
 const GEMINI_LANG: Record<string, string> = { uz: "uz-UZ", ru: "ru-RU", en: "en-US", tr: "tr-TR" };
 
-/** The reply as MP3, from the best voice still allowed; null if none can speak. */
-export async function talkSpeech(
+export type TalkVoice = {
+  /** It can say one sentence at a time (Gemini's few daily requests cannot). */
+  chunked: boolean;
+  say: (text: string) => Promise<Buffer | null>;
+};
+
+/** The longest reply a turn may speak (lib: the budget checks count this much). */
+export const MAX_TURN_CHARS = 1500;
+
+/** Chooses the best voice still allowed for this turn; the choice holds for its sentences. */
+export async function talkVoice(
   ctx: AppContext,
-  text: string,
   /** The language spoken (two letters). */
   lang: string,
   voice: "female" | "male",
-): Promise<Buffer | null> {
+): Promise<TalkVoice> {
   if (key()) {
-    const n = text.length;
+    const n = MAX_TURN_CHARS;
     const roomMonth = (await usedChars()) + n <= monthly() && (await realLeft()) > n + 200;
     const roomUser =
       ctx.superadminAccount ||
       (await hitRateLimit(db, `eleven:${ctx.userId}`, DAILY_PER_USER / 100, 86_400)).allowed;
-    if (roomMonth && roomUser) {
-      const mp3 = await elevenLabs(text, voice, lang);
-      if (mp3) {
-        await addChars(n).catch(() => {});
-        return mp3;
+    if (roomMonth && roomUser)
+      return {
+        chunked: true,
+        say: async (text) => {
+          const mp3 = await elevenLabs(text, voice, lang);
+          if (mp3) await addChars(text.length).catch(() => {});
+          return mp3;
+        },
+      };
+  }
+  return {
+    chunked: false,
+    say: async (text) => {
+      try {
+        const { pcm, rate } = await speak([{ speaker: "ai", text }], () => GEMINI_VOICE[voice], {
+          languageCode: GEMINI_LANG[lang],
+          timeoutMs: 45_000,
+        });
+        return encodeMp3(pcm, rate);
+      } catch (err) {
+        if (err instanceof AppError) return null;
+        throw err;
       }
-    }
-  }
-  try {
-    const { pcm, rate } = await speak([{ speaker: "ai", text }], () => GEMINI_VOICE[voice], {
-      languageCode: GEMINI_LANG[lang],
-      timeoutMs: 45_000,
-    });
-    return encodeMp3(pcm, rate);
-  } catch (err) {
-    if (err instanceof AppError) return null;
-    throw err;
-  }
+    },
+  };
 }

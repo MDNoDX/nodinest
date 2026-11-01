@@ -3,6 +3,14 @@ import { useEffect, useRef } from "react";
 
 export type OrbState = "idle" | "listening" | "thinking" | "speaking";
 
+/** Listening is cool, thinking violet, speaking warm: the state reads at a glance. */
+const PALETTE: Record<OrbState, number[]> = {
+  idle: [150, 130, 255],
+  listening: [70, 190, 255],
+  thinking: [170, 100, 255],
+  speaking: [255, 130, 40],
+};
+
 /**
  * A glowing sphere of particles (canvas 2D, no library). It turns slowly,
  * breathes while idle, swirls while thinking and ripples with the voice:
@@ -30,7 +38,7 @@ export function VoiceOrb({
     if (!c || !g) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // Points evenly spread over a sphere (Fibonacci lattice).
-    const N = 1500;
+    const N = 1300;
     const pts = Array.from({ length: N }, (_, i) => {
       const y = 1 - (2 * (i + 0.5)) / N;
       const r = Math.sqrt(1 - y * y);
@@ -42,6 +50,7 @@ export function VoiceOrb({
     let rot = 0;
     let amp = 0;
     let spin = 0.004;
+    const col = [...PALETTE.idle];
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       const { width, height } = c.getBoundingClientRect();
@@ -55,7 +64,12 @@ export function VoiceOrb({
     const frame = () => {
       const { state: s, level: lv } = live.current;
       const target = s === "speaking" || s === "listening" ? Math.min(1, lv() * 1.6) : 0;
-      amp += (target - amp) * 0.18;
+      // Quick to rise with the voice, slower to fall.
+      amp += (target - amp) * (target > amp ? 0.55 : 0.14);
+      const want = PALETTE[s];
+      col[0] += (want[0] - col[0]) * 0.08;
+      col[1] += (want[1] - col[1]) * 0.08;
+      col[2] += (want[2] - col[2]) * 0.08;
       spin += ((s === "thinking" ? 0.022 : s === "speaking" ? 0.008 : 0.004) - spin) * 0.05;
       t += reduce ? 0.004 : 0.016;
       rot += reduce ? spin * 0.25 : spin;
@@ -65,8 +79,8 @@ export function VoiceOrb({
       g.clearRect(0, 0, W, H);
       // Soft glow behind the sphere.
       const glow = g.createRadialGradient(W / 2, H / 2, R * 0.2, W / 2, H / 2, R * 1.9);
-      glow.addColorStop(0, `rgba(255,140,40,${0.22 + amp * 0.25})`);
-      glow.addColorStop(0.5, "rgba(255,90,20,0.06)");
+      glow.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},${0.22 + amp * 0.35})`);
+      glow.addColorStop(0.5, `rgba(${col[0]},${col[1]},${col[2]},0.06)`);
       glow.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = glow;
       g.fillRect(0, 0, W, H);
@@ -81,7 +95,7 @@ export function VoiceOrb({
         // Ripples over the surface, stronger when the voice is loud.
         const wave = Math.sin(p.y * 6 + t * 3 + p.seed) * 0.5 + Math.sin(p.x * 5 - t * 2.3) * 0.5;
         const swirl = s === "thinking" ? Math.sin(p.seed + t * 4) * 0.04 : 0;
-        const k = breathe + amp * 0.22 * wave + swirl;
+        const k = breathe + amp * 0.34 * wave + swirl;
         let x = p.x * cos - p.z * sin;
         let z = p.x * sin + p.z * cos;
         let y = p.y;
@@ -97,13 +111,11 @@ export function VoiceOrb({
         const py = H / 2 + y * R * persp * 1.6;
         const size = (0.6 + depth * 1.8) * (W / 600) * (1 + amp * 0.6);
         const hot = Math.max(0, Math.min(1, depth * 0.8 + amp * 0.4 + wave * 0.1));
-        const r = 255;
-        const gg = Math.round(90 + hot * 120);
-        const b = Math.round(20 + hot * 60);
+        const r = Math.round(col[0] + (255 - col[0]) * hot * 0.5);
+        const gg = Math.round(col[1] + (255 - col[1]) * hot * 0.5);
+        const b = Math.round(col[2] + (255 - col[2]) * hot * 0.5);
         g.fillStyle = `rgba(${r},${gg},${b},${0.12 + depth * 0.75})`;
-        g.beginPath();
-        g.arc(px, py, size, 0, Math.PI * 2);
-        g.fill();
+        g.fillRect(px - size, py - size, size * 2, size * 2);
       }
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(frame);

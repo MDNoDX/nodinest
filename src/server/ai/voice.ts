@@ -1,8 +1,9 @@
 /**
  * Live voice talk: a short recording → what was said and in which language →
- * the companion's reply (the same conversation as the chat) → spoken in that
- * language (server/ai/speech.ts picks the voice). Premium; others can try it a
- * few times a day. If speech is not available, the reply still comes as text.
+ * the companion's reply (the same conversation as the chat), spoken sentence by
+ * sentence while it is written, so the first words come quickly
+ * (server/ai/speech.ts picks the voice). Premium; others can try it a few times
+ * a day. If speech is not available, the reply still comes as text.
  */
 import "server-only";
 import { db, type AppContext } from "@/db";
@@ -12,7 +13,7 @@ import { limitsFor } from "../premium";
 import { hitRateLimit } from "../rate-limit";
 import { runAssistant } from "./assistant";
 import { generate } from "./gemini";
-import { talkSpeech } from "./speech";
+import { MAX_TURN_CHARS, talkVoice } from "./speech";
 
 /** Free accounts can try the live talk this many times a day. */
 export const FREE_VOICE_TURNS = 3;
@@ -25,8 +26,33 @@ const forSpeech = (s: string) =>
     .replace(/^#+\s*/gm, "")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/\n{2,}/g, "\n")
-    .trim()
-    .slice(0, 1500);
+    .trim();
+
+/** The next speakable piece of `text`: whole sentences, or null if it should wait. */
+export function nextSentences(text: string, min: number) {
+  const re = /[.!?…]+["»”)]*(\s+|$)/g;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const end = m.index + m[0].length;
+    if (end >= min && (end < text.length || /\s$/.test(m[0]))) return end;
+  }
+  return null;
+}
+
+export type VoiceEvent =
+  | { t: "heard"; heard: string }
+  | { t: "conv"; conversationId: string }
+  | { t: "text"; piece: string }
+  | { t: "audio"; audio: string }
+  | { t: "done"; reply: string; conversationId: string | null; visuals: unknown[] };
+
+/** May this person talk now? (before anything is streamed) */
+export async function voiceGate(ctx: AppContext) {
+  if (ctx.superadminAccount) return;
+  const plan = await limitsFor(ctx);
+  if (plan.premium) return;
+  const left = await hitRateLimit(db, `voice-free:${ctx.userId}`, FREE_VOICE_TURNS, 86_400);
+  if (!left.allowed) throw new AppError("PREMIUM_REQUIRED", "voice");
+}
 
 export async function voiceTurn(
   ctx: AppContext,
@@ -38,14 +64,9 @@ export async function voiceTurn(
     timeZone: string;
     voice: "female" | "male";
   },
+  emit: (e: VoiceEvent) => void,
+  signal?: AbortSignal,
 ) {
-  if (!ctx.superadminAccount) {
-    const plan = await limitsFor(ctx);
-    if (!plan.premium) {
-      const left = await hitRateLimit(db, `voice-free:${ctx.userId}`, FREE_VOICE_TURNS, 86_400);
-      if (!left.allowed) throw new AppError("PREMIUM_REQUIRED", "voice");
-    }
-  }
   const loc = asLocale(input.locale);
   const mimeType = input.mime.split(";")[0] || "audio/webm";
   const heardRes = await generate(
@@ -67,22 +88,58 @@ export async function voiceTurn(
   const m = /^([a-z]{2})\|([\s\S]+)$/.exec(raw);
   const heard = (m ? m[2] : raw === "-" ? "" : raw).trim();
   const lang = m?.[1] ?? (loc === "uz-Cyrl" ? "uz" : loc);
-  if (!heard) return { heard: "", reply: "", conversationId: input.conversationId, audio: null };
+  emit({ t: "heard", heard });
+  if (!heard) return;
 
+  const speaker = await talkVoice(ctx, lang, input.voice);
+  // Two sentences are made at a time; they are sent in order.
+  const jobs: Promise<unknown>[] = [];
+  let sent = Promise.resolve();
+  let spent = 0;
+  const speakOut = (piece: string) => {
+    const text = forSpeech(piece).slice(0, MAX_TURN_CHARS - spent);
+    if (!text || signal?.aborted) return;
+    spent += text.length;
+    const job = (jobs.at(-2) ?? Promise.resolve()).then(() =>
+      signal?.aborted ? null : speaker.say(text).catch(() => null),
+    );
+    jobs.push(job);
+    sent = sent.then(async () => {
+      const mp3 = await job;
+      if (mp3) emit({ t: "audio", audio: mp3.toString("base64") });
+    });
+  };
+
+  let pending = "";
+  let first = true;
   const turn = await runAssistant(ctx, {
     conversationId: input.conversationId,
     message: heard,
     spoken: true,
+    spokenLang: lang,
     locale: input.locale,
     timeZone: input.timeZone,
+    onConversation: (id) => emit({ t: "conv", conversationId: id }),
+    onText: (piece) => {
+      emit({ t: "text", piece });
+      if (!speaker.chunked) return;
+      pending += piece;
+      for (;;) {
+        const end = nextSentences(pending, first ? 12 : 50);
+        if (end == null) break;
+        speakOut(pending.slice(0, end));
+        pending = pending.slice(end);
+        first = false;
+      }
+    },
   });
-  const text = forSpeech(turn.reply);
-  const mp3 = text ? await talkSpeech(ctx, text, lang, input.voice) : null;
-  return {
-    heard,
+  // A reply made without the model's words (a card's fixed line) is said whole.
+  speakOut(speaker.chunked && spent + pending.length > 0 ? pending : turn.reply);
+  await sent;
+  emit({
+    t: "done",
     reply: turn.reply,
     conversationId: turn.conversationId,
-    audio: mp3 ? mp3.toString("base64") : null,
-    visuals: turn.visuals,
-  };
+    visuals: turn.visuals ?? [],
+  });
 }

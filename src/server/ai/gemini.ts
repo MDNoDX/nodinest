@@ -13,6 +13,7 @@ import {
   type GenerateContentConfig,
   type GenerateContentResponse,
   type SafetySetting,
+  type Part,
 } from "@google/genai";
 import { db } from "@/db";
 import { AppError } from "@/lib/errors";
@@ -243,6 +244,63 @@ export async function uploadToGemini(bytes: Uint8Array, mimeType: string): Promi
  * Streaming variant of `generate`: yields text as the model writes it. Models
  * are tried in order until one starts answering (quota / overload → next).
  */
+/**
+ * Like generate(), but the text arrives while the model writes it (the live
+ * talk speaks each sentence at once). Tool calls work as usual. Anything that
+ * goes wrong before the first word falls back to generate() and its reserves.
+ */
+export async function generateLive(
+  contents: Content[],
+  config: GenerateContentConfig,
+  onText: (piece: string) => void,
+  opts: { timeoutMs?: number } = {},
+): Promise<Pick<GenerateContentResponse, "text" | "functionCalls" | "candidates">> {
+  const timeoutMs = opts.timeoutMs ?? 30_000;
+  const now = Date.now();
+  const models = aiModels();
+  const model = models.find((m) => (cooldown.get(m) ?? 0) <= now) ?? models[0];
+  const parts: Part[] = [];
+  let spoke = false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const stream = await gemini().models.generateContentStream({
+      model,
+      contents,
+      config: {
+        safetySettings: SAFETY,
+        ...config,
+        abortSignal: controller.signal,
+        httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
+      },
+    });
+    for await (const chunk of stream) {
+      parts.push(...(chunk.candidates?.[0]?.content?.parts ?? []));
+      const piece = chunk.text;
+      if (piece) {
+        spoke = true;
+        onText(piece);
+      }
+    }
+    const functionCalls = parts.flatMap((p) => (p.functionCall ? [p.functionCall] : []));
+    return {
+      text: parts
+        .filter((p) => p.text && !p.thought)
+        .map((p) => p.text)
+        .join(""),
+      functionCalls,
+      candidates: [{ content: { role: "model", parts } }],
+    };
+  } catch (err) {
+    if (spoke) throw err;
+    const res = await generate(contents, config, opts);
+    if (res.text) onText(res.text);
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function* generateStream(
   contents: Content[],
   config: GenerateContentConfig,
