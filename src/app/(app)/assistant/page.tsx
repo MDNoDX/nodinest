@@ -2,10 +2,9 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Chat, type ChatAction, type ChatMessage } from "@/components/assistant/chat";
-import { DeleteConversation } from "@/components/assistant/conversation-delete";
+import { ConversationList } from "@/components/assistant/conversation-list";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/misc";
-import { cn } from "@/lib/cn";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { aiAvailability, getConversation, listConversations } from "@/server/ai/assistant";
 import { peekRateLimit } from "@/server/rate-limit";
@@ -35,6 +34,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
         actions?: string[];
         proposals?: string[];
         attachments?: ChatMessage["attachments"];
+        visuals?: ChatMessage["visuals"];
       } | null;
       return {
         id: m.id,
@@ -43,6 +43,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
         actions: trace?.actions ?? trace?.proposals ?? [],
         tools: trace?.trace?.map((x) => x.tool) ?? [],
         attachments: trace?.attachments ?? [],
+        visuals: trace?.visuals ?? [],
       };
     }) ?? [];
   const actions: ChatAction[] =
@@ -77,28 +78,10 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
       />
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr] [&>*]:min-w-0">
         <aside className="hidden lg:block">
-          <h2 className="text-muted mb-2 text-xs font-semibold tracking-wide uppercase">
-            {t("history")}
-          </h2>
-          <ul className="flex flex-col gap-0.5">
-            {convs.map((x) => (
-              <li key={x.id} className="group flex items-center gap-1">
-                <Link
-                  href={`/assistant?c=${x.id}`}
-                  aria-current={x.id === c ? "page" : undefined}
-                  className={cn(
-                    "min-w-0 flex-1 truncate rounded-md px-2 py-1.5 text-sm",
-                    x.id === c
-                      ? "bg-primary-soft text-primary"
-                      : "text-muted hover:bg-surface-2 hover:text-foreground",
-                  )}
-                >
-                  {x.title}
-                </Link>
-                {x.id === c && <DeleteConversation id={x.id} />}
-              </li>
-            ))}
-          </ul>
+          <ConversationList
+            items={convs.map((x) => ({ id: x.id, title: x.title ?? "…" }))}
+            current={c ?? null}
+          />
         </aside>
         <Chat
           key={conv?.conversation.id ?? "new"}

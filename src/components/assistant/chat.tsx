@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { errorText, needsPremium } from "@/lib/error-toast";
 import { uploadMedia } from "@/lib/upload-media";
+import { VisualCard, type Visual } from "./visual-card";
 import { VoiceTalk } from "./voice-talk";
 
 export type ChatMessage = {
@@ -44,6 +45,7 @@ export type ChatMessage = {
   actions?: string[];
   tools?: string[];
   attachments?: Attachment[];
+  visuals?: Visual[];
 };
 type Candidate = {
   id: string;
@@ -550,22 +552,6 @@ export function Chat({
     Object.fromEntries(initialActions.map((a) => [a.id, a])),
   );
   const [input, setInput] = useState("");
-  // "act" does things on the site (cards); "talk" is Suhbat — a conversation partner.
-  const [mode, setMode] = useState<"act" | "talk">(() => {
-    try {
-      return localStorage.getItem("nn:assistant-mode") === "talk" ? "talk" : "act";
-    } catch {
-      return "act";
-    }
-  });
-  const pickMode = (m: "act" | "talk") => {
-    setMode(m);
-    try {
-      localStorage.setItem("nn:assistant-mode", m);
-    } catch {
-      /* ignore */
-    }
-  };
   const [files, setFiles] = useState<Pending[]>([]);
   const [error, setError] = useState<{ text: string; premium: boolean } | null>(null);
   const [pending, start] = useTransition();
@@ -630,7 +616,6 @@ export function Chat({
         conversationId,
         message: msg,
         attachments: att.map((a) => a.fileId),
-        mode,
       });
       if (!r.ok) {
         setError({ text: errorText(te, r), premium: needsPremium(r) });
@@ -667,6 +652,7 @@ export function Chat({
           content: d.reply,
           actions: d.actions.map((x) => x.actionId),
           tools: d.trace.map((x) => x.tool),
+          visuals: d.visuals,
         },
       ]);
     });
@@ -683,39 +669,7 @@ export function Chat({
 
   return (
     <div className="flex min-h-[60vh] flex-col">
-      <div
-        role="radiogroup"
-        aria-label={t("modeLabel")}
-        className="bg-surface-2 mb-4 grid w-full max-w-md grid-cols-2 gap-0.5 self-center rounded-xl p-0.5 text-sm"
-      >
-        {(
-          [
-            ["act", t("modeAct"), t("modeActHint")],
-            ["talk", t("modeTalk"), t("modeTalkHint")],
-          ] as const
-        ).map(([k, label, hint]) => (
-          <button
-            key={k}
-            type="button"
-            role="radio"
-            aria-checked={mode === k}
-            onClick={() => pickMode(k)}
-            title={hint}
-            className={cn(
-              "rounded-lg px-3 py-1.5 font-medium transition-colors",
-              mode === k
-                ? "bg-surface text-foreground shadow-sm"
-                : "text-muted hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {mode === "talk" && messages.length === 0 && (
-        <p className="text-muted mx-auto mb-4 max-w-md text-center text-sm">{t("talkIntro")}</p>
-      )}
-      {mode === "talk" && available && (
+      {available && (
         <button
           type="button"
           onClick={() => setTalking(true)}
@@ -736,7 +690,7 @@ export function Chat({
             setMessages((m) => [
               ...m,
               { id: `v-${Date.now()}`, role: "user", content: turn.heard },
-              { id: `vr-${Date.now()}`, role: "model", content: turn.reply },
+              { id: `vr-${Date.now()}`, role: "model", content: turn.reply, visuals: turn.visuals },
             ]);
           }}
         />
@@ -772,6 +726,13 @@ export function Chat({
                 ) : (
                   <RichText text={m.content} />
                 )}
+              </div>
+            )}
+            {m.visuals && m.visuals.length > 0 && (
+              <div className="flex w-full max-w-[min(42rem,100%)] flex-col gap-2">
+                {m.visuals.map((v, i) => (
+                  <VisualCard key={i} v={v} />
+                ))}
               </div>
             )}
             {m.actions && m.actions.length > 0 && (

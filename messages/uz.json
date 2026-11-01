@@ -125,7 +125,7 @@
   "locale": {
     "label": "Til",
     "uz": "Özbekça",
-    "uzCyrl": "Ўзбекча",
+    "uzCyrl": "Kirillça",
     "ru": "Русский",
     "en": "English"
   },
@@ -893,7 +893,7 @@
     "modeTalk": "Suhbat",
     "modeTalkHint": "Öqiganlaringiz haqida halol suhbatdoş",
     "talkIntro": "Men Basira — öqiganlaringiz, qaydlaringiz va maqsadlaringizni bilaman. Kitoblar, ğoyalar yoki odatlaringiz haqida gaplaşamiz: xuşomadsiz, halol fikrimni aytaman.",
-    "voiceTalk": "Ovozli suhbat",
+    "voiceTalk": "Jonli suhbat",
     "talkListening": "Tinglayapman…",
     "talkThinking": "Öylayapman…",
     "talkSpeaking": "Gapiryapman — tugatiş uçun şarni bosing",
@@ -905,7 +905,10 @@
     "talkEnd": "Suhbatni tugatiş",
     "talkPause": "Mikrofonni töxtatiş",
     "talkResume": "Mikrofonni yoqiş",
-    "voiceFailed": "Javob bölmadi. Qayta gapirib köring."
+    "voiceFailed": "Javob bölmadi. Qayta gapirib köring.",
+    "selectChats": "Tanlaş",
+    "deleteChats": "{n} ta suhbat öçirilsinmi? Bu ortga qaytmaydi.",
+    "deleteN": "Öçiriş ({n})"
   },
   "stats": {
     "title": "Körsatkiçlar",
@@ -1855,10 +1858,10 @@
     "part": "{n} / {total}-qism",
     "position": "Joyi",
     "prev": "Oldingi qism",
-    "back15": "5 soniya orqaga",
+    "back15": "10 soniya orqaga",
     "play": "Tinglaş",
     "pause": "Töxtatiş",
-    "fwd15": "5 soniya oldinga",
+    "fwd15": "10 soniya oldinga",
     "next": "Keyingi qism",
     "speed": "Tezlik",
     "making": "Ovoz tayyorlanmoqda… (birinçi marta 20–60 soniya)",
@@ -1951,7 +1954,9 @@
     "modeNarrator": "Bitta hikoyaçi",
     "modeCast": "Qahramonlar ovozi bilan",
     "modeNarratorHint": "Kitob matni bitta ovozda, tez va aniq (tavsiya etiladi)",
-    "modeCastHint": "Har bir qahramon öz ovozida (sekinroq: AI har qismni avval tahlil qiladi)"
+    "modeCastHint": "Har bir qahramon öz ovozida (sekinroq: AI har qismni avval tahlil qiladi)",
+    "closePlayer": "Pleerni yopiş",
+    "keysHint": "Böşliq yoki K — töxtatiş · ← → — 5 soniya · J L — 10 soniya · < > — tezlik"
   },
   "reader": {
     "title": "Kitobni öqiş",
@@ -2232,7 +2237,6 @@
     "findPeopleHint": "Ism yoki username yozing — döstlaringiz va ustozlaringizni toping."
   },
   "roznoma": {
-    "subtitle": "",
     "tab_day": "Kun",
     "tab_goals": "Maqsadlar",
     "tab_plans": "Rejalar",

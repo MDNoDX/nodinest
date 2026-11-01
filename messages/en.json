@@ -125,7 +125,7 @@
   "locale": {
     "label": "Language",
     "uz": "Özbekça",
-    "uzCyrl": "Ўзбекча",
+    "uzCyrl": "Cyrillic",
     "ru": "Русский",
     "en": "English"
   },
@@ -893,7 +893,7 @@
     "modeTalk": "Talk",
     "modeTalkHint": "An honest conversation partner about your learning",
     "talkIntro": "I’m Basira — I know your books, notes and goals. Let’s talk about books, ideas or your habits: no flattery, honest views.",
-    "voiceTalk": "Voice talk",
+    "voiceTalk": "Live talk",
     "talkListening": "Listening…",
     "talkThinking": "Thinking…",
     "talkSpeaking": "Speaking — tap the sphere to cut in",
@@ -905,7 +905,10 @@
     "talkEnd": "End the talk",
     "talkPause": "Mute the microphone",
     "talkResume": "Unmute the microphone",
-    "voiceFailed": "Couldn’t answer. Please say it again."
+    "voiceFailed": "Couldn’t answer. Please say it again.",
+    "selectChats": "Select",
+    "deleteChats": "Delete {n} conversations? This cannot be undone.",
+    "deleteN": "Delete ({n})"
   },
   "stats": {
     "title": "Metrics",
@@ -1855,10 +1858,10 @@
     "part": "part {n} / {total}",
     "position": "Position",
     "prev": "Previous part",
-    "back15": "5 seconds back",
+    "back15": "10 seconds back",
     "play": "Listen",
     "pause": "Pause",
-    "fwd15": "5 seconds forward",
+    "fwd15": "10 seconds forward",
     "next": "Next part",
     "speed": "Speed",
     "making": "Preparing the voice… (20–60 s the first time)",
@@ -1951,7 +1954,9 @@
     "modeNarrator": "One narrator",
     "modeCast": "Character voices",
     "modeNarratorHint": "The book’s text in one voice, fast and exact (recommended)",
-    "modeCastHint": "Every character in their own voice (slower: the AI reads each part first)"
+    "modeCastHint": "Every character in their own voice (slower: the AI reads each part first)",
+    "closePlayer": "Close the player",
+    "keysHint": "Space or K — pause · ← → — 5 seconds · J L — 10 seconds · < > — speed"
   },
   "reader": {
     "title": "Read the book",
@@ -2232,7 +2237,6 @@
     "findPeopleHint": "Type a name or username — find your friends and teachers."
   },
   "roznoma": {
-    "subtitle": "",
     "tab_day": "Day",
     "tab_goals": "Goals",
     "tab_plans": "Plans",

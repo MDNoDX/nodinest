@@ -101,7 +101,7 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader section="plans" title={t("nav.plans")} subtitle={t("roznoma.subtitle")} />
+      <PageHeader section="plans" title={t("nav.plans")} />
       <nav className="bg-surface-2 mb-5 grid grid-cols-4 gap-0.5 rounded-xl p-0.5 text-sm">
         {TABS.map(([k, Icon]) => (
           <Link

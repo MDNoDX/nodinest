@@ -18,6 +18,7 @@ import type { z } from "zod";
 import type { AppContext } from "@/db";
 import { BOOK_TOOLS } from "./tools/books";
 import { CATALOG_TOOLS } from "./tools/catalog";
+import { companionTools } from "./tools/companion";
 import { DESTRUCTIVE_TOOLS } from "./tools/destructive";
 import { PERSONAL_TOOLS } from "./tools/personal";
 import type { ToolDef, ToolEnv } from "./tools/helpers";
@@ -31,6 +32,7 @@ export const TOOLS = {
   ...PERSONAL_TOOLS,
   ...BOOK_TOOLS,
   ...DESTRUCTIVE_TOOLS,
+  ...companionTools,
 } as const;
 
 export type ToolName = keyof typeof TOOLS;

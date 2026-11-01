@@ -37,6 +37,7 @@ import { loadBookPages } from "./booktext";
 import { enforceRateLimit } from "./rate-limit";
 import { reflow } from "@/lib/reflow";
 import { later } from "./later";
+import { uzCyrillicToLatin } from "@/lib/uz-cyrl";
 import { readFileBytes } from "./storage";
 import { putBytes, readParts, tgStorageReady, type TgPart } from "./tg-storage";
 import { mapIndex, quietMiddles, stretchPausesMapped } from "@/lib/audio-pauses";
@@ -1037,9 +1038,12 @@ export async function segmentAudio(
   opts: { cast?: boolean } = {},
 ) {
   await gate(ctx, "audiobook");
-  const { lines, analysis: a } = opts.cast
+  const { lines: written, analysis: a } = opts.cast
     ? await segmentScript(ctx, resourceId, idx)
     : await narratorLines(ctx, resourceId, idx);
+  // Uzbek in Cyrillic is read with a Russian accent: the voice gets it in Latin.
+  const uzbek = speechLanguage(a.language)?.code === "uz-UZ";
+  const lines = uzbek ? written.map((l) => ({ ...l, text: uzCyrillicToLatin(l.text) })) : written;
   const voice = new Map<string, string>([["narrator", a.narration.voice]]);
   for (const c of a.characters) voice.set(c.name, c.voice);
   const voiceOf = (s: string) => voice.get(s) ?? a.narration.voice;
@@ -1201,6 +1205,7 @@ export async function previewVoice(
     if (sample.length > 60) break;
   }
   sample = (sample || text.slice(0, 170)).trim();
+  if (speechLanguage(a.language)?.code === "uz-UZ") sample = uzCyrillicToLatin(sample);
   const lang = speechLanguage(a.language);
   // Made once per voice and text, then served to everyone.
   const key = createHash("sha256")

@@ -17,6 +17,7 @@ import {
 import { db } from "@/db";
 import { AppError } from "@/lib/errors";
 import { getAiSettings, saveAiSettings } from "../settings";
+import { openRouterGenerate } from "./openrouter";
 
 export function isAiConfigured() {
   return !!process.env.GEMINI_API_KEY;
@@ -56,6 +57,8 @@ function retryDelayFrom(err: ApiError): number | null {
   return m ? Number(m[1]) * 1000 : null;
 }
 
+let geminiOutUntil = 0;
+
 export async function generate(
   contents: Content[],
   config: GenerateContentConfig,
@@ -68,6 +71,11 @@ export async function generate(
     patient?: boolean;
   } = {},
 ): Promise<GenerateContentResponse> {
+  // Every model was out of its daily quota a moment ago: straight to the reserve.
+  if (Date.now() < geminiOutUntil) {
+    const reserve = await openRouterGenerate(contents, config);
+    if (reserve) return reserve;
+  }
   let quotaDelay = 0;
   let sawQuota = false;
   const now = Date.now();
@@ -115,6 +123,12 @@ export async function generate(
         err instanceof Error ? err.message.slice(0, 200) : "unknown",
       );
     }
+  }
+  // Gemini cannot answer: the free reserve can (text only).
+  const reserve = await openRouterGenerate(contents, config);
+  if (reserve) {
+    if (sawQuota && quotaDelay > 60_000) geminiOutUntil = Date.now() + quotaDelay;
+    return reserve;
   }
   // Every model is out of its DAILY quota: pause AI for everyone (min 10 min).
   // A per-minute limit (short retry delay) passes by itself: no pause.

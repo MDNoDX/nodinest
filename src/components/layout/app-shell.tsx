@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
+import { AudiobookProvider } from "@/components/audiobook/engine";
 import { MediaDockProvider } from "@/components/media/media-dock";
 import { OnboardingTour } from "@/components/onboarding/tour";
 import { AlarmWatcher } from "@/components/roznoma/alarm-watcher";
@@ -269,81 +270,83 @@ export function AppShell({
 
   return (
     <MediaDockProvider>
-      <div className="flex min-h-dvh">
-        <a
-          href="#main"
-          className="bg-surface sr-only z-50 rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-        >
-          {tc("skipToContent")}
-        </a>
-        <aside
-          className={cn(
-            "border-border bg-surface/70 sticky top-0 hidden h-dvh shrink-0 border-r backdrop-blur-xl transition-[width] duration-200 lg:block",
-            collapsed ? "w-[64px]" : "w-[248px]",
-          )}
-        >
-          {sidebar(false)}
-        </aside>
-
-        {mobileOpen && (
-          <div
-            className="fixed inset-0 z-40 lg:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("main")}
+      <AudiobookProvider>
+        <div className="flex min-h-dvh">
+          <a
+            href="#main"
+            className="bg-surface sr-only z-50 rounded-md px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
           >
-            <div
-              className="animate-fade-in absolute inset-0 bg-black/40"
-              onClick={() => setMobileOpen(false)}
-            />
-            <div className="border-border bg-surface animate-slide-up absolute inset-y-0 left-0 w-[280px] max-w-[85vw] border-r shadow-2xl">
-              {sidebar(true)}
-            </div>
-          </div>
-        )}
-
-        {/* --ai-panel: width of a side panel docked at the right edge (taqriz AI). */}
-        <div className="flex min-w-0 flex-1 flex-col lg:pr-[var(--ai-panel,0px)]">
-          <header className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">
-            <button
-              className="text-muted hover:bg-surface-2 rounded-md p-2 lg:hidden"
-              onClick={() => setMobileOpen(true)}
-              aria-label={t("openMenu")}
-              aria-expanded={mobileOpen}
-            >
-              <Menu className="size-5" />
-            </button>
-            <Link href="/" className="lg:hidden" aria-label="NodiNote">
-              <Logo compact />
-            </Link>
-            <CommandPalette />
-            <div className="ml-auto flex items-center gap-1.5">
-              {timerSlot}
-              <UserMenu user={user} />
-            </div>
-          </header>
-          <main
-            id="main"
+            {tc("skipToContent")}
+          </a>
+          <aside
             className={cn(
-              "page-enter mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
-              "max-lg:pb-[calc(var(--bottom-nav,0px)+1.5rem)]",
-              // Writing pages use the whole width (their panels hug the edges).
-              WIDE_RE.test(pathname) ? "max-w-none" : "max-w-6xl",
+              "border-border bg-surface/70 sticky top-0 hidden h-dvh shrink-0 border-r backdrop-blur-xl transition-[width] duration-200 lg:block",
+              collapsed ? "w-[64px]" : "w-[248px]",
             )}
           >
-            {children}
-          </main>
+            {sidebar(false)}
+          </aside>
+
+          {mobileOpen && (
+            <div
+              className="fixed inset-0 z-40 lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("main")}
+            >
+              <div
+                className="animate-fade-in absolute inset-0 bg-black/40"
+                onClick={() => setMobileOpen(false)}
+              />
+              <div className="border-border bg-surface animate-slide-up absolute inset-y-0 left-0 w-[280px] max-w-[85vw] border-r shadow-2xl">
+                {sidebar(true)}
+              </div>
+            </div>
+          )}
+
+          {/* --ai-panel: width of a side panel docked at the right edge (taqriz AI). */}
+          <div className="flex min-w-0 flex-1 flex-col lg:pr-[var(--ai-panel,0px)]">
+            <header className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5">
+              <button
+                className="text-muted hover:bg-surface-2 rounded-md p-2 lg:hidden"
+                onClick={() => setMobileOpen(true)}
+                aria-label={t("openMenu")}
+                aria-expanded={mobileOpen}
+              >
+                <Menu className="size-5" />
+              </button>
+              <Link href="/" className="lg:hidden" aria-label="NodiNote">
+                <Logo compact />
+              </Link>
+              <CommandPalette />
+              <div className="ml-auto flex items-center gap-1.5">
+                {timerSlot}
+                <UserMenu user={user} />
+              </div>
+            </header>
+            <main
+              id="main"
+              className={cn(
+                "page-enter mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
+                "max-lg:pb-[calc(var(--bottom-nav,0px)+1.5rem)]",
+                // Writing pages use the whole width (their panels hug the edges).
+                WIDE_RE.test(pathname) ? "max-w-none" : "max-w-6xl",
+              )}
+            >
+              {children}
+            </main>
+          </div>
+          {!immersive && (
+            <BottomNav
+              pathname={pathname}
+              onMenu={() => setMobileOpen(true)}
+              badge={pendingSuggestions}
+            />
+          )}
+          <OnboardingTour aiLimit={aiDailyLimit} />
+          <AlarmWatcher />
         </div>
-        {!immersive && (
-          <BottomNav
-            pathname={pathname}
-            onMenu={() => setMobileOpen(true)}
-            badge={pendingSuggestions}
-          />
-        )}
-        <OnboardingTour aiLimit={aiDailyLimit} />
-        <AlarmWatcher />
-      </div>
+      </AudiobookProvider>
     </MediaDockProvider>
   );
 }

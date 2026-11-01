@@ -562,3 +562,29 @@ mark.taqriz-note-mark {
     display: none;
   }
 }
+
+/* AI cards rise in beside the words; bars grow. */
+.visual-card {
+  animation: visual-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.visual-bar {
+  animation: bar-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: left;
+}
+@keyframes visual-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .visual-card,
+  .visual-bar {
+    animation: none;
+  }
+}

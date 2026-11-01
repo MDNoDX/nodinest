@@ -34,7 +34,16 @@ export async function loginWithPassword(login: string, password: string) {
   const ip = ipOf(h);
   const a = await hitRateLimit(db, `login-ip:${ip}`, 30, 600);
   const b = await hitRateLimit(db, `login-name:${name}`, 8, 600);
-  if (!a.allowed || !b.allowed) throw new AppError("RATE_LIMITED");
+  if (!a.allowed || !b.allowed) {
+    // Someone is guessing passwords: the owner hears of it (once an hour per name).
+    if ((await hitRateLimit(db, `login-alert:${name}`, 1, 3600)).allowed) {
+      const { esc, tgSend } = await import("@/server/monitor/telegram");
+      await tgSend(`🚨 <b>Parol tanlaş urinişi</b>: ${esc(name)} · IP ${esc(ip)}`).catch(
+        () => null,
+      );
+    }
+    throw new AppError("RATE_LIMITED");
+  }
   const [u] = await db
     .select({ email: user.email, role: user.role })
     .from(user)

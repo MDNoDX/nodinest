@@ -19,8 +19,6 @@ export function useDragOrder<T>(
     if (!onReorder || (e.pointerType === "mouse" && e.button !== 0)) return;
     const y0 = e.clientY;
     const touch = e.pointerType !== "mouse";
-    // No text selection / menu while holding.
-    e.currentTarget instanceof HTMLElement && (e.currentTarget.style.webkitUserSelect = "none");
     let active = false;
     let over = from;
     const overAt = (y: number) => {

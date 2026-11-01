@@ -26,6 +26,8 @@ export type Mode = "read" | "act" | "confirm";
 export type ToolDef<S extends z.ZodTypeAny> = {
   perm: AiToolName;
   mode: Mode;
+  /** Only for the superadmin account. */
+  ownerOnly?: boolean;
   description: string;
   parameters: Record<string, unknown>;
   args: S;

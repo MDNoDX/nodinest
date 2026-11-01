@@ -116,3 +116,58 @@ export function toCyrillic(text: string): string {
 }
 
 export const toCyrillicMessage = (msg: string) => mapMessage(msg, toCyrillic);
+
+const TO_LATIN: Record<string, string> = {
+  а: "a",
+  б: "b",
+  в: "v",
+  г: "g",
+  ғ: "gʻ",
+  д: "d",
+  ё: "yo",
+  ж: "j",
+  з: "z",
+  и: "i",
+  й: "y",
+  к: "k",
+  қ: "q",
+  л: "l",
+  м: "m",
+  н: "n",
+  о: "o",
+  ў: "oʻ",
+  п: "p",
+  р: "r",
+  с: "s",
+  т: "t",
+  у: "u",
+  ф: "f",
+  х: "x",
+  ҳ: "h",
+  ц: "s",
+  ч: "ch",
+  ш: "sh",
+  щ: "sh",
+  ъ: "ʼ",
+  ы: "i",
+  ь: "",
+  э: "e",
+  ю: "yu",
+  я: "ya",
+};
+
+/** Uzbek Cyrillic → the usual Latin (for speech: the voices read it far better). */
+export function uzCyrillicToLatin(text: string): string {
+  return text.replace(/[а-яёўқғҳ]/giu, (ch, at: number) => {
+    const low = ch.toLowerCase();
+    const prev = at > 0 ? text[at - 1] : "";
+    // е is "ye" at the start of a word and after a vowel, else "e".
+    const out =
+      low === "е"
+        ? !/[а-яёўқғҳ]/iu.test(prev) || /[аоуэиўеёюя]/iu.test(prev)
+          ? "ye"
+          : "e"
+        : (TO_LATIN[low] ?? ch);
+    return ch === low ? out : out.charAt(0).toUpperCase() + out.slice(1);
+  });
+}

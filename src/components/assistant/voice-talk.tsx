@@ -3,9 +3,16 @@ import { Mic, MicOff, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { VisualCard, type Visual } from "./visual-card";
 import { VoiceOrb, type OrbState } from "./voice-orb";
 
-type Turn = { heard: string; reply: string; conversationId: string | null; audio: string | null };
+type Turn = {
+  heard: string;
+  reply: string;
+  conversationId: string | null;
+  audio: string | null;
+  visuals?: Visual[];
+};
 
 /** Loudness 0…1 of an analyser (RMS of the waveform). */
 function rms(a: AnalyserNode | null, buf: Uint8Array<ArrayBuffer>) {
@@ -34,7 +41,7 @@ export function VoiceTalk({
   onClose,
 }: {
   conversationId: string | null;
-  onTurn: (t: { heard: string; reply: string; conversationId: string }) => void;
+  onTurn: (t: { heard: string; reply: string; conversationId: string; visuals: Visual[] }) => void;
   onClose: () => void;
 }) {
   const t = useTranslations("assistant");
@@ -43,6 +50,7 @@ export function VoiceTalk({
   const [muted, setMuted] = useState(false);
   const [caption, setCaption] = useState<{ heard: string; reply: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cards, setCards] = useState<Visual[]>([]);
   const [voice, setVoice] = useState<"female" | "male">(() => {
     try {
       return localStorage.getItem("nn:talk-voice") === "male" ? "male" : "female";
@@ -178,9 +186,15 @@ export function VoiceTalk({
       if (!turn.heard) return void x.listen?.();
       if (turn.conversationId) {
         x.conv = turn.conversationId;
-        onTurn({ heard: turn.heard, reply: turn.reply, conversationId: turn.conversationId });
+        onTurn({
+          heard: turn.heard,
+          reply: turn.reply,
+          conversationId: turn.conversationId,
+          visuals: turn.visuals ?? [],
+        });
       }
       setCaption({ heard: turn.heard, reply: turn.reply });
+      setCards(turn.visuals ?? []);
       await say(turn);
       if (!x.closed) void x.listen?.();
     };
@@ -311,7 +325,19 @@ export function VoiceTalk({
         <VoiceOrb state={state} level={level} className="absolute inset-0 h-full w-full" />
       </button>
 
+      {cards.length > 0 && (
+        <div className="dark absolute top-16 right-4 z-10 hidden w-80 max-w-[40vw] flex-col gap-3 lg:flex">
+          {cards.map((v, i) => (
+            <VisualCard key={i} v={v} floating />
+          ))}
+        </div>
+      )}
       <div className="flex w-full max-w-xl flex-col items-center gap-3 px-6 pb-8 text-center">
+        {cards.length > 0 && (
+          <div className="flex w-full flex-col gap-2 text-left lg:hidden">
+            <VisualCard v={cards[0]} floating />
+          </div>
+        )}
         <p className="text-sm font-medium text-white/80" aria-live="polite">
           {status}
         </p>

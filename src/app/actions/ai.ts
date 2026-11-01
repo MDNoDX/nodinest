@@ -19,7 +19,6 @@ export async function askAssistantAction(input: {
   conversationId?: string | null;
   message: string;
   attachments?: string[];
-  mode?: "act" | "talk";
 }) {
   return run(async ({ ctx, user }) => {
     const p = z
@@ -27,7 +26,6 @@ export async function askAssistantAction(input: {
         conversationId: z.string().uuid().nullish(),
         message: z.string().trim().max(6000),
         attachments: z.array(z.string().uuid()).max(6).default([]),
-        mode: z.enum(["act", "talk"]).default("act"),
       })
       .refine((v) => v.message.length > 0 || v.attachments.length > 0)
       .parse(input);
@@ -35,7 +33,6 @@ export async function askAssistantAction(input: {
       conversationId: p.conversationId ?? null,
       message: p.message,
       attachments: p.attachments,
-      mode: p.mode,
       locale: await getLocale(),
       timeZone: user.timezone,
     });
@@ -58,6 +55,14 @@ export async function confirmAiActionAction(actionId: string, choice?: unknown) 
 
 export async function rejectAiActionAction(actionId: string) {
   return run(async ({ ctx }) => rejectAiAction(ctx, z.string().uuid().parse(actionId)));
+}
+
+export async function deleteConversationsAction(ids: string[]) {
+  return run(async ({ ctx }) => {
+    for (const id of z.array(z.string().uuid()).min(1).max(100).parse(ids))
+      await deleteConversation(ctx, id);
+    revalidatePath("/assistant");
+  });
 }
 
 export async function deleteConversationAction(conversationId: string) {

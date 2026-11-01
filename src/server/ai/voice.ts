@@ -1,26 +1,21 @@
 /**
- * Live voice talk ("Suhbat" by voice): what the user said (a short recording)
- * → text → the Suhbat reply (same conversation as the chat) → spoken with a
- * clear voice in the user's language. If speech is not available (quota), the
- * reply still comes back as text.
+ * Live voice talk: a short recording → what was said and in which language →
+ * the companion's reply (the same conversation as the chat) → spoken in that
+ * language (server/ai/speech.ts picks the voice). Premium; others can try it a
+ * few times a day. If speech is not available, the reply still comes as text.
  */
 import "server-only";
-import type { AppContext } from "@/db";
+import { db, type AppContext } from "@/db";
 import { aiLanguage, asLocale } from "@/i18n/config";
 import { AppError } from "@/lib/errors";
-import { encodeMp3 } from "../audiobook";
+import { limitsFor } from "../premium";
+import { hitRateLimit } from "../rate-limit";
 import { runAssistant } from "./assistant";
-import { generate, speak } from "./gemini";
+import { generate } from "./gemini";
+import { talkSpeech } from "./speech";
 
-/** The two voices of the talk: clear, warm, natural in Uzbek, Russian and English. */
-export const TALK_VOICES = { female: "Sulafat", male: "Charon" } as const;
-
-const LANG_CODE: Record<string, string> = {
-  uz: "uz-UZ",
-  "uz-Cyrl": "uz-UZ",
-  ru: "ru-RU",
-  en: "en-US",
-};
+/** Free accounts can try the live talk this many times a day. */
+export const FREE_VOICE_TURNS = 3;
 
 /** Text as it should be said: no markdown, list marks or links. */
 const forSpeech = (s: string) =>
@@ -41,9 +36,16 @@ export async function voiceTurn(
     conversationId: string | null;
     locale: string;
     timeZone: string;
-    voice: keyof typeof TALK_VOICES;
+    voice: "female" | "male";
   },
 ) {
+  if (!ctx.superadminAccount) {
+    const plan = await limitsFor(ctx);
+    if (!plan.premium) {
+      const left = await hitRateLimit(db, `voice-free:${ctx.userId}`, FREE_VOICE_TURNS, 86_400);
+      if (!left.allowed) throw new AppError("PREMIUM_REQUIRED", "voice");
+    }
+  }
   const loc = asLocale(input.locale);
   const mimeType = input.mime.split(";")[0] || "audio/webm";
   const heardRes = await generate(
@@ -53,44 +55,34 @@ export async function voiceTurn(
         parts: [
           { inlineData: { mimeType, data: Buffer.from(input.audio).toString("base64") } },
           {
-            text: `Transcribe exactly what is said in this short recording, in the language spoken (Uzbek in Latin script; the user usually speaks ${aiLanguage(loc)}). Output only the words. If nothing is said or it is only noise, output nothing.`,
+            text: `Transcribe exactly what is said in this short recording (the user usually speaks ${aiLanguage(loc)}; Uzbek in Latin script). Answer in one line: the two-letter language code, then "|", then the words, e.g. "uz|Salom". If nothing is said or it is only noise, answer "-".`,
           },
         ],
       },
     ],
-    { temperature: 0, maxOutputTokens: 1024 },
-    { timeoutMs: 45_000 },
+    { temperature: 0, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 512 } },
+    { timeoutMs: 30_000 },
   );
-  const heard = (heardRes.text ?? "").trim();
+  const raw = (heardRes.text ?? "").trim();
+  const m = /^([a-z]{2})\|([\s\S]+)$/.exec(raw);
+  const heard = (m ? m[2] : raw === "-" ? "" : raw).trim();
+  const lang = m?.[1] ?? (loc === "uz-Cyrl" ? "uz" : loc);
   if (!heard) return { heard: "", reply: "", conversationId: input.conversationId, audio: null };
 
   const turn = await runAssistant(ctx, {
     conversationId: input.conversationId,
     message: heard,
-    mode: "talk",
     spoken: true,
     locale: input.locale,
     timeZone: input.timeZone,
   });
   const text = forSpeech(turn.reply);
-  let audio: string | null = null;
-  if (text) {
-    try {
-      const { pcm, rate } = await speak(
-        [{ speaker: "nodi", text }],
-        () => TALK_VOICES[input.voice],
-        {
-          style:
-            "Say this as a warm, friendly conversation partner on a call: natural and fluent, clear pronunciation, lively but calm pace:",
-          languageCode: LANG_CODE[loc],
-          timeoutMs: 60_000,
-        },
-      );
-      audio = encodeMp3(pcm, rate).toString("base64");
-    } catch (err) {
-      if (!(err instanceof AppError)) throw err;
-      // No speech right now: the reply is still shown (and read by the browser).
-    }
-  }
-  return { heard, reply: turn.reply, conversationId: turn.conversationId, audio };
+  const mp3 = text ? await talkSpeech(ctx, text, lang, input.voice) : null;
+  return {
+    heard,
+    reply: turn.reply,
+    conversationId: turn.conversationId,
+    audio: mp3 ? mp3.toString("base64") : null,
+    visuals: turn.visuals,
+  };
 }
