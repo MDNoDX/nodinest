@@ -178,7 +178,6 @@ export const user = nodinest.table(
     phone: text("phone"),
     /** Default plans were created (once, so deleting them all sticks). */
     plansSeeded: boolean("plans_seeded").notNull().default(false),
-    /** Where prayer times are computed for (Tashkent until the user shares it). */
     // Never settable from the client (Better Auth additionalFields input:false).
     role: userRole("role").notNull().default("user"),
     /** Parts of the admin given by the superadmin (lib/admin-perms.ts). */

@@ -19,7 +19,7 @@ describe("Röznoma", () => {
     // 2026-09-09 is a Wednesday: all three; the 10th (Thursday): only the daily one.
     const wed = await r.getDay(u, "2026-09-09", "uz");
     expect(wed.items.map((i) => i.title).sort()).toEqual(["Bir martalik", "Kitob öqiş", "Sport"]);
-    expect(wed.hijri).toBe("26 Rabiul-avval 1448");
+    expect(wed.hijri).toBe("27 Rabiul avval 1448");
     expect((await r.getDay(u, "2026-09-10", "uz")).items.map((i) => i.title)).toEqual([
       "Kitob öqiş",
     ]);
