@@ -150,6 +150,8 @@ export type Analysis = {
   tone: string;
   narration: { style: string; voice: VoiceName };
   characters: Character[];
+  /** Each character in their own voice (else one reader). */
+  cast?: boolean;
   pronunciation: { written: string; spoken: string }[];
   /** `at`: offset of the title in the book text (exact start, even mid-page). */
   chapters: {
@@ -1263,6 +1265,19 @@ export async function savePosition(ctx: AppContext, resourceId: string, idx: num
 }
 
 /** Gives the narrator or a character another voice (audio is then made again). */
+/** One reader, or each character in their own voice. */
+export async function setAudioMode(ctx: AppContext, resourceId: string, cast: boolean) {
+  const r = await getRow(ctx, resourceId);
+  if (!r?.analysis) throw new AppError("NOT_FOUND");
+  const a = r.analysis as Analysis;
+  await withUser(db, ctx, (tx) =>
+    tx
+      .update(audiobooks)
+      .set({ analysis: { ...a, cast }, updatedAt: new Date() })
+      .where(eq(audiobooks.id, r.id)),
+  );
+}
+
 export async function setVoice(
   ctx: AppContext,
   resourceId: string,

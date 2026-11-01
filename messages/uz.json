@@ -797,12 +797,15 @@
       "prepare_audiobook": "Audiokitob tayyorlanmoqda",
       "create_own_book": "Kitob yaratildi",
       "update_note": "Qayd tahrirlandi",
-      "message_admin": "Adminga yuborildi"
+      "message_admin": "Adminga yuborildi",
+      "announce_to_users": "Hammaga e’lon",
+      "answer_message": "Xabarga javob",
+      "grant_premium": "Premium beriş"
     },
     "suggestedReview": "Administrator körib çiqişiga yuborildi.",
     "usedTools": "Işlatildi: {tools}",
     "you": "Siz",
-    "ai": "Sadik AI",
+    "ai": "AI",
     "unlimitedNote": "Boş administrator: ilova çeklovi yöq (faqat Google bepul kvotasi amal qiladi).",
     "done": "Bajarildi",
     "notInLibrary": "Darsxonamda yöq",
@@ -1985,11 +1988,15 @@
     "premiumOnly": "Audiokitob Premium’da.",
     "voicesMode": "Ovozlar",
     "modeNarrator": "Bitta hikoyaçi",
-    "modeCast": "Qahramonlar ovozi bilan",
+    "modeCast": "Qahramonlar bilan",
     "modeNarratorHint": "Kitob matni bitta ovozda, tez va aniq (tavsiya etiladi)",
-    "modeCastHint": "Har bir qahramon öz ovozida (sekinroq: AI har qismni avval tahlil qiladi)",
+    "modeCastHint": "Har bir qahramon öz ovozida gapiradi",
     "closePlayer": "Pleerni yopiş",
-    "keysHint": "Böşliq yoki K — töxtatiş · ← → — 5 soniya · J L — 10 soniya · < > — tezlik"
+    "keysHint": "Böşliq yoki K — töxtatiş · ← → — 5 soniya · J L — 10 soniya · < > — tezlik",
+    "mode": "Kim öqisin",
+    "modeSolo": "Bitta öquvçi",
+    "modeSoloHint": "Butun kitobni bir ovoz öqiydi",
+    "preparing": "Tayyorlanmoqda…"
   },
   "reader": {
     "title": "Kitobni öqiş",
@@ -2533,7 +2540,7 @@
     "review": "Manbani tanlang, AI savol tuzadi, sizga esdan çiqiş arafasida qayta söraydi.",
     "collections": "Manbalarni mavzu böyiça töplamlarga ajrating.",
     "write": "Öz kitobingiz şu yerda yoziladi. Yil kundaligi Rejalardan özi töladi.",
-    "assistant": "Sadik AI kitoblaringiz va rejalaringizni biladi. Yozing yoki «Jonli suhbat»ni bosing.",
+    "assistant": "AI kitoblaringiz va rejalaringizni biladi. Yozing yoki «Jonli suhbat»ni bosing.",
     "stats": "Öqigan va örganganlaringiz raqamlarda."
   }
 }

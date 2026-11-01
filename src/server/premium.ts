@@ -221,6 +221,18 @@ export async function decidePayment(id: string, approve: boolean, by: string) {
   return p;
 }
 
+/** The owner gives someone Premium by username. */
+export async function grantPremium(ctx: AppContext, username: string, months: number) {
+  if (!ctx.superadminAccount) throw new AppError("FORBIDDEN");
+  const m = z.number().int().min(1).max(36).parse(months);
+  const done = await db.execute<{ id: string }>(sql`
+    update nodinest."user"
+    set premium_until = greatest(coalesce(premium_until, now()), now()) + (${m} * interval '1 month')
+    where lower(username) = ${username.replace(/^@/, "").toLowerCase()}
+    returning id`);
+  if (!done.length) throw new AppError("NOT_FOUND");
+}
+
 export async function myPayments(ctx: AppContext) {
   return db
     .select()

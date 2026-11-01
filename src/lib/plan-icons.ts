@@ -1,6 +1,6 @@
 /**
- * Icons for plan items: 20 are offered (PICKER_ICONS); older items may keep any
- * of the rest. Plus a guess from the title.
+ * Icons for plan items: PICKER_ICONS are offered; older items may keep any of
+ * the rest. Plus a guess from the title.
  */
 import {
   Activity,
@@ -63,11 +63,12 @@ import {
   Waves,
   type LucideIcon,
 } from "lucide-react";
-import { MosqueIcon } from "@/components/roznoma/mosque-icon";
+import { DuaIcon, MosqueIcon } from "@/components/roznoma/mosque-icon";
 
 export const PLAN_ICONS: Record<string, LucideIcon> = {
   star: Star,
   mosque: MosqueIcon,
+  dua: DuaIcon,
   sunrise: Sunrise,
   sun: Sun,
   moon: Moon,
@@ -127,14 +128,14 @@ export const PLAN_ICONS: Record<string, LucideIcon> = {
   rest: Armchair,
 };
 
-/** What the picker shows, the most used first. */
+/** What the picker shows, the most used first (hearts are left out on purpose). */
 export const PICKER_ICONS = [
   "book",
   "star",
   "brain",
   "dumbbell",
   "mosque",
-  "hand",
+  "dua",
   "grad",
   "pen",
   "footprints",
@@ -149,11 +150,39 @@ export const PICKER_ICONS = [
   "wallet",
   "target",
   "check",
+  "sun",
+  "moon",
+  "alarm",
+  "coffee",
+  "salad",
+  "waves",
+  "bike",
+  "activity",
+  "pill",
+  "laptop",
+  "code",
+  "bulb",
+  "calc",
+  "flask",
+  "globe",
+  "phone",
+  "chat",
+  "home",
+  "leaf",
+  "sprout",
+  "music",
+  "headphones",
+  "mic",
+  "video",
+  "camera",
+  "palette",
+  "car",
+  "timer",
 ];
 
 const GUESS: [RegExp, string][] = [
   [/bomdod|peşin|peshin|asr|şom|shom|xufton|namoz|qazo|tahorat|prayer|намаз/i, "mosque"],
-  [/zikr|duo|tasbeh|qur|istihora|молитв|дуа|dua/i, "hand"],
+  [/zikr|duo|tasbeh|qur|istihora|молитв|дуа|dua/i, "dua"],
   [/kitob yoz|write a book|написать книг/i, "pen"],
   [/kitob|öqi|oqi|book|read|книг|чтен/i, "book"],
   [/dars|lesson|урок|kurs|course/i, "grad"],
@@ -198,7 +227,7 @@ export const GOAL_ICON: Record<(typeof GOAL_KINDS)[number], string> = {
   study: "grad",
   sport: "dumbbell",
   language: "languages",
-  faith: "hand",
+  faith: "dua",
   work: "briefcase",
   health: "heartpulse",
   money: "wallet",

@@ -1,7 +1,4 @@
 "use client";
-import { Headphones, Loader2, Pause, Play, RotateCcw, RotateCw, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   createContext,
@@ -16,8 +13,6 @@ import { toast } from "sonner";
 import { errorToast } from "@/lib/error-toast";
 import { getShortcuts, matches } from "@/lib/shortcuts";
 
-export type ScriptLine = { speaker: string; text: string };
-
 /** What the player needs to know about the book that is playing. */
 export type AudiobookSource = {
   id: string;
@@ -26,6 +21,8 @@ export type AudiobookSource = {
   cover: string | null;
   /** Changes with the analysis / the voice: another URL, another recording. */
   version: string;
+  /** Each character in their own voice, not one reader. */
+  cast: boolean;
   segments: number;
   /** Segment index where each chapter starts. */
   chapterAt: number[];
@@ -34,23 +31,16 @@ export type AudiobookSource = {
   startSec: number;
 };
 
-type Seg = { blob: Blob; marks: number[] };
+type Seg = { blob: Blob };
 const CACHE = "nn-audiobook";
 
-const marksOf = (r: Response) =>
-  (r.headers.get("x-nn-marks") ?? "")
-    .split(",")
-    .filter(Boolean)
-    .map(Number)
-    .filter(Number.isFinite);
-
-/** One part's MP3 + when each line starts (kept in the browser, so it never comes twice). */
+/** One part's MP3 (kept in the browser, so it never comes twice). */
 async function segmentBlob(url: string): Promise<Seg> {
   let cache: Cache | null = null;
   try {
     cache = await caches.open(CACHE);
     const hit = await cache.match(url);
-    if (hit) return { marks: marksOf(hit), blob: await hit.blob() };
+    if (hit) return { blob: await hit.blob() };
   } catch {
     cache = null;
   }
@@ -60,7 +50,7 @@ async function segmentBlob(url: string): Promise<Seg> {
     throw Object.assign(new Error(d.error ?? "INTERNAL"), { premium: d.premium });
   }
   if (cache) await cache.put(url, res.clone()).catch(() => {});
-  return { marks: marksOf(res), blob: await res.blob() };
+  return { blob: await res.blob() };
 }
 
 const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
@@ -80,8 +70,6 @@ type Engine = {
   playing: boolean;
   loading: boolean;
   time: { cur: number; dur: number };
-  lines: ScriptLine[] | null;
-  marks: number[];
   speed: number;
   speeds: number[];
   /** Stop at a moment (ms) or at the end of the chapter. */
@@ -102,21 +90,18 @@ export const useAudiobook = () => useContext(Ctx);
 
 /**
  * The audiobook lives above the pages: it plays on while the user moves around
- * the site, with the screen off and from the headphones' buttons; the bar at
- * the bottom shows it when its own page is closed.
+ * the site, with the screen off and from the headphones' buttons; the top bar
+ * shows it on every page (header-player.tsx).
  */
 export function AudiobookProvider({ children }: { children: React.ReactNode }) {
   const t = useTranslations("audiobook");
   const te = useTranslations("errors");
-  const pathname = usePathname();
   const audio = useRef<HTMLAudioElement>(null);
   const [src, setSrc] = useState<AudiobookSource | null>(null);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState({ cur: 0, dur: 0 });
-  const [lines, setLines] = useState<ScriptLine[] | null>(null);
-  const [marks, setMarks] = useState<number[]>([]);
   const [speed, setSpeedState] = useState(1);
   const [sleep, setSleep] = useState<number | "chapter" | null>(null);
   const live = useRef({ src, idx, playing, sleep, speed });
@@ -142,7 +127,8 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const urlOf = useCallback(
-    (s: AudiobookSource, i: number) => `/api/audiobook/${s.id}/segment/${i}?v=${s.version}`,
+    (s: AudiobookSource, i: number) =>
+      `/api/audiobook/${s.id}/segment/${i}?v=${s.version}${s.cast ? "&cast=1" : ""}`,
     [],
   );
   const blobFor = useCallback(
@@ -158,15 +144,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
     },
     [urlOf],
   );
-  const text = useCallback((s: AudiobookSource, i: number) => {
-    void fetch(`/api/audiobook/${s.id}/script/${i}?fast=1&plain=1`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { lines: ScriptLine[] } | null) => {
-        if (d && live.current.idx === i) setLines(d.lines);
-      })
-      .catch(() => {});
-  }, []);
-
   const savePos = useCallback(() => {
     const s = live.current.src;
     if (!s) return;
@@ -188,13 +165,9 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       if (!a) return;
       want.current = play;
       setLoading(true);
-      setMarks([]);
-      setLines(null);
-      text(s, i);
       try {
-        const { blob, marks: m } = await blobFor(s, i);
+        const { blob } = await blobFor(s, i);
         if (live.current.idx !== i || live.current.src?.id !== s.id) return;
-        setMarks(m);
         const key = urlOf(s, i);
         let u = urls.current.get(key);
         if (!u) {
@@ -228,7 +201,7 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
         if (live.current.idx === i) setLoading(false);
       }
     },
-    [blobFor, t, te, text, urlOf],
+    [blobFor, t, te, urlOf],
   );
 
   const go = useCallback(
@@ -256,7 +229,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       setIdx(s.startIdx);
       setTime({ cur: 0, dur: 0 });
       startAt.current = s.startSec;
-      text(s, s.startIdx);
       // Opening costs nothing: the voice is loaded only if this browser has it.
       void caches
         ?.open(CACHE)
@@ -266,7 +238,7 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
         })
         .catch(() => {});
     },
-    [load, text, urlOf],
+    [load, urlOf],
   );
 
   const toggle = useCallback(() => {
@@ -432,8 +404,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       playing,
       loading,
       time,
-      lines,
-      marks,
       speed,
       speeds: SPEEDS,
       sleep,
@@ -452,8 +422,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       playing,
       loading,
       time,
-      lines,
-      marks,
       speed,
       sleep,
       setSpeed,
@@ -466,7 +434,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  const onItsPage = !!src && pathname === `/library/${src.id}/audiobook`;
   return (
     <Ctx.Provider value={value}>
       {children}
@@ -492,62 +459,6 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
           else setPlaying(false);
         }}
       />
-      {src && !onItsPage && (
-        <div className="border-border bg-surface/95 fixed inset-x-3 bottom-[calc(var(--bottom-nav,0px)+0.75rem)] z-40 mx-auto flex max-w-xl items-center gap-2 rounded-2xl border p-2 shadow-xl backdrop-blur lg:left-[calc(var(--sidebar,248px)+1rem)]">
-          <Link
-            href={`/library/${src.id}/audiobook`}
-            className="flex min-w-0 flex-1 items-center gap-2.5"
-          >
-            <span className="bg-primary-soft text-primary grid size-9 shrink-0 place-items-center rounded-xl">
-              <Headphones className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{src.title}</span>
-              <span className="text-muted block truncate text-xs tabular-nums">
-                {t("part", { n: idx + 1, total: src.segments })}
-              </span>
-            </span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => seek(-10)}
-            aria-label={t("back15")}
-            className="text-muted hover:text-foreground rounded-full p-1.5"
-          >
-            <RotateCcw className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={playing ? t("pause") : t("play")}
-            className="bg-primary text-primary-foreground grid size-9 place-items-center rounded-full"
-          >
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : playing ? (
-              <Pause className="size-4" />
-            ) : (
-              <Play className="size-4 translate-x-px" />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => seek(10)}
-            aria-label={t("fwd15")}
-            className="text-muted hover:text-foreground rounded-full p-1.5"
-          >
-            <RotateCw className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={close}
-            aria-label={t("closePlayer")}
-            className="text-muted hover:text-foreground rounded-full p-1.5"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      )}
     </Ctx.Provider>
   );
 }

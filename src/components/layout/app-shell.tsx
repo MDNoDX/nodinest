@@ -15,6 +15,7 @@ import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
 import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
+import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { ThemeToggle } from "./theme-toggle";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
@@ -329,6 +330,7 @@ export function AppShell({
                 <Logo compact />
               </Link>
               <CommandPalette />
+              <HeaderPlayer className="hidden w-80 max-w-[34vw] lg:flex" />
               <div className="ml-auto flex items-center gap-1.5">
                 {timerSlot}
                 <ThemeToggle />
@@ -336,6 +338,9 @@ export function AppShell({
                 <UserMenu user={user} />
               </div>
             </header>
+            <div data-shell className="sticky top-14 z-20 px-3 pt-2 empty:hidden lg:hidden">
+              <HeaderPlayer />
+            </div>
             <main
               id="main"
               className={cn(

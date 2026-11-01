@@ -408,6 +408,10 @@ function toPcm(data: string, mime: string): { pcm: Int16Array; rate: number } {
   };
 }
 
+/** Gemini's voices say the letter "eks" for the Uzbek x; "kh" comes out as the sound. */
+const sayable = (text: string, languageCode?: string) =>
+  languageCode?.startsWith("uz") ? text.replace(/x/g, "kh").replace(/X/g, "Kh") : text;
+
 /**
  * One voice, sent piece by piece as it is made (the live talk starts hearing it
  * at once). Returns false when no model could speak, so the caller can fall back.
@@ -426,7 +430,7 @@ export async function speakLive(
     try {
       const stream = await gemini().models.generateContentStream({
         model,
-        contents: [{ role: "user", parts: [{ text }] }],
+        contents: [{ role: "user", parts: [{ text: sayable(text, opts.languageCode) }] }],
         config: {
           responseModalities: ["AUDIO"],
           speechConfig: {
@@ -471,6 +475,7 @@ export async function speak(
     languageCode?: string;
   } = {},
 ): Promise<{ pcm: Int16Array; rate: number }> {
+  lines = lines.map((l) => ({ ...l, text: sayable(l.text, opts.languageCode) }));
   const speakers = [...new Set(lines.map((l) => l.speaker))];
   if (!lines.length || speakers.length > 2) throw new AppError("VALIDATION", "speakers");
   const single = speakers.length === 1;

@@ -2,32 +2,33 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   ArrowLeft,
-  BookOpen,
   Headphones,
-  ListOrdered,
   Loader2,
   Mic2,
   Pause,
   Play,
-  Square,
   RotateCcw,
   RotateCw,
   SkipBack,
   SkipForward,
-  Sparkles,
+  Square,
+  Timer,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { analyzeAudiobookAction, setVoiceAction } from "@/app/actions/audiobook";
+import {
+  analyzeAudiobookAction,
+  setAudioModeAction,
+  setVoiceAction,
+} from "@/app/actions/audiobook";
 import { Cover } from "@/components/library/cover";
-import { PdfPage } from "@/components/reader/pdf-page";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import type { Analysis, AudiobookView } from "@/server/audiobook";
+import type { AudiobookView } from "@/server/audiobook";
 import { errorToast } from "@/lib/error-toast";
 import { useAudiobook } from "./engine";
 
@@ -40,6 +41,41 @@ const SAMPLE_EVENT = "nn:voice-sample";
 
 const AUDIO_VERSION = "p4";
 const SLEEP = [15, 30, 45, 60] as const;
+
+/** The choice that matters before anything is made: one reader, or the whole cast. */
+function ModeChoice({ cast, onChange }: { cast: boolean; onChange: (v: boolean) => void }) {
+  const t = useTranslations("audiobook");
+  return (
+    <div role="radiogroup" aria-label={t("mode")} className="grid gap-2 sm:grid-cols-2">
+      {(
+        [
+          [false, Mic2, t("modeSolo"), t("modeSoloHint")],
+          [true, Users, t("modeCast"), t("modeCastHint")],
+        ] as const
+      ).map(([v, Icon, name, hint]) => (
+        <button
+          key={String(v)}
+          type="button"
+          role="radio"
+          aria-checked={cast === v}
+          onClick={() => onChange(v)}
+          className={cn(
+            "flex items-start gap-3 rounded-2xl border p-3.5 text-left transition",
+            cast === v
+              ? "border-primary bg-primary-soft/60 ring-primary/30 ring-2"
+              : "border-border hover:border-border-strong",
+          )}
+        >
+          <Icon className="text-primary mt-0.5 size-5 shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">{name}</span>
+            <span className="text-muted block text-xs">{hint}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function AudiobookApp({
   resource,
@@ -56,28 +92,29 @@ export function AudiobookApp({
   const te = useTranslations("errors");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [cast, setCast] = useState(false);
   const errText = (code: string | null) =>
     code && te.has(code as "INTERNAL") ? te(code as "INTERNAL") : t("failed");
   const analyzing = busy || view?.status === "analyzing";
 
-  // The analysis also starts by itself after a PDF upload: wait for it.
+  // The preparation also starts by itself after a PDF upload: wait for it.
   useEffect(() => {
     if (view?.status !== "analyzing" || busy) return;
     const timer = setInterval(() => router.refresh(), 8000);
     return () => clearInterval(timer);
   }, [view?.status, busy, router]);
 
-  const analyze = async () => {
+  const prepare = async () => {
     setBusy(true);
     const r = await analyzeAudiobookAction(resource.id).catch(() => null);
+    if (r?.ok && cast) await setAudioModeAction(resource.id, true).catch(() => null);
     setBusy(false);
     if (!r || !r.ok) return toast.error(errText(r && !r.ok ? r.code : null));
-    toast.success(t("ready"));
     router.refresh();
   };
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex max-w-4xl flex-col gap-5">
       <Link
         href={`/library/${resource.id}`}
         className="text-muted hover:text-foreground inline-flex w-fit items-center gap-1 text-sm"
@@ -94,37 +131,34 @@ export function AudiobookApp({
           </Button>
         </section>
       ) : view?.status === "ready" && view.analysis ? (
-        <Ready resource={resource} view={view} voices={voices} onReanalyze={analyze} busy={busy} />
+        <Ready resource={resource} view={view} voices={voices} />
       ) : (
-        <section className="card relative overflow-hidden p-6 sm:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <Cover
-              type={resource.type as "book"}
-              title={resource.title}
-              author={resource.authors}
-              src={resource.cover}
-              size="lg"
-              className="w-32 shrink-0"
-            />
-            <div className="min-w-0">
-              <p className="text-primary text-xs font-semibold tracking-wide uppercase">
-                {t("title")}
+        <section className="card flex flex-col gap-6 p-6 sm:flex-row sm:p-8">
+          <Cover
+            type={resource.type as "book"}
+            title={resource.title}
+            author={resource.authors}
+            src={resource.cover}
+            size="lg"
+            className="w-36 shrink-0 self-center"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <h1 className="text-2xl font-bold tracking-tight">{resource.title}</h1>
+            {view?.status === "failed" && (
+              <p className="text-danger text-sm">{errText(view.error)}</p>
+            )}
+            {analyzing ? (
+              <p className="text-muted flex items-center gap-2 text-sm">
+                <Loader2 className="size-4 animate-spin" /> {t("preparing")}
               </p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight">{resource.title}</h1>
-              <p className="text-muted mt-2 max-w-xl text-sm leading-relaxed">{t("intro")}</p>
-              {view?.status === "failed" && (
-                <p className="text-danger mt-2 text-sm">{errText(view.error)}</p>
-              )}
-              <div className="mt-4">
-                {analyzing ? (
-                  <Steps />
-                ) : (
-                  <Button onClick={() => void analyze()}>
-                    <Sparkles /> {t("prepare")}
-                  </Button>
-                )}
-              </div>
-            </div>
+            ) : (
+              <>
+                <ModeChoice cast={cast} onChange={setCast} />
+                <Button className="self-start" onClick={() => void prepare()}>
+                  <Headphones /> {t("prepare")}
+                </Button>
+              </>
+            )}
           </div>
         </section>
       )}
@@ -132,58 +166,25 @@ export function AudiobookApp({
   );
 }
 
-/** What the AI is doing while it reads the whole book. */
-function Steps() {
-  const t = useTranslations("audiobook");
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setN((x) => Math.min(x + 1, 3)), 12_000);
-    return () => clearInterval(timer);
-  }, []);
-  const steps = [t("step1"), t("step2"), t("step3"), t("step4")];
-  return (
-    <ol className="flex flex-col gap-1.5 text-sm" aria-live="polite">
-      {steps.map((s, i) => (
-        <li
-          key={s}
-          className={cn("flex items-center gap-2", i > n ? "text-muted/60" : "text-foreground")}
-        >
-          {i === n ? (
-            <Loader2 className="text-primary size-4 animate-spin" />
-          ) : (
-            <span
-              className={cn("size-2 rounded-full", i < n ? "bg-primary" : "bg-border-strong")}
-            />
-          )}
-          {s}
-        </li>
-      ))}
-      <li className="text-muted mt-1 text-xs">{t("takes")}</li>
-    </ol>
-  );
-}
-
+/** The player: the book and its sound, nothing else on the page. */
 function Ready({
   resource,
   view,
   voices,
-  onReanalyze,
-  busy,
 }: {
   resource: Res;
   view: AudiobookView;
   voices: Voice[];
-  onReanalyze: () => void;
-  busy: boolean;
 }) {
   const t = useTranslations("audiobook");
   const te = useTranslations("errors");
-  const [analysis, setAnalysis] = useState<Analysis>(view.analysis!);
-  const [tab, setTab] = useState<"text" | "chapters" | "about" | "cast">("text");
+  const router = useRouter();
+  const [analysis, setAnalysis] = useState(view.analysis!);
+  const cast = !!analysis.cast;
   const engine = useAudiobook()!;
-  const { idx, playing, loading, time, lines, marks, speed, speeds, sleep } = engine;
+  const { idx, playing, loading, time, speed, speeds, sleep } = engine;
   const { setSleep, setSpeed, go, toggle, seek, seekTo, open } = engine;
-  const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${AUDIO_VERSION}`;
+  const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${cast ? "c" : "s"}.${AUDIO_VERSION}`;
   // The book enters the site-wide player (one that is already playing goes on).
   useEffect(() => {
     open({
@@ -192,6 +193,7 @@ function Ready({
       authors: resource.authors,
       cover: resource.cover,
       version,
+      cast,
       segments: view.segments,
       chapterAt: view.chapterAt,
       chapters: analysis.chapters.map((c) => c.title),
@@ -200,39 +202,12 @@ function Ready({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resource.id, version, open]);
-  const chapterOf = (i: number) => {
-    let c = -1;
-    view.chapterAt.forEach((at, k) => {
-      if (at <= i) c = k;
-    });
-    return c >= 0 ? analysis.chapters[c] : null;
-  };
-
-  // The line being read: exact from the server's marks, else estimated from the time.
-  const chars = lines?.map((l) => l.text.length) ?? [];
-  const totalChars = chars.reduce((a, b) => a + b, 0) || 1;
-  let current = -1;
-  if (lines && marks.length === lines.length) {
-    for (let i = 0; i < marks.length; i++) if (marks[i] <= time.cur + 0.05) current = i;
-  } else if (lines && time.dur) {
-    const target = (time.cur / time.dur) * totalChars;
-    for (let i = 0, acc = 0; i < chars.length; i++) {
-      acc += chars[i];
-      if (acc >= target) {
-        current = i;
-        break;
-      }
-    }
-  }
-  const ch = chapterOf(idx);
-  // The line being read stays in view (unless the reader scrolled away).
-  const follow = useCallback((el: HTMLParagraphElement | null) => {
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    if (r.top < 90 || r.bottom > window.innerHeight - 90)
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, []);
+  let chapter = "";
+  view.chapterAt.forEach((at, k) => {
+    if (at <= idx) chapter = analysis.chapters[k]?.title ?? chapter;
+  });
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const nextSpeed = () => setSpeed(speeds[(speeds.indexOf(speed) + 1) % speeds.length]);
 
   const changeVoice = async (speaker: string, voice: string) => {
     const r = await setVoiceAction(resource.id, speaker, voice);
@@ -247,311 +222,175 @@ function Ready({
     }));
     toast.success(t("voiceChanged"));
   };
+  const changeMode = async (v: boolean) => {
+    setAnalysis((a) => ({ ...a, cast: v }));
+    const r = await setAudioModeAction(resource.id, v);
+    if (!r.ok) return errorToast(te, r);
+    router.refresh();
+  };
 
   return (
     <>
-      <section className="card relative overflow-hidden">
-        {resource.cover && (
-          <img
-            src={resource.cover}
-            alt=""
-            aria-hidden
-            className="pointer-events-none absolute inset-0 size-full scale-125 object-cover opacity-25 blur-3xl"
-          />
-        )}
-        <div className="relative flex flex-col items-center gap-4 p-5 text-center sm:p-8">
+      <section className="ab-stage relative overflow-hidden rounded-3xl text-white">
+        {resource.cover && <img src={resource.cover} alt="" aria-hidden className="ab-glow" />}
+        <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[15rem_1fr]">
           <Cover
-            type={resource.type as "book"}
+            type="book"
             title={resource.title}
             author={resource.authors}
             src={resource.cover}
-            size="lg"
-            className={cn("w-36 transition-transform duration-500", playing && "scale-[1.03]")}
+            className={cn(
+              "mx-auto aspect-[2/3] h-auto w-44 transition-transform duration-700 md:w-full",
+              playing && "scale-[1.03]",
+            )}
           />
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{resource.title}</h1>
-            <p className="text-muted mt-0.5 truncate text-sm">
-              {ch ? ch.title : resource.authors} · {t("part", { n: idx + 1, total: view.segments })}
-            </p>
-          </div>
-          <div className="w-full max-w-xl">
-            <input
-              type="range"
-              min={0}
-              max={time.dur || 0}
-              step={0.1}
-              value={time.cur}
-              disabled={!time.dur}
-              onChange={(e) => seekTo(Number(e.target.value))}
-              aria-label={t("position")}
-              className="w-full accent-[var(--primary)]"
-            />
-            <div className="text-muted flex justify-between text-xs tabular-nums">
-              <span>{fmt(time.cur)}</span>
-              <span>{time.dur ? fmt(time.dur) : "–:––"}</span>
+          <div className="flex min-w-0 flex-col gap-5">
+            <div className="min-w-0 text-center md:text-left">
+              <p className="truncate text-sm font-semibold text-[#f6c453]">{chapter || " "}</p>
+              <h1 className="mt-1 text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
+                {resource.title}
+              </h1>
+              {resource.authors && (
+                <p className="mt-1 truncate text-sm text-white/65">{resource.authors}</p>
+              )}
+            </div>
+            <div>
+              <input
+                type="range"
+                min={0}
+                max={time.dur || 0}
+                step={0.1}
+                value={time.cur}
+                disabled={!time.dur}
+                onChange={(e) => seekTo(Number(e.target.value))}
+                aria-label={t("position")}
+                className="ab-range w-full"
+                style={{
+                  ["--pct" as string]: `${time.dur ? (time.cur / time.dur) * 100 : 0}%`,
+                }}
+              />
+              <div className="mt-1 flex justify-between text-xs text-white/60 tabular-nums">
+                <span>{fmt(time.cur)}</span>
+                <span>{t("part", { n: idx + 1, total: view.segments })}</span>
+                <span>{time.dur ? fmt(time.dur) : "–:––"}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-1 sm:gap-2 md:justify-start">
+              <button
+                type="button"
+                onClick={nextSpeed}
+                aria-label={t("speed")}
+                className="ab-btn w-12 text-sm font-semibold tabular-nums"
+              >
+                {speed}x
+              </button>
+              <button
+                type="button"
+                onClick={() => go(idx - 1)}
+                aria-label={t("prev")}
+                className="ab-btn"
+              >
+                <SkipBack className="size-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => seek(-10)}
+                aria-label={t("back15")}
+                className="ab-btn"
+              >
+                <RotateCcw className="size-5" />
+              </button>
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label={playing ? t("pause") : t("play")}
+                className="mx-1 grid size-16 shrink-0 place-items-center rounded-full bg-[#f6c453] text-[#1a1408] shadow-lg transition-transform hover:scale-105 active:scale-95"
+              >
+                {loading ? (
+                  <Loader2 className="size-7 animate-spin" />
+                ) : playing ? (
+                  <Pause className="size-7" />
+                ) : (
+                  <Play className="size-7 translate-x-0.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => seek(10)}
+                aria-label={t("fwd15")}
+                className="ab-btn"
+              >
+                <RotateCw className="size-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => go(idx + 1)}
+                aria-label={t("next")}
+                className="ab-btn"
+              >
+                <SkipForward className="size-5" />
+              </button>
+              <label
+                className={cn("ab-btn relative", sleep != null && "text-[#f6c453]")}
+                title={t("sleep")}
+              >
+                <Timer className="size-5" />
+                <select
+                  value={sleep == null ? "" : String(sleep === "chapter" ? "chapter" : "on")}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "on") return;
+                    setSleep(
+                      !v ? null : v === "chapter" ? "chapter" : Date.now() + Number(v) * 60_000,
+                    );
+                  }}
+                  aria-label={t("sleep")}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                >
+                  <option value="">{t("sleepOff")}</option>
+                  {typeof sleep === "number" && <option value="on">{t("sleepOn")}</option>}
+                  {SLEEP.map((m) => (
+                    <option key={m} value={m}>
+                      {t("sleepMin", { n: m })}
+                    </option>
+                  ))}
+                  <option value="chapter">{t("sleepChapter")}</option>
+                </select>
+              </label>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => go(idx - 1)} aria-label={t("prev")}>
-              <SkipBack />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => seek(-10)} aria-label={t("back15")}>
-              <RotateCcw />
-            </Button>
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={playing ? t("pause") : t("play")}
-              className="bg-primary text-primary-foreground mx-2 grid size-16 place-items-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
-            >
-              {loading ? (
-                <Loader2 className="size-7 animate-spin" />
-              ) : playing ? (
-                <Pause className="size-7" />
-              ) : (
-                <Play className="size-7 translate-x-0.5" />
-              )}
-            </button>
-            <Button variant="ghost" size="icon" onClick={() => seek(10)} aria-label={t("fwd15")}>
-              <RotateCw />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => go(idx + 1)} aria-label={t("next")}>
-              <SkipForward />
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <select
-              value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
-              aria-label={t("speed")}
-              className="border-border-strong bg-surface/70 h-9 rounded-lg border px-2 text-sm tabular-nums"
-            >
-              {speeds.map((v) => (
-                <option key={v} value={v}>
-                  {v}×
-                </option>
-              ))}
-            </select>
-            <select
-              value={sleep == null ? "" : String(sleep === "chapter" ? "chapter" : "on")}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSleep(
-                  v === "" ? null : v === "chapter" ? "chapter" : Date.now() + Number(v) * 60_000,
-                );
-              }}
-              aria-label={t("sleep")}
-              className={cn(
-                "border-border-strong bg-surface/70 h-9 rounded-lg border px-2 text-sm",
-                sleep != null && "border-primary text-primary",
-              )}
-            >
-              <option value="">{t("sleepOff")}</option>
-              {typeof sleep === "number" && <option value="on">{t("sleepOn")}</option>}
-              {SLEEP.map((m) => (
-                <option key={m} value={m}>
-                  {t("sleepMin", { n: m })}
-                </option>
-              ))}
-              <option value="chapter">{t("sleepChapter")}</option>
-            </select>
-          </div>
-          {loading && (
-            <p className="text-muted flex items-center gap-1.5 text-xs" aria-live="polite">
-              <Loader2 className="size-3.5 animate-spin" /> {t("making")}
-            </p>
-          )}
-          <p className="text-muted hidden text-[11px] sm:block">{t("keysHint")}</p>
-        </div>
-        <div className="bg-surface-2 relative h-1">
-          <div
-            className="bg-primary h-full transition-all"
-            style={{ width: `${((idx + 1) / Math.max(1, view.segments)) * 100}%` }}
-          />
         </div>
       </section>
 
-      <div role="tablist" className="bg-surface-2 flex w-fit flex-wrap rounded-lg p-0.5 text-sm">
-        {(
-          [
-            ["text", BookOpen, t("tabText")],
-            ["chapters", ListOrdered, t("tabChapters")],
-            ["about", Sparkles, t("tabAbout")],
-            ["cast", Users, t("tabCast")],
-          ] as const
-        ).map(([k, Icon, label]) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={tab === k}
-            onClick={() => setTab(k)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium",
-              tab === k
-                ? "bg-surface text-foreground shadow-sm"
-                : "text-muted hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4" /> {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "text" && (
-        <section className="card p-5 sm:p-7">
-          {view.fileId && view.pictures.includes(view.pageOf[idx]) && (
-            <figure className="mb-5">
-              <PdfPage
-                fileId={view.fileId}
-                page={view.pageOf[idx]}
-                alt={chapterOf(idx)?.title ?? resource.title}
-                className="mx-auto max-w-md"
-              />
-            </figure>
-          )}
-          {!lines ? (
-            <p className="text-muted flex items-center gap-2 text-sm">
-              <Loader2 className="size-4 animate-spin" /> {t("textLoading")}
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3 font-serif text-[17px] leading-relaxed">
-              {lines.map((l, i) => (
-                <p
-                  key={i}
-                  ref={i === current ? follow : undefined}
-                  className={cn(
-                    "rounded-lg px-2 py-1 transition-colors duration-300",
-                    i === current && "bg-primary-soft",
-                  )}
-                >
-                  {l.text}
-                </p>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {tab === "chapters" && (
-        <section className="card p-2">
-          {analysis.chapters.length ? (
-            <ol>
-              {analysis.chapters.map((c, k) => {
-                const at = view.chapterAt[k] ?? 0;
-                const on = ch === c;
-                return (
-                  <li key={k}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTab("text");
-                        go(at, true);
-                      }}
-                      className={cn(
-                        "hover:bg-surface-2 flex w-full items-baseline gap-3 rounded-lg px-3 py-2 text-left",
-                        on && "bg-primary-soft text-primary font-medium",
-                      )}
-                    >
-                      <span className="text-muted w-6 shrink-0 text-right text-xs tabular-nums">
-                        {k + 1}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        {c.title}
-                        {c.subtitle && (
-                          <span className="text-muted ml-1.5 text-xs">· {c.subtitle}</span>
-                        )}
-                      </span>
-                      <span className="text-muted text-xs tabular-nums">
-                        {t("page", { n: c.page })}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          ) : (
-            <p className="text-muted p-4 text-sm">{t("noChapters")}</p>
-          )}
-        </section>
-      )}
-
-      {tab === "about" && (
-        <section className="card flex flex-col gap-4 p-5 sm:p-7">
-          <div className="flex flex-wrap gap-2 text-xs">
-            {[analysis.genre, analysis.language, analysis.tone].filter(Boolean).map((x) => (
-              <span key={x} className="bg-surface-2 rounded-full px-2.5 py-1">
-                {x}
-              </span>
-            ))}
-          </div>
-          {analysis.setting && (
-            <p className="text-sm">
-              <span className="text-muted">{t("setting")}: </span>
-              {analysis.setting}
-            </p>
-          )}
-          <p className="leading-relaxed">{analysis.summary}</p>
-          {analysis.themes.length > 0 && (
-            <div>
-              <h3 className="text-muted mb-1.5 text-xs font-semibold tracking-wide uppercase">
-                {t("themes")}
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {analysis.themes.map((x) => (
-                  <span
-                    key={x}
-                    className="bg-primary-soft text-primary rounded-full px-2.5 py-0.5 text-sm"
-                  >
-                    {x}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          <div>
-            <h3 className="text-muted mb-1 text-xs font-semibold tracking-wide uppercase">
-              {t("narration")}
-            </h3>
-            <p className="text-sm leading-relaxed">{analysis.narration.style}</p>
-          </div>
-          {analysis.pronunciation.length > 0 && (
-            <div>
-              <h3 className="text-muted mb-1.5 text-xs font-semibold tracking-wide uppercase">
-                {t("pronunciation")}
-              </h3>
-              <ul className="grid gap-1 text-sm sm:grid-cols-2">
-                {analysis.pronunciation.map((p) => (
-                  <li key={p.written}>
-                    <b>{p.written}</b> <span className="text-muted">→ {p.spoken}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="border-border flex flex-wrap items-center gap-2 border-t pt-4">
-            <Button variant="outline" size="sm" disabled={busy} onClick={onReanalyze}>
-              {busy ? <Loader2 className="animate-spin" /> : <RotateCcw />} {t("reanalyze")}
-            </Button>
-            {view.scanned && <span className="text-muted text-xs">{t("scanned")}</span>}
-          </div>
-        </section>
-      )}
-
-      {tab === "cast" && (
-        <section className="grid gap-3 sm:grid-cols-2">
+      <section className="card flex flex-col gap-4 p-5">
+        <ModeChoice cast={cast} onChange={(v) => void changeMode(v)} />
+        <div className="grid gap-3 sm:grid-cols-2">
           <CastCard
             resourceId={resource.id}
             speaker="narrator"
             name={t("narrator")}
-            sub={analysis.narration.style}
+            sub=""
             voice={analysis.narration.voice}
             voices={voices}
             onVoice={(v) => void changeVoice("narrator", v)}
             hue={null}
           />
-        </section>
-      )}
+          {cast &&
+            analysis.characters.map((c) => (
+              <CastCard
+                key={c.name}
+                resourceId={resource.id}
+                speaker={c.name}
+                name={c.name}
+                sub=""
+                voice={c.voice}
+                voices={voices}
+                onVoice={(v) => void changeVoice(c.name, v)}
+                hue={null}
+              />
+            ))}
+        </div>
+      </section>
     </>
   );
 }

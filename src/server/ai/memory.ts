@@ -88,7 +88,7 @@ async function refreshMemory(ctx: AppContext, conversationId: string) {
       },
     ],
     {
-      systemInstruction: `You keep a learning companion's memory of ONE user. Update the memory with what the recent conversation shows: their interests (topics, authors, genres), knowledge level, the language they speak and their vocabulary (simple / rich, dialect, favourite words), how they like to be talked to, their goals, and lasting facts they told about themselves (work, studies, city, family — only what they said). Keep what is still true, merge duplicates, drop trivia and anything said only by the AI. Never store passwords, card numbers, health or other sensitive details. Short phrases, in English. Return JSON only.`,
+      systemInstruction: `You keep a learning companion's memory of ONE user. Update the memory with what the recent conversation shows, including how they speak (in "style": their vocabulary level, habits, repeated mistakes, what to improve next): their interests (topics, authors, genres), knowledge level, the language they speak and their vocabulary (simple / rich, dialect, favourite words), how they like to be talked to, their goals, and lasting facts they told about themselves (work, studies, city, family — only what they said). Keep what is still true, merge duplicates, drop trivia and anything said only by the AI. Never store passwords, card numbers, health or other sensitive details. Short phrases, in English. Return JSON only.`,
       temperature: 0.2,
       responseMimeType: "application/json",
       maxOutputTokens: 2048,

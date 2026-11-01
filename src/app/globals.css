@@ -591,11 +591,12 @@ mark.taqriz-note-mark {
 /* ── Covers that come alive on hover (lib: components/library/cover.tsx) ── */
 /* Books: the cover turns a little and its page edges show, like a real book. */
 .cover-3d {
-  --depth: 20px;
+  --depth: 16px;
   transform-style: preserve-3d; /* a filter here would flatten the book */
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
   /* Always a little turned: the page block is seen before and during hover. */
-  transform: perspective(1100px) rotateY(-24deg) scale(0.93);
+  transform: perspective(1500px) rotateY(-15deg) scale(0.96);
 }
 .cover-3d .cover-face {
   box-shadow:
@@ -604,8 +605,8 @@ mark.taqriz-note-mark {
 }
 .cover-3d .cover-pages {
   position: absolute;
-  top: 1.2%;
-  bottom: 1.2%;
+  top: 0.6%;
+  bottom: 0.6%;
   right: 0;
   width: var(--depth);
   transform-origin: right center;
@@ -617,7 +618,7 @@ mark.taqriz-note-mark {
 .cover-3d .cover-back {
   position: absolute;
   inset: 0;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #1c1b20;
   transform: translateZ(calc(var(--depth) * -1));
   box-shadow: 18px 16px 26px -6px rgb(0 0 0 / 0.5);
@@ -639,7 +640,7 @@ mark.taqriz-note-mark {
 .group:hover .cover-3d,
 .cover-3d:hover,
 a:focus-visible .cover-3d {
-  transform: perspective(1100px) rotateY(-32deg) translateX(-4px) scale(0.95);
+  transform: perspective(1500px) rotateY(-24deg) translateX(-2px) scale(0.97);
 }
 .group:hover .cover-3d .cover-glare,
 .cover-3d:hover .cover-glare {
@@ -704,7 +705,7 @@ a:focus-visible .cover-3d {
   }
   .group:hover .cover-3d,
   .cover-3d:hover {
-    transform: perspective(1100px) rotateY(-24deg) scale(0.93);
+    transform: perspective(1500px) rotateY(-15deg) scale(0.96);
   }
 }
 
@@ -952,6 +953,57 @@ html[data-reader-full] main > div {
   to {
     transform: rotateY(180deg);
   }
+}
+
+/* The audiobook: a dark stage lit by the book's own cover. */
+.ab-stage {
+  background: linear-gradient(150deg, #181b28, #0e0f16 60%, #1c150a);
+  box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.6);
+}
+.ab-glow {
+  position: absolute;
+  inset: -30%;
+  width: 160%;
+  height: 160%;
+  object-fit: cover;
+  opacity: 0.32;
+  filter: blur(70px) saturate(1.3);
+  pointer-events: none;
+}
+.ab-btn {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.8);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.ab-btn:hover {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+.ab-range {
+  appearance: none;
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #f6c453 var(--pct), rgb(255 255 255 / 0.2) var(--pct));
+}
+.ab-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f6c453;
+}
+.ab-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #f6c453;
 }
 
 /* Tab rows scroll by swipe; a scrollbar under them is only noise. */

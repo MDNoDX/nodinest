@@ -156,7 +156,7 @@ export function RoutineDialog({
             </div>
           </div>
           {iconsOpen && (
-            <div className="bg-surface-2 grid grid-cols-5 gap-1 rounded-xl p-2 sm:grid-cols-10">
+            <div className="bg-surface-2 grid max-h-48 grid-cols-6 gap-1 overflow-y-auto rounded-xl p-2 sm:grid-cols-10">
               {PICKER_ICONS.map((k) => (
                 <button
                   key={k}

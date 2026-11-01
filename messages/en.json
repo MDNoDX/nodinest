@@ -797,12 +797,15 @@
       "prepare_audiobook": "Audiobook being prepared",
       "create_own_book": "Book created",
       "update_note": "Note edited",
-      "message_admin": "Sent to the admin"
+      "message_admin": "Sent to the admin",
+      "announce_to_users": "Announcement to everyone",
+      "answer_message": "Reply to a message",
+      "grant_premium": "Premium granted"
     },
     "suggestedReview": "Sent to administrator review.",
     "usedTools": "Used: {tools}",
     "you": "You",
-    "ai": "Sadik AI",
+    "ai": "AI",
     "unlimitedNote": "Superadmin: no app limit (only Google’s free quota applies).",
     "done": "Done",
     "notInLibrary": "Not in my library",
@@ -1985,11 +1988,15 @@
     "premiumOnly": "Audiobooks are a Premium feature.",
     "voicesMode": "Voices",
     "modeNarrator": "One narrator",
-    "modeCast": "Character voices",
+    "modeCast": "With the characters",
     "modeNarratorHint": "The book’s text in one voice, fast and exact (recommended)",
-    "modeCastHint": "Every character in their own voice (slower: the AI reads each part first)",
+    "modeCastHint": "Each character speaks in their own voice",
     "closePlayer": "Close the player",
-    "keysHint": "Space or K — pause · ← → — 5 seconds · J L — 10 seconds · < > — speed"
+    "keysHint": "Space or K — pause · ← → — 5 seconds · J L — 10 seconds · < > — speed",
+    "mode": "Who reads",
+    "modeSolo": "One reader",
+    "modeSoloHint": "One voice reads the whole book",
+    "preparing": "Preparing…"
   },
   "reader": {
     "title": "Read the book",
@@ -2533,7 +2540,7 @@
     "review": "Pick a source: the AI writes questions and asks again just before you forget.",
     "collections": "Sort your sources into topics.",
     "write": "Your own book is written here. The year’s journal fills itself from Plans.",
-    "assistant": "Sadik AI knows your books and plans. Type, or press Live talk.",
+    "assistant": "The AI knows your books and plans. Type, or press Live talk.",
     "stats": "What you read and learned, in numbers."
   }
 }

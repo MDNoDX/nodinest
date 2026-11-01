@@ -3,6 +3,8 @@
  * Users see only their own (RLS); the superadmin reads and marks them.
  */
 import "server-only";
+import { esc, tgTo } from "./monitor/telegram";
+import { notify } from "./notifications";
 import { can } from "@/lib/admin-perms";
 import { later } from "./later";
 import { and, desc, eq } from "drizzle-orm";
@@ -81,4 +83,17 @@ export async function setFeedbackStatus(
     .update(feedback)
     .set({ status, updatedAt: new Date() })
     .where(and(eq(feedback.id, z.string().uuid().parse(id))));
+}
+
+/** The owner's answer: kept on the message, and it reaches the person. */
+export async function answerFeedback(ctx: AppContext, id: string, reply: string) {
+  if (!ctx.superadminAccount && !can(ctx, "feedback")) throw new AppError("FORBIDDEN");
+  const [f] = await db
+    .update(feedback)
+    .set({ reply, status: "done", updatedAt: new Date() })
+    .where(eq(feedback.id, z.string().uuid().parse(id)))
+    .returning({ userId: feedback.userId, tgId: feedback.tgId });
+  if (!f) throw new AppError("NOT_FOUND");
+  if (f.userId) await notify(f.userId, "news", { body: reply, href: "/suggestions" });
+  else if (f.tgId) await tgTo(f.tgId, esc(reply)).catch(() => null);
 }

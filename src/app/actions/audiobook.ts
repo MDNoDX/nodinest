@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { analyzeAudiobook, setVoice } from "@/server/audiobook";
+import { analyzeAudiobook, setAudioMode, setVoice } from "@/server/audiobook";
 import { run } from "./_run";
 import { asLocale } from "@/i18n/config";
 
@@ -15,6 +15,13 @@ export async function analyzeAudiobookAction(resourceId: string) {
     const r = await analyzeAudiobook(ctx, id.parse(resourceId), locale);
     revalidatePath(`/library/${resourceId}/audiobook`);
     return r;
+  });
+}
+
+export async function setAudioModeAction(resourceId: string, cast: boolean) {
+  return run(async ({ ctx }) => {
+    await setAudioMode(ctx, id.parse(resourceId), !!cast);
+    revalidatePath(`/library/${resourceId}/audiobook`);
   });
 }
 

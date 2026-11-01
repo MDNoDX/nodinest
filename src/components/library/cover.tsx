@@ -60,13 +60,24 @@ export function Cover({
           ? "w-full aspect-[2/3]"
           : "w-full aspect-video";
   const face = src ? (
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      className="absolute inset-0 size-full object-cover"
-    />
+    <>
+      {/* Any picture shows whole; what it leaves empty takes its own colours. */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 size-full scale-110 object-cover blur-lg"
+      />
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 size-full object-contain"
+      />
+    </>
   ) : (
     <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />
   );
@@ -74,7 +85,7 @@ export function Cover({
   if (portrait && size !== "sm")
     return (
       <div className={cn("cover-3d relative shrink-0", dims, className)} style={typeHue(type)}>
-        <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[6px]">
+        <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[2px_3px_3px_2px]">
           {face}
           <span aria-hidden className="cover-glare" />
         </div>
