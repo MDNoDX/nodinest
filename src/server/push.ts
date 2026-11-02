@@ -1,8 +1,8 @@
 /**
  * Web Push: a notification on the phone or computer even when Röznoma is closed
  * (browsers and installed web apps; iOS from 16.4 once added to the Home Screen).
- * Works when the VAPID keys are set (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY,
- * NEXT_PUBLIC_VAPID_PUBLIC_KEY for the page); otherwise nothing is sent.
+ * Works when the VAPID keys are set (VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY);
+ * the page asks for the public one (`pushKey()`), so nothing needs a rebuild.
  */
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
@@ -10,6 +10,11 @@ import webpush from "web-push";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import { pushSubscriptions } from "@/db/schema";
+
+/** The public key for the browser, or null when push is not set up. */
+export function pushKey() {
+  return setup() ? (process.env.VAPID_PUBLIC_KEY ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)! : null;
+}
 
 let ready: boolean | null = null;
 function setup() {

@@ -9,6 +9,7 @@
  */
 import "server-only";
 import { and, count, eq, isNull, sql } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
@@ -498,7 +499,13 @@ export async function setItemVisibility(
   extras: { writeup?: boolean; audiobook?: boolean; text?: boolean } = {},
 ) {
   const id = z.string().uuid().parse(resourceId);
+  let opened = false;
   await withUser(db, ctx, async (tx) => {
+    const [was] = await tx
+      .select({ v: learningRecords.visibility })
+      .from(learningRecords)
+      .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id)));
+    opened = pub && !!was && was.v !== "public";
     await tx
       .update(learningRecords)
       .set({
@@ -517,6 +524,37 @@ export async function setItemVisibility(
           .set({ isPublic: on })
           .where(and(eq(t.userId, ctx.userId), eq(t.resourceId, id)));
   });
+  if (opened) {
+    const run = () => tellFollowers(ctx, id).catch(() => null);
+    try {
+      after(run);
+    } catch {
+      void run(); // outside a request (tests, scripts)
+    }
+  }
+}
+
+/** A new public post: the people who follow me hear of it (after the answer, never blocking it). */
+async function tellFollowers(ctx: AppContext, resourceId: string) {
+  const [it] = await db.execute<{ title: string; username: string | null }>(sql`
+    select r.title, u.username from nodinest.resources r, nodinest."user" u
+    where r.id = ${resourceId} and u.id = ${ctx.userId}`);
+  if (!it?.username) return;
+  const fans = await db
+    .select({ id: follows.followerId })
+    .from(follows)
+    .where(eq(follows.followeeId, ctx.userId))
+    .limit(500);
+  for (let i = 0; i < fans.length; i += 20)
+    await Promise.all(
+      fans.slice(i, i + 20).map((f) =>
+        notify(f.id, "post", {
+          actorId: ctx.userId,
+          body: it.title,
+          href: `/u/${it.username}/item/${resourceId}`,
+        }).catch(() => null),
+      ),
+    );
 }
 
 /** What else an item can show and whether it does now (null: there is none yet). */
@@ -642,7 +680,12 @@ export async function sharedTextOwner(ctx: AppContext, ownerId: string, resource
 /** A public post I may see: its owner and title, or NOT_FOUND. */
 async function visiblePost(ctx: AppContext, recordId: string) {
   const id = z.string().uuid().parse(recordId);
-  const [p] = await db.execute<{ ownerId: string; resourceId: string; title: string; username: string }>(sql`
+  const [p] = await db.execute<{
+    ownerId: string;
+    resourceId: string;
+    title: string;
+    username: string;
+  }>(sql`
     select lr.user_id as "ownerId", lr.resource_id as "resourceId", r.title, u.username
     from nodinest.learning_records lr
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
@@ -667,10 +710,7 @@ export async function setLike(ctx: AppContext, recordId: string, on: boolean) {
       body: p.title,
       href: `/u/${p.username}/item/${p.resourceId}`,
     }).catch(() => null);
-  const [n] = await db
-    .select({ n: count() })
-    .from(postLikes)
-    .where(eq(postLikes.recordId, p.id));
+  const [n] = await db.select({ n: count() }).from(postLikes).where(eq(postLikes.recordId, p.id));
   return n?.n ?? 0;
 }
 
@@ -722,7 +762,10 @@ const commentInput = z
     body: z.string().trim().max(1000).optional(),
     gif: z
       .object({
-        id: z.string().max(40).regex(/^[\w-]+$/),
+        id: z
+          .string()
+          .max(40)
+          .regex(/^[\w-]+$/),
         url: z.string().max(400).regex(GIPHY),
         w: z.number().int().min(1).max(2000),
         h: z.number().int().min(1).max(2000),

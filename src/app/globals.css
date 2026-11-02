@@ -1555,3 +1555,48 @@ nav.overflow-x-auto,
     font-size: 1.6rem;
   }
 }
+
+/* Phones: nothing smaller than 12 px to read (badges and counters may stay 10-11). */
+@media (max-width: 640px) {
+  .text-\[11px\]:not(.tabular-nums),
+  .text-\[10px\]:not(.tabular-nums) {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .text-xs {
+    line-height: 1.45;
+  }
+}
+
+/* Tablets and up have the side menu, not the bottom bar: nothing makes room for it. */
+@media (min-width: 768px) {
+  :root {
+    --bottom-nav: 0px !important;
+  }
+}
+
+/* The share sheet rises from the bottom on phones and grows in the middle on wider screens. */
+.share-sheet[data-state="open"] {
+  animation: sheet-up 0.32s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (min-width: 640px) {
+  .share-sheet[data-state="open"] {
+    animation: sheet-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-sheet[data-state="open"] {
+    animation: none;
+  }
+}

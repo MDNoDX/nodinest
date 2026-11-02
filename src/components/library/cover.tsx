@@ -24,8 +24,12 @@ const TYPE_ICON = {
   other: Shapes,
 } as const;
 
-export function coverSrc(r: { coverFileId?: string | null; coverUrl?: string | null }) {
-  return r.coverFileId ? `/api/files/${r.coverFileId}` : r.coverUrl || null;
+/** A cover's picture: our own files as a small copy (lists and cards never need the original). */
+export function coverSrc(
+  r: { coverFileId?: string | null; coverUrl?: string | null },
+  width: 160 | 320 | 480 | 720 = 480,
+) {
+  return r.coverFileId ? `/api/files/${r.coverFileId}?w=${width}` : r.coverUrl || null;
 }
 
 /** Book-like covers are portrait; media thumbnails are landscape. */

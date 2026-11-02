@@ -1,5 +1,13 @@
 "use client";
-import { BookOpenText, Clapperboard, LifeBuoy, LogIn, UserRoundPlus } from "lucide-react";
+import {
+  BookOpenText,
+  CalendarCheck,
+  Clapperboard,
+  LifeBuoy,
+  LogIn,
+  Sparkles,
+  UserRoundPlus,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -129,5 +137,45 @@ export function JoinCard({ compact, className }: { compact?: boolean; className?
         <UserRoundPlus className="size-4" /> {t("join")}
       </Link>
     </div>
+  );
+}
+
+/** The top of Media for a guest: what Röznoma is, in three lines, and the way in. */
+export function GuestHero() {
+  const t = useTranslations("guest");
+  const pathname = usePathname();
+  const points = [
+    { icon: BookOpenText, text: t("point1") },
+    { icon: CalendarCheck, text: t("point2") },
+    { icon: Sparkles, text: t("point3") },
+  ];
+  return (
+    <section className="hero -mx-4 -mt-6 mb-6 rounded-b-3xl px-4 pt-8 pb-7 sm:-mx-6 sm:-mt-8 sm:px-8">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 text-center">
+        <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+          {t("heroTitle")}
+        </h1>
+        <p className="text-muted max-w-xl text-[15px]">{t("heroBody")}</p>
+        <ul className="grid w-full gap-2 sm:grid-cols-3">
+          {points.map(({ icon: Icon, text }) => (
+            <li
+              key={text}
+              className="bg-surface/70 border-border flex items-center gap-2.5 rounded-2xl border p-3 text-left text-sm"
+            >
+              <span className="bg-primary-soft text-primary grid size-9 shrink-0 place-items-center rounded-xl">
+                <Icon className="size-[18px]" />
+              </span>
+              {text}
+            </li>
+          ))}
+        </ul>
+        <Link
+          href={joinHref(pathname)}
+          className="bg-primary text-primary-foreground inline-flex h-11 items-center gap-2 rounded-xl px-6 text-[15px] font-semibold shadow-lg transition-transform active:scale-95"
+        >
+          <UserRoundPlus className="size-5" /> {t("join")}
+        </Link>
+      </div>
+    </section>
   );
 }

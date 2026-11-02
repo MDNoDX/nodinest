@@ -218,12 +218,19 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `pageContextOrGuest()` / `apiUserOrGuest()` / `runOpen()` with `GUEST` (a nil uuid, sees only what is
   public): /media, /u/*, /guide, public covers, people search, comments. Every other page still calls
   `pageContext()` and goes to /login; an action that needs a profile toasts "Profil ochish".
+- Phone layout: no ☰ on top; the bottom bar is up to four sections the person picked
+  (`lib/phone-tabs.ts`, Settings → Menu; profile, Darsxona, Media, Chats by default) + "Menu", and the
+  menu drawer leaves out what is on the bar. "/" is my profile (the hub: continue, questions, stats,
+  followers). Tablets (768+) get the narrow side menu instead of the bar (`--bottom-nav` is 0 there).
+  Section colours are five families (`SECTION_HUE`). Covers come as small copies (`coverSrc(r, w)` →
+  `/api/files/[id]?w=480`, sharp, cached a month). Chat messages never go to the bell (only push /
+  Telegram, one ring per sender per 2 min); a new public post rings the owner's followers (`post`).
 - Navigation: Takliflar left the menu (a quiet link under it + Settings → Help; the inbox lives in
   Admin), Ko'rsatkichlar is the "Statistika" tab of my profile (`social/profile-tabs.tsx`), Takrorlash is
   a Darsxona tab with the due count (`dueCount`) and a start card on the library.
 - Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
-  to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY,
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (and VAPID_SUBJECT) in Vercel.
+  to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY and
+  VAPID_PRIVATE_KEY in Vercel (VAPID_SUBJECT optional); the page asks GET /api/push for the key.
 - Audiobook parts report real progress (`job_progress`, `segmentProgress`, GET
   `/api/audiobook/[id]/progress?idx=`); the ring uses it, the time estimate only fills between steps.
 - `rebuildYearBook()` (day page → "Kitobni yangilash") writes every day of the year again in the

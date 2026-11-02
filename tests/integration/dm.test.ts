@@ -37,9 +37,9 @@ describe("messages between two people", () => {
     expect(await dm.unreadChats(b)).toBe(1);
     const list = await dm.threadList(b);
     expect(list[0]).toMatchObject({ id, unread: 2, other: { id: a.userId } });
-    // One ring until it is read.
+    // Messages stay in Chatlar: the bell does not list them.
     const rings = (await listNotifications(b)).filter((n) => n.kind === "message");
-    expect(rings).toHaveLength(1);
+    expect(rings).toHaveLength(0);
 
     const view = await dm.threadView(b, id);
     expect(view.messages.map((m) => m.body)).toEqual([

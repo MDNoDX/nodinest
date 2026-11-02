@@ -10,19 +10,23 @@ const EVENT = "nn:chats-unread";
 export const refreshUnreadChats = () => window.dispatchEvent(new Event(EVENT));
 
 /**
- * Conversations with something unread: from the server render, then asked
- * again every 30 s while the page is visible, on every navigation and when a
+ * Badges (unread chats, the bell): from the server render, then one request
+ * every 30 s while the page is visible, on coming back to it, and when a
  * conversation is read.
  */
-export function useUnreadChats(initial: number, pathname: string) {
+export function useUnreadChats(initial: number, initialBell = 0) {
   const [n, setN] = useState(initial);
+  const [bell, setBell] = useState(initialBell);
   useEffect(() => {
     let stop = false;
     const ask = async () => {
       if (document.visibilityState !== "visible") return;
       const r = await fetch("/api/dm/threads?count", { cache: "no-store" }).catch(() => null);
-      const j = r?.ok ? ((await r.json()) as { unread: number }) : null;
-      if (!stop && j) setN(j.unread);
+      const j = r?.ok ? ((await r.json()) as { unread: number; bell?: number }) : null;
+      if (!stop && j) {
+        setN(j.unread);
+        if (typeof j.bell === "number") setBell(j.bell);
+      }
     };
     const first = setTimeout(ask, 1500);
     const timer = setInterval(ask, 30_000);
@@ -35,8 +39,8 @@ export function useUnreadChats(initial: number, pathname: string) {
       window.removeEventListener(EVENT, ask);
       document.removeEventListener("visibilitychange", ask);
     };
-  }, [pathname]);
-  return n;
+  }, []);
+  return { chats: n, bell };
 }
 
 /** The top bar's way to the conversations. */

@@ -1,5 +1,5 @@
 "use client";
-import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -21,6 +21,7 @@ import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
 import { useDragOrder } from "@/lib/use-drag-order";
+import { usePhoneTabs } from "@/lib/phone-tabs";
 import { NAV_PRIMARY, NAV_SECONDARY, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
@@ -32,6 +33,14 @@ function readSidebar() {
     return false;
   }
 }
+const TABLET = "(min-width: 768px) and (max-width: 1023px)";
+function subscribeTablet(cb: () => void) {
+  const m = window.matchMedia(TABLET);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+}
+const readTablet = () => window.matchMedia(TABLET).matches;
+
 function writeSidebar(collapsed: boolean) {
   try {
     localStorage.setItem(SIDEBAR_KEY, collapsed ? "collapsed" : "expanded");
@@ -189,7 +198,10 @@ export function AppShell({
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const pathname = usePathname();
-  const collapsed = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
+  const chosen = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
+  // Tablets (768-1023 px): the menu is always the narrow one, beside the page.
+  const tablet = useSyncExternalStore(subscribeTablet, readTablet, () => false);
+  const collapsed = chosen || tablet;
   // The drawer remembers the path it was opened on, so navigating closes it.
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const mobileOpen = openedOn === pathname;
@@ -201,7 +213,7 @@ export function AppShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  const toggle = () => writeSidebar(!collapsed);
+  const toggle = () => writeSidebar(!chosen);
 
   // Phones: room for the bottom bar (the page end and the player sit above it).
   // On the root, so the player (rendered outside this tree) sees it too.
@@ -221,9 +233,16 @@ export function AppShell({
   const secondary = sortByOrder(
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
     order,
-  ).map((i) => (i.key === "profile" && user.username ? { ...i, to: `/u/${user.username}` } : i));
-  const chats = useUnreadChats(unreadChats, pathname);
+  );
+  const { chats, bell } = useUnreadChats(unreadChats, unread);
   const badge = { admin: pendingSuggestions, chats };
+  // Phones: the chosen sections sit in the bottom bar and are left out of the menu.
+  const everything = [...primary, ...secondary];
+  const phoneHrefs = usePhoneTabs(everything.map((i) => i.href));
+  const phoneItems = phoneHrefs
+    .map((h) => everything.find((i) => i.href === h))
+    .filter((i): i is NavItem => !!i);
+  const notOnBar = (list: NavItem[]) => list.filter((i) => !phoneHrefs.includes(i.href));
 
   const sidebar = (mobile: boolean) => (
     <div className="flex h-full flex-col">
@@ -248,14 +267,14 @@ export function AppShell({
       </div>
       <nav aria-label={t("main")} className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-2">
         <NavList
-          items={primary}
+          items={mobile ? notOnBar(primary) : primary}
           collapsed={collapsed && !mobile}
           pathname={pathname}
           onReorder={(h) => reorder(h, secondary)}
         />
         <div className="border-border mx-2 border-t" />
         <NavList
-          items={secondary}
+          items={mobile ? notOnBar(secondary) : secondary}
           collapsed={collapsed && !mobile}
           pathname={pathname}
           badge={badge}
@@ -276,7 +295,12 @@ export function AppShell({
         )}
       </nav>
       {!mobile && (
-        <div className={cn("border-border border-t p-2", collapsed && "flex justify-center")}>
+        <div
+          className={cn(
+            "border-border border-t p-2 max-lg:hidden",
+            collapsed && "flex justify-center",
+          )}
+        >
           <button
             onClick={toggle}
             className="text-muted hover:bg-surface-2 hover:text-foreground flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm"
@@ -308,7 +332,7 @@ export function AppShell({
           <aside
             data-shell
             className={cn(
-              "border-border bg-surface/70 sticky top-0 hidden h-dvh shrink-0 border-r backdrop-blur-xl transition-[width] duration-200 lg:block",
+              "border-border bg-surface/70 sticky top-0 hidden h-dvh shrink-0 border-r backdrop-blur-xl transition-[width] duration-200 md:block",
               collapsed ? "w-[64px]" : "w-[248px]",
             )}
           >
@@ -317,7 +341,7 @@ export function AppShell({
 
           {mobileOpen && (
             <div
-              className="fixed inset-0 z-40 lg:hidden"
+              className="fixed inset-0 z-40 md:hidden"
               role="dialog"
               aria-modal="true"
               aria-label={t("main")}
@@ -338,24 +362,18 @@ export function AppShell({
               data-shell
               className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5"
             >
-              <button
-                className="text-muted hover:bg-surface-2 rounded-md p-2 lg:hidden"
-                onClick={() => setMobileOpen(true)}
-                aria-label={t("openMenu")}
-                aria-expanded={mobileOpen}
-              >
-                <Menu className="size-5" />
-              </button>
-              <Link href="/" className="lg:hidden" aria-label="Röznoma">
-                <Logo compact />
-              </Link>
               <CommandPalette />
               <HeaderPlayer className="hidden w-80 max-w-[34vw] lg:flex" />
               <div className="ml-auto flex items-center gap-1.5">
                 {timerSlot}
-                <ThemeToggle />
-                <ChatsButton count={chats} />
-                <NotificationBell count={unread} />
+                {/* Phones: the theme is in the avatar menu and Settings (less crowding on top). */}
+                <span className="max-md:hidden">
+                  <ThemeToggle />
+                </span>
+                <span className="max-md:hidden">
+                  <ChatsButton count={chats} />
+                </span>
+                <NotificationBell count={bell} />
                 <UserMenu user={user} />
               </div>
             </header>
@@ -366,7 +384,7 @@ export function AppShell({
               id="main"
               className={cn(
                 "page-enter mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
-                "max-lg:pb-[calc(var(--bottom-nav,0px)+1.5rem)]",
+                "max-md:pb-[calc(var(--bottom-nav,0px)+1.5rem)]",
                 // Writing pages use the whole width (their panels hug the edges).
                 WIDE_RE.test(pathname) ? "max-w-none" : "max-w-6xl",
               )}
@@ -377,9 +395,11 @@ export function AppShell({
           {!immersive && (
             <BottomNav
               pathname={pathname}
-              onMenu={() => setMobileOpen(true)}
-              badge={pendingSuggestions}
+              items={phoneItems}
+              onMenu={() => setMobileOpen(!mobileOpen)}
+              menuOpen={mobileOpen}
               chats={chats}
+              badge={pendingSuggestions}
             />
           )}
           <OnboardingTour aiLimit={aiDailyLimit} />

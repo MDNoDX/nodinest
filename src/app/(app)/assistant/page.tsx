@@ -65,7 +65,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: SP
   return (
     // The whole height below the top bar: the history on the left, the talk on
     // the right; nothing can slip under the box to write in.
-    <div className="-mx-4 -mt-6 flex h-[calc(100dvh-3.5rem-var(--bottom-nav,0px))] max-lg:-mb-[calc(var(--bottom-nav,0px)+1.5rem)] sm:-mx-6 sm:-mt-8 lg:-mb-8 lg:h-[calc(100dvh-3.5rem)]">
+    <div className="-mx-4 -mt-6 flex h-[calc(100dvh-3.5rem-var(--bottom-nav,0px))] max-md:-mb-[calc(var(--bottom-nav,0px)+1.5rem)] sm:-mx-6 sm:-mt-8 md:-mb-8 md:h-[calc(100dvh-3.5rem)]">
       <aside className="border-border hidden w-64 shrink-0 flex-col border-r lg:flex">
         <div className="flex flex-col gap-3 p-3">
           <h1 className="px-1 text-lg font-bold">{t("title")}</h1>

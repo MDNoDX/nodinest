@@ -71,3 +71,21 @@ describe("posts: likes, comments, a shared book text", () => {
     expect((await social.publicItem(reader, owner.username, r.id))?.textPublic).toBe(true);
   });
 });
+
+describe("a new public post rings for followers", () => {
+  it("tells the people who follow me, once, when I open an item", async () => {
+    const social = await import("@/server/social");
+    const { listNotifications } = await import("@/server/notifications");
+    const me = await person();
+    const fan = await person();
+    await social.follow(fan, me.userId, true);
+    const r = await submitResource(db, me, { type: "book", title: `Yangi ${tag()}` });
+    if (r.mode !== "applied") throw new Error("applied");
+    await social.setItemVisibility(me, r.id, true);
+    await new Promise((ok) => setTimeout(ok, 50));
+    await social.setItemVisibility(me, r.id, true); // already public: no second ring
+    await new Promise((ok) => setTimeout(ok, 50));
+    const posts = (await listNotifications(fan)).filter((n) => n.kind === "post");
+    expect(posts).toHaveLength(1);
+  });
+});

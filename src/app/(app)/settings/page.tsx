@@ -4,6 +4,7 @@ import {
   HardDrive,
   Keyboard,
   LifeBuoy,
+  Smartphone,
   MessageSquarePlus,
   ListOrdered,
   Lock,
@@ -26,6 +27,7 @@ import { fmtBytes } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { cn } from "@/lib/cn";
 import { PremiumPanel } from "@/components/premium/premium-panel";
+import { PhoneTabsSettings } from "@/components/settings/phone-tabs";
 import { premiumOn } from "@/server/premium";
 import { OnlineSwitch } from "@/components/chat/online-switch";
 import { DeleteAccount } from "@/components/settings/delete-account";
@@ -199,6 +201,16 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               <CardHeader title={t("settings.appearance")} />
               <div className="px-5 pb-5">
                 <AppearanceForm />
+              </div>
+            </Card>
+          )}
+          {tab === "menu" && (
+            <Card>
+              <CardHeader title={t("settings.phoneTabs")} icon={<Smartphone />} hue="sky" />
+              <div className="px-5 pb-5">
+                <PhoneTabsSettings
+                  admin={user.role === "superadmin" || user.adminPerms.length > 0}
+                />
               </div>
             </Card>
           )}

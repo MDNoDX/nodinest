@@ -117,7 +117,13 @@
     "profile": "Profile",
     "media": "Media",
     "chats": "Chats",
-    "feedback": "Ideas & feedback"
+    "feedback": "Ideas & feedback",
+    "make": "Create",
+    "makePlan": "Today's plan",
+    "makeSource": "Add a source",
+    "makeBook": "Write a book",
+    "makeAsk": "Ask the AI",
+    "makeChat": "New chat"
   },
   "theme": {
     "label": "Theme",
@@ -259,7 +265,9 @@
     "allGoals": "All goals →",
     "goalsPlans": "Goals and plans",
     "plansNext": "Next plans",
-    "openRoznoma": "Open plans"
+    "openRoznoma": "Open plans",
+    "publicView": "My public profile",
+    "editProfile": "Edit profile"
   },
   "types": {
     "book": "Book",
@@ -1119,7 +1127,13 @@
     "time24": "24 hours",
     "time12": "AM / PM",
     "feedbackTitle": "Ideas and messages to the admin",
-    "feedbackBody": "Write an opinion, a bug or an idea; suggested edits to sources are here too."
+    "feedbackBody": "Write an opinion, a bug or an idea; suggested edits to sources are here too.",
+    "phoneTabs": "Phone bottom bar",
+    "phoneTabsHint": "Pick up to {n} sections for the bottom (“Menu” always comes last). A section at the bottom is not repeated in the menu.",
+    "phoneTabsRemove": "Move to the menu",
+    "phoneTabsAdd": "To the bar",
+    "phoneTabsMenu": "In the menu",
+    "phoneTabsFull": "The bar has {n} sections — remove one first"
   },
   "admin": {
     "title": "Administration",
@@ -2605,7 +2619,8 @@
       "news": "News from Röznoma",
       "message": "{name} wrote to you",
       "like": "{name} found your post great",
-      "comment": "{name} commented on your post"
+      "comment": "{name} commented on your post",
+      "post": "{name} posted something new"
     },
     "pref": {
       "people": "People",
@@ -2779,7 +2794,10 @@
     "uploadingTo": "going to {name}",
     "shareApps": "Other apps",
     "copyLink": "Copy link",
-    "linkCopied": "Link copied"
+    "linkCopied": "Link copied",
+    "shareEmpty": "No chats yet — search for someone above or share through an app.",
+    "sendN": "Send to {n}",
+    "shareClosed": "This post is private: others see the link once you make it public."
   },
   "guest": {
     "media": "Media",
@@ -2788,6 +2806,11 @@
     "join": "Open a profile",
     "profile": "Profile",
     "joinTitle": "Start your own Röznoma",
-    "joinBody": "With a profile: your books, a daily plan, the AI helper, chats, likes and comments — all free."
+    "joinBody": "With a profile: your books, a daily plan, the AI helper, chats, likes and comments — all free.",
+    "heroTitle": "What you read and your day — in one place",
+    "heroBody": "Röznoma is for reading, a daily plan and a journal. Below: what people read and watch.",
+    "point1": "Books, write-ups and quotes, audiobooks",
+    "point2": "A daily plan and the year's book — Röznoma",
+    "point3": "An AI helper that also quizzes you"
   }
 }

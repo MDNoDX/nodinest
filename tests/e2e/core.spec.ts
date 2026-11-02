@@ -13,7 +13,7 @@ test("unauthenticated users are sent to login", async ({ page }) => {
 test("a guest sees the public site and is offered a profile", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/media$/);
-  await expect(page.getByRole("heading", { name: "Media" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Öqiganingiz, kuningiz — bir joyda" })).toBeVisible();
   await page.getByRole("link", { name: "Profil oçiş" }).first().click();
   await expect(page).toHaveURL(/\/login\?next=%2Fmedia/);
   await page.goto("/media?scope=following");

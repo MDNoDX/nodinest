@@ -15,28 +15,33 @@ export const TYPE_HUE: Record<string, Hue> = {
   other: "slate",
 };
 
+/**
+ * Five families only, so the site stays calm: reading and the library
+ * (indigo), the day's plan (emerald), writing (amber), people and talk (sky),
+ * the AI (rose); settings are grey.
+ */
 export const SECTION_HUE: Record<string, Hue> = {
-  dashboard: "blue",
+  dashboard: "indigo",
   library: "indigo",
-  people: "orange",
-  publishers: "teal",
-  collections: "amber",
-  notes: "violet",
-  review: "rose",
-  write: "violet",
-  guide: "teal",
-  community: "violet",
-  profile: "violet",
-  chats: "sky",
-  media: "orange",
-  journal: "teal",
+  people: "indigo",
+  publishers: "indigo",
+  collections: "indigo",
+  review: "indigo",
+  stats: "indigo",
+  search: "indigo",
+  guide: "indigo",
   plans: "emerald",
-  search: "sky",
-  assistant: "rose",
-  stats: "blue",
+  journal: "emerald",
+  write: "amber",
+  notes: "amber",
   suggestions: "amber",
-  settings: "slate",
+  chats: "sky",
+  media: "sky",
+  profile: "sky",
+  community: "sky",
+  assistant: "rose",
   admin: "rose",
+  settings: "slate",
 };
 
 const CYCLE: Hue[] = [

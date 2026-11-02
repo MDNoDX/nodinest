@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { MediaFeed } from "@/components/media-feed/feed";
 import { FollowButton } from "@/components/social/follow-button";
 import { PeopleSearch } from "@/components/social/people-search";
-import { JoinCard } from "@/components/layout/guest-shell";
+import { GuestHero, JoinCard } from "@/components/layout/guest-shell";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/misc";
@@ -28,7 +28,7 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
   ]);
   return (
     <>
-      <PageHeader title={t("title")} />
+      {!user ? <GuestHero /> : <PageHeader title={t("title")} />}
       <section aria-label={t("findPeople")} className="mb-4 flex flex-col gap-3">
         <PeopleSearch />
         {asked.length > 0 && (

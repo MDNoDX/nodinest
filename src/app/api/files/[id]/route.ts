@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import sharp from "sharp";
 import { isStorageConfigured, openFile } from "@/server/storage";
+
+/** The small sizes a picture may be asked for (no other, so nothing can be abused). */
+const SIZES = [160, 320, 480, 720];
 import { apiError, apiUserOrGuest } from "../../_utils";
 
 export const maxDuration = 300;
@@ -20,6 +24,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       m ? [Number(m[1]), m[2] ? Number(m[2]) : undefined] : undefined,
     );
     if (!f) return new NextResponse(null, { status: 404 });
+    // ?w=480: a small copy of a picture for lists and cards (covers are many,
+    // the originals heavy). Made on the fly, kept by the browser for a month.
+    const w = Number(req.nextUrl.searchParams.get("w"));
+    if (w && SIZES.includes(w) && /^image\/(jpeg|png|webp|avif)$/.test(f.contentType)) {
+      try {
+        const bytes = Buffer.from(await new Response(f.stream).arrayBuffer());
+        const out = await sharp(bytes)
+          .rotate()
+          .resize({ width: w, height: w * 2, fit: "inside", withoutEnlargement: true })
+          .webp({ quality: 78 })
+          .toBuffer();
+        return new NextResponse(new Uint8Array(out), {
+          headers: {
+            "content-type": "image/webp",
+            "content-length": String(out.length),
+            "cache-control": "private, max-age=2592000, immutable",
+            "x-content-type-options": "nosniff",
+          },
+        });
+      } catch {
+        return new NextResponse(null, { status: 404 });
+      }
+    }
     const headers: Record<string, string> = {
       "content-type": f.contentType,
       "cache-control":

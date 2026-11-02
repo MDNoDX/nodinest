@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 
-const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 const b64ToBytes = (s: string) => {
   const pad = "=".repeat((4 - (s.length % 4)) % 4);
@@ -18,10 +17,16 @@ type State = "loading" | "off" | "on" | "denied" | "unsupported";
 export function PushSwitch() {
   const t = useTranslations("notifications");
   const [state, setState] = useState<State>("loading");
+  const [key, setKey] = useState("");
   useEffect(() => {
     const check = async () => {
-      if (!KEY || !("serviceWorker" in navigator) || !("PushManager" in window))
+      if (!("serviceWorker" in navigator) || !("PushManager" in window))
         return setState("unsupported");
+      // The server's public key (none yet: push is not set up there).
+      const r = await fetch("/api/push").catch(() => null);
+      const k = r?.ok ? ((await r.json()) as { key: string | null }).key : null;
+      if (!k) return setState("unsupported");
+      setKey(k);
       if (Notification.permission === "denied") return setState("denied");
       const reg = await navigator.serviceWorker.getRegistration();
       const sub = await reg?.pushManager.getSubscription();
@@ -49,7 +54,7 @@ export function PushSwitch() {
       if (ok !== "granted") return setState(ok === "denied" ? "denied" : "off");
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: b64ToBytes(KEY),
+        applicationServerKey: b64ToBytes(key),
       });
       const r = await fetch("/api/push", {
         method: "POST",

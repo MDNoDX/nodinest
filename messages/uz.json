@@ -117,7 +117,13 @@
     "profile": "Profil",
     "media": "Media",
     "chats": "Çatlar",
-    "feedback": "Takliflar va fikr"
+    "feedback": "Takliflar va fikr",
+    "make": "Yaratiş",
+    "makePlan": "Bugungi reja",
+    "makeSource": "Manba qöşiş",
+    "makeBook": "Kitob yoziş",
+    "makeAsk": "AI'dan söraş",
+    "makeChat": "Yangi çat"
   },
   "theme": {
     "label": "Mavzu",
@@ -259,7 +265,9 @@
     "allGoals": "Barça maqsadlar →",
     "goalsPlans": "Maqsad va rejalar",
     "plansNext": "Navbatdagi rejalar",
-    "openRoznoma": "Rejalarni oçiş"
+    "openRoznoma": "Rejalarni oçiş",
+    "publicView": "Oçiq profilim",
+    "editProfile": "Profilni tahrirlaş"
   },
   "types": {
     "book": "Kitob",
@@ -1119,7 +1127,13 @@
     "time24": "24 soatlik",
     "time12": "AM / PM",
     "feedbackTitle": "Takliflar va adminga yoziş",
-    "feedbackBody": "Fikr, xato yoki taklifingizni yozing; manbalarga taklif qilingan özgarişlar ham şu yerda."
+    "feedbackBody": "Fikr, xato yoki taklifingizni yozing; manbalarga taklif qilingan özgarişlar ham şu yerda.",
+    "phoneTabs": "Telefon pastki paneli",
+    "phoneTabsHint": "Pastda istagan {n} ta bölimni tanlang (oxirida «Menyu» doim turadi). Pastdagi bölim menyuda takrorlanmaydi.",
+    "phoneTabsRemove": "Menyuga olib taşlaş",
+    "phoneTabsAdd": "Pastga",
+    "phoneTabsMenu": "Menyuda",
+    "phoneTabsFull": "Pastda {n} ta bölim bor — avval birini olib taşlang"
   },
   "admin": {
     "title": "Boşqaruv",
@@ -2605,7 +2619,8 @@
       "news": "Röznoma yangiligi",
       "message": "{name} sizga yozdi",
       "like": "{name} postingizni zör dedi",
-      "comment": "{name} postingizga izoh yozdi"
+      "comment": "{name} postingizga izoh yozdi",
+      "post": "{name} yangi post qöydi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2779,7 +2794,10 @@
     "uploadingTo": "{name}ga ketmoqda",
     "shareApps": "Boşqa ilovalar",
     "copyLink": "Havolani nusxalaş",
-    "linkCopied": "Havola nusxalandi"
+    "linkCopied": "Havola nusxalandi",
+    "shareEmpty": "Hali çatlar yöq — yuqoridan odamni qidiring yoki ilova orqali ulaşing.",
+    "sendN": "{n} kişiga yuboriş",
+    "shareClosed": "Bu post yopiq: havolani boşqalar uni oçiq qilganingizdan keyin köradi."
   },
   "guest": {
     "media": "Media",
@@ -2788,6 +2806,11 @@
     "join": "Profil oçiş",
     "profile": "Profil",
     "joinTitle": "Öz Röznomangizni boşlang",
-    "joinBody": "Profil oçsangiz: kitoblaringiz, kunlik reja, AI yordamçi, çatlar, zör va izohlar — hammasi bepul."
+    "joinBody": "Profil oçsangiz: kitoblaringiz, kunlik reja, AI yordamçi, çatlar, zör va izohlar — hammasi bepul.",
+    "heroTitle": "Öqiganingiz, kuningiz — bir joyda",
+    "heroBody": "Röznoma — kitob öqiş, kunlik reja va kundalik uçun sayt. Odamlar nimani öqiyotgani va körayotganini pastda köring.",
+    "point1": "Kitoblar, taqriz va iqtiboslar, audiokitob",
+    "point2": "Kunlik reja va yil kitobi — Röznoma",
+    "point3": "AI yordamçi, savol-javob bilan tayyorlaş"
   }
 }

@@ -218,7 +218,20 @@ export default async function ResourcePage({
                   extras={extras}
                 />
               )}
-              {d.record && <SendTo resourceId={r.id} />}
+              {d.record && (
+                <SendTo
+                  resourceId={r.id}
+                  share={
+                    user.username
+                      ? {
+                          path: `/u/${user.username}/item/${r.id}`,
+                          title: r.title,
+                          closed: d.record.visibility !== "public",
+                        }
+                      : undefined
+                  }
+                />
+              )}
             </div>
             <h1 className="mt-2 text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
               {r.title}

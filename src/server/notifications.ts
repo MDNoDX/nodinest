@@ -5,7 +5,7 @@
  */
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, count, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { db, withUser, type AppContext } from "@/db";
@@ -35,7 +35,7 @@ export async function notify(
   const prefs = readPrefs(u.notify);
   if (!prefs[PREF_OF[kind]]) return;
   // Following and unfollowing again and again rings once a day.
-  if (o.actorId) {
+  if (o.actorId && kind !== "message") {
     const [dup] = await db
       .select({ n: count() })
       .from(notifications)
@@ -52,13 +52,19 @@ export async function notify(
       );
     if (dup.n) return;
   }
-  await db.insert(notifications).values({
-    userId,
-    kind,
-    actorId: o.actorId ?? null,
-    body: o.body ?? null,
-    href: o.href ?? null,
-  });
+  // Messages stay in Chatlar (their badge): the bell is for posts, people and the site.
+  if (kind === "message") {
+    // One ring per sender every two minutes (not one per line written).
+    const ring = await hitRateLimit(db, `dm-ring:${userId}:${o.actorId ?? ""}`, 1, 120);
+    if (!ring.allowed) return;
+  } else
+    await db.insert(notifications).values({
+      userId,
+      kind,
+      actorId: o.actorId ?? null,
+      body: o.body ?? null,
+      href: o.href ?? null,
+    });
   // The words are made only when something will carry them.
   let said: string | null = null;
   const lineOf = async () => {
@@ -112,7 +118,7 @@ export async function listNotifications(ctx: AppContext) {
         actorId: notifications.actorId,
       })
       .from(notifications)
-      .where(eq(notifications.userId, ctx.userId))
+      .where(and(eq(notifications.userId, ctx.userId), ne(notifications.kind, "message")))
       .orderBy(desc(notifications.createdAt))
       .limit(100);
   });
@@ -123,7 +129,13 @@ export async function unreadCount(ctx: AppContext) {
     tx
       .select({ n: count() })
       .from(notifications)
-      .where(and(eq(notifications.userId, ctx.userId), isNull(notifications.readAt))),
+      .where(
+        and(
+          eq(notifications.userId, ctx.userId),
+          isNull(notifications.readAt),
+          ne(notifications.kind, "message"),
+        ),
+      ),
   );
   return r?.n ?? 0;
 }

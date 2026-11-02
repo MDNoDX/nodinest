@@ -1,80 +1,82 @@
 "use client";
-import { BookOpen, CalendarCheck, Clapperboard, Home, Menu, MessageCircle } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
+import type { NavItem } from "./nav-items";
 
 /** Pages that need the whole screen for the text (the bar would cover it). */
 export const IMMERSIVE_RE =
   /^\/(library\/[^/]+\/(read|taqriz)|write\/[^/]+|chats\/[^/]+|u\/[^/]+\/item\/[^/]+\/read)/;
 
-const TABS = [
-  { href: "/", key: "dashboard", icon: Home, also: [] as string[] },
-  { href: "/plans", key: "plans", icon: CalendarCheck, also: [] },
-  {
-    href: "/library",
-    key: "library",
-    icon: BookOpen,
-    also: ["/people", "/publishers", "/notes", "/collections"],
-  },
-  { href: "/media", key: "media", icon: Clapperboard, also: [] },
-  { href: "/chats", key: "chats", icon: MessageCircle, also: [] },
-];
-
-const SHORT: Record<string, string> = { dashboard: "home", notes: "notesShort", assistant: "ai" };
+/** The bottom bar's own badges and the short names that fit there. */
+const SHORT: Record<string, string> = { notes: "notesShort", assistant: "ai" };
 
 /**
- * Phones: the main sections one tap away at the bottom (where the thumb is),
- * and "Menu" for everything else (the AI is on the home page and in the menu).
+ * Phones: up to four sections the person chose (Settings → Menu; profile,
+ * Darsxona, Media and Chats by default) and "Menu" for the rest. There is no
+ * menu button on top: everything is where the thumb is.
  */
 export function BottomNav({
   pathname,
+  items,
   onMenu,
-  badge,
+  menuOpen,
   chats = 0,
+  badge = 0,
 }: {
   pathname: string;
+  /** The chosen sections, in order. */
+  items: NavItem[];
   onMenu: () => void;
-  badge?: number;
-  /** Conversations with something unread. */
+  menuOpen: boolean;
   chats?: number;
+  /** Something waits inside the menu (the admin's inbox). */
+  badge?: number;
 }) {
   const t = useTranslations("nav");
-  const hit = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const hit = (item: NavItem) => {
+    const one = (h: string) =>
+      h === "/" ? pathname === "/" : pathname === h || pathname.startsWith(`${h}/`);
+    return one(item.href) || (item.includes ?? []).some(one);
+  };
   return (
     <nav
       aria-label={t("main")}
-      className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
-      <ul className="mx-auto grid h-16 max-w-lg grid-cols-6">
-        {TABS.map(({ href, key, icon: Icon, also }) => {
-          const on = hit(href) || also.some(hit);
+      <ul
+        className="mx-auto grid h-16 max-w-lg"
+        style={{ gridTemplateColumns: `repeat(${items.length + 1}, minmax(0, 1fr))` }}
+      >
+        {items.map((item) => {
+          const on = !menuOpen && hit(item);
+          const Icon = item.icon;
           return (
-            <li key={href}>
+            <li key={item.href}>
               <Link
-                href={href}
+                href={item.to ?? item.href}
                 aria-current={on ? "page" : undefined}
-                data-tour={`nav-${key}`}
+                data-tour={`nav-${item.key}`}
                 className={cn(
-                  "flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                  "flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
                   on ? "text-primary" : "text-muted",
                 )}
               >
                 <span
                   className={cn(
-                    "relative grid h-7 w-11 place-items-center rounded-full transition-colors",
+                    "relative grid h-7 w-12 place-items-center rounded-full transition-colors",
                     on && "bg-primary-soft",
                   )}
                 >
                   <Icon className="size-5" />
-                  {key === "chats" && chats > 0 && (
-                    <span className="bg-primary text-primary-foreground absolute -top-1 right-0.5 grid min-w-4 place-items-center rounded-full px-1 text-[10px] leading-4 font-bold">
+                  {item.key === "chats" && chats > 0 && (
+                    <span className="bg-primary text-primary-foreground absolute -top-1 right-1 grid min-w-4 place-items-center rounded-full px-1 text-[10px] leading-4 font-bold tabular-nums">
                       {chats > 99 ? "99+" : chats}
                     </span>
                   )}
                 </span>
-                {t(SHORT[key] ?? key)}
+                <span className="max-w-full truncate px-0.5">{t(SHORT[item.key] ?? item.key)}</span>
               </Link>
             </li>
           );
@@ -83,16 +85,25 @@ export function BottomNav({
           <button
             type="button"
             onClick={onMenu}
+            aria-expanded={menuOpen}
             data-tour="nav-more"
-            className="text-muted relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium"
+            className={cn(
+              "relative flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
+              menuOpen ? "text-primary" : "text-muted",
+            )}
           >
-            <span className="grid h-7 w-12 place-items-center rounded-full">
+            <span
+              className={cn(
+                "relative grid h-7 w-12 place-items-center rounded-full transition-colors",
+                menuOpen && "bg-primary-soft",
+              )}
+            >
               <Menu className="size-5" />
+              {badge > 0 && (
+                <span className="bg-accent absolute top-0.5 right-2.5 size-2 rounded-full" />
+              )}
             </span>
             {t("more")}
-            {!!badge && (
-              <span className="bg-accent absolute top-2.5 right-[calc(50%-18px)] size-2 rounded-full" />
-            )}
           </button>
         </li>
       </ul>
