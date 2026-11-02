@@ -24,6 +24,7 @@ import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
   audioCache,
+  jobProgress,
   audiobooks,
   audiobookScripts,
   bookTextSources,
@@ -1134,7 +1135,14 @@ export async function segmentAudio(
     }
   }
   if (opts.cachedOnly) throw new AppError("NOT_FOUND");
-  const made = await voiceSegment(lines, voiceOf, a);
+  const job = progressKey(ctx.userId, resourceId, idx);
+  const made = await voiceSegment(
+    lines,
+    voiceOf,
+    a,
+    (done, total) => void setProgress(job, done, total),
+  );
+  void setProgress(job, 1, 1);
   if (tgStorageReady())
     later(async () => {
       const parts = await putBytes(`audio-${key.slice(0, 16)}`, made.mp3);
@@ -1150,8 +1158,17 @@ export async function segmentAudio(
 const AUDIO_PIPELINE = 3;
 const CAST_PIPELINE = 2;
 
-async function voiceSegment(lines: ScriptLine[], voiceOf: (s: string) => string, a: Analysis) {
+async function voiceSegment(
+  lines: ScriptLine[],
+  voiceOf: (s: string) => string,
+  a: Analysis,
+  onProgress?: (done: number, total: number) => void,
+) {
   const groups = runs(lines);
+  // Steps: each voiced piece, then putting the recording together.
+  const steps = groups.length + 1;
+  let done = 0;
+  onProgress?.(0, steps);
   const lang = speechLanguage(a.language);
   const style = [
     `Read this as a professional ${lang?.name ?? ""} audiobook narrator${lang ? `, in ${lang.name} with a native speaker's pronunciation and intonation (never a foreign accent)` : ""}.`,
@@ -1168,6 +1185,7 @@ async function voiceSegment(lines: ScriptLine[], voiceOf: (s: string) => string,
     await Promise.all(
       groups.slice(i, i + 3).map(async (g, j) => {
         pieces[i + j] = await speak(g, voiceOf, { style, languageCode: lang?.code });
+        onProgress?.(++done, steps);
       }),
     );
   const rate = pieces[0]?.rate ?? 24000;
@@ -1355,4 +1373,31 @@ export async function resetAudiobook(ctx: AppContext, resourceId: string) {
       .delete(audiobooks)
       .where(and(eq(audiobooks.userId, ctx.userId), eq(audiobooks.resourceId, resourceId))),
   );
+}
+
+// ─── How far a part has come (the player shows it instead of guessing) ────────
+
+const progressKey = (userId: string, resourceId: string, idx: number) =>
+  `ab:${userId}:${resourceId}:${idx}`;
+
+async function setProgress(key: string, done: number, total: number) {
+  await db
+    .insert(jobProgress)
+    .values({ key, done, total, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: jobProgress.key,
+      set: { done, total, updatedAt: new Date() },
+    })
+    .catch(() => null);
+}
+
+/** Steps done of a part being voiced now (null when none is going on). */
+export async function segmentProgress(ctx: AppContext, resourceId: string, idx: number) {
+  const [p] = await db
+    .select()
+    .from(jobProgress)
+    .where(eq(jobProgress.key, progressKey(ctx.userId, resourceId, idx)));
+  // Old news (a part made long ago, or a stopped one) says nothing.
+  if (!p || Date.now() - p.updatedAt.getTime() > 5 * 60_000) return null;
+  return { done: p.done, total: p.total };
 }

@@ -640,6 +640,38 @@ export async function syncDay(ctx: AppContext, day: string, locale: string) {
   return writeIntoBook(ctx, page, locale);
 }
 
+/**
+ * Writes every day of the year into its book again, in today's layout (older
+ * days were written in an earlier one). Days stay in order; each replaces itself.
+ */
+export async function rebuildYearBook(ctx: AppContext, year: string, locale: string) {
+  const y = z.string().regex(/^\d{4}$/).parse(year);
+  await enforceRebuild(ctx);
+  const rows = await withUser(db, ctx, (tx) =>
+    tx.execute<{ day: string }>(sql`
+      select distinct to_char(d.day, 'YYYY-MM-DD') as day from (
+        select day from nodinest.day_logs where user_id = ${ctx.userId}
+        union
+        select c.day from nodinest.routine_checks c
+        join nodinest.routines r on r.id = c.routine_id and r.in_journal
+        where c.user_id = ${ctx.userId}
+      ) d
+      where to_char(d.day, 'YYYY') = ${y}
+      order by day`),
+  );
+  let bookId: string | null = null;
+  for (const r of rows) {
+    const out = await syncDay(ctx, r.day, locale);
+    bookId = out.bookId ?? bookId;
+  }
+  return { days: rows.length, bookId };
+}
+
+async function enforceRebuild(ctx: AppContext) {
+  const left = await hitRateLimit(db, `rebuild-book:${ctx.userId}`, 5, 3600);
+  if (!left.allowed) throw new AppError("RATE_LIMITED");
+}
+
 // ─── The year's book ──────────────────────────────────────────────────────────
 
 type Node = WriteupDoc["content"][number];

@@ -104,11 +104,11 @@ export function PlanItem({
   const skipped = it.status === "skipped";
   const missed = past && !it.status;
 
+  // The reason is kept (and its box stays) for as long as the item is marked "not done".
   const saveWhy = () => {
     setAsking(false);
     const note = why.trim() || null;
     if (note !== (it.note2 ?? null)) onState({ status: "skipped", value: null, note2: note });
-    setOpen(false);
   };
 
   const savePartial = (v: number) => {
@@ -319,9 +319,9 @@ export function PlanItem({
                 <X className="size-4" /> {t("skipSave")}
               </button>
             </div>
-            {asking && (
+            {(asking || skipped) && (
               <Input
-                autoFocus
+                autoFocus={asking}
                 className="h-8"
                 maxLength={200}
                 placeholder={t("skipPh")}

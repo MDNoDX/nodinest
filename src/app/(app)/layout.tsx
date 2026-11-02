@@ -4,7 +4,8 @@ import { AdminToggle } from "@/components/layout/admin-toggle";
 import { AppShell } from "@/components/layout/app-shell";
 import { db } from "@/db";
 import { feedback } from "@/db/schema";
-import { requireUser, toCtx } from "@/lib/auth/session";
+import { getCurrentUser, toCtx } from "@/lib/auth/session";
+import { GuestShell } from "@/components/layout/guest-shell";
 import { readPrefs } from "@/lib/notify-prefs";
 import { unreadCount } from "@/server/notifications";
 import { unreadChats } from "@/server/dm";
@@ -18,7 +19,10 @@ export const dynamic = "force-dynamic";
 import { TimezoneSync } from "@/components/layout/timezone-sync";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  // Not signed in: the public site (Media, public profiles and posts, the guide).
+  // Personal pages send the guest to /login themselves (pageContext()).
+  if (!user) return <GuestShell>{children}</GuestShell>;
   // A username is required: the first sign-in sets up the profile.
   if (!user.username) redirect("/welcome");
   // Badge on "Takliflar": new messages to the admin (superadmin account).

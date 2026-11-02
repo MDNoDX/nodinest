@@ -116,7 +116,8 @@
     "community": "Hamjamiyat",
     "profile": "Profil",
     "media": "Media",
-    "chats": "Çatlar"
+    "chats": "Çatlar",
+    "feedback": "Takliflar va fikr"
   },
   "theme": {
     "label": "Mavzu",
@@ -941,7 +942,9 @@
     "talkTry": "Aytib köring",
     "talkIdea1": "Öqiyotgan kitobim böyiça meni sinab kör",
     "talkIdea2": "Amir Temur hayotini vaqt çizigida körsat",
-    "talkIdea3": "Stoitsizm va epikurçilikni taqqosla"
+    "talkIdea3": "Stoitsizm va epikurçilikni taqqosla",
+    "selectAll": "Hammasini tanlaş",
+    "selectNone": "Tanlovni olib taşlaş"
   },
   "stats": {
     "title": "Körsatkiçlar",
@@ -1114,7 +1117,9 @@
     },
     "timeFormat": "Vaqt körinişi",
     "time24": "24 soatlik",
-    "time12": "AM / PM"
+    "time12": "AM / PM",
+    "feedbackTitle": "Takliflar va adminga yoziş",
+    "feedbackBody": "Fikr, xato yoki taklifingizni yozing; manbalarga taklif qilingan özgarişlar ham şu yerda."
   },
   "admin": {
     "title": "Boşqaruv",
@@ -1248,7 +1253,9 @@
     "person_not_found": "Bunday foydalanuvçi topilmadi. Username, email yoki to'liq ismini ayting.",
     "person_ambiguous": "Bu ismda bir neçta odam bor. Username'ini ayting.",
     "dm_closed": "Bu odamga hozirça yozib bölmaydi: u faqat tanişlaridan xabar qabul qiladi.",
-    "dm_blocked": "Bu suhbatga yozib bölmaydi (bloklangan)."
+    "dm_blocked": "Bu suhbatga yozib bölmaydi (bloklangan).",
+    "needProfile": "Buning uçun profil oçing — bir daqiqa, bepul.",
+    "openProfile": "Profil oçiş"
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -1399,7 +1406,10 @@
     "minute": "Daqiqa",
     "clearTime": "Vaqtni olib taşlaş",
     "pickTime": "Vaqtni tanlang",
-    "timeDone": "Tayyor"
+    "timeDone": "Tayyor",
+    "now": "Hozir",
+    "plusHour": "+1 soat",
+    "plusMin": "+{n} daq"
   },
   "card": {
     "pages": "{count} bet",
@@ -1696,7 +1706,7 @@
     "subtitle": "Muhim savollar va ularni yodda saqlaş.",
     "nothingDue": "Hozirça takrorlaş kerak bölgan savol yöq.",
     "allDecks": "Barça töplamlar",
-    "dueToday": "Bugun takrorlaş: {n} ta savol",
+    "dueToday": "Bugun {n} ta savol takrorlaşni kutmoqda",
     "allCaughtUp": "Bugungi takrorlaş tugadi 🎉",
     "srsHint": "Har bir savol unutişingizdan sal oldin qayta çiqadi: qançalik yaxşi eslasangiz, şunçalik keç qaytadi.",
     "startReview": "Takrorlaşni boşlaş",
@@ -1767,7 +1777,9 @@
     "findDeck": "Töplamni topiş…",
     "howMany": "Neçta savol",
     "max": "Töliq",
-    "makeTime": "AI manbani çuqur öqib, bir-birini takrorlamaydigan savollar tuzadi. Odatda 1–4 daqiqa oladi."
+    "makeTime": "AI manbani çuqur öqib, bir-birini takrorlamaydigan savollar tuzadi. Odatda 1–4 daqiqa oladi.",
+    "dueHint": "Bir neça daqiqa — esda yaxşiroq qoladi.",
+    "start": "Boşlaş"
   },
   "feedback": {
     "tabWrite": "Adminga yoziş",
@@ -2545,7 +2557,10 @@
     "audioRemove": "Audioni olib taşlaş",
     "woke": "Uyğondim",
     "slept": "Uxladim",
-    "ofAwake": "uyğoq vaqtdan"
+    "ofAwake": "uyğoq vaqtdan",
+    "rebuildBook": "Kitobni yangilaş",
+    "rebuildHint": "Yilning barça kunlari kitobda yangi körinişda qayta yoziladi",
+    "rebuilt": "{n} kun kitobda yangi körinişda yozildi"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
@@ -2614,7 +2629,13 @@
     "botHint": "Sayt yopiq bölsa ham eslatmalar botga keladi.",
     "botLinked": "Ulangan: {name}",
     "botLink": "Botni ulaş",
-    "botUnlink": "Uziş"
+    "botUnlink": "Uziş",
+    "push": "Bu qurilmada bildirişnomalar",
+    "pushHint": "Yangi xabar va boşqa bildirişnomalar sayt yopiq bölsa ham telefon yoki kompyuterga keladi.",
+    "pushOn": "Bu qurilmaga bildirişnoma keladi",
+    "pushFailed": "Yoqib bölmadi. Keyinroq qayta urinib köring.",
+    "pushUnsupported": "Bu brauzer yoki ilova hozirça qöllamaydi (iPhone'da saytni «Uy ekraniga qöşiş» kerak).",
+    "pushDenied": "Brauzer sozlamalarida bildirişnomaga ruxsat bering."
   },
   "media": {
     "title": "Media",
@@ -2759,5 +2780,14 @@
     "shareApps": "Boşqa ilovalar",
     "copyLink": "Havolani nusxalaş",
     "linkCopied": "Havola nusxalandi"
+  },
+  "guest": {
+    "media": "Media",
+    "guide": "Qöllanma",
+    "signIn": "Kiriş",
+    "join": "Profil oçiş",
+    "profile": "Profil",
+    "joinTitle": "Öz Röznomangizni boşlang",
+    "joinBody": "Profil oçsangiz: kitoblaringiz, kunlik reja, AI yordamçi, çatlar, zör va izohlar — hammasi bepul."
   }
 }

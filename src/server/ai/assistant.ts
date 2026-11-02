@@ -119,6 +119,7 @@ const CONTENT_RULES = `- Never write sexual, obscene or vulgar content, insults 
 const SPOKEN = `
 
 THIS IS A LIVE VOICE CONVERSATION
+- Speed comes first: answer at once, without long deliberation; open with a short first sentence (a few words) so the voice starts immediately. Think harder only when the question is important or a mistake would matter (health, money, faith, a change to their data).
 - Your answer is spoken aloud. Start with the answer itself, no greeting. Simple question: one or two clear sentences. When it needs explaining, explain it properly in flowing spoken sentences, up to about a minute. No lists, headings, emojis, links, markdown or symbols; numbers and abbreviations written as they are said.
 - The user's words came from speech recognition: if something sounds garbled, understand the likely meaning or ask briefly.
 - SHOW what you explain: call show_card early in the answer, before you speak about it, and the card animates on the screen while you talk. A process → steps; history or a life → timeline; two ideas, books or people → compare; numbers → chart; a summary → points; checking understanding → quiz. One card per answer is enough; skip it for small talk.

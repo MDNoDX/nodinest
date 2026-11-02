@@ -9,7 +9,7 @@ import { PostActions } from "@/components/media-feed/post-actions";
 import { DocView } from "@/components/taqriz/doc-view";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/misc";
-import { pageContext } from "@/lib/page";
+import { pageContextOrGuest } from "@/lib/page";
 import { publicExtras, publicItem } from "@/server/social";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +21,10 @@ export default async function PublicItemPage({
   params: Promise<{ username: string; id: string }>;
 }) {
   const { username, id } = await params;
-  const { ctx, user } = await pageContext();
+  const { ctx, user } = await pageContextOrGuest();
   const it = await publicItem(ctx, decodeURIComponent(username), id);
   if (!it) notFound();
-  if (it.ownerId === user.id) redirect(`/library/${id}`);
+  if (user && it.ownerId === user.id) redirect(`/library/${id}`);
   const t = await getTranslations();
   const extra = await publicExtras(it.ownerId, it.resourceId);
   const percent =

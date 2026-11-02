@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { isStorageConfigured, openFile } from "@/server/storage";
-import { apiError, apiUser } from "../../_utils";
+import { apiError, apiUserOrGuest } from "../../_utils";
 
 export const maxDuration = 300;
 
 /** Access-checked streaming of a private file (Blob, or Telegram parts with Range). */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { ctx } = await apiUser();
+    // Guests see public covers and pictures (fileFor() decides what is public).
+    const { ctx } = await apiUserOrGuest();
     const { id } = await params;
     if (!z.string().uuid().safeParse(id).success || !isStorageConfigured())
       return new NextResponse(null, { status: 404 });

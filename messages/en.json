@@ -116,7 +116,8 @@
     "community": "Community",
     "profile": "Profile",
     "media": "Media",
-    "chats": "Chats"
+    "chats": "Chats",
+    "feedback": "Ideas & feedback"
   },
   "theme": {
     "label": "Theme",
@@ -941,7 +942,9 @@
     "talkTry": "Try saying",
     "talkIdea1": "Quiz me on the book I'm reading",
     "talkIdea2": "Show Amir Temur's life on a timeline",
-    "talkIdea3": "Compare stoicism and epicureanism"
+    "talkIdea3": "Compare stoicism and epicureanism",
+    "selectAll": "Select all",
+    "selectNone": "Clear selection"
   },
   "stats": {
     "title": "Metrics",
@@ -1114,7 +1117,9 @@
     },
     "timeFormat": "Time format",
     "time24": "24 hours",
-    "time12": "AM / PM"
+    "time12": "AM / PM",
+    "feedbackTitle": "Ideas and messages to the admin",
+    "feedbackBody": "Write an opinion, a bug or an idea; suggested edits to sources are here too."
   },
   "admin": {
     "title": "Administration",
@@ -1248,7 +1253,9 @@
     "person_not_found": "No such user. Give their username, e-mail or full name.",
     "person_ambiguous": "Several people have this name. Give their username.",
     "dm_closed": "You cannot write to this person yet: they only take messages from people they know.",
-    "dm_blocked": "You cannot write in this chat (blocked)."
+    "dm_blocked": "You cannot write in this chat (blocked).",
+    "needProfile": "Open a profile for this — a minute, and free.",
+    "openProfile": "Open a profile"
   },
   "validation": {
     "required": "This field is required.",
@@ -1399,7 +1406,10 @@
     "minute": "Minute",
     "clearTime": "Remove the time",
     "pickTime": "Pick a time",
-    "timeDone": "Done"
+    "timeDone": "Done",
+    "now": "Now",
+    "plusHour": "+1 h",
+    "plusMin": "+{n} min"
   },
   "card": {
     "pages": "{count} pages",
@@ -1696,7 +1706,7 @@
     "subtitle": "Important questions and remembering them.",
     "nothingDue": "Nothing to review right now.",
     "allDecks": "All decks",
-    "dueToday": "Due today: {n} questions",
+    "dueToday": "{n} questions are waiting for review today",
     "allCaughtUp": "All caught up for today 🎉",
     "srsHint": "Each question comes back just before you would forget it: the better you know it, the later it returns.",
     "startReview": "Start review",
@@ -1767,7 +1777,9 @@
     "findDeck": "Find a set…",
     "howMany": "How many questions",
     "max": "Full",
-    "makeTime": "The AI reads the source closely and writes questions that do not repeat. Usually 1–4 minutes."
+    "makeTime": "The AI reads the source closely and writes questions that do not repeat. Usually 1–4 minutes.",
+    "dueHint": "A few minutes, and it stays with you.",
+    "start": "Start"
   },
   "feedback": {
     "tabWrite": "Write to the admin",
@@ -2545,7 +2557,10 @@
     "audioRemove": "Remove the recording",
     "woke": "Got up",
     "slept": "Went to bed",
-    "ofAwake": "of waking hours"
+    "ofAwake": "of waking hours",
+    "rebuildBook": "Refresh the book",
+    "rebuildHint": "Every day of the year is written into the book again in the new layout",
+    "rebuilt": "{n} days written in the new layout"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",
@@ -2614,7 +2629,13 @@
     "botHint": "Reminders reach the bot even when the site is closed.",
     "botLinked": "Connected: {name}",
     "botLink": "Connect the bot",
-    "botUnlink": "Disconnect"
+    "botUnlink": "Disconnect",
+    "push": "Notifications on this device",
+    "pushHint": "New messages and other notifications reach your phone or computer even with the site closed.",
+    "pushOn": "This device will get notifications",
+    "pushFailed": "Could not turn it on. Try again later.",
+    "pushUnsupported": "This browser or app does not support it yet (on iPhone, add the site to the Home Screen).",
+    "pushDenied": "Allow notifications in the browser settings."
   },
   "media": {
     "title": "Media",
@@ -2759,5 +2780,14 @@
     "shareApps": "Other apps",
     "copyLink": "Copy link",
     "linkCopied": "Link copied"
+  },
+  "guest": {
+    "media": "Media",
+    "guide": "Guide",
+    "signIn": "Sign in",
+    "join": "Open a profile",
+    "profile": "Profile",
+    "joinTitle": "Start your own Röznoma",
+    "joinBody": "With a profile: your books, a daily plan, the AI helper, chats, likes and comments — all free."
   }
 }

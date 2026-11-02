@@ -1,6 +1,7 @@
 "use client";
 import { Send, Unlink } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PushSwitch } from "./push-switch";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { botLinkAction, setNotifyPrefAction, unlinkBotAction } from "@/app/actions/notifications";
@@ -62,6 +63,9 @@ export function NotificationSettings({
   );
   return (
     <div className="flex flex-col gap-6">
+      <section className="border-primary/30 bg-primary-soft rounded-2xl border p-4">
+        <PushSwitch />
+      </section>
       <ul className="divide-border divide-y">{KEYS.map(row)}</ul>
       <section className="border-border rounded-2xl border p-4">
         <div className="flex items-center gap-3">

@@ -1,5 +1,5 @@
 "use client";
-import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -223,7 +223,7 @@ export function AppShell({
     order,
   ).map((i) => (i.key === "profile" && user.username ? { ...i, to: `/u/${user.username}` } : i));
   const chats = useUnreadChats(unreadChats, pathname);
-  const badge = { suggestions: pendingSuggestions, chats };
+  const badge = { admin: pendingSuggestions, chats };
 
   const sidebar = (mobile: boolean) => (
     <div className="flex h-full flex-col">
@@ -262,6 +262,18 @@ export function AppShell({
           onReorder={(h) => reorder(primary, h)}
         />
         {sideAd && !collapsed && !mobile && <div className="mt-auto px-1 pb-1">{sideAd}</div>}
+        {!collapsed && (
+          // Takliflar moved out of the menu: one quiet line for ideas and messages to the admin.
+          <Link
+            href="/suggestions"
+            className={cn(
+              "text-muted hover:text-foreground mx-2 mb-1 flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium",
+              (!sideAd || mobile) && "mt-auto",
+            )}
+          >
+            <MessageSquarePlus className="size-4" /> {t("feedback")}
+          </Link>
+        )}
       </nav>
       {!mobile && (
         <div className={cn("border-border border-t p-2", collapsed && "flex justify-center")}>

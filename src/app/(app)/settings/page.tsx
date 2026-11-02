@@ -4,6 +4,7 @@ import {
   HardDrive,
   Keyboard,
   LifeBuoy,
+  MessageSquarePlus,
   ListOrdered,
   Lock,
   Palette,
@@ -111,6 +112,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             <section className="card p-5 sm:p-6">
               <NotificationSettings prefs={readPrefs(user.notify)} bot={await botStatus(ctx)} />
             </section>
+          )}
+          {tab === "help" && (
+            <Card>
+              <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--c-amber)]/12 text-[var(--c-amber)]">
+                  <MessageSquarePlus className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-semibold">{t("settings.feedbackTitle")}</h2>
+                  <p className="text-muted text-sm">{t("settings.feedbackBody")}</p>
+                </div>
+                <Button asChild variant="outline">
+                  <Link href="/suggestions">{t("nav.feedback")}</Link>
+                </Button>
+              </div>
+            </Card>
           )}
           {tab === "help" && (
             <Card className="border-[var(--c-teal)]/30">

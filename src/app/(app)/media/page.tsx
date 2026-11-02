@@ -2,10 +2,11 @@ import { getTranslations } from "next-intl/server";
 import { MediaFeed } from "@/components/media-feed/feed";
 import { FollowButton } from "@/components/social/follow-button";
 import { PeopleSearch } from "@/components/social/people-search";
+import { JoinCard } from "@/components/layout/guest-shell";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/misc";
-import { pageContext, sp, type SP } from "@/lib/page";
+import { pageContextOrGuest, sp, type SP } from "@/lib/page";
 import { mediaFeed, myFollowRequests, ranking } from "@/server/social";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +15,15 @@ export async function generateMetadata() {
 }
 
 export default async function MediaPage({ searchParams }: { searchParams: SP }) {
-  const { ctx } = await pageContext();
+  // Guests see everyone's public posts too; following needs a profile.
+  const { ctx, user } = await pageContextOrGuest();
   const t = await getTranslations("media");
   const q = await searchParams;
   const scope = sp(q.scope) === "following" ? "following" : "all";
   const kind = sp(q.kind) || "all";
   const [items, asked, top] = await Promise.all([
-    mediaFeed(ctx, { scope, kind }),
-    myFollowRequests(ctx),
+    mediaFeed(ctx, { scope: user ? scope : "all", kind }),
+    user ? myFollowRequests(ctx) : Promise.resolve([]),
     ranking(),
   ]);
   return (
@@ -78,7 +80,11 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
           </ol>
         </section>
       )}
-      <MediaFeed key={`${scope}-${kind}`} items={[...items]} scope={scope} kind={kind} />
+      {!user && scope === "following" ? (
+        <JoinCard />
+      ) : (
+        <MediaFeed key={`${scope}-${kind}`} items={[...items]} scope={scope} kind={kind} />
+      )}
     </>
   );
 }

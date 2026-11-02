@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ReviewApp } from "@/components/review/review-app";
 import { PageHeader } from "@/components/ui/misc";
+import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listDecks } from "@/server/study-cards";
 
@@ -15,12 +16,13 @@ export async function generateMetadata() {
 
 export default async function ReviewPage({ searchParams }: { searchParams: SP }) {
   const { ctx } = await pageContext();
-  const t = await getTranslations("review");
+  const tl = await getTranslations();
   const p = await searchParams;
   const decks = await listDecks(ctx);
   return (
     <>
-      <PageHeader section="review" title={t("title")} />
+      <PageHeader section="library" title={tl("library.title")} />
+      <DarsxonaTabs current="review" />
       <ReviewApp
         decks={decks.map((d) => ({
           deck: d.deck,

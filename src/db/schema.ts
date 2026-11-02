@@ -1633,3 +1633,26 @@ export const postComments = nodinest.table(
     check("post_comments_body_len", sql`char_length(${t.body}) <= 1000`),
   ],
 );
+
+/** How far a long job has come (an audiobook part being voiced), read by the page that waits. */
+export const jobProgress = nodinest.table("job_progress", {
+  key: text("key").primaryKey(),
+  done: integer("done").notNull().default(0),
+  total: integer("total").notNull().default(0),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+/** A browser's Web Push address for a person (new messages reach a closed tab). */
+export const pushSubscriptions = nodinest.table(
+  "push_subscriptions",
+  {
+    endpoint: text("endpoint").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_subscriptions_user_idx").on(t.userId)],
+);

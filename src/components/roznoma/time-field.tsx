@@ -278,6 +278,23 @@ export function TimeField({
               );
             })}
           </svg>
+          {/* Quick picks: now, and a little later. */}
+          <div className="flex w-full gap-1.5">
+            {[0, 15, 60].map((add) => (
+              <button
+                key={add}
+                type="button"
+                onClick={() => {
+                  const d = new Date(Date.now() + add * 60_000);
+                  set(d.getHours(), d.getMinutes());
+                  setTyped(null);
+                }}
+                className="border-border hover:bg-surface-2 flex-1 rounded-full border px-2 py-1 text-xs font-medium"
+              >
+                {add === 0 ? t("now") : add === 60 ? t("plusHour") : t("plusMin", { n: add })}
+              </button>
+            ))}
+          </div>
           <div className="flex w-full items-center justify-between">
             <Button
               type="button"

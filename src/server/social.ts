@@ -348,7 +348,9 @@ export type PersonCard = {
 export async function searchPeople(ctx: AppContext, q: string) {
   const k = normalizeText(q).replace(/^@/, "").slice(0, 60);
   if (!k) return [];
-  await enforceRateLimit(db, `peoplesearch:${ctx.userId}`, 900, 3600);
+  // Guests are limited by address in the route; a shared "nobody" bucket would block them all.
+  if (ctx.userId !== "00000000-0000-0000-0000-000000000000")
+    await enforceRateLimit(db, `peoplesearch:${ctx.userId}`, 900, 3600);
   const esc = k.replace(/[%_\\]/g, "\\$&");
   const like = k.length < 3 ? `${esc}%` : `%${esc}%`;
   const word = `% ${esc}%`;

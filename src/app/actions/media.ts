@@ -1,10 +1,10 @@
 "use server";
 import { z } from "zod";
 import { mediaFeed } from "@/server/social";
-import { run } from "./_run";
+import { runOpen } from "./_run";
 
 export async function moreMediaAction(scope: string, kind: string, before: string) {
-  return run(async ({ ctx }) =>
+  return runOpen(async ({ ctx }) =>
     mediaFeed(ctx, {
       scope: z.string().max(20).parse(scope),
       kind: z.string().max(20).parse(kind),

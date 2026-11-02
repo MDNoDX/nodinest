@@ -17,9 +17,10 @@ import { FollowButton } from "@/components/social/follow-button";
 import { ItemGrid } from "@/components/social/item-grid";
 import { Avatar } from "@/components/ui/avatar";
 import { ProfileEditor } from "@/components/social/profile-editor";
+import { ProfileTabs } from "@/components/social/profile-tabs";
 import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
-import { pageContext } from "@/lib/page";
+import { pageContextOrGuest } from "@/lib/page";
 import {
   followingList,
   myItemsCount,
@@ -38,16 +39,17 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 /** /u/<username>: someone's public profile and public library. */
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  const { ctx, user } = await pageContext();
+  // Guests may look at public profiles too.
+  const { ctx, user } = await pageContextOrGuest();
   const t = await getTranslations("social");
   const name = decodeURIComponent(username).toLowerCase();
   // My own page: everything is asked for at once (no waiting in turn).
-  const mine = name === user.username?.toLowerCase();
+  const mine = !!user && name === user.username?.toLowerCase();
   const [p, following, myItems, ownItems] = await Promise.all([
     profileByUsername(ctx, name),
     mine ? followingList(ctx) : Promise.resolve([]),
     mine ? myItemsCount(ctx) : Promise.resolve(0),
-    mine ? publicItems(ctx, user.id) : Promise.resolve(null),
+    mine && user ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
   if (!p) notFound();
   const [items, done] = await Promise.all([
@@ -74,6 +76,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   };
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+      {p.self && (
+        <div className="-mb-8">
+          <ProfileTabs current="profile" username={p.username} />
+        </div>
+      )}
       <header className="card overflow-hidden">
         {/* A soft cover: warm for Premium readers */}
         <div
@@ -97,7 +104,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </h1>
             <p className="text-muted">@{p.username}</p>
           </div>
-          {p.self ? (
+          {p.self && user ? (
             <ProfileEditor
               userId={user.id}
               storage={isStorageConfigured()}

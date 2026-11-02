@@ -57,7 +57,9 @@ export async function uploadMedia(
     handleUploadUrl: "/api/blob/upload",
     clientPayload: JSON.stringify({ purpose: "media", size: file.size, mime }),
     contentType: mime,
-    multipart: file.size > 20 * 1024 * 1024,
+    // Big files go up in parts: a part that fails on a weak network is sent again,
+    // not the whole video.
+    multipart: file.size > 8 * 1024 * 1024,
     onUploadProgress: (e) => opts.onProgress?.(Math.round(e.percentage)),
     abortSignal: opts.signal,
   });

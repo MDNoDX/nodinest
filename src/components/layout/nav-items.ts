@@ -1,11 +1,8 @@
 import {
-  BarChart3,
   BookOpen,
-  Brain,
   Building2,
   CalendarCheck,
   Home,
-  Inbox,
   PenLine,
   Settings,
   ShieldCheck,
@@ -40,19 +37,21 @@ export const NAV_PRIMARY: NavItem[] = [
     href: "/library",
     key: "library",
     icon: BookOpen,
-    includes: ["/people", "/publishers", "/notes", "/collections"],
+    includes: ["/people", "/publishers", "/notes", "/collections", "/review"],
   },
   { href: "/media", key: "media", icon: Clapperboard },
   { href: "/chats", key: "chats", icon: MessageCircle },
   { href: "/assistant", key: "assistant", icon: Sparkles },
-  { href: "/review", key: "review", icon: Brain },
   { href: "/write", key: "write", icon: PenLine },
 ];
 
 export const NAV_SECONDARY: NavItem[] = [
-  { href: "/profile", key: "profile", icon: CircleUserRound, includes: ["/u", "/community"] },
-  { href: "/stats", key: "stats", icon: BarChart3 },
-  { href: "/suggestions", key: "suggestions", icon: Inbox },
+  {
+    href: "/profile",
+    key: "profile",
+    icon: CircleUserRound,
+    includes: ["/u", "/community", "/stats"],
+  },
   { href: "/settings", key: "settings", icon: Settings },
   { href: "/admin", key: "admin", icon: ShieldCheck, admin: true },
 ];

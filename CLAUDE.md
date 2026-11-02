@@ -214,6 +214,20 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `.premium-only` mark / link is hidden by a style in (app)/layout.
 - Covers: podcasts / interviews are a vinyl record half out of its sleeve (`.rec`, spins on hover);
   the year's Röznoma book gets `.journal-doc` in the editor (ruled paper, ornamented months).
+- Guests (not signed in): `(app)/layout` renders `layout/guest-shell.tsx`; pages that are public use
+  `pageContextOrGuest()` / `apiUserOrGuest()` / `runOpen()` with `GUEST` (a nil uuid, sees only what is
+  public): /media, /u/*, /guide, public covers, people search, comments. Every other page still calls
+  `pageContext()` and goes to /login; an action that needs a profile toasts "Profil ochish".
+- Navigation: Takliflar left the menu (a quiet link under it + Settings → Help; the inbox lives in
+  Admin), Ko'rsatkichlar is the "Statistika" tab of my profile (`social/profile-tabs.tsx`), Takrorlash is
+  a Darsxona tab with the due count (`dueCount`) and a start card on the library.
+- Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
+  to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (and VAPID_SUBJECT) in Vercel.
+- Audiobook parts report real progress (`job_progress`, `segmentProgress`, GET
+  `/api/audiobook/[id]/progress?idx=`); the ring uses it, the time estimate only fills between steps.
+- `rebuildYearBook()` (day page → "Kitobni yangilash") writes every day of the year again in the
+  current layout.
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

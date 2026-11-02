@@ -87,7 +87,7 @@ export function PostActions({
             <ThumbsUp className={cn("size-[18px]", on && "fill-current")} />
             {burst > 0 && on && <span aria-hidden className="like-burst" />}
           </span>
-          <span className="tabular-nums">{n > 0 ? n : t("like")}</span>
+          {n > 0 && <span className="tabular-nums">{n}</span>}
         </button>
         <button
           type="button"

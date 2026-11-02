@@ -99,8 +99,10 @@ function BookWave({ chapterAt, chapters }: { chapterAt: number[]; chapters: stri
 
 /** How far the part being made has come: by how long parts take here, never 100 % early. */
 function useMaking() {
-  const { making, makingAt, makeMs } = useAudiobook()!;
+  const { making, makingAt, makeMs, src } = useAudiobook()!;
   const [now, setNow] = useState(0);
+  // The server's own count of voiced pieces, asked every 2 s while a part is made.
+  const [real, setReal] = useState<{ idx: number; done: number; total: number } | null>(null);
   useEffect(() => {
     if (makingAt == null) return;
     const tick = () => setNow(Date.now());
@@ -111,8 +113,38 @@ function useMaking() {
       clearInterval(timer);
     };
   }, [makingAt]);
-  const pct =
+  useEffect(() => {
+    if (making == null || !src) return;
+    let stop = false;
+    const ask = async () => {
+      const r = await fetch(`/api/audiobook/${src.id}/progress?idx=${making}`, {
+        cache: "no-store",
+      }).catch(() => null);
+      const j = r?.ok
+        ? ((await r.json()) as { progress: { done: number; total: number } | null })
+        : null;
+      if (!stop && j?.progress) setReal({ idx: making, ...j.progress });
+    };
+    const timer = setInterval(ask, 2000);
+    void ask();
+    return () => {
+      stop = true;
+      clearInterval(timer);
+    };
+  }, [making, src]);
+  const guess =
     makingAt == null || !now ? 0 : Math.min(95, Math.round(((now - makingAt) / makeMs) * 100));
+  // Real steps when known; between them the time estimate fills in, never past the next step.
+  const r = real && real.idx === making && real.total > 0 ? real : null;
+  const pct = r
+    ? Math.min(
+        99,
+        Math.max(
+          Math.round((r.done / r.total) * 100),
+          Math.min(guess, Math.round(((r.done + 1) / r.total) * 100) - 1),
+        ),
+      )
+    : guess;
   return { making, pct };
 }
 

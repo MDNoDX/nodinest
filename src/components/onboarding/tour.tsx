@@ -33,7 +33,7 @@ const STEPS: Step[] = [
   { id: "library", target: "nav-library" },
   { id: "read" },
   { id: "notes", target: "nav-library" },
-  { id: "review", target: "nav-review" },
+  { id: "review", target: "nav-library" },
   { id: "assistant", target: "nav-assistant" },
   { id: "write", target: "nav-write" },
   { id: "guide", target: "nav-settings" },

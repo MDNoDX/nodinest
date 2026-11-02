@@ -23,6 +23,18 @@ export function errorText(te: (key: "INTERNAL") => string, f: Failure | string) 
  * that opens the payment page.
  */
 export function errorToast(te: (key: "INTERNAL") => string, f: Failure | string) {
+  // A guest pressed something that needs a profile (👍, follow, write…): offer to open one.
+  if ((typeof f === "string" ? f : f.code) === "UNAUTHENTICATED") {
+    toast(te("needProfile" as "INTERNAL"), {
+      duration: 8000,
+      action: {
+        label: te("openProfile" as "INTERNAL"),
+        onClick: () =>
+          window.open(`/login?next=${encodeURIComponent(window.location.pathname)}`, "_self"),
+      },
+    });
+    return;
+  }
   const msg = errorText(te, f);
   if (needsPremium(f))
     toast.error(msg, {

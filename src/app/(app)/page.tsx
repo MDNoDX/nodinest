@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
 import {
   BookCheck,
   BookOpen,
@@ -74,6 +76,8 @@ function Counter({
 }
 
 export default async function DashboardPage() {
+  // A guest starts with what people share.
+  if (!(await getCurrentUser())) redirect("/media");
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const [records, stats, goals, notes, cols, last, decks, startSteps] = await Promise.all([

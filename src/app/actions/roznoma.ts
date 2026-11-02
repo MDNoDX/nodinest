@@ -13,6 +13,7 @@ import {
   setArchived,
   setGoalStep,
   syncDay,
+  rebuildYearBook,
 } from "@/server/roznoma";
 import { run } from "./_run";
 
@@ -68,6 +69,15 @@ export async function checkRoutineAction(
 /** The day's ticks go into the year's book (called a moment after the last tick). */
 export async function syncDayAction(day: string) {
   return run(async ({ ctx }) => syncDay(ctx, day, await getLocale()));
+}
+
+/** Every day of the year written into its book again, in the new layout. */
+export async function rebuildYearBookAction(year: string) {
+  return run(async ({ ctx }) => {
+    const out = await rebuildYearBook(ctx, year, await getLocale());
+    revalidatePath("/write");
+    return out;
+  });
 }
 
 export async function saveDayLogAction(day: string, input: unknown) {

@@ -57,7 +57,7 @@ function rms(a: AnalyserNode | null, buf: Uint8Array<ArrayBuffer>) {
 
 const SPEECH_START = 0.09; // loudness that counts as speaking
 const SPEECH_MIN_MS = 160; // shorter sounds are clicks, not speech
-const SILENCE_MS = 600; // pause that ends the user's turn
+const SILENCE_MS = 480; // pause that ends the user's turn
 const MAX_MS = 45_000;
 const BARGE_LEVEL = 0.34; // speaking over the answer stops it…
 const BARGE_MS = 350; // …after this long; louder than the answer's own echo

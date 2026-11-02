@@ -250,7 +250,7 @@ export async function uploadToGemini(bytes: Uint8Array, mimeType: string): Promi
  * goes wrong before the first word falls back to generate() and its reserves.
  */
 /** How long the live answer may stay silent before a second model is asked too. */
-const HEDGE_MS = 3500;
+const HEDGE_MS = 2200;
 
 export async function generateLive(
   contents: Content[],

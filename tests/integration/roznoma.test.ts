@@ -193,3 +193,53 @@ describe("Röznoma", () => {
     });
   });
 });
+
+describe("the year's book is written again", () => {
+  it("rewrites an old-style day in the new layout, once", async () => {
+    const r = await import("@/server/roznoma");
+    const u = await makeUser(db);
+    const { bookId } = await r.saveDayLog(
+      u,
+      "2026-03-04",
+      { title: "Bahor", story: "Yaxşi." },
+      "uz",
+    );
+    if (!bookId) throw new Error("no book");
+    // As an older version wrote it: one heading with the date and the title.
+    await db
+      .update(writeups)
+      .set({
+        doc: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 2 },
+              content: [{ type: "text", text: "Mart 2026" }],
+            },
+            {
+              type: "heading",
+              attrs: { level: 3 },
+              content: [{ type: "text", text: "4 · çorşanba — Bahor" }],
+            },
+            { type: "paragraph", content: [{ type: "text", text: "Yaxşi." }] },
+          ],
+        },
+      })
+      .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId)));
+    const out = await r.rebuildYearBook(u, "2026", "uz");
+    expect(out).toMatchObject({ days: 1, bookId });
+    const [w] = await db
+      .select({ doc: writeups.doc })
+      .from(writeups)
+      .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId)));
+    const heads = (
+      w.doc as {
+        content: { type: string; attrs?: { level?: number }; content?: { text: string }[] }[];
+      }
+    ).content
+      .filter((n) => n.type === "heading" && n.attrs?.level === 3)
+      .map((n) => (n.content ?? []).map((c) => c.text).join(""));
+    expect(heads).toEqual(["Bahor"]);
+  });
+});

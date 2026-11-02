@@ -1,6 +1,7 @@
 "use client";
 import {
   Bell,
+  BookText,
   Check,
   ChevronDown,
   ChevronRight,
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import {
   checkRoutineAction,
   reorderRoutinesAction,
+  rebuildYearBookAction,
   saveDayLogAction,
   saveRoutineAction,
   setArchivedAction,
@@ -242,6 +244,20 @@ export function DayView({
   useEffect(() => {
     queueMicrotask(() => setItems(initialItems));
   }, [initialItems]);
+
+  // The whole year's book written again in today's layout (older days too).
+  const [rebuilding, setRebuilding] = useState(false);
+  const rebuild = async () => {
+    setRebuilding(true);
+    const r = await rebuildYearBookAction(day.slice(0, 4)).catch(() => null);
+    setRebuilding(false);
+    if (!r?.ok) return errorToast(te, r && !r.ok ? r : "INTERNAL");
+    toast.success(t("rebuilt", { n: r.data.days }), {
+      action: r.data.bookId
+        ? { label: t("openBook"), onClick: () => router.push(`/write/${r.data.bookId}`) }
+        : undefined,
+    });
+  };
 
   const saveLog = async (next = log) => {
     setSavingLog(true);
@@ -579,9 +595,20 @@ export function DayView({
                   </div>
                 </div>
               </details>
-              <Button className="self-start" loading={savingLog} onClick={() => void saveLog()}>
-                {t("saveDay")}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button loading={savingLog} onClick={() => void saveLog()}>
+                  {t("saveDay")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  loading={rebuilding}
+                  title={t("rebuildHint")}
+                  onClick={() => void rebuild()}
+                >
+                  <BookText /> {t("rebuildBook")}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

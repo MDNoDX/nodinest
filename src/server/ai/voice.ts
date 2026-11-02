@@ -156,7 +156,8 @@ export async function voiceTurn(
   const flush = () => {
     if (speaker && !speaker.chunked) {
       if (early == null && speaker.live) {
-        const end = nextSentences(raw, 80);
+        // The first sentence goes as soon as it is written (a quick start matters most).
+        const end = nextSentences(raw, 24);
         if (end != null) {
           early = end;
           liveOut(raw.slice(0, end));

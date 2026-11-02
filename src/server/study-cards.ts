@@ -653,3 +653,13 @@ export async function deleteDeck(ctx: AppContext, deck: string) {
     tx.delete(studyCards).where(and(eq(studyCards.userId, ctx.userId), eq(studyCards.deck, deck))),
   );
 }
+
+/** How many questions wait today (the badge on Darsxona's "Takrorlash" tab). */
+export async function dueCount(ctx: AppContext) {
+  const [r] = await withUser(db, ctx, (tx) =>
+    tx.execute<{ n: number }>(sql`
+      select count(*)::int as n from nodinest.study_cards
+      where user_id = ${ctx.userId} and due_at <= now() and not suspended`),
+  );
+  return r?.n ?? 0;
+}

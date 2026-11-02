@@ -14,6 +14,7 @@ import type { Locale } from "@/i18n/config";
 import { AppError } from "@/lib/errors";
 import { NOTIFY_KEYS, PREF_OF, readPrefs, type NotifyKey } from "@/lib/notify-prefs";
 import { esc, tgTo } from "./monitor/telegram";
+import { pushTo } from "./push";
 import { hitRateLimit } from "./rate-limit";
 
 export type Kind = keyof typeof PREF_OF;
@@ -58,17 +59,26 @@ export async function notify(
     body: o.body ?? null,
     href: o.href ?? null,
   });
+  // The words are made only when something will carry them.
+  let said: string | null = null;
+  const lineOf = async () => {
+    if (said != null) return said;
+    const [actor] = o.actorId
+      ? await db.select({ name: user.name }).from(user).where(eq(user.id, o.actorId))
+      : [];
+    const t = await getTranslations({ locale: u.locale as Locale, namespace: "notifications" });
+    said = t(`kind.${kind}` as "kind.follow", { name: actor?.name ?? "" });
+    return said;
+  };
+  // The phone / computer, even with the site closed (browsers that were allowed).
+  await pushTo(userId, { title: lineOf, body: o.body, url: o.href, tag: kind }).catch(() => null);
   if (!prefs.telegram) return;
   const [bot] = await db
     .select({ tg: botUsers.tgId })
     .from(botUsers)
     .where(and(eq(botUsers.userId, userId), eq(botUsers.blocked, false)));
   if (!bot) return;
-  const [actor] = o.actorId
-    ? await db.select({ name: user.name }).from(user).where(eq(user.id, o.actorId))
-    : [];
-  const t = await getTranslations({ locale: u.locale as Locale, namespace: "notifications" });
-  const line = t(`kind.${kind}` as "kind.follow", { name: actor?.name ?? "" });
+  const line = await lineOf();
   const text = [line, o.body].filter(Boolean).join("\n");
   await tgTo(bot.tg, esc(text) + (o.href ? `\n\n${site()}${o.href}` : "")).catch(() => null);
 }

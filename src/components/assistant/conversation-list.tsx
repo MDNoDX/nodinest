@@ -44,6 +44,38 @@ export function ConversationList({
           </button>
         )}
       </div>
+      {selecting && (
+        // On top, where the choosing starts (no scrolling to the end to delete).
+        <div className="bg-surface border-border sticky top-0 z-10 mb-2 flex items-center gap-1 rounded-lg border p-1">
+          <button
+            type="button"
+            onClick={() => setChosen(chosen.length === items.length ? [] : items.map((x) => x.id))}
+            className="text-muted hover:text-foreground rounded px-2 py-1 text-xs font-medium"
+          >
+            {chosen.length === items.length ? t("selectNone") : t("selectAll")}
+          </button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger ml-auto"
+            disabled={chosen.length === 0}
+            loading={pending}
+            onClick={() => {
+              if (!window.confirm(t("deleteChats", { n: chosen.length }))) return;
+              exec(() => deleteConversationsAction(chosen), {
+                onSuccess: () => {
+                  setSelecting(false);
+                  const gone = current && chosen.includes(current);
+                  setChosen([]);
+                  if (gone) router.push("/assistant");
+                },
+              });
+            }}
+          >
+            <Trash2 /> {t("deleteN", { n: chosen.length })}
+          </Button>
+        </div>
+      )}
       <ul className="flex flex-col gap-0.5">
         {items.map((x) => (
           <li key={x.id} className="flex items-center gap-1.5">
@@ -73,27 +105,6 @@ export function ConversationList({
           </li>
         ))}
       </ul>
-      {selecting && chosen.length > 0 && (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-danger mt-2"
-          loading={pending}
-          onClick={() => {
-            if (!window.confirm(t("deleteChats", { n: chosen.length }))) return;
-            exec(() => deleteConversationsAction(chosen), {
-              onSuccess: () => {
-                setSelecting(false);
-                const gone = current && chosen.includes(current);
-                setChosen([]);
-                if (gone) router.push("/assistant");
-              },
-            });
-          }}
-        >
-          <Trash2 /> {t("deleteN", { n: chosen.length })}
-        </Button>
-      )}
     </div>
   );
 }

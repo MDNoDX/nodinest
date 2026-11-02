@@ -14,7 +14,7 @@ import {
   deleteComment,
 } from "@/server/social";
 import { z } from "zod";
-import { run } from "./_run";
+import { run, runOpen } from "./_run";
 
 export async function followAction(userId: string, on: boolean) {
   return run(async ({ ctx }) => {
@@ -88,7 +88,7 @@ export async function setLikeAction(recordId: string, on: boolean) {
 }
 
 export async function postCommentsAction(recordId: string) {
-  return run(async ({ ctx }) => listPostComments(ctx, recordId));
+  return runOpen(async ({ ctx }) => listPostComments(ctx, recordId));
 }
 
 export async function addCommentAction(

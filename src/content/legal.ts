@@ -22,6 +22,7 @@ const uzPrivacy: LegalDoc = {
         "Siz yaratgan narsalar: kitoblar röyxati va öqiş holati, taqrizlar, qaydlar, iqtiboslar, savol-kartoçkalar, maqsadlar, töplamlar, AI suhbatlari va yuklagan fayllaringiz.",
         "Botga yoki «Adminga yoziş» orqali yuborgan xabarlaringiz.",
         "Çatlardagi xabarlaringiz va ular bilan yuborgan fayllaringiz: saytda ularni faqat siz va suhbatdoşingiz köradi, admin bölimida ham körinmaydi. Öçirgan xabaringiz ikki tomondan ham yöqoladi.",
+        "Qurilmada bildirişnomani yoqsangiz, brauzeringiz bergan manzil saqlanadi; bildirişnoma brauzer xizmati (Google, Apple, Mozilla) orqali yetkaziladi.",
       ],
     },
     {
@@ -69,6 +70,7 @@ const enPrivacy: LegalDoc = {
         "What you create: your library and reading status, write-ups, notes, quotes, study cards, goals, collections, AI chats and the files you upload.",
         "Messages you send to the bot or through “Write to the admin”.",
         "Your messages in Chats and the files sent with them: on the site only you and the person you talk to see them; they are not shown in the admin pages either. A message you delete is gone for both of you.",
+        "If you turn on notifications on a device, the address your browser gives is kept; notifications are delivered through the browser's push service (Google, Apple, Mozilla).",
       ],
     },
     {
@@ -174,6 +176,7 @@ const ruPrivacy: LegalDoc = {
         "То, что вы создаёте: библиотека и статус чтения, рецензии, заметки, цитаты, карточки, цели, подборки, чаты с ИИ и загруженные файлы.",
         "Сообщения, которые вы отправляете боту или через «Написать администратору».",
         "Ваши сообщения в чатах и отправленные с ними файлы: на сайте их видите только вы и собеседник, в админ-разделе они тоже не показываются. Удалённое сообщение исчезает у обоих.",
+        "Если включить уведомления на устройстве, сохраняется адрес, который выдаёт браузер; уведомления доставляет служба браузера (Google, Apple, Mozilla).",
       ],
     },
     {
