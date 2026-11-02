@@ -6,5 +6,5 @@ export function PlanIcon({ name, className }: { name: string | null; className?:
   const src = name?.startsWith("c:")
     ? `/api/plan-icons/${name.slice(2)}`
     : `/plan-icons/${iconKey(name)}.svg`;
-  return <img src={src} alt="" aria-hidden className={className} />;
+  return <img src={src} alt="" aria-hidden className={`plan-icon ${className ?? ""}`} />;
 }

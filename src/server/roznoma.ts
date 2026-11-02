@@ -645,6 +645,8 @@ export async function syncDay(ctx: AppContext, day: string, locale: string) {
 type Node = WriteupDoc["content"][number];
 const text = (s: string) => [{ type: "text", text: s }];
 const para = (s: string): Node => ({ type: "paragraph", content: text(s) }) as Node;
+const marked = (s: string, mark: "italic" | "bold"): Node =>
+  ({ type: "paragraph", content: [{ type: "text", text: s, marks: [{ type: mark }] }] }) as Node;
 
 const tagOf = (locale: string) =>
   locale === "ru" ? "ru-RU" : locale === "en" ? "en-GB" : "uz-Latn-UZ";
@@ -704,54 +706,75 @@ async function writeIntoBook(
   const L = page.log;
   const ru = locale === "ru";
   const en = locale === "en";
-  // Chapters are months (H2), days are their headings (H3).
-  const section: Node[] = [
-    {
-      type: "heading",
-      attrs: { level: 3 },
-      content: text(`${heading}${hijri ? ` · ${hijri}` : ""}${L.title ? ` — ${L.title}` : ""}`),
-    } as Node,
-  ];
-  const shown = page.items.filter((i) => i.inJournal && i.status);
-  if (shown.length)
-    section.push({
-      type: "bulletList",
-      content: shown.map((i) => ({
-        type: "listItem",
-        content: [
-          para(
-            `${i.time ? `${i.time} ` : ""}${i.title}${i.amount ? ` — ${i.amount}` : ""}${
-              i.status === "partial" && i.value != null
-                ? ` (${i.value}${amountTarget(i.amount) ? `/${amountTarget(i.amount)}` : "%"})`
-                : ""
-            }${i.note2 ? ` — ${i.note2}` : ""} ${i.done ? "✅" : i.status === "partial" ? "◐" : "✖️"}`,
-          ),
-        ],
-      })),
-    } as Node);
+  // Chapters are months (H2). A day: its title (H3), then the date in italics;
+  // a day without a title has the date as its heading.
+  const date = `${heading}${hijri ? ` · ${hijri}` : ""}`;
+  const section: Node[] = L.title
+    ? [
+        { type: "heading", attrs: { level: 3 }, content: text(L.title) } as Node,
+        marked(date, "italic"),
+      ]
+    : [{ type: "heading", attrs: { level: 3 }, content: text(date) } as Node];
   if (L.story) for (const p of L.story.split(/\n+/).filter(Boolean)) section.push(para(p));
   for (const a of L.audio)
     section.push({ type: "audio", attrs: { fileId: a.fileId, name: a.name } } as Node);
   if (L.highlights.length)
     section.push({
-      type: "bulletList",
-      content: L.highlights.map((h) => ({ type: "listItem", content: [para(h)] })),
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          text: `${ru ? "Главное" : en ? "Mostly" : "Asosan"}:`,
+          marks: [{ type: "bold" }],
+        },
+        { type: "text", text: ` ${L.highlights.join(", ")}` },
+      ],
     } as Node);
-  if (L.lesson) section.push(para(`✍️ ${L.lesson}`));
+  if (L.lesson) section.push(marked(`✍️ ${L.lesson}`, "italic"));
   if (L.productiveMinutes != null)
     section.push(
       para(
-        `⏳ ${ru ? "Продуктивно" : en ? "Productive" : "Unumli"}: ${Math.round((L.productiveMinutes / 60) * 10) / 10} ${ru ? "ч" : en ? "h" : "soat"} | ${productivePercent(L.productiveMinutes, awakeMinutes(L.wokeAt, L.sleptAt))}%`,
+        `⏳ ${ru ? "Продуктивно" : en ? "Productive" : "Unumli"}: ${new Intl.NumberFormat(tagOf(locale), { maximumFractionDigits: 1 }).format(L.productiveMinutes / 60)} ${ru ? "ч" : en ? "h" : "soat"} | ${productivePercent(L.productiveMinutes, awakeMinutes(L.wokeAt, L.sleptAt))}%`,
       ),
     );
+  // What was done, in one line; the undone after it, crossed out.
+  const shown = page.items.filter((i) => i.inJournal && i.status);
+  const itemText = (i: (typeof shown)[number]) =>
+    `${i.title}${
+      i.status === "partial" && i.value != null
+        ? ` (${i.value}${amountTarget(i.amount) ? `/${amountTarget(i.amount)}` : "%"})`
+        : ""
+    }${i.note2 ? ` — ${i.note2}` : ""}`;
+  const did = shown.filter((i) => i.status !== "skipped").map(itemText);
+  const not = shown.filter((i) => i.status === "skipped").map(itemText);
+  if (did.length || not.length)
+    section.push({
+      type: "paragraph",
+      content: [
+        ...(did.length ? [{ type: "text", text: `${did.join(", ")}.` }] : []),
+        ...(did.length && not.length ? [{ type: "text", text: " " }] : []),
+        ...(not.length
+          ? [{ type: "text", text: not.join(", "), marks: [{ type: "strike" }] }]
+          : []),
+      ],
+    } as Node);
   if (page.motto) section.push(para(`📕 «${page.motto}»`));
 
   const level = (n: Node) =>
     n.type === "heading" ? ((n as { attrs?: { level?: number } }).attrs?.level ?? 0) : 0;
   const titleOf = (n: Node) =>
     ((n as { content?: { text?: string }[] }).content ?? []).map((c) => c.text ?? "").join("");
-  const isDay = (n: Node) => level(n) === 3 && /^\d{1,2} · /.test(titleOf(n));
-  const dayNo = (n: Node) => Number(/^(\d{1,2}) · /.exec(titleOf(n))?.[1] ?? 0);
+  const DAY = /^(\d{1,2}) · /;
+  // The day's number: from its heading (no title, or books written before), else
+  // from the italic date right under its title.
+  const dayAt = (list: Node[], i: number) => {
+    if (level(list[i]) !== 3) return 0;
+    const own = DAY.exec(titleOf(list[i]));
+    if (own) return Number(own[1]);
+    const below = list[i + 1];
+    const m = below?.type === "paragraph" ? DAY.exec(titleOf(below)) : null;
+    return m ? Number(m[1]) : 0;
+  };
 
   await withUser(db, ctx, async (tx) => {
     const [w] = await tx
@@ -774,16 +797,16 @@ async function writeIntoBook(
     let end = nodes.findIndex((n, i) => i > m && level(n) === 2);
     if (end < 0) end = nodes.length;
     const inMonth = nodes.slice(m + 1, end);
-    const at = inMonth.findIndex((n) => isDay(n) && titleOf(n).startsWith(heading));
+    const today = Number(page.day.slice(8));
+    const at = inMonth.findIndex((_, i) => dayAt(inMonth, i) === today);
     let out: Node[];
     if (at >= 0) {
-      let stop = inMonth.findIndex((n, i) => i > at && isDay(n));
+      let stop = inMonth.findIndex((_, i) => i > at && dayAt(inMonth, i) > 0);
       if (stop < 0) stop = inMonth.length;
       out = [...inMonth.slice(0, at), ...section, ...inMonth.slice(stop)];
     } else {
       // Days stay in order, also when an earlier day is filled in later.
-      const today = Number(page.day.slice(8));
-      const next = inMonth.findIndex((n) => isDay(n) && dayNo(n) > today);
+      const next = inMonth.findIndex((_, i) => dayAt(inMonth, i) > today);
       out =
         next < 0
           ? [...inMonth, ...section]

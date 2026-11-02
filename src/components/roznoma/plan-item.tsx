@@ -156,7 +156,7 @@ export function PlanItem({
           )}
         </span>
         <span className="bg-surface-2 grid size-9 shrink-0 place-items-center rounded-xl">
-          <PlanIcon name={it.icon} className="size-[22px]" />
+          <PlanIcon name={it.icon} className="size-[18px]" />
         </span>
         <div className="min-w-0 flex-1">
           <div
@@ -214,7 +214,7 @@ export function PlanItem({
               <ul className="flex flex-col gap-1">
                 {it.subs.map((s) => (
                   <li key={s.id} className="flex items-center gap-2.5 py-0.5 pl-1">
-                    <PlanIcon name={s.icon} className="size-5 shrink-0" />
+                    <PlanIcon name={s.icon} className="size-4 shrink-0" />
                     <span
                       className={cn("min-w-0 flex-1 truncate", s.status === "done" && "text-muted")}
                     >

@@ -9,7 +9,7 @@ import { feedback } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { answerFeedback } from "../../feedback";
 import { notifyEveryone } from "../../notifications";
-import { grantPremium } from "../../premium";
+import { findPerson, grantPremium } from "../../premium";
 import { hitRateLimit } from "../../rate-limit";
 import { arr, def, int, obj, str } from "./helpers";
 
@@ -159,18 +159,23 @@ export const companionTools = {
     mode: "confirm",
     ownerOnly: true,
     description:
-      "Owner only. Propose giving a user Premium by username for some months. Runs after the owner confirms the card.",
-    parameters: obj({ username: str("The username"), months: int("Months, 1 to 36") }, [
-      "username",
-      "months",
-    ]),
+      "Owner only. Propose giving a user Premium for some months. `username` may be their @username, e-mail or full name; if several people match, the error lists them: ask the owner which. Runs after the owner confirms the card.",
+    parameters: obj(
+      { username: str("Their @username, e-mail or name"), months: int("Months, 1 to 36") },
+      ["username", "months"],
+    ),
     args: z.object({
       username: z.string().trim().min(1).max(60),
       months: z.number().int().min(1).max(36),
     }),
+    // The card says exactly who gets it; nobody is found, or several are: no card.
+    preview: async (_ctx, a) => {
+      const p = await findPerson(a.username);
+      return { person: { name: p.name, username: p.username, until: p.until } };
+    },
     run: async (ctx, a) => {
-      await grantPremium(ctx, a.username, a.months);
-      return { granted: true };
+      const p = await grantPremium(ctx, a.username, a.months);
+      return { granted: true, name: p.name };
     },
   }),
 };

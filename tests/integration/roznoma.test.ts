@@ -13,7 +13,12 @@ describe("Röznoma", () => {
   it("lists what falls on a day, ticks, writes the day into the year's book, counts", async () => {
     const r = await import("@/server/roznoma");
     const u = await makeUser(db);
-    const daily = await r.saveRoutine(u, { title: "Kitob öqiş", amount: "20 bet", time: "21:00" });
+    const daily = await r.saveRoutine(u, {
+      title: "Kitob öqiş",
+      amount: "20 bet",
+      time: "21:00",
+      inJournal: true,
+    });
     await r.saveRoutine(u, { title: "Sport", repeat: "weekly", weekdays: [3] }); // Wednesdays
     await r.saveRoutine(u, { title: "Bir martalik", repeat: "once", onDay: "2026-09-09" });
     // 2026-09-09 is a Wednesday: all three; the 10th (Thursday): only the daily one.
@@ -52,6 +57,36 @@ describe("Röznoma", () => {
     expect(w.plain).toContain("Yaxşi kun");
     expect(w.plain).toContain("Sentabr");
     expect(w.plain).toContain("Monitor sovğa qilişdi");
+    // The day: its title, the date in italics, "Asosan:" and the plan in one line.
+    const [wd] = await db
+      .select({ doc: writeups.doc })
+      .from(writeups)
+      .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId)));
+    type N = {
+      type: string;
+      attrs?: { level?: number };
+      content?: { text: string; marks?: { type: string }[] }[];
+    };
+    const nodes = (wd.doc as { content: N[] }).content;
+    const said = (n: N) => (n.content ?? []).map((c) => c.text).join("");
+    const h3 = nodes.findIndex((n) => n.type === "heading" && n.attrs?.level === 3);
+    expect(said(nodes[h3])).toBe("Yaxşi kun");
+    expect(said(nodes[h3 + 1])).toMatch(/^9 · \S+/);
+    expect(nodes[h3 + 1].content?.[0].marks).toEqual([{ type: "italic" }]);
+    expect(nodes.some((n) => said(n) === "Asosan: Monitor sovğa qilişdi")).toBe(true);
+    expect(nodes.some((n) => said(n) === "Kitob öqiş — 35%.")).toBe(true);
+    expect(nodes.some((n) => said(n) === "⏳ Unumli: 2,5 soat | 16%")).toBe(true);
+    // A day without a title has the date as its heading, and comes before the 9th.
+    await r.saveDayLog(u, "2026-09-05", { story: "Erta kun." }, "uz");
+    const [w5] = await db
+      .select({ doc: writeups.doc })
+      .from(writeups)
+      .where(and(eq(writeups.userId, u.userId), eq(writeups.resourceId, bookId)));
+    const days = (w5.doc as { content: N[] }).content
+      .filter((n) => n.type === "heading" && n.attrs?.level === 3)
+      .map(said);
+    expect(days[0]).toMatch(/^5 · /);
+    expect(days[1]).toBe("Yaxşi kun");
     // Saving the same day again replaces its section (no duplicate).
     await r.saveDayLog(u, "2026-09-09", { title: "Ajoyib kun", highlights: [] }, "uz");
     const [w2] = await db

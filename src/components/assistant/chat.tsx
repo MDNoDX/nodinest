@@ -72,6 +72,7 @@ export type ChatAction = {
     target?: Candidate;
     sources?: Candidate[];
     file?: { name: string; size: number; pdf: boolean } | null;
+    person?: { name: string; username: string | null; until: string | null };
   } | null;
   outcome?: { href?: string; suggested?: boolean; linked?: boolean };
   error?: string | null;
@@ -418,6 +419,14 @@ function ProposalCard({
           </dl>
           <p className="text-muted text-xs">{t("cardsHint")}</p>
         </div>
+      ) : action.tool === "grant_premium" && action.preview?.person ? (
+        <p className="text-sm">
+          <span className="font-semibold">{action.preview.person.name}</span>
+          {action.preview.person.username && (
+            <span className="text-muted"> @{action.preview.person.username}</span>
+          )}
+          <span className="text-muted"> · {t("premiumMonths", { n: Number(a.months) })}</span>
+        </p>
       ) : (action.tool === "add_book_pdf" || action.tool === "prepare_audiobook") &&
         action.preview ? (
         <div className="flex flex-col gap-2 text-sm">
@@ -573,6 +582,7 @@ export function Chat({
   const picker = useRef<HTMLInputElement>(null);
   const rec = useRecorder();
   const [talking, setTalking] = useState(false);
+  const [talkCards, setTalkCards] = useState<string[]>([]);
   const closeTalk = useCallback(() => setTalking(false), []);
 
   useEffect(() => {
@@ -696,7 +706,30 @@ export function Chat({
         <VoiceTalk
           conversationId={conversationId}
           onClose={closeTalk}
+          cards={
+            talkCards.some((id) => actions[id]?.status === "proposed") ? (
+              <div className="text-foreground flex flex-col gap-2 text-left">
+                {talkCards
+                  .filter((id) => actions[id]?.status === "proposed")
+                  .map((id) => (
+                    <ProposalCard
+                      key={id}
+                      action={actions[id]}
+                      onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
+                    />
+                  ))}
+              </div>
+            ) : null
+          }
           onTurn={(turn) => {
+            // A card answered by voice changes its state; new ones wait here and in the chat.
+            setActions((s) => {
+              const next = { ...s };
+              for (const a of turn.actions) next[a.id] = { ...next[a.id], ...a };
+              return next;
+            });
+            const fresh = turn.actions.filter((a) => a.status === "proposed").map((a) => a.id);
+            if (fresh.length) setTalkCards(fresh);
             if (!conversationId) {
               setConversationId(turn.conversationId);
               // Not the router: a new address would remount the chat and end the talk.
@@ -705,7 +738,13 @@ export function Chat({
             setMessages((m) => [
               ...m,
               { id: `v-${Date.now()}`, role: "user", content: turn.heard },
-              { id: `vr-${Date.now()}`, role: "model", content: turn.reply, visuals: turn.visuals },
+              {
+                id: `vr-${Date.now()}`,
+                role: "model",
+                content: turn.reply,
+                visuals: turn.visuals,
+                actions: fresh.length ? fresh : undefined,
+              },
             ]);
           }}
         />

@@ -1,6 +1,9 @@
 "use client";
 import {
+  ArrowDownToLine,
   ArrowLeft,
+  Hourglass,
+  X,
   AudioLines,
   Gauge,
   Headphones,
@@ -94,11 +97,104 @@ function BookWave({ chapterAt, chapters }: { chapterAt: number[]; chapters: stri
   );
 }
 
+/** How far the part being made has come: by how long parts take here, never 100 % early. */
+function useMaking() {
+  const { making, makingAt, makeMs } = useAudiobook()!;
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (makingAt == null) return;
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick);
+    const timer = setInterval(tick, 500);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [makingAt]);
+  const pct =
+    makingAt == null || !now ? 0 : Math.min(95, Math.round(((now - makingAt) / makeMs) * 100));
+  return { making, pct };
+}
+
+/**
+ * The big button says what happens on a press: play, pause, or make this part
+ * (a download mark). While it is made the ring fills; a second press does not
+ * cancel by accident, the queue chip does.
+ */
+function BigButton({ pct }: { pct: number }) {
+  const t = useTranslations("audiobook");
+  const { idx, playing, loading, ready, queue, toggle } = useAudiobook()!;
+  const made = useMaking();
+  const here = made.making === idx;
+  const waiting = !here && queue.includes(idx);
+  const isReady = ready.has(idx);
+  const ring = here ? made.pct : isReady ? pct : 0;
+  return (
+    <span
+      className={cn("ab-ring", here && "ab-ring-making")}
+      style={{ ["--pct" as string]: `${ring}%` }}
+    >
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={here || waiting}
+        aria-label={
+          here
+            ? t("making", { pct: made.pct })
+            : !isReady
+              ? t("prepareThis")
+              : playing
+                ? t("pause")
+                : t("play")
+        }
+        title={!isReady && !here && !waiting ? t("prepareThis") : undefined}
+        className={cn(
+          "grid size-14 place-items-center rounded-full transition-transform active:scale-95",
+          isReady || playing
+            ? "btn-primary text-primary-foreground"
+            : "bg-surface text-primary border-primary/40 border",
+        )}
+      >
+        {here ? (
+          <span className="text-sm font-bold tabular-nums">{made.pct}%</span>
+        ) : waiting ? (
+          <Hourglass className="size-5" />
+        ) : loading ? (
+          <Loader2 className="size-6 animate-spin" />
+        ) : !isReady ? (
+          <ArrowDownToLine className="size-6" />
+        ) : playing ? (
+          <Pause className="size-6" />
+        ) : (
+          <Play className="size-6 translate-x-0.5" />
+        )}
+      </button>
+    </span>
+  );
+}
+
+/** One line under the buttons: what this part's state means and what to do. */
+function PartStatus() {
+  const t = useTranslations("audiobook");
+  const { idx, ready, queue } = useAudiobook()!;
+  const made = useMaking();
+  const text =
+    made.making === idx
+      ? t("statusMaking")
+      : queue.includes(idx)
+        ? t("statusQueued", { n: queue.indexOf(idx) + (made.making != null ? 1 : 0) })
+        : !ready.has(idx)
+          ? t("statusNotReady")
+          : null;
+  return text ? <p className="text-muted -mt-2 text-center text-xs">{text}</p> : null;
+}
+
 /** Everything around the sound, one row: speed, sleep, chapter, the order. */
 function PlayerChips({ chapterAt, chapters }: { chapterAt: number[]; chapters: string[] }) {
   const t = useTranslations("audiobook");
   const e = useAudiobook()!;
   const { src, speed, speeds, setSpeed, sleep, setSleep, ready, queue, making } = e;
+  const made = useMaking();
   const [open, setOpen] = useState<"speed" | "sleep" | null>(null);
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -171,10 +267,22 @@ function PlayerChips({ chapterAt, chapters }: { chapterAt: number[]; chapters: s
             {t("readyCount", { n: ready.size, total })}
           </span>
           {ready.size < total &&
-            (queue.length > 0 && making != null ? (
-              <button type="button" onClick={e.stopQueue} className="ab-chip">
-                <Loader2 className="size-4 animate-spin" /> {t("queueStop", { n: queue.length })}
-              </button>
+            (making != null ? (
+              <span className="ab-chip ab-progress" style={{ ["--pct" as string]: `${made.pct}%` }}>
+                <span className="relative tabular-nums">
+                  {t("makingPart", { n: making + 1, pct: made.pct })}
+                  {queue.length > 1 ? ` · +${queue.length - 1}` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={e.stopQueue}
+                  aria-label={t("cancelMaking")}
+                  title={t("cancelMaking")}
+                  className="hover:text-danger relative -mr-1 grid size-6 place-items-center rounded-md"
+                >
+                  <X className="size-4" />
+                </button>
+              </span>
             ) : (
               <button type="button" onClick={e.prepareAll} className="ab-chip ab-opt-on">
                 <AudioLines className="size-4" />
@@ -375,8 +483,8 @@ function Ready({
   const [analysis, setAnalysis] = useState(view.analysis!);
   const cast = !!analysis.cast;
   const engine = useAudiobook()!;
-  const { idx, playing, loading, time } = engine;
-  const { go, toggle, seek, seekTo, open } = engine;
+  const { idx, time } = engine;
+  const { go, seek, seekTo, open } = engine;
   const version = `${analysis.rev ?? "0"}.${analysis.voiceRev ?? 1}.${cast ? "c2" : "s"}.${AUDIO_VERSION}`;
   // The book enters the site-wide player (one that is already playing goes on).
   useEffect(() => {
@@ -424,6 +532,10 @@ function Ready({
 
   return (
     <>
+      <section className="card flex flex-col gap-2 p-4">
+        <p className="text-muted text-xs">{t("modeBefore")}</p>
+        <ModeChoice cast={cast} onChange={(v) => void changeMode(v)} />
+      </section>
       <section className="ab-deck flex flex-col gap-5 rounded-3xl p-5 sm:p-7">
         <div className="flex items-center gap-4 sm:gap-5">
           <Cover
@@ -484,22 +596,7 @@ function Ready({
           >
             <SeekIcon dir={-1} className="size-7" />
           </button>
-          <span className="ab-ring" style={{ ["--pct" as string]: `${pct}%` }}>
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={playing ? t("pause") : t("play")}
-              className="btn-primary text-primary-foreground grid size-14 place-items-center rounded-full transition-transform active:scale-95"
-            >
-              {loading ? (
-                <Loader2 className="size-6 animate-spin" />
-              ) : playing ? (
-                <Pause className="size-6" />
-              ) : (
-                <Play className="size-6 translate-x-0.5" />
-              )}
-            </button>
-          </span>
+          <BigButton pct={pct} />
           <button
             type="button"
             onClick={() => seek(10)}
@@ -518,7 +615,7 @@ function Ready({
             <SkipForward className="size-5 fill-current" />
           </button>
         </div>
-        {loading && <p className="text-muted -mt-2 text-center text-xs">{t("voiceComing")}</p>}
+        <PartStatus />
 
         <PlayerChips chapterAt={view.chapterAt} chapters={analysis.chapters.map((c) => c.title)} />
       </section>
@@ -528,7 +625,6 @@ function Ready({
           <span className="text-sm font-semibold">{t("title")}</span>
           <ShareSwitch resourceId={resource.id} what="audiobook" initial={view.isPublic} />
         </div>
-        <ModeChoice cast={cast} onChange={(v) => void changeMode(v)} />
         <div className="grid gap-3 sm:grid-cols-2">
           <CastCard
             resourceId={resource.id}

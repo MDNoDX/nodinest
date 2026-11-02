@@ -513,7 +513,14 @@ export async function runAssistant(
           if (mode === "confirm") {
             const args = parseToolArgs(name, call.args);
             const def = toolDef(name);
-            const preview = def.preview ? await def.preview(ctx, args).catch(() => null) : null;
+            // A preview may refuse (no such person): then there is no card, and the
+            // model hears why. Any other trouble only loses the preview.
+            const preview = def.preview
+              ? await def.preview(ctx, args).catch((e) => {
+                  if (e instanceof AppError && e.code === "VALIDATION") throw e;
+                  return null;
+                })
+              : null;
             // Proposals are stored one after another in call order, so
             // "confirm all" replays them in the order the model intended.
             const mine = proposalChain.then(async () => {

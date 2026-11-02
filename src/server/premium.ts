@@ -14,6 +14,7 @@ import { z } from "zod";
 import { db, type AppContext } from "@/db";
 import { appSettings, botUsers, files, payments, user } from "@/db/schema";
 import { AppError } from "@/lib/errors";
+import { normalizeText } from "@/lib/normalize";
 import { esc, tgRaw, tgSend, tgTo } from "./monitor/telegram";
 import { enforceRateLimit } from "./rate-limit";
 
@@ -222,15 +223,50 @@ export async function decidePayment(id: string, approve: boolean, by: string) {
 }
 
 /** The owner gives someone Premium by username. */
-export async function grantPremium(ctx: AppContext, username: string, months: number) {
+/**
+ * The one person meant by "@username", an e-mail or a name. Several people with
+ * that name, or none, is said plainly instead of guessed.
+ */
+export async function findPerson(who: string) {
+  const w = who.trim().replace(/^@/, "").toLowerCase();
+  const exact = await db.execute<{
+    id: string;
+    name: string;
+    username: string | null;
+    until: Date | null;
+  }>(sql`
+    select id, name, username, premium_until as until from nodinest."user"
+    where status = 'active' and (lower(username) = ${w} or lower(email) = ${w})
+    limit 1`);
+  if (exact[0]) return exact[0];
+  const named = await db.execute<{
+    id: string;
+    name: string;
+    username: string | null;
+    until: Date | null;
+  }>(sql`
+    select id, name, username, premium_until as until from nodinest."user"
+    where status = 'active' and nodinest.nn_norm(name) like ${`%${normalizeText(w)}%`}
+    limit 3`);
+  if (named.length === 1) return named[0];
+  // The message reaches the AI, so it can ask which one was meant.
+  const list = named.map((p) => `${p.name} (@${p.username ?? "-"})`).join(", ");
+  throw new AppError(
+    "VALIDATION",
+    named.length ? `person_ambiguous: ${list}` : "person_not_found",
+    { candidates: list },
+  );
+}
+
+export async function grantPremium(ctx: AppContext, who: string, months: number) {
   if (!ctx.superadminAccount) throw new AppError("FORBIDDEN");
   const m = z.number().int().min(1).max(36).parse(months);
-  const done = await db.execute<{ id: string }>(sql`
+  const p = await findPerson(who);
+  await db.execute(sql`
     update nodinest."user"
     set premium_until = greatest(coalesce(premium_until, now()), now()) + (${m} * interval '1 month')
-    where lower(username) = ${username.replace(/^@/, "").toLowerCase()}
-    returning id`);
-  if (!done.length) throw new AppError("NOT_FOUND");
+    where id = ${p.id}`);
+  return p;
 }
 
 export async function myPayments(ctx: AppContext) {

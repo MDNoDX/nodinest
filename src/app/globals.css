@@ -545,6 +545,11 @@ select:not([multiple])::-ms-expand {
   background: conic-gradient(var(--tick-c) var(--tick-fill), transparent 0);
   animation: tick-pop 0.4s ease-out;
 }
+/* Plan icons: colour, but quiet enough to sit with the rest of the page. */
+.plan-icon {
+  filter: saturate(0.82);
+  opacity: 0.95;
+}
 /* Part done: amber turning to green as the share grows. */
 .plan-partial,
 .plan-partial-text {
@@ -1115,7 +1120,7 @@ html[data-reader-full] main {
   transform: scaleY(1.12);
 }
 .ab-bar[data-state="ready"] span {
-  background: color-mix(in oklab, var(--primary) 60%, var(--surface));
+  background: var(--primary);
 }
 .ab-bar[data-state="ordered"] span {
   background: transparent;
@@ -1125,8 +1130,14 @@ html[data-reader-full] main {
   background: var(--primary);
   animation: ab-making 1s ease-in-out infinite alternate;
 }
+/* The part in the player: marked, without hiding whether it is ready. */
 .ab-bar[aria-current] span {
-  background: var(--foreground);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px var(--foreground);
+}
+.ab-bar[aria-current][data-state="empty"] span {
+  background: var(--muted-foreground);
 }
 @keyframes ab-making {
   from {
@@ -1169,6 +1180,23 @@ html[data-reader-full] main {
 }
 .ab-chip:hover {
   background: var(--border);
+}
+/* A chip that fills as a part is made. */
+.ab-progress {
+  position: relative;
+  overflow: hidden;
+}
+.ab-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--pct);
+  background: var(--primary-soft);
+  transition: width 0.5s linear;
+}
+.ab-ring-making {
+  background: conic-gradient(var(--primary) var(--pct), var(--border) 0);
+  transition: background 0.5s linear;
 }
 .ab-opt {
   height: 1.9rem;

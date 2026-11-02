@@ -167,7 +167,7 @@ export function RoutineDialog({
               aria-label={t("chooseIcon")}
               className="bg-surface-2 hover:ring-primary/40 grid size-11 shrink-0 place-items-center rounded-xl transition hover:ring-2"
             >
-              <PlanIcon name={icon} className="size-7" />
+              <PlanIcon name={icon} className="size-6" />
             </button>
             <div className="min-w-0 flex-1">
               <Field label={t("itemTitle")}>
@@ -201,7 +201,7 @@ export function RoutineDialog({
                     icon === k && "bg-primary-soft ring-primary ring-2",
                   )}
                 >
-                  <PlanIcon name={k} className="size-6" />
+                  <PlanIcon name={k} className="size-5" />
                 </button>
               ))}
             </div>

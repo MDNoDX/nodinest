@@ -6,11 +6,15 @@
  * a day. If speech is not available, the reply still comes as text.
  */
 import "server-only";
-import { db, type AppContext } from "@/db";
+import { and, desc, eq } from "drizzle-orm";
+import { db, withUser, type AppContext } from "@/db";
+import { aiActions } from "@/db/schema";
+import { voiceDecision } from "@/lib/voice-decision";
 import { aiLanguage, asLocale } from "@/i18n/config";
 import { AppError } from "@/lib/errors";
 import { limitsFor } from "../premium";
 import { hitRateLimit } from "../rate-limit";
+import { confirmAiAction, rejectAiAction } from "./actions";
 import { runAssistant } from "./assistant";
 import { generate } from "./gemini";
 import { MAX_TURN_CHARS, talkVoice, type TalkVoice } from "./speech";
@@ -44,7 +48,14 @@ export type VoiceEvent =
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
   | { t: "pcm"; audio: string; rate: number }
-  | { t: "done"; reply: string; conversationId: string | null; visuals: unknown[] };
+  | {
+      t: "done";
+      reply: string;
+      conversationId: string | null;
+      visuals: unknown[];
+      /** Cards of this turn: new ones to confirm, or one just answered by voice. */
+      actions?: { id: string; tool: string; args: unknown; status: string; error?: string }[];
+    };
 
 /** May this person talk now? (before anything is streamed) */
 export async function voiceGate(ctx: AppContext) {
@@ -131,6 +142,44 @@ export async function voiceTurn(
       first = false;
     }
   };
+  // A card is waiting: a short "yes" or "no" answers it, without the AI.
+  const waiting = input.conversationId ? await waitingCards(ctx, input.conversationId) : [];
+  if (waiting.length) {
+    const { heard, lang } = await heardNow;
+    const decision = voiceDecision(heard);
+    if (decision) {
+      emit({ t: "heard", heard });
+      const card = waiting[0];
+      const outcome =
+        decision === "yes"
+          ? await confirmAiAction(ctx, card.id, { timeZone: input.timeZone, locale: loc })
+          : (await rejectAiAction(ctx, card.id), { status: "rejected" as const });
+      const reply =
+        SAID[loc === "ru" ? "ru" : loc === "en" ? "en" : "uz"][
+          outcome.status === "completed" ? "done" : outcome.status === "rejected" ? "no" : "failed"
+        ];
+      speaker = await talkVoice(ctx, lang, input.voice, signal).catch(() => null);
+      speakOut(reply);
+      await sent;
+      emit({
+        t: "done",
+        reply,
+        conversationId: input.conversationId,
+        visuals: [],
+        actions: [
+          {
+            id: card.id,
+            tool: card.tool,
+            args: card.args,
+            status: outcome.status,
+            error: outcome.status === "failed" ? outcome.code : undefined,
+          },
+        ],
+      });
+      return;
+    }
+  }
+
   const ready = heardNow.then(async ({ heard, lang }) => {
     emit({ t: "heard", heard });
     if (!heard) return;
@@ -169,5 +218,32 @@ export async function voiceTurn(
     reply: turn.reply,
     conversationId: turn.conversationId,
     visuals: turn.visuals ?? [],
+    actions: turn.actions
+      .filter((a) => a.status === "proposed")
+      .map((a) => ({ id: a.actionId, tool: a.tool, args: a.args, status: a.status })),
   });
+}
+
+const SAID = {
+  uz: { done: "Bajarildi.", no: "Bekor qildim.", failed: "Bajarib bo‘lmadi, kartaga qarang." },
+  ru: { done: "Готово.", no: "Отменил.", failed: "Не получилось, посмотрите карточку." },
+  en: { done: "Done.", no: "Cancelled.", failed: "That didn't work, see the card." },
+};
+
+/** Cards of this conversation still waiting for the user, newest first. */
+async function waitingCards(ctx: AppContext, conversationId: string) {
+  return withUser(db, ctx, (tx) =>
+    tx
+      .select({ id: aiActions.id, tool: aiActions.tool, args: aiActions.args })
+      .from(aiActions)
+      .where(
+        and(
+          eq(aiActions.userId, ctx.userId),
+          eq(aiActions.conversationId, conversationId),
+          eq(aiActions.status, "proposed"),
+        ),
+      )
+      .orderBy(desc(aiActions.createdAt))
+      .limit(3),
+  );
 }

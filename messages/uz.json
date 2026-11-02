@@ -934,7 +934,9 @@
     "voiceFailed": "Javob bölmadi. Qayta gapirib köring.",
     "selectChats": "Tanlaş",
     "deleteChats": "{n} ta suhbat öçirilsinmi? Bu ortga qaytmaydi.",
-    "deleteN": "Öçiriş ({n})"
+    "deleteN": "Öçiriş ({n})",
+    "sayYesNo": "Tugmani bosing yoki «ha» yoki «yöq» deng.",
+    "premiumMonths": "{n} oy Premium"
   },
   "stats": {
     "title": "Körsatkiçlar",
@@ -1236,7 +1238,9 @@
     "PREMIUM_REQUIRED": "Bu imkoniyat Premium’da. Sozlamalar → Premium böliminda batafsil.",
     "INDECENT": "Matnda nojoiz (uyatsiz yoki ekstremistik) söz bor. Uni özgartiring.",
     "goPremium": "Premium’ni oçiş",
-    "planLimit": "Bugungi bepul limit tugadi. Premium bilan kuniga ança köp foydalaniş mumkin."
+    "planLimit": "Bugungi bepul limit tugadi. Premium bilan kuniga ança köp foydalaniş mumkin.",
+    "person_not_found": "Bunday foydalanuvçi topilmadi. Username, email yoki to'liq ismini ayting.",
+    "person_ambiguous": "Bu ismda bir neçta odam bor. Username'ini ayting."
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -1385,7 +1389,9 @@
     "noTime": "Vaqtsiz",
     "hour": "Soat",
     "minute": "Daqiqa",
-    "clearTime": "Vaqtni olib taşlaş"
+    "clearTime": "Vaqtni olib taşlaş",
+    "pickTime": "Vaqtni tanlang",
+    "timeDone": "Tayyor"
   },
   "card": {
     "pages": "{count} bet",
@@ -1925,7 +1931,7 @@
     "fwd15": "10 soniya oldinga",
     "next": "Keyingi qism",
     "speed": "Tezlik",
-    "making": "Ovoz tayyorlanmoqda… (birinçi marta 20–60 soniya)",
+    "making": "Tayyorlanmoqda: {pct}%",
     "tabText": "Matn",
     "tabChapters": "Boblar",
     "tabAbout": "Kitob tahlili",
@@ -2036,7 +2042,14 @@
       "making": "tayyorlanmoqda",
       "ordered": "navbatda",
       "empty": "tayyor emas"
-    }
+    },
+    "prepareThis": "Bu qismni tayyorlaş",
+    "statusMaking": "Ovoz tayyorlanmoqda. Boşqa qismlarni tinglayversangiz ham davom etadi.",
+    "statusQueued": "Navbatda: oldida {n} ta qism.",
+    "statusNotReady": "Bu qism hali tayyor emas. Tayyorlaş uçun yuklab oliş belgisini bosing.",
+    "makingPart": "{n}-qism · {pct}%",
+    "cancelMaking": "Tayyorlaşni toxtatiş",
+    "modeBefore": "Tayyorlaşdan oldin tanlang: bitta ovoz tezroq va arzonroq, qahramonlar bilan jonliroq."
   },
   "reader": {
     "title": "Kitobni öqiş",

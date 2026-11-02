@@ -57,7 +57,7 @@ export function TodayCard({
                   <span className="text-muted w-10 shrink-0 text-xs tabular-nums">
                     {i.time ?? "•"}
                   </span>
-                  <PlanIcon name={i.icon} className="size-5 shrink-0" />
+                  <PlanIcon name={i.icon} className="size-4 shrink-0" />
                   <span className={cn("min-w-0 flex-1 truncate", i.done && "text-muted")}>
                     {i.title}
                     {i.amount && <span className="text-muted"> · {i.amount}</span>}

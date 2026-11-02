@@ -934,7 +934,9 @@
     "voiceFailed": "Couldn’t answer. Please say it again.",
     "selectChats": "Select",
     "deleteChats": "Delete {n} conversations? This cannot be undone.",
-    "deleteN": "Delete ({n})"
+    "deleteN": "Delete ({n})",
+    "sayYesNo": "Press the button, or say \"yes\" or \"no\".",
+    "premiumMonths": "Premium for {n} months"
   },
   "stats": {
     "title": "Metrics",
@@ -1236,7 +1238,9 @@
     "PREMIUM_REQUIRED": "This is a Premium feature. See Settings → Premium.",
     "INDECENT": "The text contains an inappropriate (obscene or extremist) word. Please change it.",
     "goPremium": "Get Premium",
-    "planLimit": "Today’s free limit is used up. Premium gives you much more each day."
+    "planLimit": "Today’s free limit is used up. Premium gives you much more each day.",
+    "person_not_found": "No such user. Give their username, e-mail or full name.",
+    "person_ambiguous": "Several people have this name. Give their username."
   },
   "validation": {
     "required": "This field is required.",
@@ -1385,7 +1389,9 @@
     "noTime": "No time",
     "hour": "Hour",
     "minute": "Minute",
-    "clearTime": "Remove the time"
+    "clearTime": "Remove the time",
+    "pickTime": "Pick a time",
+    "timeDone": "Done"
   },
   "card": {
     "pages": "{count} pages",
@@ -1925,7 +1931,7 @@
     "fwd15": "10 seconds forward",
     "next": "Next part",
     "speed": "Speed",
-    "making": "Preparing the voice… (20–60 s the first time)",
+    "making": "Making: {pct}%",
     "tabText": "Text",
     "tabChapters": "Chapters",
     "tabAbout": "About the book",
@@ -2036,7 +2042,14 @@
       "making": "being made",
       "ordered": "queued",
       "empty": "not ready"
-    }
+    },
+    "prepareThis": "Make this part",
+    "statusMaking": "The voice is being made. You can listen to other parts meanwhile.",
+    "statusQueued": "Queued: {n} parts before it.",
+    "statusNotReady": "This part is not ready yet. Press the download mark to make it.",
+    "makingPart": "Part {n} · {pct}%",
+    "cancelMaking": "Stop making",
+    "modeBefore": "Choose before making: one voice is quicker, with the characters livelier."
   },
   "reader": {
     "title": "Read the book",

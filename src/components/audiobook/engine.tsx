@@ -35,7 +35,7 @@ type Seg = { blob: Blob };
 const CACHE = "nn-audiobook";
 
 /** One part's MP3 (kept in the browser, so it never comes twice). */
-async function segmentBlob(url: string): Promise<Seg> {
+async function segmentBlob(url: string, signal?: AbortSignal): Promise<Seg> {
   let cache: Cache | null = null;
   try {
     cache = await caches.open(CACHE);
@@ -44,7 +44,7 @@ async function segmentBlob(url: string): Promise<Seg> {
   } catch {
     cache = null;
   }
-  const res = await fetch(url);
+  const res = await fetch(url, { signal });
   if (!res.ok) {
     const d = (await res.json().catch(() => ({}))) as { error?: string; premium?: boolean };
     throw Object.assign(new Error(d.error ?? "INTERNAL"), { premium: d.premium });
@@ -52,6 +52,16 @@ async function segmentBlob(url: string): Promise<Seg> {
   if (cache) await cache.put(url, res.clone()).catch(() => {});
   return { blob: await res.blob() };
 }
+
+/** How long a part took to make, on average here (for an honest progress ring). */
+const MAKE_KEY = "nn:abook-make-ms";
+const readMakeMs = () => {
+  try {
+    return Number(localStorage.getItem(MAKE_KEY)) || 45_000;
+  } catch {
+    return 45_000;
+  }
+};
 
 const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 const SPEED_KEY = "nn:abook-speed";
@@ -77,8 +87,12 @@ type Engine = {
   ready: Set<number>;
   /** Parts ordered, in the order they will be made. */
   queue: number[];
-  /** The part being made right now. */
+  /** The part being made right now, since when, and how long one usually takes. */
   making: number | null;
+  makingAt: number | null;
+  makeMs: number;
+  /** Puts a part first in line to be made (the current one, from the big button). */
+  prepare: (i: number) => void;
   /** A ready part plays; any other is ordered (or taken off the order). */
   pick: (i: number) => void;
   /** Orders parts from..to (a chapter) without leaving the current one. */
@@ -135,10 +149,18 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueueState] = useState<number[]>([]);
   const queueRef = useRef(queue);
   const [making, setMaking] = useState<number | null>(null);
+  const [makingAt, setMakingAt] = useState<number | null>(null);
+  const [makeMs, setMakeMs] = useState(45_000);
+  const stopper = useRef<AbortController | null>(null);
+  /** A part to start as soon as it is made (listening straight through). */
+  const playWhenMade = useRef<number | null>(null);
   const working = useRef(false);
 
   useEffect(() => {
-    queueMicrotask(() => setSpeedState(readSpeed()));
+    queueMicrotask(() => {
+      setSpeedState(readSpeed());
+      setMakeMs(readMakeMs());
+    });
   }, []);
   const setSpeed = useCallback((v: number) => {
     setSpeedState(v);
@@ -156,11 +178,11 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
     [],
   );
   const blobFor = useCallback(
-    (s: AudiobookSource, i: number) => {
+    (s: AudiobookSource, i: number, signal?: AbortSignal) => {
       const url = urlOf(s, i);
       let p = inflight.current.get(url);
       if (!p) {
-        p = segmentBlob(url);
+        p = segmentBlob(url, signal);
         inflight.current.set(url, p);
         const done = () => void inflight.current.delete(url);
         p.then(done, done);
@@ -203,11 +225,28 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       const i = queueRef.current[0];
       if (!s || i == null) break;
       setMaking(i);
+      const began = Date.now();
+      setMakingAt(began);
+      const ctl = new AbortController();
+      stopper.current = ctl;
       try {
-        await blobFor(s, i);
+        await blobFor(s, i, ctl.signal);
         markReady(s, i);
+        const avg = Math.round(readMakeMs() * 0.7 + (Date.now() - began) * 0.3);
+        setMakeMs(avg);
+        try {
+          localStorage.setItem(MAKE_KEY, String(avg));
+        } catch {
+          /* ignore */
+        }
+        if (playWhenMade.current === i && live.current.idx === i) {
+          playWhenMade.current = null;
+          void loadRef.current?.(s, i, true);
+        }
       } catch (e) {
         const err = e as Error & { premium?: boolean };
+        // Cancelled: the queue is already empty.
+        if (err.name === "AbortError") break;
         if (stopsQueue(err)) {
           // The order stays: it goes on when the voice is available again.
           toast.error(
@@ -224,8 +263,14 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setMaking(null);
+    setMakingAt(null);
+    stopper.current = null;
     working.current = false;
   }, [blobFor, markReady, setQueue, t, te]);
+  const loadRef = useRef<((s: AudiobookSource, i: number, play: boolean) => Promise<void>) | null>(
+    null,
+  );
+  const prepareRef = useRef<((i: number) => void) | null>(null);
   const savePos = useCallback(() => {
     const s = live.current.src;
     if (!s) return;
@@ -304,8 +349,14 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       live.current.idx = i;
       setIdx(i);
       setTime({ cur: 0, dur: 0 });
-      if (keep || readyRef.current.has(i)) void load(s, i, keep);
-      else {
+      if (readyRef.current.has(i)) void load(s, i, keep);
+      else if (keep) {
+        // Listening on into a part not made yet: make it, then go on by itself.
+        playWhenMade.current = i;
+        loaded.current = "";
+        a?.removeAttribute("src");
+        prepareRef.current?.(i);
+      } else {
         // Only moved here: the voice is not made until it is asked for.
         want.current = false;
         setLoading(false);
@@ -355,7 +406,18 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
   const stopQueue = useCallback(() => {
     const s = live.current.src;
     if (s) setQueue(s.id, []);
+    playWhenMade.current = null;
+    stopper.current?.abort();
   }, [setQueue]);
+  const prepare = useCallback(
+    (i: number) => {
+      const s = live.current.src;
+      if (!s || readyRef.current.has(i)) return;
+      setQueue(s.id, [i, ...queueRef.current.filter((x) => x !== i)]);
+      void pump();
+    },
+    [pump, setQueue],
+  );
 
   const open = useCallback(
     (s: AudiobookSource) => {
@@ -401,25 +463,29 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
     [load, setQueue, urlOf],
   );
 
+  useEffect(() => {
+    loadRef.current = load;
+    prepareRef.current = prepare;
+  });
+
   const toggle = useCallback(() => {
     const a = audio.current;
     const s = live.current.src;
     if (!a || !s) return;
     if (a.paused) {
-      if (loaded.current === urlOf(s, live.current.idx)) {
+      const i = live.current.idx;
+      if (loaded.current === urlOf(s, i)) {
         want.current = true;
         void a.play();
-      } else if (want.current) {
-        // Pressed again while its voice is being made: stop waiting for it.
-        want.current = false;
-        setLoading(false);
-      } else void load(s, live.current.idx, true);
+      } else if (readyRef.current.has(i)) void load(s, i, true);
+      // Not made yet: the big button asks for it; it is heard once it is ready.
+      else prepare(i);
     } else {
       want.current = false;
       a.pause();
       savePos();
     }
-  }, [load, savePos, urlOf]);
+  }, [load, prepare, savePos, urlOf]);
 
   const seekTo = useCallback((v: number) => {
     const a = audio.current;
@@ -572,6 +638,9 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       ready,
       queue,
       making,
+      makingAt,
+      makeMs,
+      prepare,
       pick,
       orderParts,
       prepareAll,
@@ -597,6 +666,9 @@ export function AudiobookProvider({ children }: { children: React.ReactNode }) {
       ready,
       queue,
       making,
+      makingAt,
+      makeMs,
+      prepare,
       pick,
       orderParts,
       prepareAll,

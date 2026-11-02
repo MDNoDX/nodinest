@@ -6,13 +6,28 @@ import { cn } from "@/lib/cn";
 import { VisualCard, type Visual } from "./visual-card";
 import { VoiceOrb, type OrbState } from "./voice-orb";
 
+/** A card from the talk: confirmed by a button here, or by saying yes / no. */
+export type TurnAction = {
+  id: string;
+  tool: string;
+  args: Record<string, unknown>;
+  status: "proposed" | "completed" | "failed" | "rejected";
+  error?: string;
+};
+
 type Event =
   | { t: "heard"; heard: string }
   | { t: "conv"; conversationId: string }
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
   | { t: "pcm"; audio: string; rate: number }
-  | { t: "done"; reply: string; conversationId: string | null; visuals: Visual[] }
+  | {
+      t: "done";
+      reply: string;
+      conversationId: string | null;
+      visuals: Visual[];
+      actions?: TurnAction[];
+    }
   | { t: "error"; code: string };
 
 /** The browser's own recogniser, only for the words shown while you speak. */
@@ -57,10 +72,19 @@ export function VoiceTalk({
   conversationId,
   onTurn,
   onClose,
+  cards: actionCards,
 }: {
   conversationId: string | null;
-  onTurn: (t: { heard: string; reply: string; conversationId: string; visuals: Visual[] }) => void;
+  onTurn: (t: {
+    heard: string;
+    reply: string;
+    conversationId: string;
+    visuals: Visual[];
+    actions: TurnAction[];
+  }) => void;
   onClose: () => void;
+  /** Cards waiting for the user, drawn by the chat (the same buttons as there). */
+  cards?: React.ReactNode;
 }) {
   const t = useTranslations("assistant");
   const te = useTranslations("errors");
@@ -257,8 +281,8 @@ export function VoiceTalk({
       let heard = "";
       let reply = "";
       let spoken = false;
-      const finish = (visuals: Visual[]) => {
-        if (x.conv) cb.current.onTurn({ heard, reply, conversationId: x.conv, visuals });
+      const finish = (visuals: Visual[], actions: TurnAction[]) => {
+        if (x.conv) cb.current.onTurn({ heard, reply, conversationId: x.conv, visuals, actions });
       };
       const handle = (e: Event) => {
         if (e.t === "heard") {
@@ -279,7 +303,7 @@ export function VoiceTalk({
           x.conv = e.conversationId ?? x.conv;
           setCaption({ heard, reply });
           setCards(e.visuals);
-          finish(e.visuals);
+          finish(e.visuals, e.actions ?? []);
         } else if (e.t === "error") fail(e.code);
       };
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -301,7 +325,7 @@ export function VoiceTalk({
         }
       } catch {
         if (turn === x.turn) fail();
-        else if (heard) finish([]); // spoken over: keep what was said
+        else if (heard) finish([], []); // spoken over: keep what was said
         return;
       }
       await x.decoding;
@@ -540,6 +564,12 @@ export function VoiceTalk({
         <p className="text-sm font-medium text-white/80" aria-live="polite">
           {status}
         </p>
+        {actionCards && (
+          <div className="animate-scale-in flex max-h-[45vh] w-full flex-col gap-2 overflow-y-auto text-left">
+            {actionCards}
+            <p className="text-xs text-white/60">{t("sayYesNo")}</p>
+          </div>
+        )}
         {caption && (
           <div className="max-h-40 w-full overflow-y-auto text-sm leading-relaxed">
             <p className="text-white/50">{caption.heard}</p>

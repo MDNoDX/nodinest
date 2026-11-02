@@ -14,10 +14,17 @@ test("a plan item: clear units, time by pressing, a reason only when wanted", as
   await unit.selectOption("rakat");
   await page.getByLabel("Qançaligi").fill("4");
 
-  // 24 hours, picked by pressing.
+  // 24 hours, typed key by key: "17" stays 17 (never 01), then the minutes.
   await page.getByRole("button", { name: "--:--" }).first().click();
-  await page.getByRole("button", { name: "05", exact: true }).first().click();
-  await page.getByRole("button", { name: "30", exact: true }).click();
+  await page.getByLabel("Soat", { exact: true }).first().pressSequentially("17");
+  await page.getByLabel("Daqiqa", { exact: true }).first().pressSequentially("43");
+  await page.getByRole("button", { name: "Tayyor" }).click();
+  await expect(page.getByRole("button", { name: "17:43" })).toBeVisible();
+  // A single digit that cannot start an hour moves on at once: 5 → 05.
+  await page.getByRole("button", { name: "17:43" }).click();
+  await page.getByLabel("Soat", { exact: true }).first().pressSequentially("5");
+  await page.getByLabel("Daqiqa", { exact: true }).first().pressSequentially("30");
+  await page.getByRole("button", { name: "Tayyor" }).click();
   await expect(page.getByRole("button", { name: "05:30" })).toBeVisible();
 
   await page.getByRole("button", { name: "Saqlaş" }).click();

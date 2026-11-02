@@ -24,13 +24,13 @@ export function Avatar({
       src={image}
       alt=""
       referrerPolicy="no-referrer"
-      className={cn("size-8 rounded-full object-cover", className)}
+      className={cn("size-8 shrink-0 rounded-full object-cover", className)}
     />
   ) : (
     <span
       aria-hidden
       className={cn(
-        "bg-primary-soft text-primary grid size-8 place-items-center rounded-full text-xs font-semibold",
+        "bg-primary-soft text-primary grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold",
         className,
       )}
     >
