@@ -43,7 +43,10 @@ export async function notify(
           eq(notifications.userId, userId),
           eq(notifications.kind, kind),
           eq(notifications.actorId, o.actorId),
-          sql`${notifications.createdAt} > now() - interval '1 day'`,
+          // A new message rings again once the last one was read.
+          kind === "message"
+            ? isNull(notifications.readAt)
+            : sql`${notifications.createdAt} > now() - interval '1 day'`,
         ),
       );
     if (dup.n) return;

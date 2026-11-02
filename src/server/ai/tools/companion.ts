@@ -18,7 +18,7 @@ export const companionTools = {
     perm: "read_library",
     mode: "read",
     description:
-      "Show a visual card next to your answer (also on the live voice screen): key points, a small bar chart, or a quiz question. Use it whenever seeing helps: comparisons, numbers, summaries, checking understanding.",
+      "Show a visual card next to your answer; on the live voice screen it appears and animates while you speak. Pick what fits: points (a summary), chart (numbers), quiz (check understanding, one question), steps (a process, played step by step), timeline (dates in order, drawn along a line), compare (two things side by side). Use it whenever seeing helps.",
     parameters: obj(
       {
         title: str("Short title"),
@@ -35,6 +35,37 @@ export const companionTools = {
           },
           ["question", "options", "answer"],
         ),
+        steps: arr(
+          obj({ title: str("Step, a few words"), text: str("One short line (optional)") }, [
+            "title",
+          ]),
+          "2 to 6 steps of a process, in order",
+        ),
+        timeline: arr(
+          obj({ when: str("Date or period, e.g. 1220 or 1405-1469"), what: str("What happened") }, [
+            "when",
+            "what",
+          ]),
+          "2 to 8 events, oldest first",
+        ),
+        compare: obj(
+          {
+            left: str("First thing"),
+            right: str("Second thing"),
+            rows: arr(
+              obj(
+                {
+                  label: str("What is compared (optional)"),
+                  left: str("First thing's side"),
+                  right: str("Second thing's side"),
+                },
+                ["left", "right"],
+              ),
+              "2 to 6 rows",
+            ),
+          },
+          ["left", "right", "rows"],
+        ),
       },
       ["title"],
     ),
@@ -50,6 +81,40 @@ export const companionTools = {
           question: z.string().trim().min(1).max(300),
           options: z.array(z.string().trim().min(1).max(160)).min(2).max(5),
           answer: z.number().int().min(0).max(4),
+        })
+        .optional(),
+      steps: z
+        .array(
+          z.object({
+            title: z.string().trim().min(1).max(80),
+            text: z.string().trim().max(200).optional(),
+          }),
+        )
+        .max(6)
+        .optional(),
+      timeline: z
+        .array(
+          z.object({
+            when: z.string().trim().min(1).max(40),
+            what: z.string().trim().min(1).max(160),
+          }),
+        )
+        .max(8)
+        .optional(),
+      compare: z
+        .object({
+          left: z.string().trim().min(1).max(60),
+          right: z.string().trim().min(1).max(60),
+          rows: z
+            .array(
+              z.object({
+                label: z.string().trim().max(60).optional(),
+                left: z.string().trim().min(1).max(160),
+                right: z.string().trim().min(1).max(160),
+              }),
+            )
+            .min(1)
+            .max(6),
         })
         .optional(),
     }),

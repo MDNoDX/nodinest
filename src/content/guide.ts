@@ -284,11 +284,16 @@ const uz: GuideSection[] = [
       },
       {
         title: "Media va bildirişnomalar",
-        text: "Media böliminda odamlar oçiq qilgan manbalarni körasiz, username böyiça qidirasiz va yoqqan manbani özingizga olasiz. Bildirişnomalar qöğiröqçada, turlarini va Telegram botni Sozlamalarda boşqarasiz.",
+        text: "Media ikki qismdan iborat: «Umumiy» — hamma oçiq qilgan manbalar (qidirmasangiz ham çiqadi), «Kuzatayotganlarim» — faqat siz kuzatadigan odamlarniki. Yoqqan manbani özingizga olasiz yoki «Yuboriş» bilan birovga jönatasiz. Bildirişnomalar qöğiröqçada, turlarini va Telegram botni Sozlamalarda boşqarasiz.",
       },
       {
         title: "Darslikni oçiq qiliş",
-        text: "Kitob sahifasida «Yopiq / Oçiq» tugmasi bor. Oçiq darslik profilingizda nomi, holati va bahosi bilan körinadi. Qaydlar, taqrizlar va fayllar hech qaçon körinmaydi.",
+        text: "Kitob sahifasida «Yopiq / Oçiq» tugmasi bor. Oçiq darslik profilingizda va Mediada nomi, holati va bahosi bilan körinadi. Oçayotganda taqrizingiz va tayyor audiokitob ham körinsinmi, deb söraydi: belgilamasangiz, ular yopiq qoladi. Qaydlar va fayllar hech qaçon körinmaydi.",
+      },
+      {
+        title: "Çatlar",
+        text: "Yuqoridagi xabar belgisi yoki menyudagi «Çatlar» orqali odamlar bilan yozişasiz: matn, rasm, video, PDF, ovozli xabar va manbalar. Xabarga javob beriş, nusxa oliş, öçiriş mumkin; ✓✓ — öqildi degani. Qidiruv çatlarni, yangi odamlarni va yozilgan sözlarni topadi. Yopiq profilga faqat u kuzatadigan yoki uni kuzatadigan odamlar yoza oladi; keraksiz odamni bloklaş mumkin.",
+        tip: "Birovning profilida «Xabar yoziş» tugmasi bor.",
       },
       {
         title: "Kuzatiş va özingizga olish",
@@ -636,11 +641,16 @@ const en: GuideSection[] = [
       },
       {
         title: "Media and notifications",
-        text: "In Media you see what people share, search by username and take a source you like. Notifications are under the bell; choose the kinds and link the Telegram bot in Settings.",
+        text: "Media has two parts: “Everyone” — what anyone makes public (it shows without searching) — and “Following” — only the people you follow. Take a source you like or “Send” it to someone. Notifications are under the bell; choose the kinds and link the Telegram bot in Settings.",
       },
       {
         title: "Making a lesson public",
-        text: "A book’s page has a “Private / Public” button. Public items show on your profile with their title, status and rating. Notes, write-ups and files are never shown.",
+        text: "A book’s page has a “Private / Public” button. Public items show on your profile and in Media with their title, status and rating. When you make one public it asks whether your write-up and a ready audiobook should show too: unticked, they stay private. Notes and files are never shown.",
+      },
+      {
+        title: "Chats",
+        text: "Write to people from the message icon at the top or “Chats” in the menu: text, photos, video, PDFs, voice messages and sources. Reply, copy or delete a message; ✓✓ means read. The search finds your chats, new people and words you wrote. A private profile can only be written to by people it follows or who follow it; you can block anyone.",
+        tip: "Someone’s profile has a “Message” button.",
       },
       {
         title: "Follow and take it yourself",

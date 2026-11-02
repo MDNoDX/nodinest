@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import type { NotifyKey, NotifyPrefs } from "@/lib/notify-prefs";
 import { useAction } from "@/lib/use-action";
 
-const KEYS: NotifyKey[] = ["people", "plans", "goals", "news", "sound"];
+const KEYS: NotifyKey[] = ["messages", "people", "plans", "goals", "news", "sound"];
 
 /** Settings → Notifications: a switch per kind, and the Telegram bot. */
 export function NotificationSettings({

@@ -245,6 +245,13 @@ async function publicCover(ctx: AppContext, fileId: string) {
       and w.doc::text like ${`%${fileId}%`}
     join nodinest."user" u on u.id = w.user_id
     where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null and ${seen}
+    union
+    select f.id from nodinest.files f
+    join nodinest.dm_messages m on m.deleted_at is null
+      and (m.file_id = f.id or m.resource_id in
+        (select r.id from nodinest.resources r where r.cover_file_id = f.id))
+    join nodinest.dm_threads t on t.id = m.thread_id and ${ctx.userId} in (t.a_id, t.b_id)
+    where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null
     limit 1`);
   if (!f) return null;
   const [row] = await db.select().from(files).where(eq(files.id, fileId));
@@ -255,8 +262,13 @@ async function publicCover(ctx: AppContext, fileId: string) {
  * Streams a file the actor may read. Files moved to Telegram can be read in
  * byte ranges (`range` = [start, end] inclusive), so video seeking works.
  */
+/** The file row when the actor may read it: theirs, the catalog's, shown publicly, or sent to them. */
+export async function fileFor(ctx: AppContext, fileId: string) {
+  return (await readableFile(ctx, fileId)) ?? (await publicCover(ctx, fileId));
+}
+
 export async function openFile(ctx: AppContext, fileId: string, range?: [number, number?]) {
-  const f = (await readableFile(ctx, fileId)) ?? (await publicCover(ctx, fileId));
+  const f = await fileFor(ctx, fileId);
   if (!f) return null;
   const base = {
     contentType: f.mimeType,

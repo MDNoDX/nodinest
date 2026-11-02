@@ -9,6 +9,7 @@ import {
   setShared,
   takeSource,
 } from "@/server/social";
+import { z } from "zod";
 import { run } from "./_run";
 
 export async function followAction(userId: string, on: boolean) {
@@ -52,9 +53,16 @@ export async function setProfilePublicAction(on: boolean, bio: string | null) {
   });
 }
 
-export async function setItemVisibilityAction(resourceId: string, pub: boolean) {
+export async function setItemVisibilityAction(
+  resourceId: string,
+  pub: boolean,
+  extras?: { writeup?: boolean; audiobook?: boolean },
+) {
   return run(async ({ ctx }) => {
-    await setItemVisibility(ctx, resourceId, pub);
+    const e = z
+      .object({ writeup: z.boolean().optional(), audiobook: z.boolean().optional() })
+      .parse(extras ?? {});
+    await setItemVisibility(ctx, resourceId, pub === true, e);
     // The switch flips on the client at once; only profiles need fresh data.
     revalidatePath("/u", "layout");
   });

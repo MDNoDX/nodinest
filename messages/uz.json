@@ -115,7 +115,8 @@
     "guide": "Qöllanma",
     "community": "Hamjamiyat",
     "profile": "Profil",
-    "media": "Media"
+    "media": "Media",
+    "chats": "Çatlar"
   },
   "theme": {
     "label": "Mavzu",
@@ -936,7 +937,11 @@
     "deleteChats": "{n} ta suhbat öçirilsinmi? Bu ortga qaytmaydi.",
     "deleteN": "Öçiriş ({n})",
     "sayYesNo": "Tugmani bosing yoki «ha» yoki «yöq» deng.",
-    "premiumMonths": "{n} oy Premium"
+    "premiumMonths": "{n} oy Premium",
+    "talkTry": "Aytib köring",
+    "talkIdea1": "Öqiyotgan kitobim böyiça meni sinab kör",
+    "talkIdea2": "Amir Temur hayotini vaqt çizigida körsat",
+    "talkIdea3": "Stoitsizm va epikurçilikni taqqosla"
   },
   "stats": {
     "title": "Körsatkiçlar",
@@ -1240,7 +1245,9 @@
     "goPremium": "Premium’ni oçiş",
     "planLimit": "Bugungi bepul limit tugadi. Premium bilan kuniga ança köp foydalaniş mumkin.",
     "person_not_found": "Bunday foydalanuvçi topilmadi. Username, email yoki to'liq ismini ayting.",
-    "person_ambiguous": "Bu ismda bir neçta odam bor. Username'ini ayting."
+    "person_ambiguous": "Bu ismda bir neçta odam bor. Username'ini ayting.",
+    "dm_closed": "Bu odamga hozirça yozib bölmaydi: u faqat tanişlaridan xabar qabul qiladi.",
+    "dm_blocked": "Bu suhbatga yozib bölmaydi (bloklangan)."
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -2349,7 +2356,13 @@
     "manageAccount": "Hisobni boşqariş",
     "manageAccountHint": "Profil, xavfsizlik, bildirişnomalar va körinişlar",
     "sharedAudiobook": "Audiokitob",
-    "sharedWriteup": "Taqriz"
+    "sharedWriteup": "Taqriz",
+    "writeTo": "Xabar yoziş",
+    "shareWithTitle": "Hammaga oçiq qilinsinmi?",
+    "shareWithBody": "Kartoçka profilingizda va Media bölimida körinadi. Yana nimalar körinsin? Belgilanmaganlari yopiq qoladi.",
+    "shareWithWriteup": "Taqrizim",
+    "shareWithAudiobook": "Audiokitob",
+    "shareWithConfirm": "Oçiq qiliş"
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2379,7 +2392,6 @@
     "skipPh": "Sababi (ixtiyoriy)",
     "skipSave": "Bajarilmadi",
     "skipped": "Bajarilmadi",
-    "clearState": "Belgini olib taşlaş",
     "addSub": "Içki iş",
     "offToday": "Kundan olib taşlaş",
     "dayPage": "Kun qanday ötdi",
@@ -2570,7 +2582,8 @@
       "goal_soon": "Maqsad muddatiga 3 kun qoldi",
       "goal_due": "Maqsad muddati bugun. Erişdingizmi?",
       "weekly": "Haftangiz yakuni tayyor",
-      "news": "Röznoma yangiligi"
+      "news": "Röznoma yangiligi",
+      "message": "{name} sizga yozdi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2578,7 +2591,8 @@
       "goals": "Maqsadlar",
       "news": "Yangiliklar",
       "telegram": "Telegramga ham yuborilsin",
-      "sound": "Ovoz"
+      "sound": "Ovoz",
+      "messages": "Xabarlar"
     },
     "prefHint": {
       "people": "Kuzatiş, sörov, manbangizni oliş",
@@ -2586,7 +2600,8 @@
       "goals": "Muddat yaqinlaşganda",
       "news": "Sayt haqidagi xabarlar",
       "telegram": "Yuqoridagi yoqilgan bildirişnomalar botga ham keladi",
-      "sound": "Reja eslatmasi ovoz bilan çalinadi"
+      "sound": "Reja eslatmasi ovoz bilan çalinadi",
+      "messages": "Çatlarda yangi xabar kelganda"
     },
     "botTitle": "Telegram bot",
     "botHint": "Sayt yopiq bölsa ham eslatmalar botga keladi.",
@@ -2607,7 +2622,9 @@
     "waiting": "Sörovingiz javob kutmoqda",
     "ranking": "Eng faol",
     "rankDone": "{n} ta tugatgan",
-    "following": "Kuzatayotganlarim"
+    "following": "Kuzatayotganlarim",
+    "everyone": "Umumiy",
+    "emptyFollowing": "Kuzatayotgan odamlaringiz oçiq manba qöşganda şu yerda çiqadi."
   },
   "sectionHint": {
     "close": "Yopiş",
@@ -2618,5 +2635,73 @@
     "write": "Öz kitobingiz şu yerda yoziladi. Yil kundaligi Rejalardan özi töladi.",
     "assistant": "AI kitoblaringiz va rejalaringizni biladi. Yozing yoki «Jonli suhbat»ni bosing.",
     "stats": "Öqigan va örganganlaringiz raqamlarda."
+  },
+  "chat": {
+    "title": "Çatlar",
+    "unread": "{n} ta öqilmagan çat",
+    "search": "Qidiruv",
+    "searchPh": "Ism, @username yoki xabar",
+    "clear": "Tozalaş",
+    "chats": "Çatlar",
+    "people": "Odamlar",
+    "messages": "Xabarlar",
+    "empty": "Hali çat yöq",
+    "emptyBody": "Yuqoridagi qidiruvdan odamni toping yoki profilidagi «Xabar yoziş» tugmasini bosing.",
+    "noneFound": "Heç narsa topilmadi",
+    "you": "Siz",
+    "today": "Bugun",
+    "yesterday": "Keça",
+    "kind": {
+      "photo": "Rasm",
+      "voice": "Ovozli xabar",
+      "video": "Video",
+      "file": "Fayl",
+      "item": "Manba",
+      "deleted": "Xabar öçirildi"
+    },
+    "pause": "Töxtatiş",
+    "play": "Ijro etiş",
+    "open": "Oçiş",
+    "taken": "Kutubxonangizga qöşildi",
+    "take": "Kutubxonamga oliş",
+    "read": "Öqildi",
+    "delivered": "Yuborildi",
+    "sent": "{name}ga yuborildi",
+    "back": "Orqaga",
+    "more": "Yana",
+    "profile": "Profil",
+    "block": "Bloklaş",
+    "unblock": "Blokdan çiqariş",
+    "blockConfirm": "{name} bloklansinmi? U sizga yoza olmaydi, siz ham unga yoza olmaysiz.",
+    "blockedDone": "Bloklandi",
+    "unblockedDone": "Blokdan çiqarildi",
+    "startWith": "{name} bilan suhbatni boşlang. Matn, rasm, ovozli xabar yoki manba yuboriş mumkin.",
+    "reply": "Javob beriş",
+    "copy": "Nusxa oliş",
+    "copied": "Nusxa olindi",
+    "delete": "Öçiriş",
+    "retry": "Qayta yuboriş",
+    "toEnd": "Oxiriga",
+    "youBlocked": "Siz bu odamni bloklagansiz.",
+    "cannotWrite": "Bu suhbatga yozib bölmaydi.",
+    "cancel": "Bekor qiliş",
+    "record": "Ovozli xabar",
+    "attach": "Fayl biriktiriş",
+    "typeMessage": "Xabar yozing…",
+    "send": "Yuboriş",
+    "mic": {
+      "denied": "Mikrofonga ruxsat berilmagan. Brauzer sozlamalaridan ruxsat bering.",
+      "nomic": "Mikrofon topilmadi.",
+      "error": "Yozib bölmadi. Qayta urinib köring."
+    },
+    "failed": "Yuborilmadi",
+    "pick": "Çap tomondan suhbatni tanlang yoki yangisini boşlang.",
+    "closed": "Bu odam faqat özi kuzatadigan yoki uni kuzatadigan odamlardan xabar qabul qiladi.",
+    "sendTo": "Yuboriş",
+    "sendTitle": "Kimga yuborasiz?",
+    "searchPeople": "Ism yoki @username",
+    "recent": "Sönggi çatlar",
+    "note": "Izoh (ixtiyoriy)",
+    "openChat": "Çatni oçiş"
   }
 }

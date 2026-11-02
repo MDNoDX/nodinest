@@ -13,7 +13,7 @@ import { appSettings } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { encodeMp3 } from "../audiobook";
 import { hitRateLimit } from "../rate-limit";
-import { speak, speakLive } from "./gemini";
+import { sayable, speak, speakLive } from "./gemini";
 
 const KEY = "eleven_usage";
 const API = "https://api.elevenlabs.io/v1";
@@ -93,7 +93,7 @@ async function elevenLabs(text: string, kind: "female" | "male", lang: string) {
     method: "POST",
     headers: { "xi-api-key": key(), "content-type": "application/json" },
     body: JSON.stringify({
-      text,
+      text: sayable(text, lang),
       model_id: process.env.ELEVEN_MODEL ?? "eleven_v4",
       language_code: lang,
     }),
@@ -118,7 +118,7 @@ async function elevenLive(
     method: "POST",
     headers: { "xi-api-key": key(), "content-type": "application/json" },
     body: JSON.stringify({
-      text,
+      text: sayable(text, lang),
       model_id: process.env.ELEVEN_MODEL ?? "eleven_v4",
       language_code: lang,
     }),

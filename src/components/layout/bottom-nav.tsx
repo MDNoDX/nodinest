@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 
 /** Pages that need the whole screen for the text (the bar would cover it). */
-export const IMMERSIVE_RE = /^\/(library\/[^/]+\/(read|taqriz)|write\/[^/]+)/;
+export const IMMERSIVE_RE = /^\/(library\/[^/]+\/(read|taqriz)|write\/[^/]+|chats\/[^/]+)/;
 
 const TABS = [
   { href: "/", key: "dashboard", icon: Home, also: [] as string[] },

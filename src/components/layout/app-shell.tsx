@@ -15,6 +15,7 @@ import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
 import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
+import { ChatsButton, useUnreadChats } from "@/components/chat/chats-button";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
@@ -47,7 +48,7 @@ function subscribeSidebar(cb: () => void) {
   };
 }
 
-const WIDE_RE = /^\/library\/[^/]+\/taqriz/;
+const WIDE_RE = /^\/(library\/[^/]+\/taqriz|assistant)/;
 
 type ShellUser = {
   name: string;
@@ -163,6 +164,7 @@ export function AppShell({
   user,
   pendingSuggestions,
   unread,
+  unreadChats,
   alarms,
   timerSlot,
   aiDailyLimit,
@@ -176,6 +178,8 @@ export function AppShell({
   user: ShellUser;
   pendingSuggestions: number;
   unread: number;
+  /** Conversations with something unread (kept fresh while a page is open). */
+  unreadChats: number;
   alarms: { on: boolean; sound: boolean };
   timerSlot: React.ReactNode;
   children: React.ReactNode;
@@ -216,7 +220,8 @@ export function AppShell({
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
     order,
   ).map((i) => (i.key === "profile" && user.username ? { ...i, to: `/u/${user.username}` } : i));
-  const badge = { suggestions: pendingSuggestions };
+  const chats = useUnreadChats(unreadChats, pathname);
+  const badge = { suggestions: pendingSuggestions, chats };
 
   const sidebar = (mobile: boolean) => (
     <div className="flex h-full flex-col">
@@ -335,6 +340,7 @@ export function AppShell({
               <div className="ml-auto flex items-center gap-1.5">
                 {timerSlot}
                 <ThemeToggle />
+                <ChatsButton count={chats} />
                 <NotificationBell count={unread} />
                 <UserMenu user={user} />
               </div>

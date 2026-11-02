@@ -1514,3 +1514,71 @@ export const voiceSamples = nodinest.table("voice_samples", {
   mp3: text("mp3_base64").notNull(),
   createdAt: createdAt(),
 });
+
+/** A conversation between two people: one row per pair (a_id < b_id). */
+export const dmThreads = nodinest.table(
+  "dm_threads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    aId: uuid("a_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    bId: uuid("b_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Until when each side has read. */
+    aReadAt: ts("a_read_at"),
+    bReadAt: ts("b_read_at"),
+    lastAt: ts("last_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("dm_threads_pair_uq").on(t.aId, t.bId),
+    index("dm_threads_a_idx").on(t.aId, t.lastAt),
+    index("dm_threads_b_idx").on(t.bId, t.lastAt),
+    check("dm_threads_order", sql`${t.aId} < ${t.bId}`),
+  ],
+);
+
+/** One message: text, a file (photo, voice, video, PDF) and / or a shared item. */
+export const dmMessages = nodinest.table(
+  "dm_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    body: text("body"),
+    fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+    resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
+    replyToId: uuid("reply_to_id"),
+    createdAt: createdAt(),
+    deletedAt: ts("deleted_at"),
+  },
+  (t) => [
+    index("dm_messages_thread_idx").on(t.threadId, t.createdAt),
+    index("dm_messages_file_idx").on(t.fileId),
+    check("dm_messages_body_len", sql`char_length(${t.body}) <= 4000`),
+  ],
+);
+
+/** Someone I do not want to hear from: neither side can write to the other. */
+export const userBlocks = nodinest.table(
+  "user_blocks",
+  {
+    blockerId: uuid("blocker_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.blockerId, t.blockedId] }),
+    index("user_blocks_blocked_idx").on(t.blockedId),
+  ],
+);

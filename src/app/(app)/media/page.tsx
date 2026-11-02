@@ -16,9 +16,11 @@ export async function generateMetadata() {
 export default async function MediaPage({ searchParams }: { searchParams: SP }) {
   const { ctx } = await pageContext();
   const t = await getTranslations("media");
-  const kind = sp((await searchParams).kind) || "all";
+  const q = await searchParams;
+  const scope = sp(q.scope) === "following" ? "following" : "all";
+  const kind = sp(q.kind) || "all";
   const [items, asked, top] = await Promise.all([
-    mediaFeed(ctx, { kind }),
+    mediaFeed(ctx, { scope, kind }),
     myFollowRequests(ctx),
     ranking(),
   ]);
@@ -76,7 +78,7 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
           </ol>
         </section>
       )}
-      <MediaFeed key={kind} items={[...items]} kind={kind} />
+      <MediaFeed key={`${scope}-${kind}`} items={[...items]} scope={scope} kind={kind} />
     </>
   );
 }

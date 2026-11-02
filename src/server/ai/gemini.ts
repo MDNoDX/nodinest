@@ -249,6 +249,9 @@ export async function uploadToGemini(bytes: Uint8Array, mimeType: string): Promi
  * talk speaks each sentence at once). Tool calls work as usual. Anything that
  * goes wrong before the first word falls back to generate() and its reserves.
  */
+/** How long the live answer may stay silent before a second model is asked too. */
+const HEDGE_MS = 3500;
+
 export async function generateLive(
   contents: Content[],
   config: GenerateContentConfig,
@@ -258,30 +261,84 @@ export async function generateLive(
   const timeoutMs = opts.timeoutMs ?? 30_000;
   const now = Date.now();
   const models = aiModels();
-  const model = models.find((m) => (cooldown.get(m) ?? 0) <= now) ?? models[0];
+  const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
+  const order = ready.length ? ready : models;
   const parts: Part[] = [];
   let spoke = false;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const open = (model: string, signal: AbortSignal) =>
+    gemini()
+      .models.generateContentStream({
+        model,
+        contents,
+        config: {
+          safetySettings: SAFETY,
+          ...config,
+          abortSignal: signal,
+          httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
+        },
+      })
+      .then(async (stream) => {
+        const it = stream[Symbol.asyncIterator]();
+        const first = await it.next();
+        if (first.done) throw new Error("empty");
+        return { it, first: first.value, model };
+      });
   try {
-    const stream = await gemini().models.generateContentStream({
-      model,
-      contents,
-      config: {
-        safetySettings: SAFETY,
-        ...config,
-        abortSignal: controller.signal,
-        httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
-      },
+    // The model sometimes takes 10-20 s to begin. After HEDGE_MS without a
+    // word, the next model is asked too and the first to answer is kept.
+    const a = new AbortController();
+    const b = new AbortController();
+    controller.signal.addEventListener("abort", () => (a.abort(), b.abort()));
+    const lead = open(order[0], a.signal);
+    const second = order[1];
+    let hedge: ReturnType<typeof setTimeout> | undefined;
+    const winner = await new Promise<Awaited<ReturnType<typeof open>>>((resolve, reject) => {
+      let settled = false;
+      let hedged = false;
+      let failed = 0;
+      const win = (w: Awaited<ReturnType<typeof open>>) => {
+        if (settled) return;
+        settled = true;
+        resolve(w);
+      };
+      const lost = (e: unknown) => {
+        if (++failed >= (hedged ? 2 : 1) && !settled) {
+          settled = true;
+          reject(e);
+        }
+      };
+      const start = () => {
+        if (settled || hedged || !second) return;
+        hedged = true;
+        open(second, b.signal).then(win, lost);
+      };
+      lead.then(win, (e) => {
+        // The first one failed: the second is asked at once instead of waiting.
+        if (second && !hedged && !settled) {
+          hedged = true;
+          failed++;
+          open(second, b.signal).then(win, lost);
+        } else lost(e);
+      });
+      hedge = setTimeout(start, HEDGE_MS);
     });
-    for await (const chunk of stream) {
+    clearTimeout(hedge);
+    // The slower one is not needed any more.
+    (winner.model === order[0] ? b : a).abort();
+    if (process.env.NODE_ENV !== "production")
+      console.info(`[ai] ${winner.model} began in ${Date.now() - now} ms`);
+    const take = (chunk: GenerateContentResponse) => {
       parts.push(...(chunk.candidates?.[0]?.content?.parts ?? []));
       const piece = chunk.text;
       if (piece) {
         spoke = true;
         onText(piece);
       }
-    }
+    };
+    take(winner.first);
+    for (let n = await winner.it.next(); !n.done; n = await winner.it.next()) take(n.value);
     const functionCalls = parts.flatMap((p) => (p.functionCall ? [p.functionCall] : []));
     return {
       text: parts
@@ -409,8 +466,25 @@ function toPcm(data: string, mime: string): { pcm: Int16Array; rate: number } {
 }
 
 /** Gemini's voices say the letter "eks" for the Uzbek x; "kh" comes out as the sound. */
-const sayable = (text: string, languageCode?: string) =>
-  languageCode?.startsWith("uz") ? text.replace(/x/g, "kh").replace(/X/g, "Kh") : text;
+/**
+ * Uzbek as a voice says it right: the voices know no Uzbek spelling, so x is
+ * written "kh" (heard as [χ]; checked by ear-to-IPA) and the 2026 letters as
+ * the common Latin ones (ş → sh, ç → ch, ö → o‘, ğ → g‘).
+ */
+export const sayable = (text: string, languageCode?: string) =>
+  languageCode?.startsWith("uz")
+    ? text
+        .replace(/Ş/g, "Sh")
+        .replace(/ş/g, "sh")
+        .replace(/Ç/g, "Ch")
+        .replace(/ç/g, "ch")
+        .replace(/Ö/g, "O‘")
+        .replace(/ö/g, "o‘")
+        .replace(/Ğ/g, "G‘")
+        .replace(/ğ/g, "g‘")
+        .replace(/x/g, "kh")
+        .replace(/X/g, "Kh")
+    : text;
 
 /**
  * One voice, sent piece by piece as it is made (the live talk starts hearing it

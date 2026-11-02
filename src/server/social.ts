@@ -463,14 +463,48 @@ export async function myItemsVisibility(ctx: AppContext) {
   );
 }
 
-export async function setItemVisibility(ctx: AppContext, resourceId: string, pub: boolean) {
+/**
+ * Opens or closes an item. Opening may also show its write-up and audiobook
+ * (each asked for on its own; left out = left as it is).
+ */
+export async function setItemVisibility(
+  ctx: AppContext,
+  resourceId: string,
+  pub: boolean,
+  extras: { writeup?: boolean; audiobook?: boolean } = {},
+) {
   const id = z.string().uuid().parse(resourceId);
-  await withUser(db, ctx, (tx) =>
-    tx
+  await withUser(db, ctx, async (tx) => {
+    await tx
       .update(learningRecords)
       .set({ visibility: pub ? "public" : "private" })
-      .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id))),
+      .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id)));
+    if (!pub) return;
+    for (const [t, on] of [
+      [writeups, extras.writeup],
+      [audiobooks, extras.audiobook],
+    ] as const)
+      if (typeof on === "boolean")
+        await tx
+          .update(t)
+          .set({ isPublic: on })
+          .where(and(eq(t.userId, ctx.userId), eq(t.resourceId, id)));
+  });
+}
+
+/** What else an item can show and whether it does now (null: there is none yet). */
+export async function shareState(ctx: AppContext, resourceId: string) {
+  const id = z.string().uuid().parse(resourceId);
+  const [x] = await withUser(db, ctx, (tx) =>
+    tx.execute<{ writeup: boolean | null; audiobook: boolean | null }>(sql`
+      select
+        (select w.is_public from nodinest.writeups w
+          where w.user_id = ${ctx.userId} and w.resource_id = ${id} and w.words > 0) as writeup,
+        (select a.is_public from nodinest.audiobooks a
+          where a.user_id = ${ctx.userId} and a.resource_id = ${id} and a.status = 'ready')
+          as audiobook`),
   );
+  return { writeup: x?.writeup ?? null, audiobook: x?.audiobook ?? null };
 }
 
 export type MediaItem = PublicItem & {
@@ -483,10 +517,16 @@ export type MediaItem = PublicItem & {
   mine: boolean;
 };
 
-/** "Media": what people share, the ones I follow first, newest first. */
-export async function mediaFeed(ctx: AppContext, opts: { kind?: string; before?: string } = {}) {
-  const followed = opts.kind === "following";
-  const kind = opts.kind && opts.kind !== "all" && !followed ? opts.kind : null;
+/**
+ * "Media", newest first: everything shown publicly (mine too, so a new post is
+ * seen at once), or only the people I follow.
+ */
+export async function mediaFeed(
+  ctx: AppContext,
+  opts: { scope?: string; kind?: string; before?: string } = {},
+) {
+  const followed = opts.scope === "following";
+  const kind = opts.kind && opts.kind !== "all" ? opts.kind : null;
   const before = opts.before ? new Date(opts.before) : null;
   return db.execute<MediaItem>(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
@@ -499,7 +539,7 @@ export async function mediaFeed(ctx: AppContext, opts: { kind?: string; before?:
     from nodinest.learning_records lr
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
     join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
-    where lr.visibility = 'public' and lr.user_id <> ${ctx.userId} and ${canSee(ctx)}
+    where lr.visibility = 'public' and ${canSee(ctx)}
       ${kind ? sql`and r.type::text = ${kind}` : sql``}
       ${
         followed

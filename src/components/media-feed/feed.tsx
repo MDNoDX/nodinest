@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { takeSourceAction } from "@/app/actions/social";
 import { moreMediaAction } from "@/app/actions/media";
 import { Cover, coverSrc } from "@/components/library/cover";
+import { SendTo } from "@/components/chat/send-to";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
@@ -13,10 +14,30 @@ import { useAction } from "@/lib/use-action";
 import { youtubeIdFromUrl } from "@/lib/youtube";
 import type { MediaItem } from "@/server/social";
 
-const KINDS = ["all", "following", "book", "video", "podcast", "course", "article"];
+const KINDS = ["all", "book", "video", "podcast", "course", "article"];
+const SCOPES = ["all", "following"] as const;
 
-/** What people add, as small cards; a YouTube video opens in place. */
-export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string }) {
+const hrefOf = (scope: string, kind: string) => {
+  const q = new URLSearchParams();
+  if (scope !== "all") q.set("scope", scope);
+  if (kind !== "all") q.set("kind", kind);
+  const s = q.toString();
+  return s ? `/media?${s}` : "/media";
+};
+
+/**
+ * What people add, as small cards; a YouTube video opens in place. Two parts:
+ * everyone's public posts, and only the people I follow; the kind filters both.
+ */
+export function MediaFeed({
+  items,
+  scope,
+  kind,
+}: {
+  items: MediaItem[];
+  scope: string;
+  kind: string;
+}) {
   const t = useTranslations("media");
   const tt = useTranslations("types");
   const [list, setList] = useState(items);
@@ -26,14 +47,14 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
   const more = useCallback(async () => {
     if (loading.current || end || !list.length) return;
     loading.current = true;
-    const r = await moreMediaAction(kind, String(list[list.length - 1].updatedAt)).catch(
+    const r = await moreMediaAction(scope, kind, String(list[list.length - 1].updatedAt)).catch(
       () => null,
     );
     loading.current = false;
     if (!r?.ok) return setEnd(true);
     setList((l) => [...l, ...r.data]);
     if (r.data.length < 30) setEnd(true);
-  }, [end, kind, list]);
+  }, [end, scope, kind, list]);
   useEffect(() => {
     const el = tail.current;
     if (!el) return;
@@ -45,11 +66,28 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
   }, [more]);
   return (
     <div className="w-full">
+      <nav className="bg-surface-2 mb-3 grid grid-cols-2 gap-1 rounded-xl p-1">
+        {SCOPES.map((s) => (
+          <Link
+            key={s}
+            href={hrefOf(s, kind)}
+            aria-current={scope === s ? "page" : undefined}
+            className={cn(
+              "rounded-lg py-2 text-center text-sm font-semibold transition-colors",
+              scope === s
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            {t(s === "all" ? "everyone" : "following")}
+          </Link>
+        ))}
+      </nav>
       <nav className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {KINDS.map((k) => (
           <Link
             key={k}
-            href={k === "all" ? "/media" : `/media?kind=${k}`}
+            href={hrefOf(scope, k)}
             aria-current={kind === k ? "page" : undefined}
             className={cn(
               "shrink-0 rounded-full border px-3 py-1 text-xs font-medium",
@@ -58,12 +96,15 @@ export function MediaFeed({ items, kind }: { items: MediaItem[]; kind: string })
                 : "border-border text-muted",
             )}
           >
-            {k === "all" || k === "following" ? t(k) : tt(`plural.${k}` as "plural.book")}
+            {k === "all" ? t("all") : tt(`plural.${k}` as "plural.book")}
           </Link>
         ))}
       </nav>
       {list.length === 0 ? (
-        <EmptyState title={t("empty")} body={t("emptyBody")} />
+        <EmptyState
+          title={t("empty")}
+          body={t(scope === "following" ? "emptyFollowing" : "emptyBody")}
+        />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((it) => (
@@ -128,7 +169,10 @@ function Card({ it }: { it: MediaItem }) {
           </Link>
           {it.description && <p className="text-muted line-clamp-1 text-xs">{it.description}</p>}
           <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-            <span className="text-muted truncate text-xs">{tt(it.type as "book")}</span>
+            <span className="text-muted min-w-0 flex-1 truncate text-xs">
+              {tt(it.type as "book")}
+            </span>
+            <SendTo resourceId={it.resourceId} compact />
             <button
               type="button"
               disabled={taken || pending}

@@ -21,6 +21,7 @@ const uzPrivacy: LegalDoc = {
         "Hisobingiz: ism, familiya, foydalanuvçi nomi (username) va rasm. Google orqali kirsangiz — email manzilingiz ham; Telegram orqali kirsangiz — Telegram ID raqamingiz.",
         "Siz yaratgan narsalar: kitoblar röyxati va öqiş holati, taqrizlar, qaydlar, iqtiboslar, savol-kartoçkalar, maqsadlar, töplamlar, AI suhbatlari va yuklagan fayllaringiz.",
         "Botga yoki «Adminga yoziş» orqali yuborgan xabarlaringiz.",
+        "Çatlardagi xabarlaringiz va ular bilan yuborgan fayllaringiz: saytda ularni faqat siz va suhbatdoşingiz köradi, admin bölimida ham körinmaydi. Öçirgan xabaringiz ikki tomondan ham yöqoladi.",
       ],
     },
     {
@@ -67,6 +68,7 @@ const enPrivacy: LegalDoc = {
         "Your account: first and last name, username and picture. With Google — also your email; with Telegram — your Telegram ID.",
         "What you create: your library and reading status, write-ups, notes, quotes, study cards, goals, collections, AI chats and the files you upload.",
         "Messages you send to the bot or through “Write to the admin”.",
+        "Your messages in Chats and the files sent with them: on the site only you and the person you talk to see them; they are not shown in the admin pages either. A message you delete is gone for both of you.",
       ],
     },
     {
@@ -171,6 +173,7 @@ const ruPrivacy: LegalDoc = {
         "Ваш аккаунт: имя, фамилия, имя пользователя (username) и фото. При входе через Google — также email; через Telegram — ваш Telegram ID.",
         "То, что вы создаёте: библиотека и статус чтения, рецензии, заметки, цитаты, карточки, цели, подборки, чаты с ИИ и загруженные файлы.",
         "Сообщения, которые вы отправляете боту или через «Написать администратору».",
+        "Ваши сообщения в чатах и отправленные с ними файлы: на сайте их видите только вы и собеседник, в админ-разделе они тоже не показываются. Удалённое сообщение исчезает у обоих.",
       ],
     },
     {

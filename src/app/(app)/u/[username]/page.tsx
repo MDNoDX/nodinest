@@ -5,6 +5,7 @@ import {
   Eye,
   GraduationCap,
   Lock,
+  MessageCircle,
   Play,
   Settings,
 } from "lucide-react";
@@ -111,12 +112,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               bio={user.bio}
             />
           ) : (
-            <FollowButton
-              userId={p.id}
-              initial={p.isFollowing}
-              requested={p.requested}
-              locked={!p.profilePublic}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <FollowButton
+                userId={p.id}
+                initial={p.isFollowing}
+                requested={p.requested}
+                locked={!p.profilePublic}
+              />
+              <Link
+                href={`/chats/new?u=${encodeURIComponent(p.username)}`}
+                className="border-border-strong hover:bg-surface-2 inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors"
+              >
+                <MessageCircle className="size-4" /> {t("writeTo")}
+              </Link>
+            </div>
           )}
         </div>
         {p.bio && (

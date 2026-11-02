@@ -41,6 +41,8 @@ import { isStorageConfigured, listAttachments } from "@/server/storage";
 import { publicOwnerOf } from "@/server/social";
 import { AddMenu } from "@/components/library/add-menu";
 import { VisibilityToggle } from "@/components/social/visibility-toggle";
+import { SendTo } from "@/components/chat/send-to";
+import { shareState } from "@/server/social";
 import { pickName } from "@/i18n/config";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +80,7 @@ export default async function ResourcePage({
     listTextSources(ctx, id),
     getResume(db, ctx, id),
   ]);
+  const extras = d?.record ? await shareState(ctx, id) : undefined;
   if (!d) {
     // Someone else's entry: its public card, when they show it.
     const owner = await publicOwnerOf(ctx, id);
@@ -212,8 +215,10 @@ export default async function ResourcePage({
                   resourceId={r.id}
                   initial={d.record.visibility === "public"}
                   profilePublic={user.profilePublic}
+                  extras={extras}
                 />
               )}
+              {d.record && <SendTo resourceId={r.id} />}
             </div>
             <h1 className="mt-2 text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
               {r.title}

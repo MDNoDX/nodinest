@@ -14,6 +14,7 @@ const PAGES = [
   "/review",
   "/assistant",
   "/media",
+  "/chats",
   "/stats",
   "/stats?tab=plans",
   "/suggestions",

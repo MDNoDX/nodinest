@@ -115,7 +115,8 @@
     "guide": "Guide",
     "community": "Community",
     "profile": "Profile",
-    "media": "Media"
+    "media": "Media",
+    "chats": "Chats"
   },
   "theme": {
     "label": "Theme",
@@ -936,7 +937,11 @@
     "deleteChats": "Delete {n} conversations? This cannot be undone.",
     "deleteN": "Delete ({n})",
     "sayYesNo": "Press the button, or say \"yes\" or \"no\".",
-    "premiumMonths": "Premium for {n} months"
+    "premiumMonths": "Premium for {n} months",
+    "talkTry": "Try saying",
+    "talkIdea1": "Quiz me on the book I'm reading",
+    "talkIdea2": "Show Amir Temur's life on a timeline",
+    "talkIdea3": "Compare stoicism and epicureanism"
   },
   "stats": {
     "title": "Metrics",
@@ -1240,7 +1245,9 @@
     "goPremium": "Get Premium",
     "planLimit": "Today’s free limit is used up. Premium gives you much more each day.",
     "person_not_found": "No such user. Give their username, e-mail or full name.",
-    "person_ambiguous": "Several people have this name. Give their username."
+    "person_ambiguous": "Several people have this name. Give their username.",
+    "dm_closed": "You cannot write to this person yet: they only take messages from people they know.",
+    "dm_blocked": "You cannot write in this chat (blocked)."
   },
   "validation": {
     "required": "This field is required.",
@@ -2349,7 +2356,13 @@
     "manageAccount": "Manage your account",
     "manageAccountHint": "Profile, security, notifications and appearance",
     "sharedAudiobook": "Audiobook",
-    "sharedWriteup": "Write-up"
+    "sharedWriteup": "Write-up",
+    "writeTo": "Message",
+    "shareWithTitle": "Make it public?",
+    "shareWithBody": "The card shows on your profile and in Media. What else should show? Anything unticked stays private.",
+    "shareWithWriteup": "My write-up",
+    "shareWithAudiobook": "Audiobook",
+    "shareWithConfirm": "Make public"
   },
   "roznoma": {
     "tab_day": "Day",
@@ -2379,7 +2392,6 @@
     "skipPh": "Why (optional)",
     "skipSave": "Not done",
     "skipped": "Not done",
-    "clearState": "Clear the mark",
     "addSub": "Inner task",
     "offToday": "Take off the day",
     "dayPage": "How the day went",
@@ -2570,7 +2582,8 @@
       "goal_soon": "3 days left to your goal’s deadline",
       "goal_due": "Your goal is due today. Did you make it?",
       "weekly": "Your week’s result is ready",
-      "news": "News from Röznoma"
+      "news": "News from Röznoma",
+      "message": "{name} wrote to you"
     },
     "pref": {
       "people": "People",
@@ -2578,7 +2591,8 @@
       "goals": "Goals",
       "news": "News",
       "telegram": "Send to Telegram too",
-      "sound": "Sound"
+      "sound": "Sound",
+      "messages": "Messages"
     },
     "prefHint": {
       "people": "Follows, requests, sources taken",
@@ -2586,7 +2600,8 @@
       "goals": "When a deadline is near",
       "news": "Messages about the site",
       "telegram": "The notifications that are on also reach the bot",
-      "sound": "Plan reminders ring"
+      "sound": "Plan reminders ring",
+      "messages": "When a new message comes in Chats"
     },
     "botTitle": "Telegram bot",
     "botHint": "Reminders reach the bot even when the site is closed.",
@@ -2607,7 +2622,9 @@
     "waiting": "Your requests are waiting",
     "ranking": "Most active",
     "rankDone": "{n} finished",
-    "following": "People I follow"
+    "following": "People I follow",
+    "everyone": "Everyone",
+    "emptyFollowing": "When people you follow add a public source, it shows here."
   },
   "sectionHint": {
     "close": "Close",
@@ -2618,5 +2635,73 @@
     "write": "Your own book is written here. The year’s journal fills itself from Plans.",
     "assistant": "The AI knows your books and plans. Type, or press Live talk.",
     "stats": "What you read and learned, in numbers."
+  },
+  "chat": {
+    "title": "Chats",
+    "unread": "{n} unread chats",
+    "search": "Search",
+    "searchPh": "Name, @username or message",
+    "clear": "Clear",
+    "chats": "Chats",
+    "people": "People",
+    "messages": "Messages",
+    "empty": "No chats yet",
+    "emptyBody": "Find someone with the search above, or press “Message” on their profile.",
+    "noneFound": "Nothing found",
+    "you": "You",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "kind": {
+      "photo": "Photo",
+      "voice": "Voice message",
+      "video": "Video",
+      "file": "File",
+      "item": "Source",
+      "deleted": "Message deleted"
+    },
+    "pause": "Pause",
+    "play": "Play",
+    "open": "Open",
+    "taken": "Added to your library",
+    "take": "Add to my library",
+    "read": "Read",
+    "delivered": "Sent",
+    "sent": "Sent to {name}",
+    "back": "Back",
+    "more": "More",
+    "profile": "Profile",
+    "block": "Block",
+    "unblock": "Unblock",
+    "blockConfirm": "Block {name}? Neither of you will be able to write to the other.",
+    "blockedDone": "Blocked",
+    "unblockedDone": "Unblocked",
+    "startWith": "Start a conversation with {name}. You can send text, photos, voice messages or a source.",
+    "reply": "Reply",
+    "copy": "Copy",
+    "copied": "Copied",
+    "delete": "Delete",
+    "retry": "Send again",
+    "toEnd": "To the end",
+    "youBlocked": "You blocked this person.",
+    "cannotWrite": "You cannot write in this chat.",
+    "cancel": "Cancel",
+    "record": "Voice message",
+    "attach": "Attach a file",
+    "typeMessage": "Write a message…",
+    "send": "Send",
+    "mic": {
+      "denied": "No microphone access. Allow it in the browser settings.",
+      "nomic": "No microphone found.",
+      "error": "Could not record. Try again."
+    },
+    "failed": "Not sent",
+    "pick": "Choose a chat on the left or start a new one.",
+    "closed": "This person only takes messages from people they follow or who follow them.",
+    "sendTo": "Send",
+    "sendTitle": "Send to whom?",
+    "searchPeople": "Name or @username",
+    "recent": "Recent chats",
+    "note": "Comment (optional)",
+    "openChat": "Open chat"
   }
 }

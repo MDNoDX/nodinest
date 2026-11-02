@@ -652,9 +652,23 @@ select:not([multiple])::-ms-expand {
     transform: scaleX(0);
   }
 }
+/* The step being explained breathes. */
+.visual-pulse {
+  animation: visual-pulse 1.4s ease-in-out infinite;
+}
+@keyframes visual-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-amber) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .visual-card,
-  .visual-bar {
+  .visual-bar,
+  .visual-pulse {
     animation: none;
   }
 }
@@ -1258,4 +1272,43 @@ nav.overflow-x-auto,
 }
 .btn-primary:active {
   transform: scale(0.98);
+}
+
+/* Chatlar: the voice message's bar and a message found by search. */
+.chat-seek {
+  background: linear-gradient(
+    to right,
+    var(--primary) var(--pct, 0%),
+    color-mix(in oklab, var(--foreground) 15%, transparent) 0
+  );
+}
+.chat-seek::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+.chat-seek::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+}
+@keyframes chat-found {
+  0%,
+  60% {
+    background: color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.chat-found {
+  border-radius: 1rem;
+  animation: chat-found 2.4s ease-out;
+}
+.chat-scroll {
+  overscroll-behavior: contain;
 }

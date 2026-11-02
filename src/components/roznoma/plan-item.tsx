@@ -284,7 +284,7 @@ export function PlanItem({
                 )}
               </div>
             )}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               <Button size="sm" variant="ghost" onClick={onAddSub}>
                 <Plus /> {t("addSub")}
               </Button>
@@ -294,33 +294,30 @@ export function PlanItem({
               <Button size="sm" variant="ghost" onClick={onArchive}>
                 <Archive /> {t("offToday")}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
+              {/* Apart from the rest, in red; a second press takes the mark off. */}
+              <button
+                type="button"
                 aria-pressed={skipped}
                 onClick={() => {
-                  // One press is enough; the reason is there for who wants it.
-                  if (!skipped) onState({ status: "skipped", value: null, note2: null });
-                  setAsking(true);
-                }}
-              >
-                <X /> {t("skipSave")}
-              </Button>
-              {it.status && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
+                  if (skipped) {
                     onState({ status: null, value: null, note2: null });
-                    setValue("");
                     setWhy("");
                     setAsking(false);
-                    setOpen(false);
-                  }}
-                >
-                  {t("clearState")}
-                </Button>
-              )}
+                    return;
+                  }
+                  // One press is enough; the reason is there for who wants it.
+                  onState({ status: "skipped", value: null, note2: null });
+                  setAsking(true);
+                }}
+                className={cn(
+                  "ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors",
+                  skipped
+                    ? "border-[var(--c-rose)] bg-[var(--c-rose)] text-white"
+                    : "border-[var(--c-rose)]/40 bg-[var(--c-rose)]/10 text-[var(--c-rose)] hover:bg-[var(--c-rose)]/20",
+                )}
+              >
+                <X className="size-4" /> {t("skipSave")}
+              </button>
             </div>
             {asking && (
               <Input

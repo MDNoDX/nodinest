@@ -79,6 +79,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - First-visit guide: `components/onboarding/tour.tsx` (targets `data-tour="…"`; key
   `nodinest-tour-v1`, replay from Settings). E2E marks it seen in `tests/e2e/helpers.ts`.
 - Taqriz AI panel answers stream from `POST /api/ai/stream` (`generateStream` in gemini.ts).
+- `generateLive` races a second model when the first is silent for 3.5 s (`HEDGE_MS`). The live talk
+  with Gemini's voice speaks the first sentences at once and the rest in a second request; Uzbek goes
+  to every voice through `sayable()` (x → kh, 2026 letters → common Latin). `show_card` can play
+  steps / timeline / compare; cards reach the live talk as `visual` events while it speaks.
 - Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
   The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
@@ -188,6 +192,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   card. Never expose notes, files or book text of others; a write-up or an audiobook only when its owner
   turned it on (`is_public`, private by default; an audiobook asks first, and others hear only parts
   already voiced).
+- Chatlar (`server/dm.ts`, `/chats`, `components/chat/*`, tables `dm_threads` / `dm_messages` /
+  `user_blocks`, 0048): one thread per pair (a_id < b_id); RLS lets only the two members read it (no
+  superadmin bypass). Anyone may start one with a public profile, a private one only with a follow
+  either way; a block stops both sides. New messages by polling GET `/api/dm/[id]?after=` (3 s while
+  visible, 8 s when quiet), never server actions (they queue). Files go through `uploadMedia`;
+  `fileFor()` in storage lets both members open a message's file and a shared item's cover.
+  "Yuborish" (`chat/send-to.tsx`) sends an item card; the receiver may take only the card.
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

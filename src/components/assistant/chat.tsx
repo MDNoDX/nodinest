@@ -578,7 +578,8 @@ export function Chat({
   const [error, setError] = useState<{ text: string; premium: boolean } | null>(null);
   const [pending, start] = useTransition();
   const box = useRef<HTMLDivElement>(null);
-  const toEnd = useFollowBottom(box);
+  const scroller = useRef<HTMLDivElement>(null);
+  const toEnd = useFollowBottom(box, scroller);
   const picker = useRef<HTMLInputElement>(null);
   const rec = useRecorder();
   const [talking, setTalking] = useState(false);
@@ -692,141 +693,153 @@ export function Chat({
           : t("unavailable");
 
   return (
-    <div ref={box} className="flex min-h-[60vh] flex-col">
-      {available && (
-        <button
-          type="button"
-          onClick={() => setTalking(true)}
-          className="mx-auto mb-5 flex items-center gap-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-transform hover:scale-[1.03]"
+    <div className="flex h-full min-h-0 flex-col">
+      {/* The talk scrolls on its own; the box to write in always stays below it. */}
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div
+          ref={box}
+          className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-4 py-5 sm:px-8"
         >
-          <AudioLines className="size-5" /> {t("voiceTalk")}
-        </button>
-      )}
-      {talking && (
-        <VoiceTalk
-          conversationId={conversationId}
-          onClose={closeTalk}
-          cards={
-            talkCards.some((id) => actions[id]?.status === "proposed") ? (
-              <div className="text-foreground flex flex-col gap-2 text-left">
-                {talkCards
-                  .filter((id) => actions[id]?.status === "proposed")
-                  .map((id) => (
-                    <ProposalCard
-                      key={id}
-                      action={actions[id]}
-                      onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
-                    />
-                  ))}
-              </div>
-            ) : null
-          }
-          onTurn={(turn) => {
-            // A card answered by voice changes its state; new ones wait here and in the chat.
-            setActions((s) => {
-              const next = { ...s };
-              for (const a of turn.actions) next[a.id] = { ...next[a.id], ...a };
-              return next;
-            });
-            const fresh = turn.actions.filter((a) => a.status === "proposed").map((a) => a.id);
-            if (fresh.length) setTalkCards(fresh);
-            if (!conversationId) {
-              setConversationId(turn.conversationId);
-              // Not the router: a new address would remount the chat and end the talk.
-              window.history.replaceState(null, "", `/assistant?c=${turn.conversationId}`);
-            }
-            setMessages((m) => [
-              ...m,
-              { id: `v-${Date.now()}`, role: "user", content: turn.heard },
-              {
-                id: `vr-${Date.now()}`,
-                role: "model",
-                content: turn.reply,
-                visuals: turn.visuals,
-                actions: fresh.length ? fresh : undefined,
-              },
-            ]);
-          }}
-        />
-      )}
-      {!available && (
-        <div className="bg-warning-soft text-warning mb-4 rounded-xl p-4 text-sm">{reasonText}</div>
-      )}
-      <div className="flex flex-1 flex-col gap-5" aria-live="polite">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={cn("flex flex-col gap-2", m.role === "user" ? "items-end" : "items-start")}
-          >
-            <div className="text-muted text-xs">{m.role === "user" ? t("you") : t("ai")}</div>
-            {m.attachments && m.attachments.length > 0 && (
-              <div className="flex max-w-[min(42rem,100%)] flex-wrap justify-end gap-2">
-                {m.attachments.map((a) => (
-                  <AttachmentView key={a.fileId} a={a} />
-                ))}
-              </div>
-            )}
-            {m.content && (
+          {available && (
+            <button
+              type="button"
+              onClick={() => setTalking(true)}
+              className="mx-auto mb-5 flex items-center gap-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-transform hover:scale-[1.03]"
+            >
+              <AudioLines className="size-5" /> {t("voiceTalk")}
+            </button>
+          )}
+          {talking && (
+            <VoiceTalk
+              conversationId={conversationId}
+              onClose={closeTalk}
+              cards={
+                talkCards.some((id) => actions[id]?.status === "proposed") ? (
+                  <div className="text-foreground flex flex-col gap-2 text-left">
+                    {talkCards
+                      .filter((id) => actions[id]?.status === "proposed")
+                      .map((id) => (
+                        <ProposalCard
+                          key={id}
+                          action={actions[id]}
+                          onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
+                        />
+                      ))}
+                  </div>
+                ) : null
+              }
+              onTurn={(turn) => {
+                // A card answered by voice changes its state; new ones wait here and in the chat.
+                setActions((s) => {
+                  const next = { ...s };
+                  for (const a of turn.actions) next[a.id] = { ...next[a.id], ...a };
+                  return next;
+                });
+                const fresh = turn.actions.filter((a) => a.status === "proposed").map((a) => a.id);
+                if (fresh.length) setTalkCards(fresh);
+                if (!conversationId) {
+                  setConversationId(turn.conversationId);
+                  // Not the router: a new address would remount the chat and end the talk.
+                  window.history.replaceState(null, "", `/assistant?c=${turn.conversationId}`);
+                }
+                setMessages((m) => [
+                  ...m,
+                  { id: `v-${Date.now()}`, role: "user", content: turn.heard },
+                  {
+                    id: `vr-${Date.now()}`,
+                    role: "model",
+                    content: turn.reply,
+                    visuals: turn.visuals,
+                    actions: fresh.length ? fresh : undefined,
+                  },
+                ]);
+              }}
+            />
+          )}
+          {!available && (
+            <div className="bg-warning-soft text-warning mb-4 rounded-xl p-4 text-sm">
+              {reasonText}
+            </div>
+          )}
+          <div className="flex flex-1 flex-col gap-5" aria-live="polite">
+            {messages.map((m) => (
               <div
+                key={m.id}
                 className={cn(
-                  "max-w-[min(42rem,100%)] rounded-2xl px-4 py-3",
-                  m.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "border-border bg-surface border",
+                  "flex flex-col gap-2",
+                  m.role === "user" ? "items-end" : "items-start",
                 )}
               >
-                {m.role === "user" ? (
-                  <p className="text-[15px] whitespace-pre-wrap">{m.content}</p>
-                ) : (
-                  <RichText text={m.content} />
+                <div className="text-muted text-xs">{m.role === "user" ? t("you") : t("ai")}</div>
+                {m.attachments && m.attachments.length > 0 && (
+                  <div className="flex max-w-[min(52rem,92%)] flex-wrap justify-end gap-2">
+                    {m.attachments.map((a) => (
+                      <AttachmentView key={a.fileId} a={a} />
+                    ))}
+                  </div>
+                )}
+                {m.content && (
+                  <div
+                    className={cn(
+                      "max-w-[min(52rem,92%)] rounded-2xl px-4 py-3",
+                      m.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "border-border bg-surface border",
+                    )}
+                  >
+                    {m.role === "user" ? (
+                      <p className="text-[15px] whitespace-pre-wrap">{m.content}</p>
+                    ) : (
+                      <RichText text={m.content} />
+                    )}
+                  </div>
+                )}
+                {m.visuals && m.visuals.length > 0 && (
+                  <div className="flex w-full max-w-[min(52rem,92%)] flex-col gap-2">
+                    {m.visuals.map((v, i) => (
+                      <VisualCard key={i} v={v} />
+                    ))}
+                  </div>
+                )}
+                {m.actions && m.actions.length > 0 && (
+                  <div className="flex w-full max-w-[min(52rem,92%)] flex-col gap-2.5">
+                    <ProposalGroup ids={m.actions} actions={actions} setActions={setActions} />
+                    {m.actions.map((id) =>
+                      actions[id] ? (
+                        <ProposalCard
+                          key={id}
+                          action={actions[id]}
+                          onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
+                        />
+                      ) : null,
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {pending && (
+              <div className="text-muted flex items-center gap-2 text-sm">
+                <span className="bg-accent size-2 animate-pulse rounded-full" /> {t("thinking")}
+              </div>
+            )}
+            {error && (
+              <div
+                role="alert"
+                className="bg-danger-soft text-danger flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm"
+              >
+                <span className="flex-1">{error.text}</span>
+                {error.premium && (
+                  <Button asChild size="sm">
+                    <Link href="/premium">{te("goPremium")}</Link>
+                  </Button>
                 )}
               </div>
             )}
-            {m.visuals && m.visuals.length > 0 && (
-              <div className="flex w-full max-w-[min(42rem,100%)] flex-col gap-2">
-                {m.visuals.map((v, i) => (
-                  <VisualCard key={i} v={v} />
-                ))}
-              </div>
-            )}
-            {m.actions && m.actions.length > 0 && (
-              <div className="flex w-full max-w-[min(42rem,100%)] flex-col gap-2.5">
-                <ProposalGroup ids={m.actions} actions={actions} setActions={setActions} />
-                {m.actions.map((id) =>
-                  actions[id] ? (
-                    <ProposalCard
-                      key={id}
-                      action={actions[id]}
-                      onChange={(a) => setActions((s) => ({ ...s, [a.id]: a }))}
-                    />
-                  ) : null,
-                )}
-              </div>
-            )}
           </div>
-        ))}
-        {pending && (
-          <div className="text-muted flex items-center gap-2 text-sm">
-            <span className="bg-accent size-2 animate-pulse rounded-full" /> {t("thinking")}
-          </div>
-        )}
-        {error && (
-          <div
-            role="alert"
-            className="bg-danger-soft text-danger flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm"
-          >
-            <span className="flex-1">{error.text}</span>
-            {error.premium && (
-              <Button asChild size="sm">
-                <Link href="/premium">{te("goPremium")}</Link>
-              </Button>
-            )}
-          </div>
-        )}
+        </div>
       </div>
-
       <form
-        className="border-border bg-background/90 sticky bottom-[var(--bottom-nav,0px)] -mx-4 mt-6 border-t px-4 pt-3 pb-4 backdrop-blur sm:mx-0"
+        className="border-border bg-background/90 mx-auto w-full max-w-5xl shrink-0 border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur sm:px-8"
         onSubmit={(e) => {
           e.preventDefault();
           send(input);

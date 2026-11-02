@@ -48,6 +48,7 @@ export type VoiceEvent =
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
   | { t: "pcm"; audio: string; rate: number }
+  | { t: "visual"; visual: unknown }
   | {
       t: "done";
       reply: string;
@@ -130,9 +131,39 @@ export async function voiceTurn(
     });
   };
 
+  // Gemini's voice is one request per piece (few a day): the first sentences
+  // go as soon as they are written, the rest in a second piece at the end.
+  const liveOut = (piece: string) => {
+    const voice = speaker;
+    const text = forSpeech(piece).slice(0, MAX_TURN_CHARS - spent);
+    if (!text || !voice?.live || signal?.aborted) return;
+    spent += text.length;
+    sent = sent.then(async () => {
+      if (signal?.aborted) return;
+      const ok = await voice.live!(text, (audio, rate) => emit({ t: "pcm", audio, rate })).catch(
+        () => false,
+      );
+      if (ok) return;
+      const mp3 = await voice.say(text).catch(() => null);
+      if (mp3) emit({ t: "audio", audio: mp3.toString("base64") });
+    });
+  };
+
   let pending = "";
+  let raw = "";
+  let early: number | null = null;
   let first = true;
   const flush = () => {
+    if (speaker && !speaker.chunked) {
+      if (early == null && speaker.live) {
+        const end = nextSentences(raw, 80);
+        if (end != null) {
+          early = end;
+          liveOut(raw.slice(0, end));
+        }
+      }
+      return;
+    }
     if (!speaker?.chunked) return;
     for (;;) {
       const end = nextSentences(pending, first ? 8 : 40);
@@ -196,22 +227,19 @@ export async function voiceTurn(
     locale: input.locale,
     timeZone: input.timeZone,
     onConversation: (id) => emit({ t: "conv", conversationId: id }),
+    onVisual: (visual) => emit({ t: "visual", visual }),
     onText: (piece) => {
       emit({ t: "text", piece });
       pending += piece;
+      raw += piece;
       flush();
     },
   });
   await ready;
   if (!turn.reply) return;
   const voice = speaker as TalkVoice | null;
-  if (voice?.live) {
-    const text = forSpeech(turn.reply).slice(0, MAX_TURN_CHARS);
-    const ok = await voice
-      .live(text, (audio, rate) => emit({ t: "pcm", audio, rate }))
-      .catch(() => false);
-    if (!ok) speakOut(turn.reply);
-  } else speakOut(spent + pending.length > 0 ? pending : turn.reply);
+  if (voice?.live) liveOut(early == null ? turn.reply : raw.slice(early));
+  else speakOut(spent + pending.length > 0 ? pending : turn.reply);
   await sent;
   emit({
     t: "done",

@@ -47,6 +47,16 @@ export type Visual = {
   points?: string[];
   chart?: { label: string; value: number }[];
   quiz?: { question: string; options: string[]; answer: number };
+  /** A process, played step by step. */
+  steps?: { title: string; text?: string }[];
+  /** Dates in order, drawn along a line. */
+  timeline?: { when: string; what: string }[];
+  /** Two things side by side. */
+  compare?: {
+    left: string;
+    right: string;
+    rows: { label?: string; left: string; right: string }[];
+  };
 };
 
 export type AssistantTurn = {
@@ -111,7 +121,18 @@ const SPOKEN = `
 THIS IS A LIVE VOICE CONVERSATION
 - Your answer is spoken aloud. Start with the answer itself, no greeting. Simple question: one or two clear sentences. When it needs explaining, explain it properly in flowing spoken sentences, up to about a minute. No lists, headings, emojis, links, markdown or symbols; numbers and abbreviations written as they are said.
 - The user's words came from speech recognition: if something sounds garbled, understand the likely meaning or ask briefly.
-- For anything worth seeing, say one line and call show_card: the screen shows it beside the sphere.`;
+- SHOW what you explain: call show_card early in the answer, before you speak about it, and the card animates on the screen while you talk. A process → steps; history or a life → timeline; two ideas, books or people → compare; numbers → chart; a summary → points; checking understanding → quiz. One card per answer is enough; skip it for small talk.
+- Uzbek is spoken in Latin letters as usual (x, ch, sh, o‘, g‘); never spell sounds out.`;
+
+/** Both modes: preparing the user by questions (a quiz, an exam, practice). */
+const TEACH = `
+
+TEACH BY QUESTIONS
+- When the user asks to be tested, quizzed, prepared for an exam or a talk, to practise or to "ask me", or says yes when you offer it: run a short session. Take the topic they name; if they name none, pick one from what they are reading, their notes, quotes or study cards (use the read tools) and say which.
+- Ask ONE question at a time and wait for the answer: an open question, or show_card with a quiz of 3-4 options. Never ask several at once and never give the answer in the question.
+- After each answer: right or not in one sentence, why in one or two, then the next question; a little harder after a right answer, easier after a wrong one. Keep count ("3 of 4 right").
+- After about five questions, or when they want to stop: what they know well, what to review, and offer make_study_cards for the weak points.
+- In the live voice talk the user answers by voice; accept the meaning even if words come out garbled.`;
 
 /** "Suhbat" with the site's owner (the superadmin account): no topic is off limits. */
 const OWNER_TALK = `- You are talking with the OWNER and builder of Röznoma (the superadmin). With them nothing about the site is secret: discuss its design, code structure, features, plans, business and marketing openly and in depth, like a trusted co-founder. Be maximally direct. Use site_report and site_users for real numbers: users, Premium, payments, messages, what people struggle with, and flagged incidents; say what to fix first, and bring your own proposals for the site unasked when you see something worth changing. You can act for them through confirmation cards: announce_to_users (a notification to everyone), answer_message (reply to a user's message) and grant_premium. The site is Next.js 16 + Postgres (Drizzle, row-level security) on Vercel, Better Auth, Gemini + ElevenLabs + OpenRouter, Telegram for files, alerts and the bot.`;
@@ -369,6 +390,8 @@ export async function runAssistant(
     onText?: (piece: string) => void;
     /** The conversation is known (before the model answers). */
     onConversation?: (id: string) => void;
+    /** A card to show, as soon as the model asks for it (the live talk shows it while speaking). */
+    onVisual?: (v: Visual) => void;
   },
 ): Promise<AssistantTurn> {
   const attachments = await describeFiles(ctx, [...new Set(input.attachments ?? [])].slice(0, 6));
@@ -479,6 +502,7 @@ export async function runAssistant(
         persona(!!ctx.superadminAccount, profile, memory) +
         "\n\n" +
         systemInstruction(input.locale, input.timeZone, context + earlier) +
+        TEACH +
         (input.spoken ? SPOKEN : "") +
         (input.audio ? "\n- Answer in the language the user spoke in." : ""),
       tools,
@@ -559,7 +583,11 @@ export async function runAssistant(
             };
           } else {
             const result = await runTool(name, call.args, ctx, env);
-            if (name === "show_card") visuals.push((result as { card: Visual }).card);
+            if (name === "show_card") {
+              const card = (result as { card: Visual }).card;
+              visuals.push(card);
+              input.onVisual?.(card);
+            }
             if (mode === "act") {
               const [row] = await withUser(db, ctx, (tx) =>
                 tx

@@ -21,6 +21,7 @@ type Event =
   | { t: "text"; piece: string }
   | { t: "audio"; audio: string }
   | { t: "pcm"; audio: string; rate: number }
+  | { t: "visual"; visual: Visual }
   | {
       t: "done";
       reply: string;
@@ -289,7 +290,10 @@ export function VoiceTalk({
           heard = e.heard;
           setCaption({ heard, reply });
         } else if (e.t === "conv") x.conv = e.conversationId;
-        else if (e.t === "text") {
+        else if (e.t === "visual") {
+          // Shown while the answer is spoken, newest first.
+          setCards((c) => (c.some((v) => v.title === e.visual.title) ? c : [e.visual, ...c]));
+        } else if (e.t === "text") {
           reply += e.piece;
           setCaption({ heard, reply });
         } else if (e.t === "audio") {
@@ -568,6 +572,19 @@ export function VoiceTalk({
           <div className="animate-scale-in flex max-h-[45vh] w-full flex-col gap-2 overflow-y-auto text-left">
             {actionCards}
             <p className="text-xs text-white/60">{t("sayYesNo")}</p>
+          </div>
+        )}
+        {!caption && cards.length === 0 && !actionCards && (
+          // What one can ask for: a quiz, a timeline, a comparison.
+          <div className="flex flex-col items-center gap-1.5 text-xs text-white/55">
+            <span className="font-semibold tracking-wide text-white/40 uppercase">
+              {t("talkTry")}
+            </span>
+            {(["talkIdea1", "talkIdea2", "talkIdea3"] as const).map((k) => (
+              <span key={k} className="rounded-full border border-white/10 px-3 py-1">
+                «{t(k)}»
+              </span>
+            ))}
           </div>
         )}
         {caption && (

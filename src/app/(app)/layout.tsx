@@ -7,6 +7,7 @@ import { feedback } from "@/db/schema";
 import { requireUser, toCtx } from "@/lib/auth/session";
 import { readPrefs } from "@/lib/notify-prefs";
 import { unreadCount } from "@/server/notifications";
+import { unreadChats } from "@/server/dm";
 import { limitsFor } from "@/server/premium";
 import { adFor } from "@/server/ads";
 import { AdCard } from "@/components/ads/ad-card";
@@ -22,13 +23,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user.username) redirect("/welcome");
   // Badge on "Takliflar": new messages to the admin (superadmin account).
   const ctx = toCtx(user);
-  const [pending, plan, ad, unread] = await Promise.all([
+  const [pending, plan, ad, unread, chats] = await Promise.all([
     user.isSuperadmin || user.adminPerms.includes("feedback")
       ? db.select({ n: count() }).from(feedback).where(eq(feedback.status, "new"))
       : Promise.resolve([{ n: 0 }]),
     limitsFor(ctx),
     adFor(ctx, "sidebar"),
     unreadCount(ctx),
+    unreadChats(ctx),
   ]);
   const tAds = await getTranslations("ads");
   const prefs = readPrefs(user.notify);
@@ -47,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
       pendingSuggestions={Number(pending[0]?.n ?? 0)}
       unread={unread}
+      unreadChats={chats}
       alarms={{ on: prefs.plans, sound: prefs.sound }}
       timerSlot={user.isSuperadmin ? <AdminToggle on={user.adminMode} /> : null}
     >

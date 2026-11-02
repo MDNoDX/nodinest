@@ -2,34 +2,45 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 
 const NEAR = 120;
-const pageEnd = () => window.scrollTo({ top: document.documentElement.scrollHeight });
+const goEnd = (s: HTMLElement | null | undefined) => {
+  if (s) s.scrollTo({ top: s.scrollHeight });
+  else window.scrollTo({ top: document.documentElement.scrollHeight });
+};
 
 /**
- * Keeps a page-long chat at its newest line: it follows anything that makes
- * `box` taller (an answer, a card, a picture that loads) while the reader is at
- * the bottom, and stays put once they scroll up. Returns "go to the end".
+ * Keeps a chat at its newest line: it follows anything that makes `box` taller
+ * (an answer, a card, a picture that loads) while the reader is at the bottom,
+ * and stays put once they scroll up. The scrolling is the page's, or that of
+ * `scroller` when the chat scrolls inside its own area. Returns "go to the end".
  */
-export function useFollowBottom(box: RefObject<HTMLElement | null>) {
+export function useFollowBottom(
+  box: RefObject<HTMLElement | null>,
+  scroller?: RefObject<HTMLElement | null>,
+) {
   const follow = useRef(true);
   useEffect(() => {
     const el = box.current;
     if (!el) return;
+    const s = scroller?.current;
     const onScroll = () => {
-      const { scrollHeight } = document.documentElement;
-      follow.current = scrollHeight - window.scrollY - window.innerHeight < NEAR;
+      follow.current = s
+        ? s.scrollHeight - s.scrollTop - s.clientHeight < NEAR
+        : document.documentElement.scrollHeight - window.scrollY - window.innerHeight < NEAR;
     };
     const grew = new ResizeObserver(() => {
-      if (follow.current) pageEnd();
+      if (follow.current) goEnd(s);
     });
     grew.observe(el);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    if (s) grew.observe(s);
+    const target: HTMLElement | Window = s ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       grew.disconnect();
-      window.removeEventListener("scroll", onScroll);
+      target.removeEventListener("scroll", onScroll);
     };
-  }, [box]);
+  }, [box, scroller]);
   return useCallback(() => {
     follow.current = true;
-    pageEnd();
-  }, []);
+    goEnd(scroller ? scroller.current : null);
+  }, [scroller]);
 }
