@@ -21,6 +21,8 @@ export const PREF_OF: Record<string, NotifyKey> = {
   follow_request: "people",
   follow_accepted: "people",
   copied: "people",
+  like: "people",
+  comment: "people",
   goal_soon: "goals",
   goal_due: "goals",
   weekly: "plans",

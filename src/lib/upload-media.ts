@@ -13,7 +13,7 @@ const EXT_MIME: Record<string, string> = {
   gif: "image/gif",
   heic: "image/heic",
   m4a: "audio/mp4",
-  mp4: "audio/mp4",
+  mp4: "video/mp4",
   mp3: "audio/mpeg",
   wav: "audio/wav",
   ogg: "audio/ogg",
@@ -40,6 +40,8 @@ export async function uploadMedia(
     name?: string;
     resourceId?: string | null;
     onProgress?: (pct: number) => void;
+    /** Stops the upload (a "cancel" while a big video goes up). */
+    signal?: AbortSignal;
   },
 ): Promise<UploadedMedia> {
   const name = opts.name ?? (input instanceof File ? input.name : "recording");
@@ -57,7 +59,9 @@ export async function uploadMedia(
     contentType: mime,
     multipart: file.size > 20 * 1024 * 1024,
     onUploadProgress: (e) => opts.onProgress?.(Math.round(e.percentage)),
+    abortSignal: opts.signal,
   });
+  if (opts.signal?.aborted) throw new DOMException("cancelled", "AbortError");
   const r = await registerUploadAction({
     pathname: blob.pathname,
     purpose: "media",

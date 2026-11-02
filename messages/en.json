@@ -1216,7 +1216,8 @@
     "badType": "This file type is not allowed.",
     "unavailable": "Uploads are not configured; paste an image URL instead.",
     "coverUpload": "Upload image",
-    "dropHint": "Drop the file here or click · PDF or EPUB · up to {max} MB"
+    "dropHint": "Drop the file here or click · PDF or EPUB · up to {max} MB",
+    "cancel": "Cancel"
   },
   "empty": {
     "nothingHere": "Nothing here yet."
@@ -2245,7 +2246,7 @@
     "approve": "Confirm",
     "reject": "Reject",
     "saved": "Saved",
-    "enabled": "Premium is on (when off, everyone gets the Premium limits)",
+    "enabled": "The Premium system is on. Switch it off and the site is entirely free: everyone gets everything, and no Premium marks, page or payment prompts are shown to anyone.",
     "price": "Monthly price (so‘m)",
     "card": "Card number",
     "cardHolder": "Card holder",
@@ -2362,7 +2363,11 @@
     "shareWithBody": "The card shows on your profile and in Media. What else should show? Anything unticked stays private.",
     "shareWithWriteup": "My write-up",
     "shareWithAudiobook": "Audiobook",
-    "shareWithConfirm": "Make public"
+    "shareWithConfirm": "Make public",
+    "shareWithText": "The book's text (PDF)",
+    "shareWithTextHint": "Those who see it can read the book on the site.",
+    "shareWithTerms": "Who answers for what you make public: see the <terms>terms of use</terms>.",
+    "readBook": "Read the book"
   },
   "roznoma": {
     "tab_day": "Day",
@@ -2583,7 +2588,9 @@
       "goal_due": "Your goal is due today. Did you make it?",
       "weekly": "Your week’s result is ready",
       "news": "News from Röznoma",
-      "message": "{name} wrote to you"
+      "message": "{name} wrote to you",
+      "like": "{name} found your post great",
+      "comment": "{name} commented on your post"
     },
     "pref": {
       "people": "People",
@@ -2624,7 +2631,12 @@
     "rankDone": "{n} finished",
     "following": "People I follow",
     "everyone": "Everyone",
-    "emptyFollowing": "When people you follow add a public source, it shows here."
+    "emptyFollowing": "When people you follow add a public source, it shows here.",
+    "like": "Great",
+    "comments": "Comments",
+    "comment": "Comment",
+    "noComments": "No comments yet. Be the first.",
+    "writeComment": "Write a comment…"
   },
   "sectionHint": {
     "close": "Close",
@@ -2641,7 +2653,7 @@
     "unread": "{n} unread chats",
     "search": "Search",
     "searchPh": "Name, @username or message",
-    "clear": "Clear",
+    "clear": "Clear chat",
     "chats": "Chats",
     "people": "People",
     "messages": "Messages",
@@ -2657,7 +2669,8 @@
       "video": "Video",
       "file": "File",
       "item": "Source",
-      "deleted": "Message deleted"
+      "deleted": "Message deleted",
+      "gif": "GIF"
     },
     "pause": "Pause",
     "play": "Play",
@@ -2702,6 +2715,49 @@
     "searchPeople": "Name or @username",
     "recent": "Recent chats",
     "note": "Comment (optional)",
-    "openChat": "Open chat"
+    "openChat": "Open chat",
+    "online": "online",
+    "seenMin": "seen {n} min ago",
+    "seenHours": "seen {n} h ago",
+    "seenYesterday": "seen yesterday at {time}",
+    "seenOn": "seen {date}",
+    "emoji": "Emoji, GIFs and stickers",
+    "gifSearch": "Search GIFs",
+    "stickerSearch": "Search stickers",
+    "recentEmoji": "Recent",
+    "emojiKind": {
+      "smileys": "Faces",
+      "gestures": "Gestures",
+      "hearts": "Hearts and signs",
+      "study": "Study",
+      "nature": "Nature",
+      "food": "Food",
+      "things": "Things"
+    },
+    "gifOff": "GIFs are not connected yet.",
+    "pickTab": {
+      "emoji": "Emoji",
+      "gifs": "GIFs",
+      "stickers": "Stickers"
+    },
+    "slideCancel": "Slide to cancel",
+    "recordHint": "Hold to record, let go to send. One tap records hands-free.",
+    "sendFiles": "{n, plural, one {# file} other {# files}} to send",
+    "remove": "Remove",
+    "caption": "Add a caption…",
+    "addMore": "Add more",
+    "cancelSend": "Stop sending",
+    "clearTitle": "Clear the chat?",
+    "clearBody": "Cleared only for you, {name} keeps the messages. Cleared for both, every message is gone on both sides.",
+    "clearMine": "Only for me",
+    "clearBoth": "For {name} too",
+    "cleared": "Chat cleared",
+    "resize": "List width",
+    "showOnline": "Show online and last seen",
+    "showOnlineHint": "Turned off, nobody sees yours and you do not see anyone's.",
+    "uploadingTo": "going to {name}",
+    "shareApps": "Other apps",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied"
   }
 }

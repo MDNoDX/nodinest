@@ -93,19 +93,51 @@ export function Cover({
         <span aria-hidden className="cover-back" />
       </div>
     );
-  // Audio: a square sleeve and its record.
+  // Audio: a vinyl record half out of its sleeve, in a 16:9 frame like videos.
+  // On hover the record slides out and turns, its label (the cover) with it.
   if ((type === "podcast" || type === "interview") && size !== "sm")
     return (
       <div
         className={cn(
-          "cover-square relative shrink-0",
-          size === "lg" ? "size-48" : "aspect-square w-full",
+          "rec relative shrink-0 overflow-hidden rounded-lg",
+          size === "lg" ? "aspect-video w-full max-w-sm" : "aspect-video w-full",
           className,
         )}
         style={typeHue(type)}
       >
-        <span aria-hidden className="cover-disc" />
-        <div className="cover-sleeve border-border bg-surface-2 absolute inset-0 overflow-hidden rounded-lg border shadow-md">
+        {src && (
+          <img
+            src={src}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 size-full scale-125 object-cover opacity-60 blur-xl"
+          />
+        )}
+        <span aria-hidden className="rec-floor absolute inset-0" />
+        <div className="rec-disc absolute top-[9%] bottom-[9%] aspect-square rounded-full">
+          <div className="rec-spin absolute inset-0 rounded-full">
+            <span className="rec-label absolute inset-[31%] overflow-hidden rounded-full">
+              {src ? (
+                <img
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <span className="grid size-full place-items-center bg-[var(--hue)] text-white">
+                  <Icon className="size-1/2" />
+                </span>
+              )}
+            </span>
+            <span className="rec-hole absolute top-1/2 left-1/2 size-[5%] -translate-1/2 rounded-full" />
+          </div>
+          <span aria-hidden className="rec-sheen absolute inset-0 rounded-full" />
+        </div>
+        <div className="rec-sleeve bg-surface-2 absolute top-[7%] bottom-[7%] left-[6%] aspect-square overflow-hidden rounded-md">
           {face}
         </div>
       </div>

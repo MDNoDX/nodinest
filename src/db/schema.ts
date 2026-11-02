@@ -172,6 +172,10 @@ export const user = nodinest.table(
     premiumUntil: ts("premium_until"),
     /** The profile (/u/<username>) and its public items can be seen by others. */
     profilePublic: boolean("profile_public").notNull().default(true),
+    /** Last seen on the site (a heartbeat while a page is open). */
+    lastSeenAt: ts("last_seen_at"),
+    /** Show "online / last seen"; off hides it both ways. */
+    showOnline: boolean("show_online").notNull().default(true),
     /** Notification switches (lib/notify-prefs.ts); a missing key means on. */
     notify: jsonb("notify").$type<Record<string, boolean>>().notNull().default({}),
     bio: text("bio"),
@@ -610,6 +614,8 @@ export const learningRecords = nodinest.table(
     completedPrecision: text("completed_precision"),
     /** private | public — public items show on the user's profile (if it is public). */
     visibility: text("visibility").notNull().default("private"),
+    /** The book's text (PDF) may be read by those who see this public item. */
+    textPublic: boolean("text_public").notNull().default(false),
     rating: smallint("rating"),
     review: text("review"),
     progressCurrent: integer("progress_current"),
@@ -1529,6 +1535,9 @@ export const dmThreads = nodinest.table(
     /** Until when each side has read. */
     aReadAt: ts("a_read_at"),
     bReadAt: ts("b_read_at"),
+    /** Each side's "clear the chat": older messages are hidden for them. */
+    aClearedAt: ts("a_cleared_at"),
+    bClearedAt: ts("b_cleared_at"),
     lastAt: ts("last_at").notNull().defaultNow(),
     createdAt: createdAt(),
   },
@@ -1555,6 +1564,8 @@ export const dmMessages = nodinest.table(
     fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
     resourceId: uuid("resource_id").references(() => resources.id, { onDelete: "set null" }),
     replyToId: uuid("reply_to_id"),
+    /** A GIF ({gif}) or a voice message's shape ({wave, seconds}). */
+    meta: jsonb("meta"),
     createdAt: createdAt(),
     deletedAt: ts("deleted_at"),
   },
@@ -1580,5 +1591,45 @@ export const userBlocks = nodinest.table(
   (t) => [
     primaryKey({ columns: [t.blockerId, t.blockedId] }),
     index("user_blocks_blocked_idx").on(t.blockedId),
+  ],
+);
+
+/** "Like" on a public post (someone's public library item). */
+export const postLikes = nodinest.table(
+  "post_likes",
+  {
+    recordId: uuid("record_id")
+      .notNull()
+      .references(() => learningRecords.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.recordId, t.userId] }),
+    index("post_likes_user_idx").on(t.userId),
+  ],
+);
+
+/** A comment on a public post: text and / or a GIF. */
+export const postComments = nodinest.table(
+  "post_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recordId: uuid("record_id")
+      .notNull()
+      .references(() => learningRecords.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    body: text("body"),
+    gif: jsonb("gif"),
+    createdAt: createdAt(),
+    deletedAt: ts("deleted_at"),
+  },
+  (t) => [
+    index("post_comments_record_idx").on(t.recordId, t.createdAt),
+    check("post_comments_body_len", sql`char_length(${t.body}) <= 1000`),
   ],
 );

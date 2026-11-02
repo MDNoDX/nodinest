@@ -1216,7 +1216,8 @@
     "badType": "Bu fayl turiga ruxsat berilmagan.",
     "unavailable": "Yuklaş sozlanmagan; örniga rasm URL’ini kiriting.",
     "coverUpload": "Rasm yuklaş",
-    "dropHint": "Faylni şu yerga taşlang yoki bosing · PDF yoki EPUB · {max} MB gaça"
+    "dropHint": "Faylni şu yerga taşlang yoki bosing · PDF yoki EPUB · {max} MB gaça",
+    "cancel": "Bekor qiliş"
   },
   "empty": {
     "nothingHere": "Bu yerda hali heç narsa yöq."
@@ -2245,7 +2246,7 @@
     "approve": "Tasdiqlaş",
     "reject": "Rad etiş",
     "saved": "Saqlandi",
-    "enabled": "Premium yoqilgan (öçiq bölsa hamma Premium limitlarida işlaydi)",
+    "enabled": "Premium tizimi yoqilgan. Öçirilsa, sayt butunlay bepul böladi: hamma barça imkoniyatlardan foydalanadi, Premium belgilari, sahifasi va tölov sörovlari heç kimga körinmaydi.",
     "price": "Oylik narx (söm)",
     "card": "Karta raqami",
     "cardHolder": "Karta egasi",
@@ -2362,7 +2363,11 @@
     "shareWithBody": "Kartoçka profilingizda va Media bölimida körinadi. Yana nimalar körinsin? Belgilanmaganlari yopiq qoladi.",
     "shareWithWriteup": "Taqrizim",
     "shareWithAudiobook": "Audiokitob",
-    "shareWithConfirm": "Oçiq qiliş"
+    "shareWithConfirm": "Oçiq qiliş",
+    "shareWithText": "Kitob matni (PDF)",
+    "shareWithTextHint": "Körganlar kitobni sayt içida öqiy oladi.",
+    "shareWithTerms": "Oçiq qilganingiz uçun javobgarlik — <terms>foydalaniş şartlari</terms>da.",
+    "readBook": "Kitobni öqiş"
   },
   "roznoma": {
     "tab_day": "Kun",
@@ -2583,7 +2588,9 @@
       "goal_due": "Maqsad muddati bugun. Erişdingizmi?",
       "weekly": "Haftangiz yakuni tayyor",
       "news": "Röznoma yangiligi",
-      "message": "{name} sizga yozdi"
+      "message": "{name} sizga yozdi",
+      "like": "{name} postingizni zör dedi",
+      "comment": "{name} postingizga izoh yozdi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2624,7 +2631,12 @@
     "rankDone": "{n} ta tugatgan",
     "following": "Kuzatayotganlarim",
     "everyone": "Umumiy",
-    "emptyFollowing": "Kuzatayotgan odamlaringiz oçiq manba qöşganda şu yerda çiqadi."
+    "emptyFollowing": "Kuzatayotgan odamlaringiz oçiq manba qöşganda şu yerda çiqadi.",
+    "like": "Zör",
+    "comments": "Izohlar",
+    "comment": "Izoh",
+    "noComments": "Hali izoh yöq. Birinçi bölib yozing.",
+    "writeComment": "Izoh yozing…"
   },
   "sectionHint": {
     "close": "Yopiş",
@@ -2641,7 +2653,7 @@
     "unread": "{n} ta öqilmagan çat",
     "search": "Qidiruv",
     "searchPh": "Ism, @username yoki xabar",
-    "clear": "Tozalaş",
+    "clear": "Çatni tozalaş",
     "chats": "Çatlar",
     "people": "Odamlar",
     "messages": "Xabarlar",
@@ -2657,7 +2669,8 @@
       "video": "Video",
       "file": "Fayl",
       "item": "Manba",
-      "deleted": "Xabar öçirildi"
+      "deleted": "Xabar öçirildi",
+      "gif": "GIF"
     },
     "pause": "Töxtatiş",
     "play": "Ijro etiş",
@@ -2702,6 +2715,49 @@
     "searchPeople": "Ism yoki @username",
     "recent": "Sönggi çatlar",
     "note": "Izoh (ixtiyoriy)",
-    "openChat": "Çatni oçiş"
+    "openChat": "Çatni oçiş",
+    "online": "onlayn",
+    "seenMin": "{n} daqiqa oldin edi",
+    "seenHours": "{n} soat oldin edi",
+    "seenYesterday": "keça {time} da edi",
+    "seenOn": "{date} kuni edi",
+    "emoji": "Emoji, GIF va stikerlar",
+    "gifSearch": "GIF qidiriş",
+    "stickerSearch": "Stiker qidiriş",
+    "recentEmoji": "Söngilari",
+    "emojiKind": {
+      "smileys": "Yuzlar",
+      "gestures": "Imo-işoralar",
+      "hearts": "Yurak va belgilar",
+      "study": "Öqiş",
+      "nature": "Tabiat",
+      "food": "Taomlar",
+      "things": "Narsalar"
+    },
+    "gifOff": "GIF'lar hali ulanmagan.",
+    "pickTab": {
+      "emoji": "Emoji",
+      "gifs": "GIF",
+      "stickers": "Stikerlar"
+    },
+    "slideCancel": "Bekor qiliş uçun suring",
+    "recordHint": "Bosib turing: yozadi, qöyib yuborsangiz ketadi. Bir bosiş — qöl tekkizmasdan yoziş.",
+    "sendFiles": "{n, plural, one {Fayl} other {# ta fayl}} yuboriladi",
+    "remove": "Olib taşlaş",
+    "caption": "Izoh qöşiş…",
+    "addMore": "Yana qöşiş",
+    "cancelSend": "Yuborişni toxtatiş",
+    "clearTitle": "Çatni tozalaysizmi?",
+    "clearBody": "Faqat özingizdan tozalasangiz, {name}da xabarlar qoladi. Ikkalangizdan tozalasangiz, hamma xabarlar ikki tomonda ham yöqoladi.",
+    "clearMine": "Faqat özimdan",
+    "clearBoth": "{name} uçun ham",
+    "cleared": "Çat tozalandi",
+    "resize": "Röyxat kengligi",
+    "showOnline": "Onlayn va «oxirgi marta» körinsin",
+    "showOnlineHint": "Öçirsangiz, sizni heç kim körmaydi va siz ham boşqalarnikini körmaysiz.",
+    "uploadingTo": "{name}ga ketmoqda",
+    "shareApps": "Boşqa ilovalar",
+    "copyLink": "Havolani nusxalaş",
+    "linkCopied": "Havola nusxalandi"
   }
 }

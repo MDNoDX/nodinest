@@ -41,6 +41,7 @@ export default async function OwnBookPage({
   return (
     <TaqrizEditor
       mode="book"
+      journal={/^Röznoma \d{4}$/.test(r.title)}
       goalWords={book.goalWords}
       resource={{
         id,

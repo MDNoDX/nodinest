@@ -42,6 +42,8 @@ export const NAV_PRIMARY: NavItem[] = [
     icon: BookOpen,
     includes: ["/people", "/publishers", "/notes", "/collections"],
   },
+  { href: "/media", key: "media", icon: Clapperboard },
+  { href: "/chats", key: "chats", icon: MessageCircle },
   { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/review", key: "review", icon: Brain },
   { href: "/write", key: "write", icon: PenLine },
@@ -49,8 +51,6 @@ export const NAV_PRIMARY: NavItem[] = [
 
 export const NAV_SECONDARY: NavItem[] = [
   { href: "/profile", key: "profile", icon: CircleUserRound, includes: ["/u", "/community"] },
-  { href: "/media", key: "media", icon: Clapperboard },
-  { href: "/chats", key: "chats", icon: MessageCircle },
   { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/suggestions", key: "suggestions", icon: Inbox },
   { href: "/settings", key: "settings", icon: Settings },

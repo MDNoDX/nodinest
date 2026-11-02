@@ -149,3 +149,49 @@ describe("messages between two people", () => {
     expect(got).toEqual([{ v: "private" }]);
   });
 });
+
+describe("clearing, GIFs, voices and presence", () => {
+  it("clears for me only or for both; GIFs only from GIPHY; voice keeps its shape", async () => {
+    const dm = await import("@/server/dm");
+    const a = await person();
+    const b = await person();
+    const id = await dm.openThread(a, b.username);
+    await dm.sendMessage(a, id, { body: "birinçi" });
+    await expect(
+      dm.sendMessage(a, id, {
+        gif: { id: "x", url: "https://evil.example/x.gif", w: 10, h: 10 },
+      }),
+    ).rejects.toBeTruthy();
+    const g = await dm.sendMessage(a, id, {
+      gif: { id: "abc", url: "https://media2.giphy.com/media/abc/200.webp", w: 200, h: 150 },
+    });
+    expect(g.meta?.gif?.id).toBe("abc");
+    expect((await dm.threadList(b))[0].last?.kind).toBe("gif");
+
+    // Cleared for me: gone on my side, still there for the other.
+    await dm.clearChat(a, id, false);
+    expect((await dm.threadView(a, id)).messages).toHaveLength(0);
+    expect((await dm.threadView(b, id)).messages).toHaveLength(2);
+    await dm.sendMessage(b, id, { body: "yangi" });
+    expect((await dm.threadView(a, id)).messages.map((m) => m.body)).toEqual(["yangi"]);
+    // Cleared for both: nothing left anywhere.
+    await dm.clearChat(b, id, true);
+    expect((await dm.threadView(a, id)).messages).toHaveLength(0);
+    expect((await dm.threadView(b, id)).messages).toHaveLength(0);
+  });
+
+  it("online is shown only when both show it", async () => {
+    const dm = await import("@/server/dm");
+    const a = await person();
+    const b = await person();
+    const id = await dm.openThread(a, b.username);
+    await dm.touchSeen(b);
+    expect((await dm.threadView(a, id)).other.seen).toBeTruthy();
+    await dm.setShowOnline(a, false);
+    // I hide mine: I do not see theirs either.
+    expect((await dm.threadView(a, id)).other.seen).toBeNull();
+    await dm.setShowOnline(a, true);
+    await dm.setShowOnline(b, false);
+    expect((await dm.threadView(a, id)).other.seen).toBeNull();
+  });
+});

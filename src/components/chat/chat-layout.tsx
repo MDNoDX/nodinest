@@ -9,7 +9,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
 import { normalizeText } from "@/lib/normalize";
 import type { DmPerson, DmThreadRow } from "@/server/dm";
-import { KindLabel, listTime } from "./parts";
+import { KindLabel, listTime, useNow } from "./parts";
 
 type Found = {
   people: (DmPerson & { locked?: boolean })[];
@@ -34,6 +34,7 @@ export function ChatLayout({
   const pathname = usePathname();
   const open = /^\/chats\/[^/]+/.test(pathname) && pathname !== "/chats/new";
   const [threads, setThreads] = useState(initial);
+  const width = useListWidth();
   const [q, setQ] = useState("");
   const router = useRouter();
 
@@ -95,11 +96,21 @@ export function ChatLayout({
       )}
     >
       <aside
+        style={{ ["--list-w" as string]: `${width.value}px` }}
         className={cn(
-          "border-border flex w-full flex-col lg:w-[340px] lg:shrink-0 lg:border-r",
+          "border-border relative flex w-full flex-col lg:w-[var(--list-w)] lg:shrink-0 lg:border-r",
           open && "max-lg:hidden",
         )}
       >
+        {/* Drag the edge to make the list wider or narrower (kept on this device). */}
+        <span
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t("resize")}
+          onPointerDown={width.start}
+          onDoubleClick={width.reset}
+          className="hover:bg-primary/40 active:bg-primary/60 absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-col-resize transition-colors lg:block"
+        />
         <div className="border-border flex flex-col gap-3 border-b p-3">
           <h1 className="px-1 text-xl font-bold">{t("title")}</h1>
           <label className="bg-surface-2 focus-within:ring-primary/40 flex h-10 items-center gap-2 rounded-xl px-3 focus-within:ring-2">
@@ -211,6 +222,7 @@ function Time({ at }: { at: string }) {
 
 function ThreadItem({ row, me, active }: { row: DmThreadRow; me: string; active: boolean }) {
   const t = useTranslations("chat");
+  const now = useNow();
   const last = row.last;
   return (
     <li>
@@ -222,7 +234,15 @@ function ThreadItem({ row, me, active }: { row: DmThreadRow; me: string; active:
           active ? "bg-primary-soft" : "hover:bg-surface-2",
         )}
       >
-        <Avatar name={row.other.name} image={row.other.image} className="size-12" />
+        <span className="relative shrink-0">
+          <Avatar name={row.other.name} image={row.other.image} className="size-12" />
+          {row.other.seen && now > 0 && now - Date.parse(row.other.seen) < 2 * 60_000 && (
+            <span
+              aria-label={t("online")}
+              className="ring-background absolute right-0 bottom-0 size-3.5 rounded-full bg-[var(--c-emerald)] ring-2"
+            />
+          )}
+        </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className="truncate text-[15px] font-semibold">{row.other.name}</span>
@@ -245,4 +265,54 @@ function ThreadItem({ row, me, active }: { row: DmThreadRow; me: string; active:
       </Link>
     </li>
   );
+}
+
+const WIDTH_KEY = "nn:chat-list-w";
+const DEFAULT_W = 340;
+
+/** The chat list's width on wide screens: dragged by its edge, kept per device. */
+function useListWidth() {
+  const [value, setValue] = useState(DEFAULT_W);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const v = Number(localStorage.getItem(WIDTH_KEY));
+        if (v >= 260 && v <= 560) setValue(v);
+      } catch {
+        /* storage unavailable */
+      }
+    });
+    return () => clearTimeout(timer);
+  }, []);
+  const save = (v: number) => {
+    try {
+      localStorage.setItem(WIDTH_KEY, String(v));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const start = (e: React.PointerEvent<HTMLElement>) => {
+    e.preventDefault();
+    const from = e.clientX;
+    const base = value;
+    let last = base;
+    const move = (ev: PointerEvent) => {
+      last = Math.max(260, Math.min(560, base + ev.clientX - from));
+      setValue(last);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      save(last);
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+  const reset = () => {
+    setValue(DEFAULT_W);
+    save(DEFAULT_W);
+  };
+  return { value, start, reset };
 }

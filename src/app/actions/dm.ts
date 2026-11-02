@@ -2,11 +2,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  clearChat,
   deleteMessage,
   openThread,
   searchMessages,
   sendMessage,
   setBlocked,
+  setShowOnline,
   takeShared,
 } from "@/server/dm";
 import { searchPeople } from "@/server/social";
@@ -18,7 +20,15 @@ export async function openThreadAction(username: string) {
 
 export async function sendMessageAction(
   threadId: string,
-  input: { body?: string; fileId?: string; resourceId?: string; replyToId?: string },
+  input: {
+    body?: string;
+    fileId?: string;
+    resourceId?: string;
+    replyToId?: string;
+    gif?: { id: string; url: string; still?: string; w: number; h: number };
+    wave?: number[];
+    seconds?: number;
+  },
 ) {
   return run(async ({ ctx }) => sendMessage(ctx, threadId, input));
 }
@@ -58,4 +68,16 @@ export async function searchChatsAction(q: string) {
     const [people, messages] = await Promise.all([searchPeople(ctx, k), searchMessages(ctx, k)]);
     return { people: [...people], messages };
   });
+}
+
+export async function clearChatAction(threadId: string, forBoth: boolean) {
+  return run(async ({ ctx }) => {
+    await clearChat(ctx, threadId, forBoth === true);
+    revalidatePath("/chats", "layout");
+  });
+}
+
+/** "Online / last seen" on or off (off hides it both ways). */
+export async function setShowOnlineAction(on: boolean) {
+  return run(async ({ ctx }) => setShowOnline(ctx, on === true));
 }

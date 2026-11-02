@@ -793,33 +793,65 @@ a:focus-visible .cover-3d {
   }
 }
 
-/* Audio: a square sleeve with a record that slides out and turns. */
-.cover-disc {
-  position: absolute;
-  top: 6%;
-  right: 6%;
-  bottom: 6%;
-  aspect-ratio: 1;
-  border-radius: 50%;
+/* Audio: a vinyl record half out of its sleeve; on hover it slides out and
+   turns with its label, like a record put on the player. */
+.rec {
+  background: linear-gradient(135deg, color-mix(in oklab, var(--hue) 35%, #111), #0b0b0f);
+}
+.rec-floor {
+  background: radial-gradient(120% 90% at 30% 50%, transparent 40%, rgb(0 0 0 / 0.45));
+}
+.rec-sleeve {
+  box-shadow:
+    0 10px 24px rgb(0 0 0 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.rec-disc {
+  left: 26%;
+  filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.55));
+  transition: left 0.7s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+.rec-spin {
   background:
-    radial-gradient(circle, #f5a524 0 12%, #111 13% 16%, transparent 17%),
-    repeating-radial-gradient(circle, #1a1a1a 0 2px, #0c0c0c 2px 4px);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
-  /* The record always peeks out of its sleeve. */
-  transform: translateX(14%);
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+    radial-gradient(circle, transparent 0 30.5%, #050505 31% 33%, transparent 33.5%),
+    repeating-radial-gradient(circle, #151515 0 1.5px, #0a0a0a 1.5px 3px),
+    #0d0d0d;
+  animation: disc-spin 2.4s linear infinite;
+  animation-play-state: paused;
 }
-.cover-sleeve {
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+.rec-label {
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.6);
 }
-.group:hover .cover-disc,
-.cover-square:hover .cover-disc {
-  transform: translateX(26%);
-  animation: disc-spin 3s linear infinite;
+.rec-hole {
+  background: #050505;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.12);
 }
-.group:hover .cover-sleeve,
-.cover-square:hover .cover-sleeve {
-  transform: translateX(-10%);
+/* The light on the record stays still while it turns (that shows the turning). */
+.rec-sheen {
+  background: conic-gradient(
+    from 200deg,
+    transparent 0 8%,
+    rgb(255 255 255 / 0.14) 12%,
+    transparent 18% 58%,
+    rgb(255 255 255 / 0.1) 62%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+.group:hover .rec-disc,
+.rec:hover .rec-disc,
+.rec:active .rec-disc {
+  left: 46%;
+}
+.group:hover .rec-spin,
+.rec:hover .rec-spin,
+.rec:active .rec-spin {
+  animation-play-state: running;
+}
+.group:hover .rec-sleeve,
+.rec:hover .rec-sleeve {
+  transform: translateX(-6%) rotate(-2deg);
 }
 @keyframes disc-spin {
   from {
@@ -855,7 +887,8 @@ a:focus-visible .cover-3d {
   transform: translateY(-4px) rotate(-1.2deg);
 }
 @media (prefers-reduced-motion: reduce) {
-  .cover-disc,
+  .rec-spin,
+  .rec-disc,
   .cover-sleeve,
   .cover-paper {
     animation: none;
@@ -1311,4 +1344,214 @@ nav.overflow-x-auto,
 }
 .chat-scroll {
   overscroll-behavior: contain;
+}
+
+/* Chatlar: a message just sent rises in; a file going up fills its ring. */
+.chat-msg-in {
+  animation: chat-msg-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes chat-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+.chat-upload {
+  background: conic-gradient(var(--primary) var(--pct, 0%), var(--border) 0);
+  transition: background 0.3s linear;
+}
+.chat-send:active svg {
+  transform: translateX(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-msg-in {
+    animation: none;
+  }
+}
+
+/* "Zo'r" 👍: the thumb jumps, a ring and sparks fly out. */
+.like-pop {
+  animation: like-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes like-pop {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  40% {
+    transform: scale(1.45) rotate(-14deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+.like-burst {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 2px solid var(--primary);
+  pointer-events: none;
+  animation: like-ring 0.55s ease-out forwards;
+  box-shadow:
+    0 -14px 0 -4px var(--c-amber),
+    12px -8px 0 -4px var(--primary),
+    13px 8px 0 -4px var(--c-emerald),
+    0 14px 0 -4px var(--c-rose),
+    -13px 8px 0 -4px var(--c-amber),
+    -12px -8px 0 -4px var(--primary);
+}
+@keyframes like-ring {
+  from {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .like-pop,
+  .like-burst {
+    animation: none;
+  }
+}
+
+/* ── Röznoma: the year's book reads like a fine journal ──
+   ruled paper with a margin line, months as ornamented titles, each day's
+   title in a serif, its date in small italic capitals, the lesson as a pulled
+   quote, the plan's line quiet and the productive time as a small seal. */
+.journal-doc {
+  --j-ink: color-mix(in oklab, var(--foreground) 88%, #6b4f2a);
+  --j-rule: color-mix(in oklab, var(--foreground) 7%, transparent);
+  --j-margin: color-mix(in oklab, var(--c-rose) 35%, transparent);
+  --j-accent: color-mix(in oklab, var(--c-amber) 80%, var(--foreground));
+  position: relative;
+  padding: 1.5rem 1.25rem 3rem 2.75rem;
+  border-radius: 1rem;
+  color: var(--j-ink);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 2rem;
+  background:
+    linear-gradient(
+      to right,
+      transparent 2rem,
+      var(--j-margin) 2rem,
+      var(--j-margin) calc(2rem + 1px),
+      transparent calc(2rem + 1px)
+    ),
+    repeating-linear-gradient(to bottom, transparent 0 calc(2rem - 1px), var(--j-rule) calc(2rem - 1px) 2rem),
+    color-mix(in oklab, var(--surface) 92%, #f4e9d4);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 18px 40px -24px rgb(0 0 0 / 0.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .journal-doc {
+    background-color: color-mix(in oklab, var(--surface) 94%, #3a2e1c);
+  }
+}
+:root[data-theme="dark"] .journal-doc {
+  background-color: color-mix(in oklab, var(--surface) 94%, #3a2e1c);
+}
+.journal-doc > * + * {
+  margin-top: 0;
+}
+.journal-doc p {
+  margin-block: 0 0;
+}
+/* The month: a centered title between two flourishes. */
+.journal-doc h2 {
+  margin: 2rem 0 1rem;
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--j-accent);
+}
+.journal-doc h2::after {
+  content: none;
+}
+.journal-doc h2::before {
+  content: "❦";
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+  font-style: normal;
+  opacity: 0.7;
+}
+.journal-doc > h2:first-child {
+  margin-top: 0.5rem;
+}
+/* A day: a serif title with a small star in the margin. */
+.journal-doc h3 {
+  position: relative;
+  margin: 2rem 0 0;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 2rem;
+  color: var(--foreground);
+}
+.journal-doc h3::before {
+  content: "✦";
+  position: absolute;
+  left: -1.85rem;
+  font-size: 0.8rem;
+  color: var(--j-accent);
+}
+/* The date under it. */
+.journal-doc h3 + p:has(> em:only-child) {
+  font-size: 0.88rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+.journal-doc h3 + p:has(> em:only-child) em {
+  font-style: italic;
+}
+/* "Asosan:" as a little label. */
+.journal-doc p:has(> strong:first-child) > strong:first-child {
+  margin-right: 0.35rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--j-accent);
+  background: color-mix(in oklab, var(--c-amber) 14%, transparent);
+}
+/* The lesson: a pulled quote. */
+.journal-doc p:has(> em:only-child):not(h3 + p) {
+  margin: 0.5rem 0;
+  padding: 0 0 0 1rem;
+  border-left: 3px solid var(--j-accent);
+  font-size: 1.08rem;
+  color: var(--foreground);
+}
+/* What was not done: quiet. */
+.journal-doc s {
+  opacity: 0.55;
+}
+.journal-doc blockquote {
+  border-left-color: var(--j-accent);
+  font-style: italic;
+}
+.journal-doc audio,
+.journal-doc .taqriz-audio {
+  margin-block: 0.5rem;
+}
+@media (max-width: 640px) {
+  .journal-doc {
+    padding: 1rem 0.75rem 2rem 2.25rem;
+    font-size: 17px;
+  }
+  .journal-doc h2 {
+    font-size: 1.6rem;
+  }
 }

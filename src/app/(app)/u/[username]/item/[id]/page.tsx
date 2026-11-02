@@ -1,10 +1,11 @@
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, BookOpenText, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { PublicAudio } from "@/components/social/public-audio";
 import { TakeButton } from "@/components/social/take-button";
+import { PostActions } from "@/components/media-feed/post-actions";
 import { DocView } from "@/components/taqriz/doc-view";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/misc";
@@ -39,7 +40,7 @@ export default async function PublicItemPage({
         <ArrowLeft className="size-4" />
         <Avatar name={it.name} image={it.image} className="size-5" /> {it.name}
       </Link>
-      <section className="card flex flex-col gap-6 p-5 sm:flex-row sm:p-7">
+      <section className="card flex flex-col gap-6 p-5 sm:flex-row sm:flex-wrap sm:p-7">
         <Cover
           type={it.type as "book"}
           title={it.title}
@@ -65,6 +66,14 @@ export default async function PublicItemPage({
           )}
           <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
             <TakeButton resourceId={it.resourceId} ownerId={it.ownerId} mine={it.mine} />
+            {it.textPublic && (
+              <Link
+                href={`/u/${it.username}/item/${it.resourceId}/read`}
+                className="bg-primary text-primary-foreground inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold"
+              >
+                <BookOpenText className="size-4" /> {t("social.readBook")}
+              </Link>
+            )}
             {it.sourceUrl && /^https?:\/\//.test(it.sourceUrl) && (
               <a
                 href={it.sourceUrl}
@@ -76,6 +85,20 @@ export default async function PublicItemPage({
               </a>
             )}
           </div>
+        </div>
+        <div className="border-border w-full border-t px-1 pt-3 sm:basis-full">
+          <PostActions
+            recordId={it.recordId}
+            likes={it.likes}
+            liked={it.liked}
+            comments={it.comments}
+            share={{
+              resourceId: it.resourceId,
+              path: `/u/${it.username}/item/${it.resourceId}`,
+              title: it.title,
+            }}
+            openComments
+          />
         </div>
       </section>
       {extra.parts ? (

@@ -262,8 +262,9 @@ export default async function DashboardPage() {
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <div className="flex flex-col gap-6 lg:col-span-2">
+      {/* Wide screens: more books in a row, the side column stays one. */}
+      <div className="grid gap-6 lg:grid-cols-3 2xl:grid-cols-4 [&>*]:min-w-0">
+        <div className="flex flex-col gap-6 lg:col-span-2 2xl:col-span-3">
           {reading.length > 0 && (
             <Card>
               <CardHeader
@@ -280,7 +281,7 @@ export default async function DashboardPage() {
                 }
               />
               <div className="px-5 pb-5">
-                <ul className="grid gap-3 xl:grid-cols-2">
+                <ul className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
                   {reading.map((r) => (
                     <li key={r.id}>
                       <ResourceCard r={r} />
@@ -317,7 +318,7 @@ export default async function DashboardPage() {
               {finished.length === 0 ? (
                 <p className="text-muted text-sm">{t("dashboard.emptyFinished")}</p>
               ) : (
-                <ul className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                <ul className="grid grid-cols-3 gap-3 sm:grid-cols-6 2xl:grid-cols-9">
                   {finished.map((r) => (
                     <li key={r.id}>
                       <Link

@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { PremiumPanel } from "@/components/premium/premium-panel";
 import { PageHeader } from "@/components/ui/misc";
+import { redirect } from "next/navigation";
 import { pageContext } from "@/lib/page";
+import { premiumOn } from "@/server/premium";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -10,6 +12,8 @@ export async function generateMetadata() {
 
 export default async function PremiumPage() {
   const { ctx, user } = await pageContext();
+  // Premium switched off: there is nothing to buy.
+  if (!(await premiumOn()) && !user.isSuperadmin) redirect("/");
   const t = await getTranslations("premium");
   return (
     <div className="mx-auto max-w-3xl">

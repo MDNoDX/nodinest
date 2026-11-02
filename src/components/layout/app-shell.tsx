@@ -16,6 +16,7 @@ import { CommandPalette } from "./command-palette";
 import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
 import { ChatsButton, useUnreadChats } from "@/components/chat/chats-button";
+import { UploadTray } from "@/components/chat/upload-tray";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
@@ -48,7 +49,8 @@ function subscribeSidebar(cb: () => void) {
   };
 }
 
-const WIDE_RE = /^\/(library\/[^/]+\/taqriz|assistant)/;
+// Pages that use the whole width beside the menu (their own layouts keep text readable).
+const WIDE_RE = /^\/(library\/[^/]+\/taqriz|assistant|chats|media)(\/|$)|^\/$/;
 
 type ShellUser = {
   name: string;
@@ -365,11 +367,13 @@ export function AppShell({
               pathname={pathname}
               onMenu={() => setMobileOpen(true)}
               badge={pendingSuggestions}
+              chats={chats}
             />
           )}
           <OnboardingTour aiLimit={aiDailyLimit} />
           {alarms.on && <AlarmWatcher sound={alarms.sound} />}
           <OutboxSync />
+          <UploadTray />
         </div>
       </AudiobookProvider>
     </MediaDockProvider>

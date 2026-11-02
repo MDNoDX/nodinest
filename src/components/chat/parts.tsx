@@ -9,6 +9,7 @@ import {
   Loader2,
   Mic,
   Pause,
+  Sticker,
   Play,
   Video,
 } from "lucide-react";
@@ -19,9 +20,9 @@ import { takeSharedAction } from "@/app/actions/dm";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
-import type { DmMessage } from "@/server/dm";
+import type { DmMessage, Kind as DmKind } from "@/server/dm";
 
-type Kind = "text" | "photo" | "voice" | "video" | "file" | "item" | "deleted";
+type Kind = DmKind;
 
 /** "12:40" today, "Kecha" yesterday, "3 noy" before. */
 export function listTime(iso: string, locale: string, yesterday: string) {
@@ -41,6 +42,44 @@ export function listTime(iso: string, locale: string, yesterday: string) {
 export const clock = (iso: string, locale: string) =>
   new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
+/** The time now, again every `ms` (for "online" and "5 min ago" that stay true). */
+export function useNow(ms = 30_000) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick);
+    const timer = setInterval(tick, ms);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [ms]);
+  return now;
+}
+
+/** "online", "5 daqiqa oldin", "kecha 21:40", "3 noyabr". */
+export function seenText(
+  now: number,
+  iso: string,
+  locale: string,
+  t: (k: "online" | "seenMin" | "seenHours" | "seenYesterday" | "seenOn", v?: Record<string, string | number>) => string,
+) {
+  const ms = now - Date.parse(iso);
+  if (ms < 2 * 60_000) return t("online");
+  const min = Math.round(ms / 60_000);
+  if (min < 60) return t("seenMin", { n: min });
+  const h = Math.round(min / 60);
+  const d = new Date(iso);
+  const today = new Date();
+  if (h < 24 && d.getDate() === today.getDate()) return t("seenHours", { n: h });
+  const y = new Date(today);
+  y.setDate(today.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return t("seenYesterday", { time: clock(iso, locale) });
+  return t("seenOn", {
+    date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(d),
+  });
+}
+
 /** The line between days in a conversation. */
 export function dayLabel(iso: string, locale: string, today: string, yesterday: string) {
   const d = new Date(iso);
@@ -56,7 +95,14 @@ export function dayLabel(iso: string, locale: string, today: string, yesterday: 
   }).format(d);
 }
 
-const KIND_ICON = { photo: ImageIcon, voice: Mic, video: Video, file: FileText, item: Library };
+const KIND_ICON = {
+  photo: ImageIcon,
+  voice: Mic,
+  video: Video,
+  file: FileText,
+  item: Library,
+  gif: Sticker,
+};
 
 /** A short line for a message: its text, or what it holds ("Ovozli xabar"). */
 export function KindLabel({ kind, text }: { kind: Kind; text: string | null }) {
@@ -87,13 +133,23 @@ const fmt = (s: number) =>
 // One voice plays at a time.
 let playingNow: HTMLAudioElement | null = null;
 
-/** A voice message: play / pause, a bar to move in, the time. */
-export function VoiceNote({ src, mine }: { src: string; mine: boolean }) {
+/** A voice message: play / pause, its bars (the part heard is coloured, a tap moves there), the time. */
+export function VoiceNote({
+  src,
+  mine,
+  wave,
+  seconds,
+}: {
+  src: string;
+  mine: boolean;
+  wave?: number[];
+  seconds?: number;
+}) {
   const t = useTranslations("chat");
   const ref = useRef<HTMLAudioElement>(null);
   const [on, setOn] = useState(false);
   const [at, setAt] = useState(0);
-  const [len, setLen] = useState(0);
+  const [len, setLen] = useState(seconds ?? 0);
   useEffect(() => {
     const a = ref.current;
     if (!a) return;
@@ -125,13 +181,23 @@ export function VoiceNote({ src, mine }: { src: string; mine: boolean }) {
     playingNow = a;
     void a.play().then(() => setOn(true));
   };
-  const pct = len ? Math.min(100, (at / len) * 100) : 0;
+  const seek = (frac: number) => {
+    const a = ref.current;
+    if (!a || !len) return;
+    a.currentTime = Math.max(0, Math.min(len - 0.05, frac * len));
+    setAt(a.currentTime);
+  };
+  const pct = len ? Math.min(1, at / len) : 0;
+  const bars = wave && wave.length ? wave : null;
   return (
-    <div className="flex w-60 max-w-full items-center gap-3 py-1">
+    <div className="flex w-64 max-w-full items-center gap-3 py-1">
       <audio ref={ref} src={src} preload="metadata" />
       <button
         type="button"
-        onClick={toggle}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggle();
+        }}
         aria-label={on ? t("pause") : t("play")}
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-full transition-transform active:scale-95",
@@ -140,22 +206,54 @@ export function VoiceNote({ src, mine }: { src: string; mine: boolean }) {
       >
         {on ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
       </button>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <input
-          type="range"
-          min={0}
-          max={len || 1}
-          step={0.1}
-          value={at}
-          aria-label={t("kind.voice")}
-          onChange={(e) => {
-            const a = ref.current;
-            if (a) a.currentTime = Number(e.target.value);
-          }}
-          style={{ ["--pct" as string]: `${pct}%` }}
-          className="chat-seek h-1.5 w-full cursor-pointer appearance-none rounded-full"
-        />
-        <span className="text-muted text-[11px] tabular-nums">{on || at ? fmt(at) : fmt(len)}</span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {bars ? (
+          <div
+            role="slider"
+            tabIndex={0}
+            aria-label={t("kind.voice")}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(len)}
+            aria-valuenow={Math.round(at)}
+            onClick={(e) => {
+              e.stopPropagation();
+              const r = e.currentTarget.getBoundingClientRect();
+              seek((e.clientX - r.left) / r.width);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight") seek(pct + 0.05);
+              if (e.key === "ArrowLeft") seek(pct - 0.05);
+            }}
+            className="flex h-7 cursor-pointer items-center gap-[2px]"
+          >
+            {bars.map((v, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "min-w-[2px] flex-1 rounded-full transition-colors",
+                  i / bars.length < pct ? "bg-primary" : "bg-current/20",
+                )}
+                style={{ height: `${Math.max(12, Math.round(v * 100))}%` }}
+              />
+            ))}
+          </div>
+        ) : (
+          <input
+            type="range"
+            min={0}
+            max={len || 1}
+            step={0.1}
+            value={at}
+            aria-label={t("kind.voice")}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => seek(Number(e.target.value) / (len || 1))}
+            style={{ ["--pct" as string]: `${pct * 100}%` }}
+            className="chat-seek h-1.5 w-full cursor-pointer appearance-none rounded-full"
+          />
+        )}
+        <span className="text-muted text-[11px] tabular-nums">
+          {on || at ? fmt(at) : fmt(len)}
+        </span>
       </div>
     </div>
   );
@@ -164,6 +262,19 @@ export function VoiceNote({ src, mine }: { src: string; mine: boolean }) {
 /** What a message carries besides its text. */
 export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
   const f = m.file;
+  const gif = m.meta?.gif;
+  if (gif)
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={gif.url}
+        alt="GIF"
+        loading="lazy"
+        width={gif.w}
+        height={gif.h}
+        className="h-auto max-h-60 w-auto max-w-[min(15rem,100%)] rounded-xl"
+      />
+    );
   if (f) {
     const src = `/api/files/${f.id}`;
     if (f.mime.startsWith("image/"))
@@ -178,7 +289,10 @@ export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
           />
         </a>
       );
-    if (f.mime.startsWith("audio/")) return <VoiceNote src={src} mine={mine} />;
+    if (f.mime.startsWith("audio/"))
+      return (
+        <VoiceNote src={src} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />
+      );
     if (f.mime.startsWith("video/"))
       return (
         <video

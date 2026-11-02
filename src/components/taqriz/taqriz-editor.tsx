@@ -93,6 +93,7 @@ export function TaqrizEditor({
   initialAi,
   initialFull,
   resume,
+  journal = false,
   mode = "taqriz",
   goalWords,
   shared,
@@ -101,6 +102,8 @@ export function TaqrizEditor({
   shared?: boolean | null;
   /** "book" = the user's own book ("Kitob yozish"). */
   mode?: "taqriz" | "book";
+  /** The year's Röznoma book: written like a journal (its own look). */
+  journal?: boolean;
   goalWords?: number | null;
   /** Where the user stopped last time (account-wide). */
   resume?: {
@@ -265,7 +268,11 @@ export function TaqrizEditor({
     ],
     content: startDoc ?? undefined,
     editorProps: {
-      attributes: { class: "taqriz-doc", "aria-label": t("title"), spellcheck: "true" },
+      attributes: {
+        class: journal ? "taqriz-doc journal-doc" : "taqriz-doc",
+        "aria-label": t("title"),
+        spellcheck: "true",
+      },
       // Quote / chapter shortcuts (Settings) act on exactly the selected text, like the buttons.
       handleKeyDown: (_view, e) => {
         if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "KeyF") {

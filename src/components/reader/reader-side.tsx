@@ -30,6 +30,7 @@ type Hit = { page: number; snippet: SnippetPart[] };
  */
 export function ReaderSide({
   resourceId,
+  ownerId,
   tab,
   setTab,
   chapters,
@@ -42,6 +43,8 @@ export function ReaderSide({
   setTerm,
 }: {
   resourceId: string;
+  /** A shared book: search the owner's copy, nothing kept on this device. */
+  ownerId?: string;
   tab: SideTab;
   setTab: (t: SideTab) => void;
   chapters: Chapter[];
@@ -91,10 +94,16 @@ export function ReaderSide({
         )}
         {tab === "marks" && <Marks marks={marks} onOpen={onOpen} />}
         {tab === "search" && (
-          <BookSearch resourceId={resourceId} term={term} setTerm={setTerm} onOpen={onOpen} />
+          <BookSearch
+            resourceId={resourceId}
+            ownerId={ownerId}
+            term={term}
+            setTerm={setTerm}
+            onOpen={onOpen}
+          />
         )}
       </div>
-      <Offline resourceId={resourceId} pages={pages} />
+      {!ownerId && <Offline resourceId={resourceId} pages={pages} />}
     </div>
   );
 }
@@ -179,11 +188,13 @@ function Marks({ marks, onOpen }: { marks: Mark[]; onOpen: (page: number) => voi
 
 function BookSearch({
   resourceId,
+  ownerId,
   term,
   setTerm,
   onOpen,
 }: {
   resourceId: string;
+  ownerId?: string;
   term: string;
   setTerm: (q: string) => void;
   onOpen: (page: number) => void;
@@ -197,16 +208,16 @@ function BookSearch({
     if (query.length < 2) return;
     const timer = setTimeout(async () => {
       setBusy(true);
-      const r = await fetch(`/api/book/${resourceId}/search?q=${encodeURIComponent(query)}`).catch(
-        () => null,
-      );
+      const r = await fetch(
+        `/api/book/${resourceId}/search?q=${encodeURIComponent(query)}${ownerId ? `&owner=${ownerId}` : ""}`,
+      ).catch(() => null);
       setBusy(false);
       if (!r?.ok) return;
       setRes({ q: query, ...((await r.json()) as { total: number; hits: Hit[] }) });
       setTerm(query);
     }, 350);
     return () => clearTimeout(timer);
-  }, [q, resourceId, setTerm]);
+  }, [q, resourceId, ownerId, setTerm]);
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">

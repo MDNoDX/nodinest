@@ -25,6 +25,8 @@ import { fmtBytes } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { cn } from "@/lib/cn";
 import { PremiumPanel } from "@/components/premium/premium-panel";
+import { premiumOn } from "@/server/premium";
+import { OnlineSwitch } from "@/components/chat/online-switch";
 import { DeleteAccount } from "@/components/settings/delete-account";
 import { NavOrderSettings } from "@/components/settings/nav-order";
 import { ProfileVisibility } from "@/components/social/profile-visibility";
@@ -63,7 +65,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
   const { user, ctx, locale, tz } = await pageContext();
   const t = await getTranslations();
   const asked = sp((await searchParams).tab);
-  const tab: Tab = TABS.some(([k]) => k === asked) ? (asked as Tab) : "profile";
+  const paid = await premiumOn();
+  const tabs = TABS.filter(([k]) => paid || k !== "premium");
+  const tab: Tab = tabs.some(([k]) => k === asked) ? (asked as Tab) : "profile";
   const storage = isStorageConfigured();
   const used = storage && tab === "storage" ? await storageUsage(ctx) : 0;
   const [devices, pw] =
@@ -76,7 +80,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
           aria-label={t("settings.title")}
           className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 md:sticky md:top-20 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0"
         >
-          {TABS.map(([k, Icon]) => (
+          {tabs.map(([k, Icon]) => (
             <Link
               key={k}
               href={`/settings?tab=${k}`}
@@ -268,6 +272,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
                 }
               />
               <div className="flex flex-col gap-3 px-5 pb-5 text-sm">
+                <OnlineSwitch initial={user.showOnline} />
                 <p className="text-muted">{t("settings.privacyBody")}</p>
                 <p className="flex gap-4">
                   <Link href="/privacy" className="text-primary font-medium hover:underline">

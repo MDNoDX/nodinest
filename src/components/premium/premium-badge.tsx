@@ -16,7 +16,7 @@ export function PremiumBadge({
       viewBox="0 0 24 24"
       role="img"
       aria-label={label}
-      className={cn("inline size-4 shrink-0 drop-shadow-sm", className)}
+      className={cn("premium-only inline size-4 shrink-0 drop-shadow-sm", className)}
     >
       <title>{label}</title>
       <defs>

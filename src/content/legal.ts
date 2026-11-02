@@ -119,7 +119,7 @@ const uzTerms: LegalDoc = {
       h: "Sizning kontentingiz",
       p: [
         "Yozganlaringiz sizniki. Faqat qonuniy nusxalarni yuklang: sotib olingan, muallif yoki nashriyot ruxsat bergan yoki erkin tarqatiladigan kitoblar. Mualliflik huquqi bilan himoyalangan kitobning noqonuniy (ögirlangan) PDF’ini yuklaş taqiqlanadi.",
-        "Kitob matni, öquvçi va AI tayyorlagan audiokitob faqat sizning şaxsiy foydalanişingiz uçun. Audiokitobni boşqalarga oçiq qilsangiz, unga huquqingiz borligiga özingiz javob berasiz. Ularni Telegram kanallari, guruhlar yoki boşqa joylarda tarqatiş, sotiş yoki ommaga joylaş mumkin emas. Huquq egasi murojaat qilsa, tegişli fayl va audiokitob öçiriladi, qoidabuzar hisob esa töxtatilishi mumkin.",
+        "Kitob matni, öquvçi va AI tayyorlagan audiokitob faqat sizning şaxsiy foydalanişingiz uçun. Audiokitob yoki kitob matnini (PDF) boşqalarga oçiq qilsangiz, unga huquqingiz borligiga özingiz javob berasiz: özingiz yozgan, muallif ruxsat bergan yoki erkin tarqatiladigan kitobnigina oçing. Ularni Telegram kanallari, guruhlar yoki boşqa joylarda tarqatiş, sotiş yoki ommaga joylaş mumkin emas. Huquq egasi murojaat qilsa, tegişli fayl va audiokitob öçiriladi, qoidabuzar hisob esa töxtatilishi mumkin.",
         "Katalogga qöşgan yozuvlaringiz (kitob nomi, muallif, naşriyot) umumiy böladi va boşqalar ularni töldirişi mumkin.",
       ],
     },
@@ -148,7 +148,7 @@ const enTerms: LegalDoc = {
       h: "Your content",
       p: [
         "What you write is yours. Upload only legal copies: books you bought, that the author or publisher allows, or that are free to share. Uploading pirated PDFs of copyrighted books is forbidden.",
-        "The book’s text, the reader and AI-made audiobooks are for your personal use only. If you make an audiobook public, you answer for having the right to do so. Do not share, sell or post them in Telegram channels, groups or anywhere else. After a rights holder’s complaint the file and audiobook are removed and the account may be suspended.",
+        "The book’s text, the reader and AI-made audiobooks are for your personal use only. If you make an audiobook or a book’s text (PDF) public, you answer for having the right to do so: only your own work, one its author allowed, or a freely shared book. Do not share, sell or post them in Telegram channels, groups or anywhere else. After a rights holder’s complaint the file and audiobook are removed and the account may be suspended.",
         "Catalog entries you add (titles, authors, publishers) become shared and may be completed by others.",
       ],
     },
@@ -224,7 +224,7 @@ const ruTerms: LegalDoc = {
       h: "Ваш контент",
       p: [
         "Всё, что вы пишете, принадлежит вам. Загружайте только легальные копии: купленные книги, книги с разрешения автора или издательства либо свободно распространяемые. Загружать пиратские PDF книг, защищённых авторским правом, запрещено.",
-        "Текст книги, читалка и аудиокниги, созданные ИИ, — только для вашего личного пользования. Их нельзя распространять, продавать или выкладывать в Telegram-каналы, группы и куда-либо ещё. По жалобе правообладателя файл и аудиокнига удаляются, а аккаунт может быть заблокирован.",
+        "Текст книги, читалка и аудиокниги, созданные ИИ, — только для вашего личного пользования. Открывая другим аудиокнигу или текст книги (PDF), вы сами отвечаете за право на это: только своё произведение, разрешённое автором или свободно распространяемое. Их нельзя распространять, продавать или выкладывать в Telegram-каналы, группы и куда-либо ещё. По жалобе правообладателя файл и аудиокнига удаляются, а аккаунт может быть заблокирован.",
         "Добавленные вами записи каталога (названия, авторы, издательства) становятся общими, и другие могут их дополнять.",
       ],
     },

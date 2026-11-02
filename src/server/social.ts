@@ -8,10 +8,19 @@
  * with the visibility rules written into every query.
  */
 import "server-only";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
-import { audiobooks, followRequests, follows, learningRecords, user, writeups } from "@/db/schema";
+import {
+  audiobooks,
+  followRequests,
+  follows,
+  learningRecords,
+  postComments,
+  postLikes,
+  user,
+  writeups,
+} from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { normalizeUsername } from "@/lib/username";
@@ -146,13 +155,26 @@ export async function publicItem(ctx: AppContext, username: string, resourceId: 
       sourceUrl: string | null;
       authors: string | null;
       mine: boolean;
+      recordId: string;
+      textPublic: boolean;
+      likes: number;
+      liked: boolean;
+      comments: number;
     }
   >(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
       r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
       lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
       lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
-      r.description, r.source_url as "sourceUrl",
+      r.description, r.source_url as "sourceUrl", lr.id as "recordId",
+      (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
+      exists(select 1 from nodinest.post_likes l
+        where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
+      (select count(*)::int from nodinest.post_comments c
+        where c.record_id = lr.id and c.deleted_at is null) as comments,
+      (lr.text_public and exists(select 1 from nodinest.book_text_sources s
+        where s.user_id = lr.user_id and s.resource_id = lr.resource_id
+          and s.status = 'ready')) as "textPublic",
       (select string_agg(p.full_name, ', ') from nodinest.resource_contributors c
         join nodinest.people p on p.id = c.person_id where c.resource_id = r.id) as authors,
       exists(select 1 from nodinest.learning_records m
@@ -471,13 +493,16 @@ export async function setItemVisibility(
   ctx: AppContext,
   resourceId: string,
   pub: boolean,
-  extras: { writeup?: boolean; audiobook?: boolean } = {},
+  extras: { writeup?: boolean; audiobook?: boolean; text?: boolean } = {},
 ) {
   const id = z.string().uuid().parse(resourceId);
   await withUser(db, ctx, async (tx) => {
     await tx
       .update(learningRecords)
-      .set({ visibility: pub ? "public" : "private" })
+      .set({
+        visibility: pub ? "public" : "private",
+        ...(pub && typeof extras.text === "boolean" ? { textPublic: extras.text } : {}),
+      })
       .where(and(eq(learningRecords.userId, ctx.userId), eq(learningRecords.resourceId, id)));
     if (!pub) return;
     for (const [t, on] of [
@@ -496,18 +521,30 @@ export async function setItemVisibility(
 export async function shareState(ctx: AppContext, resourceId: string) {
   const id = z.string().uuid().parse(resourceId);
   const [x] = await withUser(db, ctx, (tx) =>
-    tx.execute<{ writeup: boolean | null; audiobook: boolean | null }>(sql`
+    tx.execute<{ writeup: boolean | null; audiobook: boolean | null; text: boolean | null }>(sql`
       select
         (select w.is_public from nodinest.writeups w
           where w.user_id = ${ctx.userId} and w.resource_id = ${id} and w.words > 0) as writeup,
         (select a.is_public from nodinest.audiobooks a
           where a.user_id = ${ctx.userId} and a.resource_id = ${id} and a.status = 'ready')
-          as audiobook`),
+          as audiobook,
+        (select lr.text_public from nodinest.learning_records lr
+          where lr.user_id = ${ctx.userId} and lr.resource_id = ${id}
+            and exists(select 1 from nodinest.book_text_sources s where s.user_id = lr.user_id
+              and s.resource_id = lr.resource_id and s.status = 'ready')) as text`),
   );
-  return { writeup: x?.writeup ?? null, audiobook: x?.audiobook ?? null };
+  return {
+    writeup: x?.writeup ?? null,
+    audiobook: x?.audiobook ?? null,
+    text: x?.text ?? null,
+  };
 }
 
 export type MediaItem = PublicItem & {
+  recordId: string;
+  likes: number;
+  liked: boolean;
+  comments: number;
   ownerId: string;
   name: string;
   username: string;
@@ -527,13 +564,20 @@ export async function mediaFeed(
 ) {
   const followed = opts.scope === "following";
   const kind = opts.kind && opts.kind !== "all" ? opts.kind : null;
-  const before = opts.before ? new Date(opts.before) : null;
+  // A text timestamp (with milliseconds): a Date object cannot go into raw SQL.
+  const b = opts.before ? new Date(opts.before) : null;
+  const before = b && !Number.isNaN(b.getTime()) ? b.toISOString() : null;
   return db.execute<MediaItem>(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
       r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
       lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
       lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
-      r.source_url as "sourceUrl", r.description,
+      r.source_url as "sourceUrl", r.description, lr.id as "recordId",
+      (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
+      exists(select 1 from nodinest.post_likes l
+        where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
+      (select count(*)::int from nodinest.post_comments c
+        where c.record_id = lr.id and c.deleted_at is null) as comments,
       exists(select 1 from nodinest.learning_records m
         where m.user_id = ${ctx.userId} and m.resource_id = r.id) as mine
     from nodinest.learning_records lr
@@ -547,7 +591,7 @@ export async function mediaFeed(
               where f.follower_id = ${ctx.userId} and f.followee_id = u.id)`
           : sql``
       }
-      ${before ? sql`and lr.updated_at < ${before}` : sql``}
+      ${before ? sql`and lr.updated_at < ${before}::timestamptz` : sql``}
     order by lr.updated_at desc
     limit 30`);
 }
@@ -569,4 +613,155 @@ export async function takeSource(ctx: AppContext, resourceId: string, ownerId: s
       body: ok.title,
       href: `/library/${rid}`,
     });
+}
+
+/**
+ * Reading someone's book text they made public: a context that reads as the
+ * owner, for read-only book queries only (pages, search, structure). Throws
+ * NOT_FOUND when the text is not shared with the caller.
+ */
+export async function sharedTextOwner(ctx: AppContext, ownerId: string, resourceId: string) {
+  const oid = z.string().uuid().parse(ownerId);
+  const rid = z.string().uuid().parse(resourceId);
+  if (oid === ctx.userId) return ctx;
+  const [ok] = await db.execute<{ ok: number }>(sql`
+    select 1 as ok from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active'
+    where lr.user_id = ${oid} and lr.resource_id = ${rid}
+      and lr.visibility = 'public' and lr.text_public and ${canSee(ctx)}`);
+  if (!ok) throw new AppError("NOT_FOUND");
+  const owner: AppContext = { userId: oid, role: "user", superadminAccount: false };
+  return owner;
+}
+
+// ─── Likes and comments on public posts ─────────────────────────────────────
+
+/** A public post I may see: its owner and title, or NOT_FOUND. */
+async function visiblePost(ctx: AppContext, recordId: string) {
+  const id = z.string().uuid().parse(recordId);
+  const [p] = await db.execute<{ ownerId: string; resourceId: string; title: string; username: string }>(sql`
+    select lr.user_id as "ownerId", lr.resource_id as "resourceId", r.title, u.username
+    from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active'
+    where lr.id = ${id} and lr.visibility = 'public' and ${canSee(ctx)}`);
+  if (!p) throw new AppError("NOT_FOUND");
+  return { ...p, id };
+}
+
+export async function setLike(ctx: AppContext, recordId: string, on: boolean) {
+  const p = await visiblePost(ctx, recordId);
+  await withUser(db, ctx, (tx) =>
+    on
+      ? tx.insert(postLikes).values({ recordId: p.id, userId: ctx.userId }).onConflictDoNothing()
+      : tx
+          .delete(postLikes)
+          .where(and(eq(postLikes.recordId, p.id), eq(postLikes.userId, ctx.userId))),
+  );
+  if (on && p.ownerId !== ctx.userId)
+    await notify(p.ownerId, "like", {
+      actorId: ctx.userId,
+      body: p.title,
+      href: `/u/${p.username}/item/${p.resourceId}`,
+    }).catch(() => null);
+  const [n] = await db
+    .select({ n: count() })
+    .from(postLikes)
+    .where(eq(postLikes.recordId, p.id));
+  return n?.n ?? 0;
+}
+
+export type PostComment = {
+  id: string;
+  body: string | null;
+  gif: { id: string; url: string; w: number; h: number } | null;
+  createdAt: string;
+  mine: boolean;
+  /** I may remove it (mine, or on my post). */
+  canDelete: boolean;
+  author: { id: string; name: string; username: string; image: string | null };
+};
+
+export async function postComments_(ctx: AppContext, recordId: string): Promise<PostComment[]> {
+  const p = await visiblePost(ctx, recordId);
+  const rows = await db.execute<{
+    id: string;
+    body: string | null;
+    gif: PostComment["gif"];
+    createdAt: Date;
+    userId: string;
+    name: string;
+    username: string | null;
+    image: string | null;
+  }>(sql`
+    select c.id, c.body, c.gif, c.created_at as "createdAt", c.user_id as "userId",
+      u.name, u.username, u.image
+    from nodinest.post_comments c
+    join nodinest."user" u on u.id = c.user_id and u.status = 'active'
+    where c.record_id = ${p.id} and c.deleted_at is null
+    order by c.created_at
+    limit 300`);
+  return rows.map((r) => ({
+    id: r.id,
+    body: r.body,
+    gif: r.gif,
+    createdAt: new Date(r.createdAt).toISOString(),
+    mine: r.userId === ctx.userId,
+    canDelete: r.userId === ctx.userId || p.ownerId === ctx.userId,
+    author: { id: r.userId, name: r.name, username: r.username ?? "", image: r.image },
+  }));
+}
+export { postComments_ as listPostComments };
+
+const GIPHY = /^https:\/\/media\d?\.giphy\.com\/[\w./-]+$/;
+const commentInput = z
+  .object({
+    body: z.string().trim().max(1000).optional(),
+    gif: z
+      .object({
+        id: z.string().max(40).regex(/^[\w-]+$/),
+        url: z.string().max(400).regex(GIPHY),
+        w: z.number().int().min(1).max(2000),
+        h: z.number().int().min(1).max(2000),
+      })
+      .optional(),
+  })
+  .refine((v) => !!(v.body || v.gif), { message: "empty" });
+
+export async function addComment(ctx: AppContext, recordId: string, raw: unknown) {
+  const v = commentInput.parse(raw);
+  if (moderationIssue(v.body ?? null)) throw new AppError("INDECENT");
+  const p = await visiblePost(ctx, recordId);
+  await enforceRateLimit(db, `comment:${ctx.userId}`, 30, 600);
+  const [row] = await withUser(db, ctx, (tx) =>
+    tx
+      .insert(postComments)
+      .values({
+        recordId: p.id,
+        userId: ctx.userId,
+        body: v.body || null,
+        gif: v.gif ? { id: v.gif.id, url: v.gif.url, w: v.gif.w, h: v.gif.h } : null,
+      })
+      .returning({ id: postComments.id }),
+  );
+  if (p.ownerId !== ctx.userId)
+    await notify(p.ownerId, "comment", {
+      actorId: ctx.userId,
+      body: v.body ? v.body.slice(0, 120) : p.title,
+      href: `/u/${p.username}/item/${p.resourceId}`,
+    }).catch(() => null);
+  return row.id;
+}
+
+export async function deleteComment(ctx: AppContext, commentId: string) {
+  const id = z.string().uuid().parse(commentId);
+  const done = await withUser(db, ctx, (tx) =>
+    tx
+      .update(postComments)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(postComments.id, id), isNull(postComments.deletedAt)))
+      .returning({ id: postComments.id }),
+  );
+  if (!done.length) throw new AppError("NOT_FOUND");
 }

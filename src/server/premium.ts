@@ -99,9 +99,15 @@ export async function limitsFor(ctx: AppContext): Promise<PlanLimits & { premium
       ads: false,
       premium: true,
     };
+  // Premium switched off for the whole site: everyone has everything, nothing asks to pay.
+  if (!s.enabled) return { ...s.premium, premium: true };
   const premium = await isPremium(ctx.userId);
-  // While premium is switched off, everyone gets the premium plan's limits.
-  return { ...(premium || !s.enabled ? s.premium : s.free), premium };
+  return { ...(premium ? s.premium : s.free), premium };
+}
+
+/** Is the paid plan in use on the site at all (the owner's switch in Admin → Premium)? */
+export async function premiumOn() {
+  return (await getPremiumSettings()).enabled;
 }
 
 /** Throws PREMIUM_REQUIRED when the feature is not in the caller's plan. */

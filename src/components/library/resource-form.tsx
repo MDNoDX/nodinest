@@ -233,6 +233,8 @@ export function ResourceForm({
   const err = (k: string) => errors[k];
   const isBook = BOOK_LIKE.includes(v.type);
   const isMedia = MEDIA_LIKE.includes(v.type);
+  // Books and courses have tall covers; videos, podcasts and the rest 16:9.
+  const portraitCover = v.type === "book" || v.type === "course";
   // A YouTube id from the identifiers, the source URL or a link: its length can be read.
   const ytId =
     v.identifiers
@@ -619,7 +621,10 @@ export function ResourceForm({
                   src={coverPreview}
                   alt=""
                   referrerPolicy="no-referrer"
-                  className="border-border aspect-[2/3] w-full rounded-xl border object-cover shadow-sm"
+                  className={cn(
+                    "border-border w-full rounded-xl border object-cover shadow-sm",
+                    portraitCover ? "aspect-[2/3]" : "aspect-video",
+                  )}
                 />
                 <button
                   type="button"
@@ -634,6 +639,7 @@ export function ResourceForm({
               <FileUpload
                 purpose="cover"
                 variant="tile"
+                shape={portraitCover ? "portrait" : "landscape"}
                 enabled={storageEnabled}
                 userId={userId}
                 onUploaded={(id) => setV((s) => ({ ...s, coverFileId: id, coverUrl: "" }))}

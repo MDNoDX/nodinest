@@ -28,6 +28,7 @@ export const SECTION_HUE: Record<string, Hue> = {
   community: "violet",
   profile: "violet",
   chats: "sky",
+  media: "orange",
   journal: "teal",
   plans: "emerald",
   search: "sky",

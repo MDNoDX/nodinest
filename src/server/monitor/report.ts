@@ -62,6 +62,8 @@ export async function reportError(err: unknown, info: ErrorInfo = {}) {
     c.n++;
     errorCounts.set(fp, c);
     if (!enabled()) return;
+    // Google's answer coming twice: the first one signed the person in already.
+    if (/State mismatch: verification not found|Failed to parse state/.test(title)) return;
 
     const now = Date.now();
     if ((seen.get(fp) ?? 0) > now - 10 * 60_000) return;

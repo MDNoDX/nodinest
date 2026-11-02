@@ -247,6 +247,13 @@ async function publicCover(ctx: AppContext, fileId: string) {
     where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null and ${seen}
     union
     select f.id from nodinest.files f
+    join nodinest.book_text_sources s on s.file_id = f.id
+    join nodinest.learning_records lr on lr.user_id = s.user_id and lr.resource_id = s.resource_id
+      and lr.visibility = 'public' and lr.text_public
+    join nodinest."user" u on u.id = lr.user_id
+    where f.id = ${fileId} and f.deleted_at is null and f.uploaded_at is not null and ${seen}
+    union
+    select f.id from nodinest.files f
     join nodinest.dm_messages m on m.deleted_at is null
       and (m.file_id = f.id or m.resource_id in
         (select r.id from nodinest.resources r where r.cover_file_id = f.id))
@@ -286,9 +293,24 @@ export async function openFile(ctx: AppContext, fileId: string, range?: [number,
     }
     return { ...base, size, stream: streamParts(parts) };
   }
-  const res = await get(f.path, { access: "private" });
+  // Audio and video are read in byte ranges (Safari plays nothing without them,
+  // and seeking needs them everywhere).
+  const media = /^(audio|video)\//.test(f.mimeType);
+  const res = await get(f.path, {
+    access: "private",
+    ...(media && range ? { headers: { range: `bytes=${range[0]}-${range[1] ?? ""}` } } : {}),
+  });
   if (!res || !res.stream) return null;
-  return { ...base, stream: res.stream };
+  if (!media) return { ...base, stream: res.stream };
+  const m = /bytes (\d+)-(\d+)\/(\d+)/.exec(res.headers.get("content-range") ?? "");
+  if (range && m)
+    return {
+      ...base,
+      size: Number(m[3]),
+      stream: res.stream,
+      range: { start: Number(m[1]), end: Number(m[2]), size: Number(m[3]) },
+    };
+  return { ...base, stream: res.stream, range: null };
 }
 
 /** Full bytes of the actor's own file (used for PDF text extraction). */

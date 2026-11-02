@@ -28,6 +28,8 @@ export type CurrentUser = {
   isPremium: boolean;
   premiumUntil: Date | null;
   profilePublic: boolean;
+  /** "Online / last seen" shown (and seen) in chats. */
+  showOnline: boolean;
   notify: Record<string, boolean>;
   bio: string | null;
   /** Private phone number (only shown to the owner). */
@@ -60,6 +62,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       lastName: user.lastName,
       premiumUntil: user.premiumUntil,
       profilePublic: user.profilePublic,
+      showOnline: user.showOnline,
       notify: user.notify,
       bio: user.bio,
       phone: user.phone,

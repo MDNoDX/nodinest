@@ -199,6 +199,21 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   visible, 8 s when quiet), never server actions (they queue). Files go through `uploadMedia`;
   `fileFor()` in storage lets both members open a message's file and a shared item's cover.
   "Yuborish" (`chat/send-to.tsx`) sends an item card; the receiver may take only the card.
+- Chat extras: `chat/outbox.ts` keeps messages on their way outside the page (leaving a chat does
+  not lose an upload; `chat/upload-tray.tsx` shows them everywhere, ✕ cancels via AbortSignal);
+  `composer.tsx` = hold-to-record voice (slide left cancels, up locks; `wave.ts` stores 40 bars in
+  `dm_messages.meta`), emoji/GIF/sticker picker (`emoji-gif.tsx`, GIPHY through `/api/gif`, env
+  GIPHY_API_KEY, only media*.giphy.com URLs accepted), the attach sheet (look before sending).
+  Clear chat for me (`a/b_cleared_at`) or both (rows deleted). Presence: `user.last_seen_at`
+  (heartbeat in `/api/dm/threads`), `show_online` off hides it both ways.
+- Posts (0049): 👍 "Zo'r" likes `post_likes` and comments `post_comments` (text / GIF) on a public
+  learning record; Media "Kuzatayotganlarim" = big posts, "Umumiy" = tiles to the post page.
+  A public item may share its PDF text (`learning_records.text_public`): others read it at
+  `/u/[username]/item/[id]/read` through `sharedTextOwner()` (read-only, never the owner's marks).
+- Premium switch off (Admin → Premium, `premiumOn()`): everyone gets the premium limits and every
+  `.premium-only` mark / link is hidden by a style in (app)/layout.
+- Covers: podcasts / interviews are a vinyl record half out of its sleeve (`.rec`, spins on hover);
+  the year's Röznoma book gets `.journal-doc` in the editor (ruled paper, ornamented months).
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

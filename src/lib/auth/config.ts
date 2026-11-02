@@ -22,6 +22,10 @@ const googleConfigured = !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_
 export const auth = betterAuth({
   appName: "Röznoma",
   baseURL: process.env.BETTER_AUTH_URL,
+  // A sign-in that fails (most often Google's answer arriving twice, after the
+  // first already signed the person in) goes back to /login, which sends a
+  // signed-in person on to the app — never to a bare error page.
+  onAPIError: { errorURL: "/login" },
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",

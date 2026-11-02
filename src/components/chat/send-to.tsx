@@ -1,5 +1,5 @@
 "use client";
-import { Check, Loader2, Search, Send } from "lucide-react";
+import { Check, Link2, Loader2, Search, Send, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -20,10 +20,13 @@ export function SendTo({
   resourceId,
   className,
   compact,
+  share,
 }: {
   resourceId: string;
   className?: string;
   compact?: boolean;
+  /** A public post's page: it can also go to Telegram, WhatsApp, Instagram… as a link. */
+  share?: { path: string; title: string };
 }) {
   const t = useTranslations("chat");
   const tc = useTranslations("common");
@@ -84,6 +87,18 @@ export function SendTo({
   };
 
   const list = found ?? recent;
+  const link = share && typeof window !== "undefined" ? `${window.location.origin}${share.path}` : "";
+  const native = async () => {
+    try {
+      await navigator.share({ title: share?.title, url: link });
+    } catch {
+      /* closed by the person */
+    }
+  };
+  const copy = async () => {
+    await navigator.clipboard?.writeText(link).catch(() => null);
+    toast.success(t("linkCopied"));
+  };
   return (
     <>
       <button
@@ -103,6 +118,32 @@ export function SendTo({
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent title={t("sendTitle")} closeLabel={tc("close")}>
+          {share && (
+            // Other apps: the phone's own share sheet (Telegram, Instagram, WhatsApp…),
+            // or straight links where there is none.
+            <div className="mb-4 flex flex-wrap gap-2">
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <ShareBtn onClick={() => void native()} label={t("shareApps")}>
+                  <Share2 className="size-4" />
+                </ShareBtn>
+              )}
+              <ShareBtn
+                href={`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(share.title)}`}
+                label="Telegram"
+              >
+                <span className="text-[13px] font-bold text-[#2aabee]">TG</span>
+              </ShareBtn>
+              <ShareBtn
+                href={`https://wa.me/?text=${encodeURIComponent(`${share.title} ${link}`)}`}
+                label="WhatsApp"
+              >
+                <span className="text-[13px] font-bold text-[#25d366]">WA</span>
+              </ShareBtn>
+              <ShareBtn onClick={() => void copy()} label={t("copyLink")}>
+                <Link2 className="size-4" />
+              </ShareBtn>
+            </div>
+          )}
           <label className="bg-surface-2 focus-within:ring-primary/40 flex h-10 items-center gap-2 rounded-xl px-3 focus-within:ring-2">
             <Search className="text-muted size-4" />
             <input
@@ -163,5 +204,29 @@ export function SendTo({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ShareBtn({
+  href,
+  onClick,
+  label,
+  children,
+}: {
+  href?: string;
+  onClick?: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const cls =
+    "border-border hover:bg-surface-2 inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors";
+  return href ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+      {children} {label}
+    </a>
+  ) : (
+    <button type="button" onClick={onClick} className={cls}>
+      {children} {label}
+    </button>
   );
 }

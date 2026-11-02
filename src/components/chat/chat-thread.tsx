@@ -5,12 +5,10 @@ import {
   Ban,
   Copy,
   CornerUpLeft,
+  Eraser,
   EllipsisVertical,
   Loader2,
-  Mic,
-  Paperclip,
   RotateCw,
-  SendHorizontal,
   Trash2,
   UserRound,
   X,
@@ -20,15 +18,21 @@ import { useLocale, useTranslations } from "next-intl";
 import { DropdownMenu as M } from "radix-ui";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { deleteMessageAction, sendMessageAction, setBlockedAction } from "@/app/actions/dm";
-import { fmtSeconds, useRecorder } from "@/components/media/use-recorder";
+import {
+  clearChatAction,
+  deleteMessageAction,
+  setBlockedAction,
+} from "@/app/actions/dm";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
-import { uploadMedia } from "@/lib/upload-media";
-import type { DmMessage, DmPerson } from "@/server/dm";
+import type { DmGif, DmMessage, DmPerson } from "@/server/dm";
 import { refreshUnreadChats } from "./chats-button";
-import { Attachment, KindLabel, ReadMark, clock, dayLabel } from "./parts";
+import { Composer, type Voice } from "./composer";
+import { cancel, onSent, queue as queueOut, retry, usePending, type Pending } from "./outbox";
+import { Attachment, KindLabel, ReadMark, clock, dayLabel, seenText, useNow } from "./parts";
 
 type View = {
   id: string;
@@ -39,17 +43,9 @@ type View = {
   messages: DmMessage[];
   more: boolean;
 };
-type Pending = {
-  key: string;
-  body?: string;
-  file?: File;
-  preview?: string;
-  progress?: number;
-  failed?: boolean;
-  replyToId?: string;
-};
-
 const NEAR = 140;
+/** Seen this recently = online. */
+const ONLINE_MS = 2 * 60_000;
 const kindOf = (m: DmMessage) =>
   m.deleted
     ? "deleted"
@@ -63,7 +59,9 @@ const kindOf = (m: DmMessage) =>
             : "file"
       : m.item
         ? "item"
-        : "text";
+        : m.meta?.gif
+          ? "gif"
+          : "text";
 
 /**
  * One conversation, Telegram-like: bubbles by day, replies, ✓ / ✓✓, photos,
@@ -80,10 +78,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   const [more, setMore] = useState(initial.more);
   const [blockedByMe, setBlockedByMe] = useState(initial.blockedByMe);
   const [canWrite, setCanWrite] = useState(initial.canWrite);
-  const [pending, setPending] = useState<Pending[]>([]);
   const [reply, setReply] = useState<DmMessage | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [text, setText] = useState("");
+  const [seen, setSeen] = useState(initial.other.seen ?? null);
+  const now = useNow();
+  const [clearing, setClearing] = useState(false);
   const [below, setBelow] = useState(0);
   const [away, setAway] = useState(false);
   const [touch, setTouch] = useState(false);
@@ -100,9 +99,6 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   }, []);
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const rec = useRecorder(10 * 60);
   const other = initial.other;
 
   const last = list.at(-1)?.createdAt;
@@ -173,10 +169,12 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
               messages: DmMessage[];
               otherReadAt: string | null;
               gone: string[];
+              seen?: string | null;
             })
           : null;
         if (!stop && j) {
           setReadAt(j.otherReadAt);
+          setSeen(j.seen ?? null);
           const fresh = j.messages.filter((m) => m.senderId !== me);
           merge(j.messages, j.gone);
           if (fresh.length) {
@@ -232,83 +230,63 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
     if (el.scrollTop < 80) void older();
   };
 
-  /** Sends one message (text, or a file with the text as its caption). */
-  const deliver = async (p: Pending) => {
-    setPending((x) => x.map((y) => (y.key === p.key ? { ...y, failed: false, progress: 0 } : y)));
-    try {
-      let fileId: string | undefined;
-      if (p.file) {
-        const up = await uploadMedia(p.file, {
-          userId: me,
-          name: p.file.name,
-          onProgress: (n) =>
-            setPending((x) => x.map((y) => (y.key === p.key ? { ...y, progress: n } : y))),
-        });
-        fileId = up.fileId;
-      }
-      const r = await sendMessageAction(initial.id, {
-        body: p.body || undefined,
-        fileId,
-        replyToId: p.replyToId,
-      });
-      if (!r.ok) {
-        if (r.code === "FORBIDDEN") setCanWrite(false);
-        errorToast(te, r.code === "FORBIDDEN" ? "dm_blocked" : r);
-        throw new Error(r.code);
-      }
-      setPending((x) => x.filter((y) => y.key !== p.key));
-      if (p.preview) URL.revokeObjectURL(p.preview);
-      merge([r.data]);
-      toEnd(true);
-    } catch (e) {
-      if (!(e instanceof Error && /^[A-Z_]+$/.test(e.message))) toast.error(t("failed"));
-      setPending((x) => x.map((y) => (y.key === p.key ? { ...y, failed: true } : y)));
-    }
-  };
-
-  const queue = (items: Omit<Pending, "key">[]) => {
-    const made = items.map((it, i) => ({ ...it, key: `${Date.now()}-${i}-${Math.random()}` }));
-    setPending((x) => [...x, ...made]);
+  // Messages on their way live outside this page (leaving does not lose them).
+  const pending = usePending(initial.id);
+  const queue = (items: Omit<Pending, "key" | "threadId" | "to">[]) => {
+    queueOut(
+      me,
+      items.map((it) => ({ ...it, threadId: initial.id, to: other.name })),
+    );
     requestAnimationFrame(() => toEnd(true));
-    // One after another, so they arrive in order.
-    void made.reduce((p, it) => p.then(() => deliver(it)), Promise.resolve());
   };
+  useEffect(
+    () =>
+      onSent((threadId, m) => {
+        if (threadId !== initial.id) return;
+        merge([m]);
+        toEnd(true);
+      }),
+    [initial.id, merge, toEnd],
+  );
+  // Refused by the server: blocked (the box closes) or another reason (said once).
+  const told = useRef(new Set<string>());
+  useEffect(() => {
+    for (const p of pending)
+      if (p.failed && p.code && !told.current.has(p.key)) {
+        told.current.add(p.key);
+        errorToast(te, p.code === "FORBIDDEN" ? "dm_blocked" : p.code);
+      }
+  }, [pending, te]);
+  const writable = canWrite && !pending.some((p) => p.code === "FORBIDDEN");
 
-  const sendText = () => {
-    const body = text.trim();
-    if (!body) return;
-    setText("");
-    queue([{ body, replyToId: reply?.id }]);
+  const replyId = () => {
+    const id = reply?.id;
     setReply(null);
-    input.current?.focus();
+    return id;
   };
-
-  const sendFiles = (picked: FileList | null) => {
-    if (!picked?.length) return;
-    const caption = text.trim();
-    setText("");
-    const files = [...picked].slice(0, 10);
+  const sendText = (body: string) => queue([{ body, replyToId: replyId() }]);
+  const sendFiles = (files: File[], caption: string) => {
+    const to = replyId();
     queue(
       files.map((file, i) => ({
         file,
         body: i === 0 ? caption : undefined,
-        replyToId: i === 0 ? reply?.id : undefined,
-        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+        replyToId: i === 0 ? to : undefined,
+        preview: /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : undefined,
       })),
     );
-    setReply(null);
   };
+  const sendVoice = (v: Voice) =>
+    queue([{ file: v.file, wave: v.wave, seconds: v.seconds, replyToId: replyId() }]);
+  const sendGif = (gif: DmGif) => queue([{ gif, replyToId: replyId() }]);
 
-  const finishVoice = async () => {
-    const r = await rec.stop();
-    if (!r) return;
-    queue([
-      {
-        file: new File([r.blob], r.name, { type: r.mime }),
-        replyToId: reply?.id,
-      },
-    ]);
-    setReply(null);
+  const clear = async (forBoth: boolean) => {
+    setClearing(false);
+    const r = await clearChatAction(initial.id, forBoth);
+    if (!r.ok) return errorToast(te, r);
+    setList([]);
+    setMore(false);
+    toast.success(t("cleared"));
   };
 
   const remove = async (m: DmMessage) => {
@@ -341,7 +319,16 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
           <Avatar name={other.name} image={other.image} className="size-9" />
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">{other.name}</span>
-            <span className="text-muted block truncate text-xs">@{other.username}</span>
+            <span
+              className={cn(
+                "block truncate text-xs",
+                seen && now && now - Date.parse(seen) < ONLINE_MS
+                  ? "text-[var(--c-emerald)]"
+                  : "text-muted",
+              )}
+            >
+              {seen && now ? seenText(now, seen, locale, t) : `@${other.username}`}
+            </span>
           </span>
         </Link>
         <M.Root>
@@ -367,6 +354,12 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                 >
                   <UserRound className="size-4" /> {t("profile")}
                 </Link>
+              </M.Item>
+              <M.Item
+                onSelect={() => setClearing(true)}
+                className="hover:bg-surface-2 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
+              >
+                <Eraser className="size-4" /> {t("clear")}
               </M.Item>
               <M.Item
                 onSelect={() => void block(!blockedByMe)}
@@ -402,7 +395,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                 prev?.senderId === m.senderId &&
                 Date.parse(m.createdAt) - Date.parse(prev.createdAt) < 5 * 60_000;
               const q = m.reply;
-              const media = m.file && /^(image|video)\//.test(m.file.mime) && !m.body;
+              const media = !m.body && (!!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime)));
               return (
                 <Fragment key={m.id}>
                   {newDay && (
@@ -421,7 +414,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                     )}
                   >
                     <div className="flex max-w-[85%] items-end gap-1 sm:max-w-[75%]">
-                      {!touch && !m.deleted && canWrite && (
+                      {!touch && !m.deleted && writable && (
                         <span
                           className={cn(
                             "opacity-0 transition-opacity group-hover:opacity-100",
@@ -432,7 +425,6 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                             label={t("reply")}
                             onClick={() => {
                               setReply(m);
-                              input.current?.focus();
                             }}
                           >
                             <CornerUpLeft className="size-4" />
@@ -503,12 +495,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                     </div>
                     {picked === m.id && !m.deleted && (
                       <div className="animate-fade-in mt-1 flex gap-1">
-                        {canWrite && (
+                        {writable && (
                           <Chip
                             onClick={() => {
                               setReply(m);
                               setPicked(null);
-                              input.current?.focus();
                             }}
                           >
                             <CornerUpLeft className="size-3.5" /> {t("reply")}
@@ -537,11 +528,22 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
               );
             })}
             {pending.map((p) => (
-              <div key={p.key} className="mt-2 flex flex-col items-end">
-                <div className="bg-primary-soft max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[15px] whitespace-pre-wrap opacity-80 sm:max-w-[75%]">
-                  {p.preview && (
+              <div key={p.key} className="chat-msg-in mt-2 flex flex-col items-end">
+                <div className="bg-primary-soft relative max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[15px] whitespace-pre-wrap sm:max-w-[75%]">
+                  {p.preview && p.file?.type.startsWith("video/") ? (
+                    <video
+                      src={p.preview}
+                      muted
+                      playsInline
+                      className="mb-1 max-h-60 rounded-xl bg-black opacity-80"
+                    />
+                  ) : p.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.preview} alt="" className="mb-1 max-h-60 rounded-xl" />
+                    <img src={p.preview} alt="" className="mb-1 max-h-60 rounded-xl opacity-80" />
+                  ) : null}
+                  {p.gif && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.gif.url} alt="GIF" className="max-h-52 rounded-xl opacity-80" />
                   )}
                   {p.file && !p.preview && (
                     <span className="text-muted block text-sm">
@@ -549,20 +551,44 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                     </span>
                   )}
                   {p.body}
-                  <span className="text-muted mt-1 flex items-center justify-end gap-1 text-[11px]">
+                  <span className="text-muted mt-1 flex items-center justify-end gap-1.5 text-[11px]">
                     {p.failed ? (
                       <button
                         type="button"
-                        onClick={() => void deliver(p)}
+                        onClick={() => retry(p)}
                         className="text-danger inline-flex items-center gap-1 font-semibold"
                       >
                         <RotateCw className="size-3.5" /> {t("retry")}
                       </button>
+                    ) : p.file ? (
+                      // A file going up: how far, and a cross to stop it.
+                      <span
+                        className="chat-upload grid size-7 place-items-center rounded-full"
+                        style={{ ["--pct" as string]: `${p.progress ?? 0}%` }}
+                        title={`${p.progress ?? 0}%`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => cancel(p.key)}
+                          aria-label={t("cancelSend")}
+                          className="bg-primary-soft text-foreground grid size-[22px] place-items-center rounded-full"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </span>
                     ) : (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin" />
-                        {p.file && p.progress != null && `${p.progress}%`}
-                      </>
+                      <Loader2 className="size-3.5 animate-spin" />
+                    )}
+                    {p.file && !p.failed && `${p.progress ?? 0}%`}
+                    {p.failed && (
+                      <button
+                        type="button"
+                        onClick={() => cancel(p.key)}
+                        aria-label={t("cancelSend")}
+                        className="hover:text-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </button>
                     )}
                   </span>
                 </div>
@@ -588,7 +614,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
       </div>
 
       <footer className="border-border bg-background shrink-0 border-t px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-3">
-        {!canWrite ? (
+        {!writable ? (
           <div className="text-muted flex items-center justify-center gap-2 py-2 text-sm">
             <Ban className="size-4" />
             {blockedByMe ? (
@@ -607,121 +633,40 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
             )}
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl">
-            {reply && (
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <CornerUpLeft className="text-primary size-4 shrink-0" />
-                <div className="border-primary min-w-0 flex-1 border-l-2 pl-2 text-xs">
-                  <span className="text-primary block font-semibold">
-                    {reply.senderId === me ? t("you") : other.name}
-                  </span>
-                  <span className="text-muted line-clamp-1">
-                    <KindLabel kind={kindOf(reply)} text={reply.body} />
-                  </span>
-                </div>
-                <IconBtn label={t("cancel")} onClick={() => setReply(null)}>
-                  <X className="size-4" />
-                </IconBtn>
-              </div>
-            )}
-            {rec.state === "recording" ? (
-              <div className="flex items-center gap-2">
-                <IconBtn label={t("cancel")} onClick={() => rec.cancel()}>
-                  <Trash2 className="text-danger size-5" />
-                </IconBtn>
-                <div className="bg-surface-2 flex h-11 flex-1 items-center gap-3 rounded-2xl px-4">
-                  <span className="size-2.5 animate-pulse rounded-full bg-[var(--c-rose)]" />
-                  <span className="text-sm font-medium tabular-nums">
-                    {fmtSeconds(rec.seconds)}
-                  </span>
-                  <span className="bg-border h-1.5 flex-1 overflow-hidden rounded-full">
-                    <span
-                      className="bg-primary block h-full rounded-full transition-[width] duration-75"
-                      style={{ width: `${Math.round(rec.level * 100)}%` }}
-                    />
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void finishVoice()}
-                  aria-label={t("send")}
-                  className="bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-95"
-                >
-                  <SendHorizontal className="size-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-end gap-2">
-                <input
-                  ref={fileInput}
-                  type="file"
-                  multiple
-                  hidden
-                  accept="image/*,video/*,audio/*,application/pdf"
-                  onChange={(e) => {
-                    sendFiles(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-                <IconBtn label={t("attach")} onClick={() => fileInput.current?.click()} big>
-                  <Paperclip className="size-5" />
-                </IconBtn>
-                <textarea
-                  ref={input}
-                  value={text}
-                  rows={1}
-                  maxLength={4000}
-                  placeholder={t("typeMessage")}
-                  aria-label={t("typeMessage")}
-                  onChange={(e) => {
-                    setText(e.target.value);
-                    const el = e.target;
-                    el.style.height = "auto";
-                    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      sendText();
-                    }
-                    if (e.key === "Escape") setReply(null);
-                  }}
-                  onPaste={(e) => {
-                    if (e.clipboardData.files.length) {
-                      e.preventDefault();
-                      sendFiles(e.clipboardData.files);
-                    }
-                  }}
-                  className="bg-surface-2 focus:ring-primary/40 max-h-40 min-h-11 flex-1 resize-none rounded-2xl px-4 py-2.5 text-[15px] leading-6 outline-none focus:ring-2"
-                />
-                {text.trim() ? (
-                  <button
-                    type="button"
-                    onClick={sendText}
-                    aria-label={t("send")}
-                    className="bg-primary text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-95"
-                  >
-                    <SendHorizontal className="size-5" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => void rec.start()}
-                    aria-label={t("record")}
-                    title={t("record")}
-                    className="bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground grid size-11 shrink-0 place-items-center rounded-full transition-colors"
-                  >
-                    <Mic className="size-5" />
-                  </button>
-                )}
-              </div>
-            )}
-            {(rec.state === "denied" || rec.state === "nomic" || rec.state === "error") && (
-              <p className="text-danger mt-1 px-1 text-xs">{t(`mic.${rec.state}`)}</p>
-            )}
-          </div>
+          <Composer
+            reply={
+              reply
+                ? {
+                    senderName: reply.senderId === me ? t("you") : other.name,
+                    kind: kindOf(reply),
+                    text: reply.body,
+                  }
+                : null
+            }
+            onCancelReply={() => setReply(null)}
+            onText={sendText}
+            onFiles={sendFiles}
+            onVoice={sendVoice}
+            onGif={sendGif}
+          />
         )}
       </footer>
+      <Dialog open={clearing} onOpenChange={setClearing}>
+        <DialogContent title={t("clearTitle")} closeLabel={t("cancel")}>
+          <p className="text-muted text-sm">{t("clearBody", { name: other.name })}</p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" onClick={() => setClearing(false)}>
+              {t("cancel")}
+            </Button>
+            <Button variant="outline" onClick={() => void clear(false)}>
+              {t("clearMine")}
+            </Button>
+            <Button variant="danger" onClick={() => void clear(true)}>
+              {t("clearBoth", { name: other.name })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { requireUser, toCtx } from "@/lib/auth/session";
 import { readPrefs } from "@/lib/notify-prefs";
 import { unreadCount } from "@/server/notifications";
 import { unreadChats } from "@/server/dm";
-import { limitsFor } from "@/server/premium";
+import { limitsFor, premiumOn } from "@/server/premium";
 import { adFor } from "@/server/ads";
 import { AdCard } from "@/components/ads/ad-card";
 import { getTranslations } from "next-intl/server";
@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     unreadCount(ctx),
     unreadChats(ctx),
   ]);
+  const paid = await premiumOn();
   const tAds = await getTranslations("ads");
   const prefs = readPrefs(user.notify);
   return (
@@ -53,6 +54,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       alarms={{ on: prefs.plans, sound: prefs.sound }}
       timerSlot={user.isSuperadmin ? <AdminToggle on={user.adminMode} /> : null}
     >
+      {/* Premium switched off: every Premium mark and link disappears. */}
+      {!paid && <style>{".premium-only{display:none!important}"}</style>}
       <TimezoneSync current={user.timezone} />
       {children}
     </AppShell>

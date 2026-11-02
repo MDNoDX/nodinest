@@ -1,5 +1,5 @@
 "use client";
-import { AudioLines, Globe, Lock, NotebookPen } from "lucide-react";
+import { AudioLines, BookOpenText, Globe, Lock, NotebookPen } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
 
-type Extras = { writeup: boolean | null; audiobook: boolean | null };
+type Extras = { writeup: boolean | null; audiobook: boolean | null; text: boolean | null };
 
 /**
  * On a library item: show it on my public profile, or keep it private. A
@@ -35,10 +35,12 @@ export function VisibilityToggle({
   const [asking, setAsking] = useState(false);
   const [withWriteup, setWithWriteup] = useState(!!extras?.writeup);
   const [withAudio, setWithAudio] = useState(!!extras?.audiobook);
+  const [withText, setWithText] = useState(!!extras?.text);
   // Only the last click counts when someone taps quickly several times.
   const seq = useRef(0);
-  const hasExtras = extras && (extras.writeup != null || extras.audiobook != null);
-  const flip = async (chosen?: { writeup?: boolean; audiobook?: boolean }) => {
+  const hasExtras =
+    extras && (extras.writeup != null || extras.audiobook != null || extras.text != null);
+  const flip = async (chosen?: { writeup?: boolean; audiobook?: boolean; text?: boolean }) => {
     const next = !pub;
     if (next && hasExtras && !chosen) return setAsking(true);
     setAsking(false);
@@ -133,9 +135,25 @@ export function VisibilityToggle({
                 setWithAudio,
                 <AudioLines className="size-4" />,
                 t("shareWithAudiobook"),
-                withAudio ? t("shareAudiobookWarn") : undefined,
+              )}
+            {extras?.text != null &&
+              tick(
+                withText,
+                setWithText,
+                <BookOpenText className="size-4" />,
+                t("shareWithText"),
+                t("shareWithTextHint"),
               )}
           </div>
+          <p className="text-muted mt-3 text-xs">
+            {t.rich("shareWithTerms", {
+              terms: (c) => (
+                <a href="/terms" target="_blank" className="text-primary hover:underline">
+                  {c}
+                </a>
+              ),
+            })}
+          </p>
           <div className="mt-6 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setAsking(false)}>
               {tc("cancel")}
@@ -145,6 +163,7 @@ export function VisibilityToggle({
                 void flip({
                   ...(extras?.writeup != null ? { writeup: withWriteup } : {}),
                   ...(extras?.audiobook != null ? { audiobook: withAudio } : {}),
+                  ...(extras?.text != null ? { text: withText } : {}),
                 })
               }
             >

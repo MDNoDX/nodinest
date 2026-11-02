@@ -62,13 +62,20 @@ export function ReaderApp({
   data,
   start,
   preparing,
+  viewer,
 }: {
   resource: Res;
   data: ReaderData;
   start: number;
   /** The chapters are being found: refresh until they are there. */
   preparing: boolean;
+  /**
+   * Someone else's book whose text its owner made public: pages come from the
+   * owner's copy; no AI, no audiobook, no progress or offline copy.
+   */
+  viewer?: { ownerId: string; back: string };
 }) {
+  const ownerQ = viewer ? `&owner=${viewer.ownerId}` : "";
   const t = useTranslations("reader");
   const router = useRouter();
   const prefs = useReaderPrefs();
@@ -114,12 +121,12 @@ export function ReaderApp({
     async (from: number, to: number) => {
       let raw: { page: number; content: string; blocks?: BookBlock[] | null }[] = [];
       try {
-        const r = await fetch(`/api/book/${resource.id}/pages?from=${from}&to=${to}`);
+        const r = await fetch(`/api/book/${resource.id}/pages?from=${from}&to=${to}${ownerQ}`);
         if (!r.ok) throw new Error(String(r.status));
         raw = ((await r.json()) as { pages: typeof raw }).pages;
       } catch {
         // No network: the copy saved on this device (if any).
-        raw = await offlinePages(resource.id, from, to);
+        raw = viewer ? [] : await offlinePages(resource.id, from, to);
       }
       setPages((cur) => {
         const next = { ...cur };
@@ -137,7 +144,7 @@ export function ReaderApp({
         return next;
       });
     },
-    [resource.id, noise, data.running],
+    [resource.id, noise, data.running, ownerQ, viewer],
   );
 
   // The pages in view and the next few are always at hand.
@@ -148,7 +155,7 @@ export function ReaderApp({
   // Pages not laid out yet are done around the reader, then shown.
   const laying = useRef(false);
   useEffect(() => {
-    if (data.scanned || laying.current) return;
+    if (data.scanned || laying.current || viewer) return;
     if (!pages[at] || pages[at].laidOut) return;
     laying.current = true;
     void fetch(`/api/book/${resource.id}/format`, {
@@ -265,6 +272,7 @@ export function ReaderApp({
 
   // The page reached is the reading progress (saved now and then).
   useEffect(() => {
+    if (viewer) return;
     const timer = setTimeout(() => {
       void fetch(`/api/book/${resource.id}/progress`, {
         method: "POST",
@@ -274,7 +282,7 @@ export function ReaderApp({
       }).catch(() => {});
     }, 4000);
     return () => clearTimeout(timer);
-  }, [left, resource.id, total]);
+  }, [left, resource.id, total, viewer]);
 
   // The selection menu follows the selected text.
   useEffect(() => {
@@ -337,6 +345,7 @@ export function ReaderApp({
   const side = (
     <ReaderSide
       resourceId={resource.id}
+      ownerId={viewer?.ownerId}
       tab={tab}
       setTab={setTab}
       chapters={chapters}
@@ -360,7 +369,7 @@ export function ReaderApp({
     >
       <div className="reader-bar flex items-center gap-0.5 px-2 py-1.5 sm:px-4">
         <Link
-          href={`/library/${resource.id}`}
+          href={viewer?.back ?? `/library/${resource.id}`}
           className={tool}
           aria-label={t("close")}
           title={t("close")}
@@ -410,21 +419,25 @@ export function ReaderApp({
         >
           {full ? <Minimize2 className="size-[18px]" /> : <Fullscreen className="size-[18px]" />}
         </button>
-        <Button asChild size="sm" variant="outline" className="ml-1.5">
-          <Link href={`/library/${resource.id}/audiobook`}>
-            <Headphones /> <span className="max-sm:hidden">{t("listen")}</span>
-          </Link>
-        </Button>
-        <Button
-          size="sm"
-          variant={ai ? "secondary" : "outline"}
-          className="ml-1"
-          onClick={() => setAi((v) => !v)}
-          aria-label={t("askAi")}
-          aria-pressed={ai}
-        >
-          <Sparkles /> <span className="max-sm:hidden">{t("askAi")}</span>
-        </Button>
+        {!viewer && (
+          <>
+            <Button asChild size="sm" variant="outline" className="ml-1.5">
+              <Link href={`/library/${resource.id}/audiobook`}>
+                <Headphones /> <span className="max-sm:hidden">{t("listen")}</span>
+              </Link>
+            </Button>
+            <Button
+              size="sm"
+              variant={ai ? "secondary" : "outline"}
+              className="ml-1"
+              onClick={() => setAi((v) => !v)}
+              aria-label={t("askAi")}
+              aria-pressed={ai}
+            >
+              <Sparkles /> <span className="max-sm:hidden">{t("askAi")}</span>
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="group/stage relative min-h-0 flex-1 px-2 pb-2 sm:px-3">
@@ -534,11 +547,20 @@ export function ReaderApp({
           sel={sel}
           onQuote={() => void save("quote", sel)}
           onNote={() => setNoteFor(sel)}
-          onAsk={() => {
-            setAsk({ selection: sel.text, context: sel.context, page: sel.page, n: Date.now() });
-            setAi(true);
-            setSel(null);
-          }}
+          onAsk={
+            viewer
+              ? undefined
+              : () => {
+                  setAsk({
+                    selection: sel.text,
+                    context: sel.context,
+                    page: sel.page,
+                    n: Date.now(),
+                  });
+                  setAi(true);
+                  setSel(null);
+                }
+          }
           onDone={() => setSel(null)}
         />
       )}

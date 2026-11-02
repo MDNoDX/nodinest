@@ -22,7 +22,8 @@ export function SelectionMenu({
   sel: Sel;
   onQuote: () => void;
   onNote: () => void;
-  onAsk: () => void;
+  /** Absent for someone else's shared book (no AI there). */
+  onAsk?: () => void;
   onDone: () => void;
 }) {
   const t = useTranslations("reader");
@@ -41,9 +42,11 @@ export function SelectionMenu({
       <button type="button" onClick={onNote} className={ITEM} title={t("noteHint")}>
         <NotebookPen className="size-4 text-[var(--c-amber)]" /> {t("note")}
       </button>
-      <button type="button" onClick={onAsk} className={ITEM}>
-        <Sparkles className="text-primary size-4" /> {t("askAi")}
-      </button>
+      {onAsk && (
+        <button type="button" onClick={onAsk} className={ITEM}>
+          <Sparkles className="text-primary size-4" /> {t("askAi")}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => {

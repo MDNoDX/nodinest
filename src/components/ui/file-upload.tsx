@@ -14,9 +14,12 @@ const ACCEPT = {
   attachment: "application/pdf,application/epub+zip",
 };
 
-/** A picture from a phone is many MB; on the page it needs far less, and it uploads at once. */
+/**
+ * A picture from a phone is many MB; a cover needs ~1000 px. WebP (JPEG where
+ * the browser cannot make it) is a tenth of the size, so it goes up in a moment.
+ */
 async function smaller(file: File, max = 1000) {
-  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.size < 400_000)
+  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.size < 150_000)
     return file;
   try {
     const bmp = await createImageBitmap(file);
@@ -25,8 +28,13 @@ async function smaller(file: File, max = 1000) {
     c.width = Math.round(bmp.width * k);
     c.height = Math.round(bmp.height * k);
     c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", 0.86));
-    return blob ? new File([blob], "image.jpg", { type: "image/jpeg" }) : file;
+    const as = (type: string, q: number) =>
+      new Promise<Blob | null>((ok) => c.toBlob(ok, type, q));
+    let blob = await as("image/webp", 0.82);
+    if (!blob || blob.type !== "image/webp") blob = await as("image/jpeg", 0.84);
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], `image.${ext}`, { type: blob.type });
   } catch {
     return file;
   }
@@ -47,6 +55,7 @@ export function FileUpload({
   resourceId,
   userId,
   variant = "button",
+  shape = "portrait",
 }: {
   purpose: "cover" | "portrait" | "attachment";
   enabled: boolean;
@@ -58,11 +67,19 @@ export function FileUpload({
   userId: string;
   /** "drop" is a wide zone a file can be dragged onto. */
   variant?: "button" | "tile" | "drop";
+  /** The tile's shape: a book cover, or a video / podcast picture (16:9). */
+  shape?: "portrait" | "landscape";
 }) {
   const t = useTranslations();
   const input = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [over, setOver] = useState(false);
+  // The picture shows at once while it goes up; ✕ stops it.
+  const [preview, setPreview] = useState<string | null>(null);
+  const stopper = useRef<AbortController | null>(null);
+  const stop = () => {
+    stopper.current?.abort();
+  };
 
   if (!enabled)
     return (
@@ -73,6 +90,9 @@ export function FileUpload({
 
   const doUpload = async (picked: File) => {
     setProgress(0);
+    const ctl = new AbortController();
+    stopper.current = ctl;
+    if (picked.type.startsWith("image/")) setPreview(URL.createObjectURL(picked));
     try {
       const file = purpose === "attachment" ? picked : await smaller(picked);
       const safeName =
@@ -87,7 +107,9 @@ export function FileUpload({
         contentType: file.type,
         multipart: file.size > 20 * 1024 * 1024,
         onUploadProgress: (e) => setProgress(Math.round(e.percentage)),
+        abortSignal: ctl.signal,
       });
+      if (ctl.signal.aborted) return;
       const r = await registerUploadAction({
         pathname: blob.pathname,
         purpose,
@@ -101,6 +123,7 @@ export function FileUpload({
       toast.success(t("upload.done"));
       onUploaded(r.data.fileId);
     } catch (err) {
+      if (ctl.signal.aborted) return;
       const msg = err instanceof Error ? err.message : "";
       toast.error(
         /too large|maximum/i.test(msg)
@@ -111,6 +134,11 @@ export function FileUpload({
       );
     } finally {
       setProgress(null);
+      setPreview((p) => {
+        if (p) URL.revokeObjectURL(p);
+        return null;
+      });
+      stopper.current = null;
       if (input.current) input.current.value = "";
     }
   };
@@ -185,15 +213,47 @@ export function FileUpload({
     return (
       <div className="flex flex-col gap-2">
         {picker}
-        <button
-          type="button"
-          onClick={() => input.current?.click()}
-          disabled={progress !== null}
-          className="border-border-strong text-muted hover:border-primary hover:text-primary flex aspect-[2/3] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-xs font-medium transition-colors"
-        >
-          <ImagePlus className="size-6" />
-          {progress !== null ? t("upload.uploading", { percent: progress }) : label}
-        </button>
+        {preview && progress !== null ? (
+          <div
+            className={cn(
+              "border-border relative w-full overflow-hidden rounded-xl border",
+              shape === "landscape" ? "aspect-video" : "aspect-[2/3]",
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt="" className="size-full object-cover opacity-70" />
+            <div className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white">
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
+                <span
+                  className="block h-full rounded-full bg-white transition-[width]"
+                  style={{ width: `${progress}%` }}
+                />
+              </span>
+              <span className="tabular-nums">{progress}%</span>
+              <button
+                type="button"
+                onClick={stop}
+                aria-label={t("upload.cancel")}
+                className="grid size-6 place-items-center rounded-full hover:bg-white/20"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            disabled={progress !== null}
+            className={cn(
+              "border-border-strong text-muted hover:border-primary hover:text-primary flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-xs font-medium transition-colors",
+              shape === "landscape" ? "aspect-video" : "aspect-[2/3]",
+            )}
+          >
+            <ImagePlus className="size-6" />
+            {progress !== null ? t("upload.uploading", { percent: progress }) : label}
+          </button>
+        )}
       </div>
     );
 

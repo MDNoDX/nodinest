@@ -3,6 +3,7 @@ import { z } from "zod";
 import { lineKey } from "@/lib/reflow";
 import { getStructure } from "@/server/book-structure";
 import { searchBookText } from "@/server/booktext";
+import { sharedTextOwner } from "@/server/social";
 import { apiError, apiUser, json } from "../../../_utils";
 
 export const runtime = "nodejs";
@@ -10,11 +11,14 @@ export const runtime = "nodejs";
 /** Search inside one book, in reading order: /api/book/{resourceId}/search?q=… */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { ctx } = await apiUser();
+    const { ctx: me } = await apiUser();
+    // ?owner=: a book whose text its owner made public (read as theirs, read-only).
+    const owner = req.nextUrl.searchParams.get("owner");
     const id = z
       .string()
       .uuid()
       .parse((await params).id);
+    const ctx = owner ? await sharedTextOwner(me, owner, id) : me;
     const q = z
       .string()
       .trim()

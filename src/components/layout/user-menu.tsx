@@ -12,6 +12,7 @@ import { authClient } from "@/lib/auth/client";
 import { Avatar } from "@/components/ui/avatar";
 import { LOCALES, localeKey } from "@/i18n/config";
 import { PremiumBadge } from "@/components/premium/premium-badge";
+import { cn } from "@/lib/cn";
 
 const item =
   "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-surface-2";
@@ -100,7 +101,7 @@ export function UserMenu({
               <Settings className="text-muted size-4" /> {t("nav.settings")}
             </Link>
           </M.Item>
-          <M.Item asChild className={item}>
+          <M.Item asChild className={cn(item, "premium-only")}>
             <Link href="/premium">
               <PremiumBadge /> Premium
             </Link>

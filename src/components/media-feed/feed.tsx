@@ -1,12 +1,13 @@
 "use client";
-import { BookPlus, Check, Loader2, Play } from "lucide-react";
+import { BookPlus, Check, Loader2, Play, ThumbsUp } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { takeSourceAction } from "@/app/actions/social";
 import { moreMediaAction } from "@/app/actions/media";
 import { Cover, coverSrc } from "@/components/library/cover";
-import { SendTo } from "@/components/chat/send-to";
+import { listTime } from "@/components/chat/parts";
+import { PostActions } from "./post-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
@@ -47,9 +48,11 @@ export function MediaFeed({
   const more = useCallback(async () => {
     if (loading.current || end || !list.length) return;
     loading.current = true;
-    const r = await moreMediaAction(scope, kind, String(list[list.length - 1].updatedAt)).catch(
-      () => null,
-    );
+    const r = await moreMediaAction(
+      scope,
+      kind,
+      new Date(list[list.length - 1].updatedAt).toISOString(),
+    ).catch(() => null);
     loading.current = false;
     if (!r?.ok) return setEnd(true);
     setList((l) => [...l, ...r.data]);
@@ -105,10 +108,23 @@ export function MediaFeed({
           title={t("empty")}
           body={t(scope === "following" ? "emptyFollowing" : "emptyBody")}
         />
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      ) : scope === "following" ? (
+        // The people I follow: one big post after another, like a feed.
+        <ul className="mx-auto flex w-full max-w-2xl flex-col gap-5">
           {list.map((it) => (
-            <Card key={`${it.resourceId}-${it.ownerId}`} it={it} />
+            <FeedPost key={`${it.resourceId}-${it.ownerId}`} it={it} />
+          ))}
+          {!end && (
+            <li ref={tail} className="grid h-16 place-items-center">
+              <Loader2 className="text-muted size-5 animate-spin" />
+            </li>
+          )}
+        </ul>
+      ) : (
+        // Everyone: small tiles; a tap opens the post with its comments.
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {list.map((it) => (
+            <Tile key={`${it.resourceId}-${it.ownerId}`} it={it} />
           ))}
           {!end && (
             <li ref={tail} className="col-span-full grid h-16 place-items-center">
@@ -121,58 +137,140 @@ export function MediaFeed({
   );
 }
 
-function Card({ it }: { it: MediaItem }) {
+// My own post opens my library page (the public page sends me there).
+const postPath = (it: MediaItem) => `/u/${it.username}/item/${it.resourceId}`;
+
+function Tile({ it }: { it: MediaItem }) {
+  const tt = useTranslations("types");
+  const src = coverSrc(it);
+  const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
+  const pic = src ?? (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
+  return (
+    <li>
+      <Link
+        href={postPath(it)}
+        className="group bg-surface-2 relative block aspect-[4/5] overflow-hidden rounded-xl"
+      >
+        {pic ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pic}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-lg"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pic}
+              alt={it.title}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 size-full object-contain transition-transform duration-500 group-hover:scale-105"
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 grid place-items-center p-3">
+            <Cover type={it.type as "book"} title={it.title} src={null} />
+          </div>
+        )}
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 pt-8 text-white">
+          <span className="line-clamp-2 text-xs font-semibold">{it.title}</span>
+          <span className="mt-1 flex items-center gap-2 text-[11px] text-white/75">
+            <Avatar name={it.name} image={it.image} className="size-4" />
+            <span className="truncate">{it.name}</span>
+            {it.likes > 0 && (
+              <span className="ml-auto inline-flex items-center gap-0.5 tabular-nums">
+                <ThumbsUp className="size-3" /> {it.likes}
+              </span>
+            )}
+          </span>
+        </span>
+        <span className="absolute top-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white">
+          {tt(it.type as "book")}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/** One post of someone I follow: who, when, the thing itself big, then 👍 / comments / send. */
+function FeedPost({ it }: { it: MediaItem }) {
   const t = useTranslations("media");
   const tt = useTranslations("types");
+  const locale = useLocale();
+  const tc = useTranslations("chat");
   const [playing, setPlaying] = useState(false);
   const [taken, setTaken] = useState(it.mine);
   const { pending, exec } = useAction();
   const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
-  const portrait = it.type === "book" || it.type === "course";
-  const href = it.mine ? `/library/${it.resourceId}` : `/u/${it.username}/item/${it.resourceId}`;
+  const href = postPath(it);
   return (
-    <li className={cn("card flex flex-col gap-3 p-3", playing && "col-span-full")}>
-      {playing && yt && (
-        <iframe
-          src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&playsinline=1`}
-          title={it.title}
-          allow="autoplay; encrypted-media; picture-in-picture"
-          className="mx-auto aspect-video w-full max-w-3xl rounded-lg"
-        />
-      )}
-      <div className="flex min-w-0 flex-1 gap-3">
-        <div className={cn("relative shrink-0 self-start", portrait ? "w-16" : "w-28")}>
-          <Link href={href} className="block">
-            <Cover type={it.type as "book"} title={it.title} src={coverSrc(it)} />
-          </Link>
-          {yt && !playing && (
-            <button
-              type="button"
-              aria-label={t("play")}
-              onClick={() => setPlaying(true)}
-              className="absolute inset-0 m-auto grid size-9 place-items-center rounded-full bg-black/65 text-white transition-transform hover:scale-110"
-            >
-              <Play className="size-4 translate-x-px fill-current" />
-            </button>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <Link
-            href={`/u/${it.username}`}
-            className="text-muted hover:text-foreground flex min-w-0 items-center gap-1.5 text-xs"
-          >
-            <Avatar name={it.name} image={it.image} className="size-5" />
-            <span className="truncate font-medium">{it.name}</span>
-          </Link>
-          <Link href={href} className="line-clamp-2 text-sm leading-snug font-semibold">
-            {it.title}
-          </Link>
-          {it.description && <p className="text-muted line-clamp-1 text-xs">{it.description}</p>}
-          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-            <span className="text-muted min-w-0 flex-1 truncate text-xs">
-              {tt(it.type as "book")}
+    <li className="card overflow-hidden">
+      <div className="flex items-center gap-3 p-3">
+        <Link href={`/u/${it.username}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+          <Avatar name={it.name} image={it.image} className="size-9" />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">{it.name}</span>
+            <span className="text-muted block truncate text-xs">
+              {tt(it.type as "book")} ·{" "}
+              {listTime(new Date(it.updatedAt).toISOString(), locale, tc("yesterday"))}
             </span>
-            <SendTo resourceId={it.resourceId} compact />
+          </span>
+        </Link>
+      </div>
+      <div className="bg-surface-2 relative">
+        {playing && yt ? (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&playsinline=1`}
+            title={it.title}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            className="aspect-video w-full"
+          />
+        ) : (
+          <div className="relative">
+            <Link href={href} className="mx-auto block max-w-md p-4">
+              <Cover
+                type={it.type as "book"}
+                title={it.title}
+                src={coverSrc(it) ?? (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null)}
+                className={
+                  it.type === "book" || it.type === "course" ? "mx-auto max-w-[12rem]" : ""
+                }
+              />
+            </Link>
+            {yt && (
+              <button
+                type="button"
+                aria-label={t("play")}
+                onClick={() => setPlaying(true)}
+                className="absolute inset-0 m-auto grid size-14 place-items-center rounded-full bg-black/65 text-white transition-transform hover:scale-110"
+              >
+                <Play className="size-6 translate-x-0.5 fill-current" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5 p-3">
+        <Link href={href} className="text-[15px] leading-snug font-semibold">
+          {it.title}
+        </Link>
+        {it.description && <p className="text-muted line-clamp-3 text-sm">{it.description}</p>}
+        <PostActions
+          recordId={it.recordId}
+          likes={it.likes}
+          liked={it.liked}
+          comments={it.comments}
+          share={{
+            resourceId: it.resourceId,
+            path: `/u/${it.username}/item/${it.resourceId}`,
+            title: it.title,
+          }}
+        >
+          {!it.mine && (
             <button
               type="button"
               disabled={taken || pending}
@@ -182,8 +280,9 @@ function Card({ it }: { it: MediaItem }) {
                   success: t("taken"),
                 })
               }
+              title={taken ? t("inLibrary") : t("take")}
               className={cn(
-                "inline-flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-colors",
+                "inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors",
                 taken
                   ? "text-muted"
                   : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
@@ -196,10 +295,10 @@ function Card({ it }: { it: MediaItem }) {
               ) : (
                 <BookPlus className="size-3.5" />
               )}
-              {taken ? t("inLibrary") : t("take")}
+              <span className="max-sm:hidden">{taken ? t("inLibrary") : t("take")}</span>
             </button>
-          </div>
-        </div>
+          )}
+        </PostActions>
       </div>
     </li>
   );

@@ -26,13 +26,23 @@ import { notify } from "./notifications";
 import { enforceRateLimit } from "./rate-limit";
 import { ensureInLibrary } from "./records";
 
-export type DmPerson = { id: string; name: string; username: string; image: string | null };
+export type DmPerson = {
+  id: string;
+  name: string;
+  username: string;
+  image: string | null;
+  /** When they were last on the site; null when either side hides it. */
+  seen?: string | null;
+};
+export type DmGif = { id: string; url: string; still?: string; w: number; h: number };
+export type DmMeta = { gif?: DmGif; wave?: number[]; seconds?: number };
 export type DmMessage = {
   id: string;
   senderId: string;
   body: string | null;
   createdAt: string;
   deleted: boolean;
+  meta: DmMeta | null;
   file: { id: string; name: string; mime: string; size: number | null } | null;
   item: {
     id: string;
@@ -43,7 +53,7 @@ export type DmMessage = {
   } | null;
   reply: { id: string; senderId: string; text: string | null; kind: Kind } | null;
 };
-type Kind = "text" | "photo" | "voice" | "video" | "file" | "item" | "deleted";
+export type Kind = "text" | "photo" | "voice" | "video" | "file" | "item" | "gif" | "deleted";
 export type DmThreadRow = {
   id: string;
   other: DmPerson;
@@ -57,8 +67,14 @@ const uuid = z.string().uuid();
 const pair = (x: string, y: string) => (x < y ? [x, y] : [y, x]);
 
 /** What a message is, for previews ("📷 Rasm") and replies. */
-function kindOf(m: { deleted?: boolean; mime?: string | null; item?: boolean }): Kind {
+function kindOf(m: {
+  deleted?: boolean;
+  mime?: string | null;
+  item?: boolean;
+  gif?: boolean;
+}): Kind {
   if (m.deleted) return "deleted";
+  if (m.gif) return "gif";
   if (m.mime?.startsWith("image/")) return "photo";
   if (m.mime?.startsWith("audio/")) return "voice";
   if (m.mime?.startsWith("video/")) return "video";
@@ -67,13 +83,54 @@ function kindOf(m: { deleted?: boolean; mime?: string | null; item?: boolean }):
   return "text";
 }
 
-async function people(ids: string[]): Promise<Map<string, DmPerson>> {
+async function people(ids: string[], me?: string): Promise<Map<string, DmPerson>> {
   if (!ids.length) return new Map();
   const rows = await db
-    .select({ id: user.id, name: user.name, username: user.username, image: user.image })
+    .select({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      lastSeenAt: user.lastSeenAt,
+      showOnline: user.showOnline,
+    })
     .from(user)
-    .where(inArray(user.id, ids));
-  return new Map(rows.map((r) => [r.id, { ...r, username: r.username ?? "" }]));
+    .where(inArray(user.id, me ? [...ids, me] : ids));
+  // "Last seen" both ways or not at all: who hides theirs sees no one's.
+  const mine = me ? rows.find((r) => r.id === me)?.showOnline !== false : false;
+  return new Map(
+    rows
+      .filter((r) => r.id !== me || ids.includes(me))
+      .map((r) => [
+        r.id,
+        {
+          id: r.id,
+          name: r.name,
+          username: r.username ?? "",
+          image: r.image,
+          seen: mine && r.showOnline && r.lastSeenAt ? r.lastSeenAt.toISOString() : null,
+        },
+      ]),
+  );
+}
+
+/** A heartbeat: "online" while a page is open (written at most once a minute). */
+export async function touchSeen(ctx: AppContext) {
+  await db
+    .update(user)
+    .set({ lastSeenAt: new Date() })
+    .where(
+      and(
+        eq(user.id, ctx.userId),
+        sql`(${user.lastSeenAt} is null or ${user.lastSeenAt} < now() - interval '50 seconds')`,
+      ),
+    );
+}
+
+export async function setShowOnline(ctx: AppContext, on: boolean) {
+  await withUser(db, ctx, (tx) =>
+    tx.update(user).set({ showOnline: on }).where(eq(user.id, ctx.userId)),
+  );
 }
 
 async function isBlocked(a: string, b: string) {
@@ -133,6 +190,8 @@ async function myThread(ctx: AppContext, threadId: string) {
     otherId: mine ? t.bId : t.aId,
     myRead: mine ? t.aReadAt : t.bReadAt,
     otherRead: mine ? t.bReadAt : t.aReadAt,
+    /** Messages up to here were cleared by me. */
+    cleared: (mine ? t.aClearedAt : t.bClearedAt) ?? new Date(0),
     side: mine ? ("a" as const) : ("b" as const),
   };
 }
@@ -179,24 +238,31 @@ export async function threadList(ctx: AppContext): Promise<DmThreadRow[]> {
       lastBody: string | null;
       lastFile: string | null;
       lastItem: string | null;
+      lastGif: boolean | null;
       lastDeleted: boolean | null;
       unread: number;
     }>(sql`
       select t.id, case when t.a_id = ${ctx.userId} then t.b_id else t.a_id end as "otherId",
         t.last_at as "lastAt", m.sender_id as "lastSender", m.body as "lastBody",
         m.file_id as "lastFile", m.resource_id as "lastItem", m.deleted_at is not null as "lastDeleted",
+        (m.meta ? 'gif') as "lastGif",
         (select count(*)::int from nodinest.dm_messages u
           where u.thread_id = t.id and u.sender_id <> ${ctx.userId} and u.deleted_at is null
-            and u.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_read_at
-              else t.b_read_at end, '-infinity'::timestamptz)) as unread
+            and u.created_at > greatest(
+              coalesce(case when t.a_id = ${ctx.userId} then t.a_read_at else t.b_read_at end,
+                '-infinity'::timestamptz),
+              coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at else t.b_cleared_at end,
+                '-infinity'::timestamptz))) as unread
       from nodinest.dm_threads t
       left join lateral (select * from nodinest.dm_messages x where x.thread_id = t.id
+        and x.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at
+          else t.b_cleared_at end, '-infinity'::timestamptz)
         order by x.created_at desc limit 1) m on true
       where ${ctx.userId} in (t.a_id, t.b_id) and m.id is not null
       order by t.last_at desc
       limit 200`),
   );
-  const who = await people([...new Set(rows.map((r) => r.otherId))]);
+  const who = await people([...new Set(rows.map((r) => r.otherId))], ctx.userId);
   const mimes = await fileMeta(rows.map((r) => r.lastFile).filter(Boolean) as string[]);
   return rows
     .filter((r) => who.has(r.otherId))
@@ -213,6 +279,7 @@ export async function threadList(ctx: AppContext): Promise<DmThreadRow[]> {
               deleted: !!r.lastDeleted,
               mime: r.lastFile ? (mimes.get(r.lastFile)?.mime ?? "x/file") : null,
               item: !!r.lastItem,
+              gif: !!r.lastGif,
             }),
           }
         : null,
@@ -259,6 +326,7 @@ async function shape(rows: Row[], replies: Row[] = []): Promise<DmMessage[]> {
       body: deleted ? null : r.body,
       createdAt: r.createdAt.toISOString(),
       deleted,
+      meta: deleted ? null : ((r.meta as DmMeta | null) ?? null),
       file: f && r.fileId ? { id: r.fileId, ...f } : null,
       item: !deleted && r.resourceId ? (im.get(r.resourceId) ?? null) : null,
       reply: q
@@ -270,6 +338,7 @@ async function shape(rows: Row[], replies: Row[] = []): Promise<DmMessage[]> {
               deleted: !!q.deletedAt,
               mime: q.fileId ? (fm.get(q.fileId)?.mime ?? "x/file") : null,
               item: !!q.resourceId,
+              gif: !!(q.meta as DmMeta | null)?.gif,
             }),
           }
         : null,
@@ -300,11 +369,11 @@ export async function threadView(ctx: AppContext, threadId: string) {
       tx
         .select()
         .from(dmMessages)
-        .where(eq(dmMessages.threadId, t.id))
+        .where(and(eq(dmMessages.threadId, t.id), gt(dmMessages.createdAt, t.cleared)))
         .orderBy(desc(dmMessages.createdAt))
         .limit(PAGE),
     ),
-    people([t.otherId]),
+    people([t.otherId], ctx.userId),
     db
       .select({ x: userBlocks.blockedId })
       .from(userBlocks)
@@ -335,8 +404,9 @@ export async function messagesAround(
   const before = o.before ? z.coerce.date().parse(o.before) : null;
   const after = o.after ? z.coerce.date().parse(o.after) : null;
   // Nothing new: one cheap answer for the poll.
+  const seen = (await people([t.otherId], ctx.userId)).get(t.otherId)?.seen ?? null;
   if (after && !before && t.lastAt <= after)
-    return { messages: [], otherReadAt: t.otherRead?.toISOString() ?? null, more: false };
+    return { messages: [], otherReadAt: t.otherRead?.toISOString() ?? null, more: false, seen };
   const rows = await withUser(db, ctx, (tx) =>
     tx
       .select()
@@ -344,6 +414,7 @@ export async function messagesAround(
       .where(
         and(
           eq(dmMessages.threadId, t.id),
+          gt(dmMessages.createdAt, t.cleared),
           before ? lt(dmMessages.createdAt, before) : undefined,
           after ? gt(dmMessages.createdAt, after) : undefined,
         ),
@@ -357,6 +428,7 @@ export async function messagesAround(
     messages: await withReplies(ctx, t.id, ordered),
     otherReadAt: t.otherRead?.toISOString() ?? null,
     more: !!before && rows.length === PAGE,
+    seen,
   };
 }
 
@@ -395,14 +467,28 @@ export async function markRead(ctx: AppContext, threadId: string) {
     );
 }
 
+/** Only GIPHY's own media hosts: nothing else is shown from a message. */
+const GIPHY_URL = /^https:\/\/media\d?\.giphy\.com\/[\w./-]+$/;
+export const gifSchema = z.object({
+  id: z.string().max(40).regex(/^[\w-]+$/),
+  url: z.string().max(400).regex(GIPHY_URL),
+  still: z.string().max(400).regex(GIPHY_URL).optional(),
+  w: z.number().int().min(1).max(2000),
+  h: z.number().int().min(1).max(2000),
+});
+
 const sendInput = z
   .object({
     body: z.string().trim().max(4000).optional(),
     fileId: uuid.optional(),
     resourceId: uuid.optional(),
     replyToId: uuid.optional(),
+    gif: gifSchema.optional(),
+    /** A voice message's shape (0-1 bars) and length. */
+    wave: z.array(z.number().min(0).max(1)).max(64).optional(),
+    seconds: z.number().min(0).max(3600).optional(),
   })
-  .refine((v) => !!(v.body || v.fileId || v.resourceId), { message: "empty" });
+  .refine((v) => !!(v.body || v.fileId || v.resourceId || v.gif), { message: "empty" });
 
 export async function sendMessage(ctx: AppContext, threadId: string, raw: unknown) {
   const v = sendInput.parse(raw);
@@ -456,6 +542,11 @@ export async function sendMessage(ctx: AppContext, threadId: string, raw: unknow
         fileId: v.fileId ?? null,
         resourceId: v.resourceId ?? null,
         replyToId: v.replyToId ?? null,
+        meta: v.gif
+          ? { gif: v.gif }
+          : v.fileId && v.wave
+            ? { wave: v.wave.map((x) => Math.round(x * 100) / 100), seconds: v.seconds }
+            : null,
         createdAt: now,
       })
       .returning();
@@ -470,7 +561,7 @@ export async function sendMessage(ctx: AppContext, threadId: string, raw: unknow
   const preview = (v.body ?? "").replace(/\s+/g, " ").slice(0, 120) || null;
   await notify(t.otherId, "message", {
     actorId: ctx.userId,
-    body: preview ?? made.file?.name ?? made.item?.title ?? null,
+    body: preview ?? made.file?.name ?? made.item?.title ?? (v.gif ? "GIF" : null),
     href: `/chats/${t.id}`,
   }).catch(() => null);
   return made;
@@ -515,8 +606,11 @@ export async function unreadChats(ctx: AppContext) {
       where ${ctx.userId} in (t.a_id, t.b_id) and exists(
         select 1 from nodinest.dm_messages m where m.thread_id = t.id
           and m.sender_id <> ${ctx.userId} and m.deleted_at is null
-          and m.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_read_at
-            else t.b_read_at end, '-infinity'::timestamptz))`),
+          and m.created_at > greatest(
+            coalesce(case when t.a_id = ${ctx.userId} then t.a_read_at else t.b_read_at end,
+              '-infinity'::timestamptz),
+            coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at else t.b_cleared_at end,
+              '-infinity'::timestamptz)))`),
   );
   return r?.n ?? 0;
 }
@@ -534,6 +628,8 @@ export async function searchMessages(ctx: AppContext, q: string) {
       from nodinest.dm_messages m
       join nodinest.dm_threads t on t.id = m.thread_id
       where ${ctx.userId} in (t.a_id, t.b_id) and m.deleted_at is null and m.body is not null
+        and m.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at
+          else t.b_cleared_at end, '-infinity'::timestamptz)
         and nodinest.nn_norm(m.body) like ${like}
       order by m.created_at desc
       limit 20`,
@@ -564,4 +660,26 @@ export async function takeShared(ctx: AppContext, messageId: string) {
   const rid = m.resourceId;
   await withUser(db, ctx, (tx) => ensureInLibrary(tx, ctx.userId, rid));
   return rid;
+}
+
+/**
+ * "Clear the chat": for me, older messages are hidden on my side only; for both,
+ * every message of the conversation is removed for both sides.
+ */
+export async function clearChat(ctx: AppContext, threadId: string, forBoth: boolean) {
+  const t = await myThread(ctx, threadId);
+  const now = new Date();
+  await withUser(db, ctx, async (tx) => {
+    if (forBoth) {
+      await tx.delete(dmMessages).where(eq(dmMessages.threadId, t.id));
+      await tx
+        .update(dmThreads)
+        .set({ aClearedAt: now, bClearedAt: now })
+        .where(eq(dmThreads.id, t.id));
+    } else
+      await tx
+        .update(dmThreads)
+        .set(t.side === "a" ? { aClearedAt: now } : { bClearedAt: now })
+        .where(eq(dmThreads.id, t.id));
+  });
 }
