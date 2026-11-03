@@ -28,22 +28,22 @@ export type NavItem = {
 };
 
 /**
- * Default order: what a reader does every day first (home, the day's plan,
- * the library, the AI, quotes, review), then making things; the rest below the line.
- * Users can drag items to their own order (lib/nav-order.ts).
+ * Default order: the places used most (home, Darsxona, Media, Chats, the same as
+ * the phone's bottom bar), then the day's plan, review, the AI and writing; the
+ * rest below the line. Users can drag items to their own order (lib/nav-order.ts).
  */
 export const NAV_PRIMARY: NavItem[] = [
   { href: "/", key: "dashboard", icon: Home },
-  { href: "/plans", key: "plans", icon: CalendarCheck },
   {
     href: "/library",
     key: "library",
     icon: BookOpen,
     includes: ["/people", "/publishers", "/notes", "/collections"],
   },
-  { href: "/review", key: "review", icon: Brain },
   { href: "/media", key: "media", icon: Clapperboard },
   { href: "/chats", key: "chats", icon: MessageCircle },
+  { href: "/plans", key: "plans", icon: CalendarCheck },
+  { href: "/review", key: "review", icon: Brain },
   { href: "/assistant", key: "assistant", icon: Sparkles },
   { href: "/write", key: "write", icon: PenLine },
 ];

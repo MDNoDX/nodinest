@@ -97,6 +97,8 @@
     "commandPalette": "Quick search",
     "commandHint": "Books, notes or a username…",
     "signOut": "Sign out",
+    "signOutTitle": "Sign out?",
+    "signOutBody": "Pages and drafts saved on this device are cleared too. To come back you will need Google or your password.",
     "account": "Account",
     "newResource": "Add resource",
     "newNote": "New note",
@@ -750,7 +752,8 @@
       "tags": "Tags",
       "booktext": "Book text",
       "taqriz": "Write-ups",
-      "users": "Users"
+      "users": "Users",
+      "media": "Post"
     },
     "all": "Everything",
     "relevance": "Relevance",
@@ -768,7 +771,32 @@
     "genresAll": "· matching all of them",
     "browseHint": "Type words or pick genres / a type / a status.",
     "noBrowseResults": "Nothing matches this selection",
-    "mineTitle": "My data"
+    "mineTitle": "My data",
+    "scope": {
+      "all": "All",
+      "library": "Darsxona",
+      "people": "People"
+    },
+    "kinds": {
+      "book": "Books",
+      "video": "Videos",
+      "podcast": "Audio and podcasts",
+      "course": "Courses",
+      "document": "Documents"
+    },
+    "palette": {
+      "all": "Search",
+      "library": "Search Darsxona",
+      "people": "Name or @username",
+      "media": "Title or who posted it"
+    },
+    "paletteHint": {
+      "all": "Finds people, what they posted and everything in your Darsxona.",
+      "library": "Your resources, notes, quotes, write-ups and book texts.",
+      "people": "Type a name or @username. Private profiles show only their name.",
+      "media": "Others' posts, by title or by who posted. From private profiles only the ones you follow."
+    },
+    "showAllMine": "All results in Darsxona"
   },
   "assistant": {
     "title": "AI assistant",

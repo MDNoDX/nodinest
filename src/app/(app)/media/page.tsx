@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { MediaFeed } from "@/components/media-feed/feed";
 import { FollowButton } from "@/components/social/follow-button";
-import { PeopleSearch } from "@/components/social/people-search";
 import { GuestHero, JoinCard } from "@/components/layout/guest-shell";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -29,31 +28,26 @@ export default async function MediaPage({ searchParams }: { searchParams: SP }) 
   return (
     <>
       {!user ? <GuestHero /> : <PageHeader title={t("title")} />}
-      <section aria-label={t("findPeople")} className="mb-4 flex flex-col gap-3">
-        <PeopleSearch />
-        {asked.length > 0 && (
-          <div className="card p-3">
-            <h3 className="text-muted mb-2 text-xs font-semibold">{t("waiting")}</h3>
-            <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {asked.map((p) => (
-                <li key={p.id} className="flex items-center gap-3">
-                  <Link
-                    href={`/u/${p.username}`}
-                    className="flex min-w-0 flex-1 items-center gap-2"
-                  >
-                    <Avatar name={p.name} image={p.image} className="size-9" />
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{p.name}</span>
-                      <span className="text-muted block truncate text-xs">@{p.username}</span>
-                    </span>
-                  </Link>
-                  <FollowButton userId={p.id} initial={false} requested locked size="sm" />
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
+      {/* People are found from the search at the top (its "Foydalanuvchilar" tab). */}
+      {asked.length > 0 && (
+        <section aria-label={t("waiting")} className="card mb-4 p-3">
+          <h3 className="text-muted mb-2 text-xs font-semibold">{t("waiting")}</h3>
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {asked.map((p) => (
+              <li key={p.id} className="flex items-center gap-3">
+                <Link href={`/u/${p.username}`} className="flex min-w-0 flex-1 items-center gap-2">
+                  <Avatar name={p.name} image={p.image} className="size-9" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{p.name}</span>
+                    <span className="text-muted block truncate text-xs">@{p.username}</span>
+                  </span>
+                </Link>
+                <FollowButton userId={p.id} initial={false} requested locked size="sm" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {top.length > 1 && (
         <section aria-label={t("ranking")} className="mb-4">
           <h2 className="text-muted mb-2 text-xs font-semibold">{t("ranking")}</h2>

@@ -97,6 +97,8 @@
     "commandPalette": "Tezkor qidiruv",
     "commandHint": "Kitob, qayd yoki username qidiring…",
     "signOut": "Çiqiş",
+    "signOutTitle": "Hisobdan çiqasizmi?",
+    "signOutBody": "Şu qurilmadagi saqlangan sahifalar va qoralamalar ham tozalanadi. Keyin qayta kiriş uçun Google yoki parolingiz kerak böladi.",
     "account": "Hisob",
     "newResource": "Manba qöşiş",
     "newNote": "Yangi qayd",
@@ -750,7 +752,8 @@
       "tags": "Teglar",
       "booktext": "Kitob matni",
       "taqriz": "Taqrizlar",
-      "users": "Foydalanuvçilar"
+      "users": "Foydalanuvçilar",
+      "media": "Post"
     },
     "all": "Hammasi",
     "relevance": "Moslik",
@@ -768,7 +771,32 @@
     "genresAll": "· barçasiga mos keladiganlar",
     "browseHint": "Söz yozing yoki janr / tur / holatni tanlang.",
     "noBrowseResults": "Bu tanlovga mos manba topilmadi",
-    "mineTitle": "Mening ma’lumotlarim"
+    "mineTitle": "Mening ma’lumotlarim",
+    "scope": {
+      "all": "Hammasi",
+      "library": "Darsxona",
+      "people": "Foydalanuvçilar"
+    },
+    "kinds": {
+      "book": "Kitoblar",
+      "video": "Videolar",
+      "podcast": "Audio va podkastlar",
+      "course": "Kurslar",
+      "document": "Hujjatlar"
+    },
+    "palette": {
+      "all": "Qidiruv",
+      "library": "Darsxonadan qidiriş",
+      "people": "Ism yoki @username",
+      "media": "Nomi yoki kim joylagani"
+    },
+    "paletteHint": {
+      "all": "Odamlarni, ular joylagan postlarni va Darsxonangizdagi hamma narsani topadi.",
+      "library": "Manbalaringiz, qaydlar, iqtiboslar, taqrizlar va kitob matnlaridan.",
+      "people": "Ism yoki @username yozing. Yopiq profillarning faqat ismi çiqadi.",
+      "media": "Boşqalar joylagan postlar: nomi yoki kim joylagani böyiça. Yopiq profillardan faqat kuzatayotganlaringizniki."
+    },
+    "showAllMine": "Darsxonadagi barça natijalar"
   },
   "assistant": {
     "title": "AI yordamçi",
@@ -2556,17 +2584,32 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
+        "steps": [
+          "Boblar rejasi",
+          "Har kuni 500 söz",
+          "Tahrir",
+          "Nusxa çiqariş"
+        ]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
+        "steps": [
+          "A1",
+          "A2",
+          "B1",
+          "Ona tilida gaplaşuvçi bilan suhbat"
+        ]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": ["3 km", "5 km", "7 km", "10 km"]
+        "steps": [
+          "3 km",
+          "5 km",
+          "7 km",
+          "10 km"
+        ]
       }
     ],
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",

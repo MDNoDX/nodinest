@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { bookTextSources, learningRecords, user } from "@/db/schema";
 import { submitResource } from "@/server/suggestions";
@@ -87,5 +87,37 @@ describe("a new public post rings for followers", () => {
     await new Promise((ok) => setTimeout(ok, 50));
     const posts = (await listNotifications(fan)).filter((n) => n.kind === "post");
     expect(posts).toHaveLength(1);
+  });
+
+  it("the search finds posts by title or poster; a private profile's only for its followers", async () => {
+    const social = await import("@/server/social");
+    const open = await person();
+    const closed = await person(false);
+    const finder = await person();
+    const word = `Qidir${tag()}`;
+    for (const [who, type] of [
+      [open, "book"],
+      [closed, "podcast"],
+    ] as const) {
+      const r = await submitResource(db, who, { type, title: `${word} ${type}` });
+      if (r.mode !== "applied") throw new Error("applied");
+      await db
+        .update(learningRecords)
+        .set({ visibility: "public" })
+        .where(eq(learningRecords.resourceId, r.id));
+    }
+    const titles = async (q: string, kind?: "book" | "podcast") =>
+      (await social.searchMedia(finder, q, kind)).map((h) => h.title).sort();
+    expect(await titles(word)).toEqual([`${word} book`]);
+    expect(await titles(open.username)).toEqual([`${word} book`]);
+    expect(await titles(word, "podcast")).toEqual([]);
+    // Following the private profile (accepted) shows its posts too.
+    await db.execute(
+      sql`insert into nodinest.follows (follower_id, followee_id) values (${finder.userId}, ${closed.userId})`,
+    );
+    expect(await titles(word)).toEqual([`${word} book`, `${word} podcast`]);
+    expect(await titles(word, "podcast")).toEqual([`${word} podcast`]);
+    // My own posts are in my Darsxona, not here (and the private one is not followed).
+    expect(await social.searchMedia(open, word)).toHaveLength(0);
   });
 });

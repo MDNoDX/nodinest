@@ -12,6 +12,7 @@ import {
   Lock,
   Palette,
   ShieldCheck,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
@@ -124,6 +125,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             </Link>
           ))}
           <SignOutButton className="max-md:h-14 max-md:rounded-none max-md:px-4 max-md:text-base md:mt-3" />
+          {!user.isSuperadmin && (
+            <DeleteAccount
+              trigger={
+                <button
+                  type="button"
+                  className="text-muted flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--c-rose)]/10 hover:text-[var(--c-rose)] max-md:h-14 max-md:rounded-none max-md:px-4 max-md:text-base"
+                >
+                  <Trash2 className="size-4" /> {t("settings.deleteAccount.button")}
+                </button>
+              }
+            />
+          )}
         </nav>
         <div className={cn("flex min-w-0 flex-col gap-6", listOnly && "max-md:hidden")}>
           {tab === "app" && (
@@ -337,14 +350,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
                     {t("legal.termsTitle")}
                   </Link>
                 </p>
-                {!user.isSuperadmin && (
-                  <div className="border-border flex flex-col gap-2 border-t pt-3">
-                    <p className="text-muted">{t("settings.deleteAccount.hint")}</p>
-                    <div>
-                      <DeleteAccount />
-                    </div>
-                  </div>
-                )}
               </div>
             </Card>
           )}

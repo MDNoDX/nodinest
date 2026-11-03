@@ -10,8 +10,11 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth/client";
 
-/** Settings → delete my account (typed confirmation; everything goes). */
-export function DeleteAccount() {
+/**
+ * Settings → delete my account (typed confirmation; everything goes).
+ * `trigger` replaces the button (the phone's list of sections uses a row).
+ */
+export function DeleteAccount({ trigger }: { trigger?: React.ReactNode }) {
   const t = useTranslations("settings.deleteAccount");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
@@ -21,9 +24,11 @@ export function DeleteAccount() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-danger">
-          <Trash2 /> {t("button")}
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="text-danger">
+            <Trash2 /> {t("button")}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent title={t("title")} description={t("body")} closeLabel={tc("close")}>
         <label className="mt-2 flex flex-col gap-1.5 text-sm">

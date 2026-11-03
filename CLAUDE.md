@@ -182,8 +182,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Big files (> 2 MB) move from Vercel Blob to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
   ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
-- People: no separate community page — "Profil" (/profile → /u/<me>) shows follows and their
-  activity; the top of /search finds people live from the first letter (`/api/people`).
+- People: no separate community page — "Profil" (/profile → /u/<me>); people are found from the
+  top search's "Foydalanuvçilar" tab (`/api/people` is still there for guests and pickers).
 - Profiles: `/welcome` (language, photo, first/last name, unique username, password — required
   before the app), Settings → profile. Social (`server/social.ts`, `/u/[username]`, `/media`): new
   profiles are public, items are public or private one by one (the add form defaults to public, the
@@ -234,6 +234,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   one "Menyuni asl holiga" resets the order and the phone bar together. Phones open Settings on a list
   of sections (each its own page with a way back); signing out is at the list's foot, not in the menu.
   "Yuborish" offers only the phone's own share sheet and a copied link (no per-app buttons).
+  Signing out asks first (`settings/sign-out.tsx`, also from the avatar menu); "delete account" sits
+  under it in the Settings list. Default menu order: home, Darsxona, Media, Chats, then the rest.
+- The top search (`layout/command-palette.tsx`, `/api/search/quick?scope=&kind=`) has tabs like
+  Telegram's: Hammasi (people + posts + my Darsxona), Darsxona (`quickSearch`), Foydalanuvçilar
+  (`searchPeople`) and kind icons (book / video / podcast / course / document → `MEDIA_KINDS`) that
+  search others' posts (`searchMedia`: title or poster, both alphabets; a private profile's only for
+  its followers; a kind with no words lists its newest). Media has no search box of its own.
 - Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
   to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY and
   VAPID_PRIVATE_KEY in Vercel (VAPID_SUBJECT optional); the page asks GET /api/push for the key.

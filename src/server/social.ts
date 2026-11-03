@@ -636,6 +636,65 @@ export async function mediaFeed(
     limit 30`);
 }
 
+/** The search's type buttons: each covers the resource types it stands for. */
+export const MEDIA_KINDS = {
+  book: ["book"],
+  video: ["video", "lecture"],
+  podcast: ["podcast", "interview"],
+  course: ["course"],
+  document: ["article", "file", "other"],
+} as const;
+export type MediaKind = keyof typeof MEDIA_KINDS;
+
+export type MediaHit = {
+  resourceId: string;
+  title: string;
+  type: string;
+  coverUrl: string | null;
+  coverFileId: string | null;
+  name: string;
+  username: string;
+};
+
+/**
+ * What people posted (public items of others), by title, author line or the
+ * poster's name, in either Uzbek alphabet. A private profile's posts are found
+ * only by its accepted followers. With no words but a kind: the newest of it.
+ */
+export async function searchMedia(ctx: AppContext, q: string, kind?: MediaKind | null) {
+  const k = normalizeText(q).replace(/^@/, "").slice(0, 80);
+  if (!k && !kind) return [];
+  const types = kind ? [...MEDIA_KINDS[kind]] : null;
+  const esc = (s: string) => `%${s.replace(/[%_\\]/g, "\\$&")}%`;
+  const like = esc(k);
+  const other = esc(normalizeText(otherScript(k)));
+  const match = k
+    ? sql`and (nodinest.nn_norm(r.title) like ${like} or nodinest.nn_norm(r.title) like ${other}
+        or nodinest.nn_norm(coalesce(r.original_title, '')) like ${like}
+        or nodinest.nn_norm(u.name) like ${like} or nodinest.nn_norm(u.name) like ${other}
+        or lower(u.username) like ${like})`
+    : sql``;
+  return db.execute<MediaHit>(sql`
+    select lr.resource_id as "resourceId", r.title, r.type::text as type,
+      r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", u.name, u.username
+    from nodinest.learning_records lr
+    join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
+    join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
+    where lr.visibility = 'public' and u.id <> ${ctx.userId} and ${canSee(ctx)}
+      ${
+        types
+          ? sql`and r.type::text in (${sql.join(
+              types.map((x) => sql`${x}`),
+              sql`, `,
+            )})`
+          : sql``
+      }
+      ${match}
+    order by ${k ? sql`(nodinest.nn_norm(r.title) like ${`${k.replace(/[%_\\]/g, "\\$&")}%`}) desc,` : sql``}
+      lr.updated_at desc
+    limit ${kind ? 24 : 8}`);
+}
+
 /** Takes a public source to my library: only its card, never files or text. */
 export async function takeSource(ctx: AppContext, resourceId: string, ownerId: string) {
   const rid = z.string().uuid().parse(resourceId);
