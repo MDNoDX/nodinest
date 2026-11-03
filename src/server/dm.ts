@@ -467,8 +467,8 @@ export async function markRead(ctx: AppContext, threadId: string) {
     );
 }
 
-/** Only GIPHY's own media hosts: nothing else is shown from a message. */
-const GIPHY_URL = /^https:\/\/media\d?\.giphy\.com\/[\w./-]+$/;
+/** Only the GIF services' own media hosts (KLIPY, GIPHY): nothing else is shown. */
+const GIPHY_URL = /^https:\/\/(static\.klipy\.com|media\d?\.giphy\.com)\/[\w./-]+$/;
 export const gifSchema = z.object({
   id: z.string().max(40).regex(/^[\w-]+$/),
   url: z.string().max(400).regex(GIPHY_URL),

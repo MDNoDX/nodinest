@@ -756,7 +756,8 @@ export async function postComments_(ctx: AppContext, recordId: string): Promise<
 }
 export { postComments_ as listPostComments };
 
-const GIPHY = /^https:\/\/media\d?\.giphy\.com\/[\w./-]+$/;
+/** Only the GIF services' own media hosts (KLIPY, GIPHY): nothing else is shown. */
+const GIPHY = /^https:\/\/(static\.klipy\.com|media\d?\.giphy\.com)\/[\w./-]+$/;
 const commentInput = z
   .object({
     body: z.string().trim().max(1000).optional(),

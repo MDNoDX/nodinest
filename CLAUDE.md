@@ -202,8 +202,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Chat extras: `chat/outbox.ts` keeps messages on their way outside the page (leaving a chat does
   not lose an upload; `chat/upload-tray.tsx` shows them everywhere, ✕ cancels via AbortSignal);
   `composer.tsx` = hold-to-record voice (slide left cancels, up locks; `wave.ts` stores 40 bars in
-  `dm_messages.meta`), emoji/GIF/sticker picker (`emoji-gif.tsx`, GIPHY through `/api/gif`, env
-  GIPHY_API_KEY, only media*.giphy.com URLs accepted), the attach sheet (look before sending).
+  `dm_messages.meta`), emoji/GIF/sticker picker (`emoji-gif.tsx`, KLIPY through `/api/gif`, env
+  KLIPY_API_KEY, GIPHY_API_KEY as the other choice; only static.klipy.com / media*.giphy.com URLs accepted), the attach sheet (look before sending).
   Clear chat for me (`a/b_cleared_at`) or both (rows deleted). Presence: `user.last_seen_at`
   (heartbeat in `/api/dm/threads`), `show_online` off hides it both ways.
 - Posts (0049): 👍 "Zo'r" likes `post_likes` and comments `post_comments` (text / GIF) on a public

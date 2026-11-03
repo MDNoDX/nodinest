@@ -8,11 +8,26 @@ import type { DmGif } from "@/server/dm";
 
 /** Emojis by kind, the most used first (no library: a few hundred cover a chat). */
 const EMOJI: [string, string][] = [
-  ["smileys", "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕"],
-  ["gestures", "👍 👎 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤝 🙏 👏 🙌 🫶 👐 🤲 💪 ✍️ 💅 🤳 🫡 🙇 🙋 🙆 🙅 🤷 🤦"],
-  ["hearts", "❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 🔥 ✨ ⭐ 🌟 💫 💯 ✅ ❌ ❗ ❓ 💤 💬 🎉 🎊 🎁 🏆 🥇"],
-  ["study", "📚 📖 📕 📗 📘 📙 📓 📒 📝 ✏️ 🖊️ 🖋️ 📌 📎 🔖 🗂️ 📅 ⏰ ⏳ 🧠 💡 🎓 🏫 🧪 🔬 🧮 🌍 🗺️ 🕌 🕋 📿 🤲"],
-  ["nature", "🌸 🌹 🌷 🌻 🌼 🌱 🌿 🍀 🍁 🍂 🌳 🌲 🌴 🌵 🌊 🌙 🌞 ⛅ 🌧️ ❄️ 🌈 🐱 🐶 🐦 🦋 🐝 🐢 🦁 🐎"],
+  [
+    "smileys",
+    "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕",
+  ],
+  [
+    "gestures",
+    "👍 👎 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤝 🙏 👏 🙌 🫶 👐 🤲 💪 ✍️ 💅 🤳 🫡 🙇 🙋 🙆 🙅 🤷 🤦",
+  ],
+  [
+    "hearts",
+    "❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 🔥 ✨ ⭐ 🌟 💫 💯 ✅ ❌ ❗ ❓ 💤 💬 🎉 🎊 🎁 🏆 🥇",
+  ],
+  [
+    "study",
+    "📚 📖 📕 📗 📘 📙 📓 📒 📝 ✏️ 🖊️ 🖋️ 📌 📎 🔖 🗂️ 📅 ⏰ ⏳ 🧠 💡 🎓 🏫 🧪 🔬 🧮 🌍 🗺️ 🕌 🕋 📿 🤲",
+  ],
+  [
+    "nature",
+    "🌸 🌹 🌷 🌻 🌼 🌱 🌿 🍀 🍁 🍂 🌳 🌲 🌴 🌵 🌊 🌙 🌞 ⛅ 🌧️ ❄️ 🌈 🐱 🐶 🐦 🦋 🐝 🐢 🦁 🐎",
+  ],
   ["food", "☕ 🍵 🥛 🍞 🥐 🧀 🍳 🥗 🍲 🍜 🍕 🍔 🍟 🌯 🍉 🍇 🍎 🍐 🍊 🍌 🍒 🍓 🥝 🍯 🍰 🎂 🍫 🍬"],
   ["things", "📱 💻 ⌨️ 🖥️ 🎧 🎤 🎬 📷 📸 🎵 🎶 🎮 ⚽ 🏀 🏃 🚶 🚗 ✈️ 🏠 🕰️ 💰 🔑 🔒 🔔 📢 🎯 🧩 🪄"],
 ];
@@ -49,6 +64,7 @@ export function EmojiGif({
   const [res, setRes] = useState<{
     key: string;
     available: boolean;
+    provider?: string;
     items: DmGif[];
   } | null>(null);
 
@@ -57,11 +73,11 @@ export function EmojiGif({
     if (!open || tab === "emoji") return;
     let stop = false;
     const timer = setTimeout(async () => {
-      const r = await fetch(
-        `/api/gif?kind=${tab}&q=${encodeURIComponent(q.trim())}`,
-      ).catch(() => null);
+      const r = await fetch(`/api/gif?kind=${tab}&q=${encodeURIComponent(q.trim())}`).catch(
+        () => null,
+      );
       const j = r?.ok
-        ? ((await r.json()) as { available: boolean; items: DmGif[] })
+        ? ((await r.json()) as { available: boolean; provider?: string; items: DmGif[] })
         : { available: true, items: [] };
       if (!stop) setRes({ key, ...j });
     }, 250);
@@ -183,7 +199,7 @@ export function EmojiGif({
             ))}
             {tab !== "emoji" && (
               <span className="text-muted ml-auto pr-1 text-[10px] font-semibold tracking-wide">
-                Powered by GIPHY
+                Powered by {res?.provider ?? "KLIPY"}
               </span>
             )}
           </div>
