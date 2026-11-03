@@ -47,6 +47,17 @@ export function useNavOrder(): string[] {
   }
 }
 
+/**
+ * A drag inside part of a group (the phone menu leaves out what sits on the
+ * bottom bar): the moved ones take each other's places, the rest stay put, so
+ * the order in Settings stays the whole one.
+ */
+export function fillOrder(full: string[], part: string[]): string[] {
+  const moved = new Set(part);
+  let k = 0;
+  return full.map((h) => (moved.has(h) ? (part[k++] ?? h) : h));
+}
+
 export function sortByOrder<T extends { href: string }>(items: T[], order: string[]): T[] {
   if (!order.length) return items;
   const at = (h: string) => {

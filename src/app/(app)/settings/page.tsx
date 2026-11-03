@@ -1,5 +1,7 @@
 import {
   AppWindow,
+  ChevronLeft,
+  ChevronRight,
   Bell,
   HardDrive,
   Keyboard,
@@ -31,7 +33,8 @@ import { PhoneTabsSettings } from "@/components/settings/phone-tabs";
 import { premiumOn } from "@/server/premium";
 import { OnlineSwitch } from "@/components/chat/online-switch";
 import { DeleteAccount } from "@/components/settings/delete-account";
-import { NavOrderSettings } from "@/components/settings/nav-order";
+import { SignOutButton } from "@/components/settings/sign-out";
+import { MenuReset, NavOrderSettings } from "@/components/settings/nav-order";
 import { ProfileVisibility } from "@/components/social/profile-visibility";
 import { PremiumBadge } from "@/components/premium/premium-badge";
 import { NotificationSettings } from "@/components/settings/notification-settings";
@@ -75,32 +78,54 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
   const used = storage && tab === "storage" ? await storageUsage(ctx) : 0;
   const [devices, pw] =
     tab === "security" ? await Promise.all([listDevices(ctx), hasPassword(user.id)]) : [[], false];
+  // Phones open on the list of sections (like a phone's own settings); a
+  // section opens on its own page with a way back. Wider screens show both.
+  const listOnly = !asked || tab !== asked;
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader section="settings" title={t("settings.title")} />
+      <div className={cn(!listOnly && "max-md:hidden")}>
+        <PageHeader section="settings" title={t("settings.title")} />
+      </div>
+      {!listOnly && (
+        <Link
+          href="/settings"
+          className="text-muted hover:text-foreground -mt-1 mb-3 inline-flex h-10 items-center gap-1 text-sm font-medium md:hidden"
+        >
+          <ChevronLeft className="size-5" /> {t("settings.title")}
+        </Link>
+      )}
       <div className="grid gap-6 md:grid-cols-[13rem_1fr]">
         <nav
           aria-label={t("settings.title")}
-          className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 md:sticky md:top-20 md:mx-0 md:flex-col md:self-start md:overflow-visible md:px-0"
+          className={cn(
+            "flex flex-col md:sticky md:top-20 md:gap-1 md:self-start",
+            "max-md:card max-md:divide-border max-md:divide-y max-md:overflow-hidden",
+            !listOnly && "max-md:hidden",
+          )}
         >
           {tabs.map(([k, Icon]) => (
             <Link
               key={k}
               href={`/settings?tab=${k}`}
-              aria-current={tab === k ? "page" : undefined}
+              aria-current={tab === k && !listOnly ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
+                "flex shrink-0 items-center gap-3 text-sm font-medium whitespace-nowrap transition-colors md:gap-2.5 md:rounded-xl md:px-3 md:py-2",
+                "max-md:hover:bg-surface-2 max-md:h-14 max-md:px-4 max-md:text-base",
                 tab === k
-                  ? "bg-surface text-foreground shadow-sm ring-1 ring-[var(--border)]"
-                  : "text-muted hover:bg-surface-2 hover:text-foreground",
+                  ? "md:bg-surface md:text-foreground md:shadow-sm md:ring-1 md:ring-[var(--border)]"
+                  : "md:text-muted md:hover:bg-surface-2 md:hover:text-foreground",
               )}
             >
-              {Icon ? <Icon className="size-4" /> : <PremiumBadge className="size-4" />}
-              {t(`settings.tabs.${k}`)}
+              <span className="max-md:bg-surface-2 max-md:text-primary grid shrink-0 place-items-center max-md:size-9 max-md:rounded-xl">
+                {Icon ? <Icon className="size-4" /> : <PremiumBadge className="size-4" />}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{t(`settings.tabs.${k}`)}</span>
+              <ChevronRight className="text-muted size-4 md:hidden" />
             </Link>
           ))}
+          <SignOutButton className="max-md:h-14 max-md:rounded-none max-md:px-4 max-md:text-base md:mt-3" />
         </nav>
-        <div className="flex min-w-0 flex-col gap-6">
+        <div className={cn("flex min-w-0 flex-col gap-6", listOnly && "max-md:hidden")}>
           {tab === "app" && (
             <Card id="install">
               <CardHeader title={t("install.title")} icon={<AppWindow />} hue="blue" />
@@ -222,6 +247,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               </div>
             </Card>
           )}
+          {tab === "menu" && <MenuReset />}
           {tab === "keys" && (
             <Card id="shortcuts">
               <CardHeader title={t("shortcuts.title")} icon={<Keyboard />} hue="violet" />

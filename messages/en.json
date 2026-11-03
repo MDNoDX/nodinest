@@ -1082,6 +1082,8 @@
     "navUp": "Move up",
     "navDown": "Move down",
     "navReset": "Restore the default order",
+    "onBar": "at the bottom",
+    "menuReset": "Reset the menu",
     "tabs": {
       "profile": "Profile",
       "premium": "Premium",

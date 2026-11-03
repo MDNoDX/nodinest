@@ -1082,6 +1082,8 @@
     "navUp": "Yuqoriga",
     "navDown": "Pastga",
     "navReset": "Asl tartibga qaytariş",
+    "onBar": "pastda",
+    "menuReset": "Menyuni asl holiga qaytariş",
     "tabs": {
       "profile": "Profil",
       "premium": "Premium",

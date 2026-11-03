@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 
-
 const b64ToBytes = (s: string) => {
   const pad = "=".repeat((4 - (s.length % 4)) % 4);
   const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));

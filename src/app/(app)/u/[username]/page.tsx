@@ -20,16 +20,12 @@ import { ProfileEditor } from "@/components/social/profile-editor";
 import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContextOrGuest } from "@/lib/page";
-import {
-  followingList,
-  myItemsCount,
-  profileByUsername,
-  profileStats,
-  publicItems,
-} from "@/server/social";
-import { PersonCard } from "@/components/social/person-card";
+import { myItemsCount, profileByUsername, profileStats, publicItems } from "@/server/social";
 
 export const dynamic = "force-dynamic";
+
+/** Covers on the profile itself: two rows of three on a phone, one row of six wider. */
+const SHOWN = 6;
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
   return { title: `@${(await params).username}` };
@@ -44,9 +40,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const name = decodeURIComponent(username).toLowerCase();
   // My own page: everything is asked for at once (no waiting in turn).
   const mine = !!user && name === user.username?.toLowerCase();
-  const [p, following, myItems, ownItems] = await Promise.all([
+  const [p, myItems, ownItems] = await Promise.all([
     profileByUsername(ctx, name),
-    mine ? followingList(ctx) : Promise.resolve([]),
     mine ? myItemsCount(ctx) : Promise.resolve(0),
     mine && user ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
@@ -175,7 +170,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             <h2 className="flex items-center gap-2 text-sm font-semibold">
               <BookOpen className="text-muted size-4" /> {t("library")}
             </h2>
-            {items.length > 5 && (
+            {items.length > SHOWN && (
               <Link
                 href={`/u/${p.username}/items`}
                 className="text-primary text-sm font-medium hover:underline"
@@ -184,7 +179,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               </Link>
             )}
           </div>
-          <ItemGrid items={items.slice(0, 5)} owner={p.self ? undefined : p.username} />
+          <ItemGrid
+            items={items.slice(0, SHOWN)}
+            owner={p.self ? undefined : p.username}
+            cols="sm:grid-cols-6"
+          />
         </section>
       )}
       {p.self && myItems > 0 && (
@@ -219,18 +218,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </span>
           <ChevronRight className="text-muted size-4" />
         </Link>
-      )}
-      {p.self && following.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold">{t("followingTitle")}</h2>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {following.map((f) => (
-              <li key={f.id}>
-                <PersonCard p={f} />
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
     </div>
   );

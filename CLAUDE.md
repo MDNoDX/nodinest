@@ -229,8 +229,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `/api/files/[id]?w=480`, sharp, cached a month). Chat messages never go to the bell (only push /
   Telegram, one ring per sender per 2 min); a new public post rings the owner's followers (`post`).
 - Navigation: Takliflar left the menu (a quiet link under it + Settings → Help; the inbox lives in
-  Admin), Ko'rsatkichlar is the "Statistika" tab of my profile (`social/profile-tabs.tsx`), Takrorlash is
-  a Darsxona tab with the due count (`dueCount`) and a start card on the library.
+  Admin); Review and Metrics are menu items. The menu order (`lib/nav-order.ts`) is one list: a drag in
+  the menu (`fillOrder` keeps bar sections in place on phones) and Settings → Menu show the same order;
+  one "Menyuni asl holiga" resets the order and the phone bar together. Phones open Settings on a list
+  of sections (each its own page with a way back); signing out is at the list's foot, not in the menu.
+  "Yuborish" offers only the phone's own share sheet and a copied link (no per-app buttons).
 - Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
   to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY and
   VAPID_PRIVATE_KEY in Vercel (VAPID_SUBJECT optional); the page asks GET /api/push for the key.

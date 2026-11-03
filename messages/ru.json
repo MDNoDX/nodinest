@@ -1082,6 +1082,8 @@
     "navUp": "Выше",
     "navDown": "Ниже",
     "navReset": "Вернуть исходный порядок",
+    "onBar": "внизу",
+    "menuReset": "Вернуть меню как было",
     "tabs": {
       "profile": "Профиль",
       "premium": "Premium",

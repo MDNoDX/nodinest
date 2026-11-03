@@ -14,7 +14,7 @@ import type { DmPerson, DmThreadRow } from "@/server/dm";
 /**
  * "Yuborish": one sheet for sharing an item — the people I talk to as round
  * faces (tap several), a search for anyone else, and other apps (the phone's
- * own share sheet, Telegram, WhatsApp, a copied link) for a public post.
+ * own share sheet with every app, a copied link) for a public post.
  */
 export function SendTo({
   resourceId,
@@ -241,39 +241,19 @@ export function SendTo({
             </div>
           ) : (
             share && (
-              // Other apps, as round buttons.
-              <div className="border-border mt-3 grid grid-cols-4 gap-2 border-t px-4 pt-4">
+              // The phone's own share sheet (every app is there) and the link.
+              <div className="border-border mt-3 flex flex-wrap justify-center gap-x-10 gap-y-2 border-t px-4 pt-4">
                 {share.closed && (
-                  <p className="text-muted col-span-4 -mt-1 mb-1 text-center text-xs">
+                  <p className="text-muted -mt-1 mb-1 w-full text-center text-xs">
                     {t("shareClosed")}
                   </p>
                 )}
                 {canNative && (
-                  <AppBtn
-                    label={t("shareApps")}
-                    onClick={() => void native()}
-                    bg="var(--surface-2)"
-                  >
+                  <AppBtn label={t("shareApps")} onClick={() => void native()}>
                     <Share2 className="size-5" />
                   </AppBtn>
                 )}
-                <AppBtn
-                  label="Telegram"
-                  href={`https://t.me/share/url?url=${encodeURIComponent(link())}&text=${encodeURIComponent(share.title)}`}
-                  bg="#2aabee"
-                  light
-                >
-                  <TelegramMark />
-                </AppBtn>
-                <AppBtn
-                  label="WhatsApp"
-                  href={`https://wa.me/?text=${encodeURIComponent(`${share.title} ${link()}`)}`}
-                  bg="#25d366"
-                  light
-                >
-                  <WhatsAppMark />
-                </AppBtn>
-                <AppBtn label={t("copyLink")} onClick={() => void copy()} bg="var(--surface-2)">
+                <AppBtn label={t("copyLink")} onClick={() => void copy()}>
                   <Link2 className="size-5" />
                 </AppBtn>
               </div>
@@ -287,57 +267,23 @@ export function SendTo({
 
 function AppBtn({
   label,
-  href,
   onClick,
-  bg,
-  light,
   children,
 }: {
   label: string;
-  href?: string;
-  onClick?: () => void;
-  bg: string;
-  light?: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
-  const inner = (
-    <>
-      <span
-        className={cn(
-          "grid size-14 place-items-center rounded-full transition-transform duration-200 group-active:scale-90",
-          light ? "text-white" : "text-foreground",
-        )}
-        style={{ background: bg }}
-      >
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-20 flex-col items-center gap-1.5"
+    >
+      <span className="bg-surface-2 text-foreground grid size-14 place-items-center rounded-full transition-transform duration-200 group-active:scale-90">
         {children}
       </span>
       <span className="text-muted w-full truncate text-center text-xs">{label}</span>
-    </>
-  );
-  const cls = "group flex flex-col items-center gap-1.5";
-  return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
-      {inner}
-    </a>
-  ) : (
-    <button type="button" onClick={onClick} className={cls}>
-      {inner}
     </button>
-  );
-}
-
-/** Simple marks of the two apps (shapes only, drawn here). */
-function TelegramMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
-      <path d="M21.4 4.3 2.9 11.4c-1.3.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5ZM9.6 14.1l8.2-5.2c.4-.2.7-.1.4.2l-6.8 6.1-.3 3.1-1.5-4.2Z" />
-    </svg>
-  );
-}
-function WhatsAppMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
-      <path d="M12 2a9.9 9.9 0 0 0-8.5 15l-1.4 5 5.1-1.3A9.9 9.9 0 1 0 12 2Zm0 18.1a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.1Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.1.7a2.7 2.7 0 0 0 1.7-1.2 2.2 2.2 0 0 0 .2-1.2c0-.1-.2-.2-.4-.3Z" />
-    </svg>
   );
 }

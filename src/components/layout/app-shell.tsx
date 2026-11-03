@@ -1,7 +1,7 @@
 "use client";
-import { LogOut, Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -13,13 +13,11 @@ import { cn } from "@/lib/cn";
 import { SECTION_HUE, hueStyle } from "@/lib/hues";
 import { BottomNav, IMMERSIVE_RE } from "./bottom-nav";
 import { CommandPalette } from "./command-palette";
-import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
+import { fillOrder, sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
 import { ChatsButton, useUnreadChats } from "@/components/chat/chats-button";
 import { UploadTray } from "@/components/chat/upload-tray";
 import { InstallBanner } from "@/components/pwa/install-banner";
-import { clearOfflineData } from "@/components/pwa/pwa";
-import { authClient } from "@/lib/auth/client";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
@@ -201,7 +199,6 @@ export function AppShell({
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const pathname = usePathname();
-  const router = useRouter();
   const chosen = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
   // Tablets (768-1023 px): the menu is always the narrow one, beside the page.
   const tablet = useSyncExternalStore(subscribeTablet, readTablet, () => false);
@@ -233,6 +230,7 @@ export function AppShell({
   // Both groups are saved together (each keeps its own items).
   const reorder = (a: string[] | NavItem[], b: string[] | NavItem[]) =>
     writeNavOrder([...a, ...b].map((x) => (typeof x === "string" ? x : x.href)));
+  const hrefsOf = (list: NavItem[]) => list.map((i) => i.href);
   const primary = sortByOrder(NAV_PRIMARY, order);
   const secondary = sortByOrder(
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
@@ -274,7 +272,7 @@ export function AppShell({
           items={mobile ? notOnBar(primary) : primary}
           collapsed={collapsed && !mobile}
           pathname={pathname}
-          onReorder={(h) => reorder(h, secondary)}
+          onReorder={(h) => reorder(fillOrder(hrefsOf(primary), h), secondary)}
         />
         <div className="border-border mx-2 border-t" />
         <NavList
@@ -282,7 +280,7 @@ export function AppShell({
           collapsed={collapsed && !mobile}
           pathname={pathname}
           badge={badge}
-          onReorder={(h) => reorder(primary, h)}
+          onReorder={(h) => reorder(primary, fillOrder(hrefsOf(secondary), h))}
         />
         {sideAd && !collapsed && !mobile && <div className="mt-auto px-1 pb-1">{sideAd}</div>}
         {!collapsed && (
@@ -298,22 +296,9 @@ export function AppShell({
           </Link>
         )}
         {mobile && (
-          // Phones have no avatar menu: the theme and signing out live here.
+          // Phones have no avatar menu: the theme lives here, signing out in Settings.
           <div className="border-border mx-2 mb-2 flex items-center gap-2 border-t pt-2">
             <ThemeToggle />
-            <span className="text-muted flex-1 truncate text-xs">{user.name}</span>
-            <button
-              type="button"
-              onClick={async () => {
-                await authClient.signOut();
-                await clearOfflineData();
-                router.push("/login");
-                router.refresh();
-              }}
-              className="text-muted hover:text-foreground inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm"
-            >
-              <LogOut className="size-4" /> {t("signOut")}
-            </button>
           </div>
         )}
       </nav>

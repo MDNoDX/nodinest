@@ -1,9 +1,9 @@
 "use client";
-import { ArrowDown, ArrowUp, Minus, Plus, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { NAV_PRIMARY, NAV_SECONDARY } from "@/components/layout/nav-items";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { sortByOrder, useNavOrder } from "@/lib/nav-order";
 import { MAX_PHONE_TABS, usePhoneTabs, writePhoneTabs } from "@/lib/phone-tabs";
 
 /**
@@ -12,7 +12,11 @@ import { MAX_PHONE_TABS, usePhoneTabs, writePhoneTabs } from "@/lib/phone-tabs";
  */
 export function PhoneTabsSettings({ admin }: { admin: boolean }) {
   const t = useTranslations();
-  const all = [...NAV_PRIMARY, ...NAV_SECONDARY].filter((i) => !i.admin || admin);
+  // The menu's own order, so the list below reads like the ☰ menu.
+  const order = useNavOrder();
+  const all = [...sortByOrder(NAV_PRIMARY, order), ...sortByOrder(NAV_SECONDARY, order)].filter(
+    (i) => !i.admin || admin,
+  );
   const chosen = usePhoneTabs(all.map((i) => i.href));
   const full = chosen.length >= MAX_PHONE_TABS;
   const set = (next: string[]) => writePhoneTabs(next);
@@ -100,9 +104,6 @@ export function PhoneTabsSettings({ admin }: { admin: boolean }) {
             })}
         </ul>
       </div>
-      <Button variant="ghost" size="sm" className="self-start" onClick={() => writePhoneTabs(null)}>
-        <RotateCcw /> {t("settings.navReset")}
-      </Button>
     </div>
   );
 }
