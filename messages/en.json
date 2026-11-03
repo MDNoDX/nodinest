@@ -794,9 +794,11 @@
       "all": "Finds people, what they posted and everything in your Darsxona.",
       "library": "Your resources, notes, quotes, write-ups and book texts.",
       "people": "Type a name or @username. Private profiles show only their name.",
-      "media": "Others' posts, by title or by who posted. From private profiles only the ones you follow."
+      "media": "Others' posts, by title or by who posted. From private profiles only the ones you follow.",
+      "mix": "Searches all the pinned places together."
     },
-    "showAllMine": "All results in Darsxona"
+    "showAllMine": "All results in Darsxona",
+    "pinHint": "Double-tap an icon to pin it: pinned ones are searched together and stay chosen next time."
   },
   "assistant": {
     "title": "AI assistant",
@@ -1499,7 +1501,7 @@
   "install": {
     "title": "Install the app (Mac and phone)",
     "why": "Install Röznoma as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
-    "installNow": "Install now",
+    "installNow": "Install the app",
     "installed": "Installed — you are using the app window.",
     "mac": "Mac",
     "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install Röznoma”). It appears in Launchpad and the Dock.",
@@ -1513,7 +1515,22 @@
     "bannerIos1": "Tap",
     "bannerIos2": "below, then “Add to Home Screen”.",
     "bannerInstall": "Install",
-    "bannerClose": "Close"
+    "bannerClose": "Close",
+    "tagline": "A home for everything you learn",
+    "gainFast": "Its own icon among your apps; opens fast, without the browser bar.",
+    "gainOffline": "Opened pages, books and drafts work without the internet.",
+    "gainPush": "Messages and reminders arrive as the phone's own notifications.",
+    "iosTitle": "Install on iPhone (Safari)",
+    "ios1": "Tap the Share button at the bottom.",
+    "ios2": "Choose “Add to Home Screen” (it may be further down).",
+    "iosAdd": "Add",
+    "ios3": "Tap “Add” at the top right — Röznoma appears among your apps.",
+    "iosNote": "An iPhone installs such apps only this way (or from the App Store). Once installed it opens as its own app and gets notifications.",
+    "iosOther": "On iPhone, Safari installs apps: open this page in Safari, then Share → Add to Home Screen.",
+    "androidTitle": "Install on Android (Chrome)",
+    "android1": "Open the ⋮ menu at the top right.",
+    "android2": "Tap “Install app” and confirm. Röznoma appears in your app list.",
+    "androidNote": "If it is not there, open the page in Chrome and wait a moment — Chrome offers it by itself."
   },
   "offline": {
     "title": "No internet",
@@ -2798,6 +2815,10 @@
     "stickerSearch": "Search stickers",
     "recentEmoji": "Recent",
     "emojiKind": {
+      "animals": "Animals",
+      "travel": "Travel and places",
+      "activities": "Activities",
+      "flags": "Flags",
       "smileys": "Faces",
       "gestures": "Gestures",
       "hearts": "Hearts and signs",

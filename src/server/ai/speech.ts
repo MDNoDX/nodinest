@@ -13,7 +13,7 @@ import { appSettings } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { encodeMp3 } from "../audiobook";
 import { hitRateLimit } from "../rate-limit";
-import { sayable, speak, speakLive } from "./gemini";
+import { sayable, speak, speakLive, speechLeft } from "./gemini";
 
 const KEY = "eleven_usage";
 const API = "https://api.elevenlabs.io/v1";
@@ -158,11 +158,12 @@ export const MAX_TURN_CHARS = 1500;
 /** Chooses the best voice still allowed for this turn; the choice holds for its sentences. */
 export async function talkVoice(
   ctx: AppContext,
-  /** The language spoken (two letters). */
-  lang: string,
+  /** The language spoken (two letters), or where to read it once known (asked per sentence). */
+  language: string | (() => string),
   voice: "female" | "male",
   signal?: AbortSignal,
 ): Promise<TalkVoice> {
+  const lang = () => (typeof language === "function" ? language() : language);
   if (key()) {
     const n = MAX_TURN_CHARS;
     const roomMonth = (await usedChars()) + n <= monthly() && (await realLeft()) > n + 200;
@@ -173,25 +174,28 @@ export async function talkVoice(
       return {
         chunked: true,
         sentence: async (text, onPcm) => {
-          const ok = await elevenLive(text, voice, lang, onPcm, signal);
+          const ok = await elevenLive(text, voice, lang(), onPcm, signal);
           if (ok) await addChars(text.length).catch(() => {});
           return ok;
         },
         say: async (text) => {
-          const mp3 = await elevenLabs(text, voice, lang);
+          const mp3 = await elevenLabs(text, voice, lang());
           if (mp3) await addChars(text.length).catch(() => {});
           return mp3;
         },
       };
   }
+  // Every speech model spent today: no voice, and no seconds lost asking each one.
+  if (!(await speechLeft()))
+    return { chunked: false, live: async () => false, say: async () => null };
   return {
     chunked: false,
     live: (text, onPcm) =>
-      speakLive(text, GEMINI_VOICE[voice], onPcm, { languageCode: GEMINI_LANG[lang], signal }),
+      speakLive(text, GEMINI_VOICE[voice], onPcm, { languageCode: GEMINI_LANG[lang()], signal }),
     say: async (text) => {
       try {
         const { pcm, rate } = await speak([{ speaker: "ai", text }], () => GEMINI_VOICE[voice], {
-          languageCode: GEMINI_LANG[lang],
+          languageCode: GEMINI_LANG[lang()],
           timeoutMs: 45_000,
         });
         return encodeMp3(pcm, rate);

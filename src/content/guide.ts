@@ -292,12 +292,12 @@ const uz: GuideSection[] = [
       },
       {
         title: "Çatlar",
-        text: "Yuqoridagi xabar belgisi yoki menyudagi «Çatlar» orqali odamlar bilan yozişasiz: matn, rasm, video, PDF, ovozli xabar va manbalar. Xabarga javob beriş, nusxa oliş, öçiriş mumkin; ✓✓ — öqildi degani. Qidiruv çatlarni, yangi odamlarni va yozilgan sözlarni topadi. Yopiq profilga faqat u kuzatadigan yoki uni kuzatadigan odamlar yoza oladi; keraksiz odamni bloklaş mumkin.",
+        text: "Yuqoridagi xabar belgisi yoki menyudagi «Çatlar» orqali odamlar bilan yozişasiz: matn, rasm, video, PDF, ovozli xabar va manbalar. Xabarga javob beriş (telefonda xabarni çapga suring), nusxa oliş, öçiriş mumkin; xabarni bosib reaksiya qoldirasiz, ikki marta bossangiz — 👍. ✓✓ — öqildi degani. Qidiruv çatlarni, yangi odamlarni va yozilgan sözlarni topadi. Yopiq profilga faqat u kuzatadigan yoki uni kuzatadigan odamlar yoza oladi; keraksiz odamni bloklaş mumkin.",
         tip: "Birovning profilida «Xabar yoziş» tugmasi bor.",
       },
       {
         title: "Kuzatiş va özingizga olish",
-        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni yuqoridagi qidiruvda bir harfdan boşlab topasiz. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
+        text: "Birovning profilida «Kuzatiş»ni bosing — uning yangi öqiganlari öz profilingizda çiqadi. Odamlarni yuqoridagi qidiruvda bir harfdan boşlab topasiz: uning belgilari bilan faqat odamlar, Darsxona yoki kitob, video, audio postlaridan qidirasiz; belgini ikki marta bossangiz, u qotiriladi va qotirilganlar birga qidiriladi. Yoqqan kitobni oçib, holatini tanlasangiz, u sizning Darsxonangizga qöşiladi.",
       },
     ],
     link: { href: "/media", label: "Media" },
@@ -649,12 +649,12 @@ const en: GuideSection[] = [
       },
       {
         title: "Chats",
-        text: "Write to people from the message icon at the top or “Chats” in the menu: text, photos, video, PDFs, voice messages and sources. Reply, copy or delete a message; ✓✓ means read. The search finds your chats, new people and words you wrote. A private profile can only be written to by people it follows or who follow it; you can block anyone.",
+        text: "Write to people from the message icon at the top or “Chats” in the menu: text, photos, video, PDFs, voice messages and sources. Reply (on a phone, swipe the message to the left), copy or delete a message; tap it to react, double-tap for 👍. ✓✓ means read. The search finds your chats, new people and words you wrote. A private profile can only be written to by people it follows or who follow it; you can block anyone.",
         tip: "Someone’s profile has a “Message” button.",
       },
       {
         title: "Follow and take it yourself",
-        text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people in the search at the top, from the first letter. Open a book you like and pick a status: it joins your own library.",
+        text: "Press “Follow” on someone’s profile — what they read next appears on your own profile. Find people in the search at the top, from the first letter: its icons look only in people, your Darsxona or posts of books, videos and audio; double-tap an icon to pin it, and pinned ones are searched together. Open a book you like and pick a status: it joins your own library.",
       },
     ],
     link: { href: "/media", label: "Media" },

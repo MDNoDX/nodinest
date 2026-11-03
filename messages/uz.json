@@ -794,9 +794,11 @@
       "all": "Odamlarni, ular joylagan postlarni va Darsxonangizdagi hamma narsani topadi.",
       "library": "Manbalaringiz, qaydlar, iqtiboslar, taqrizlar va kitob matnlaridan.",
       "people": "Ism yoki @username yozing. Yopiq profillarning faqat ismi çiqadi.",
-      "media": "Boşqalar joylagan postlar: nomi yoki kim joylagani böyiça. Yopiq profillardan faqat kuzatayotganlaringizniki."
+      "media": "Boşqalar joylagan postlar: nomi yoki kim joylagani böyiça. Yopiq profillardan faqat kuzatayotganlaringizniki.",
+      "mix": "Qotirilgan bölimlardan birga qidiradi."
     },
-    "showAllMine": "Darsxonadagi barça natijalar"
+    "showAllMine": "Darsxonadagi barça natijalar",
+    "pinHint": "Belgini ikki marta bossangiz, u qotiriladi: qotirilganlar birga qidiriladi va keyingi safar ham tanlangan turadi."
   },
   "assistant": {
     "title": "AI yordamçi",
@@ -1499,7 +1501,7 @@
   "install": {
     "title": "Ilovani örnatiş (Mac va telefon)",
     "why": "Röznomani alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
-    "installNow": "Hozir örnatiş",
+    "installNow": "Ilovani örnatiş",
     "installed": "Ilova örnatilgan — siz uni ilova oynasida işlatyapsiz.",
     "mac": "Mac",
     "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «Röznomani örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
@@ -1513,7 +1515,22 @@
     "bannerIos1": "Pastdagi",
     "bannerIos2": "tugmasini bosing, keyin «Uy ekraniga qöşiş».",
     "bannerInstall": "Örnatiş",
-    "bannerClose": "Yopiş"
+    "bannerClose": "Yopiş",
+    "tagline": "Bilimlar uçun şaxsiy makon",
+    "gainFast": "Telefoningizdagi boşqa ilovalar qatorida öz belgisi bilan turadi va brauzer satrisiz, tez oçiladi.",
+    "gainOffline": "Internet bölmasa ham oçilgan sahifalar, kitoblar va qoralamalar işlaydi.",
+    "gainPush": "Xabar va eslatmalar telefonning öz bildiriçnomasi bölib keladi.",
+    "iosTitle": "iPhone’da örnatiş (Safari)",
+    "ios1": "Pastdagi «Ulaşiş» tugmasini bosing.",
+    "ios2": "Röyxatdan «Uy ekraniga qöşiş»ni tanlang (pastroqda bölişi mumkin).",
+    "iosAdd": "Qöşiş",
+    "ios3": "Yuqorida öngdagi «Qöşiş»ni bosing — Röznoma ilovalar qatorida paydo böladi.",
+    "iosNote": "iPhone ilovani faqat şu yöl bilan (yoki App Store orqali) örnatadi. Örnatilgandan keyin u alohida ilova bölib oçiladi va bildiriçnomalar ham keladi.",
+    "iosOther": "iPhone’da ilovani Safari örnatadi: şu sahifani Safari’da oçing, keyin «Ulaşiş» → «Uy ekraniga qöşiş».",
+    "androidTitle": "Android’da örnatiş (Chrome)",
+    "android1": "Yuqori öngdagi ⋮ menyuni oçing.",
+    "android2": "«Ilovani örnatiş» ni bosing va tasdiqlang. Röznoma ilovalar röyxatida paydo böladi.",
+    "androidNote": "Agar «Ilovani örnatiş» körinmasa, sahifani Chrome’da oçing va bir oz kuting — Chrome taklifni özi beradi."
   },
   "offline": {
     "title": "Internet yöq",
@@ -2584,32 +2601,17 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": [
-          "Boblar rejasi",
-          "Har kuni 500 söz",
-          "Tahrir",
-          "Nusxa çiqariş"
-        ]
+        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": [
-          "A1",
-          "A2",
-          "B1",
-          "Ona tilida gaplaşuvçi bilan suhbat"
-        ]
+        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": [
-          "3 km",
-          "5 km",
-          "7 km",
-          "10 km"
-        ]
+        "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ],
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
@@ -2813,6 +2815,10 @@
     "stickerSearch": "Stiker qidiriş",
     "recentEmoji": "Söngilari",
     "emojiKind": {
+      "animals": "Hayvonlar",
+      "travel": "Sayohat va joylar",
+      "activities": "Sport va öyin",
+      "flags": "Bayroqlar",
       "smileys": "Yuzlar",
       "gestures": "Imo-işoralar",
       "hearts": "Yurak va belgilar",

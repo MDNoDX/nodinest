@@ -6,6 +6,7 @@
  * a day. If speech is not available, the reply still comes as text.
  */
 import "server-only";
+import { ThinkingLevel } from "@google/genai";
 import { and, desc, eq } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { aiActions } from "@/db/schema";
@@ -98,7 +99,8 @@ export async function voiceTurn(
           ],
         },
       ],
-      { temperature: 0, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 512 } },
+      // Writing down words needs almost no thought: a low level starts in about half a second.
+      { temperature: 0, maxOutputTokens: 512, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
       { timeoutMs: 30_000 },
     );
     const raw = (res.text ?? "").trim();
@@ -108,6 +110,12 @@ export async function voiceTurn(
       lang: m?.[1] ?? (loc === "uz-Cyrl" ? "uz" : loc),
     };
   })();
+
+  // The voice is chosen at once (its checks take a moment) and reads the
+  // language when it speaks: the app's language until the words are heard.
+  let lang: string = loc === "uz-Cyrl" ? "uz" : loc;
+  const voiceSoon = talkVoice(ctx, () => lang, input.voice, signal).catch(() => null);
+  void heardNow.then((h) => (lang = h.lang)).catch(() => {});
 
   // Sentences are spoken one after another, each sent as it is made.
   let speaker: TalkVoice | null = null;
@@ -177,7 +185,7 @@ export async function voiceTurn(
   // A card is waiting: a short "yes" or "no" answers it, without the AI.
   const waiting = input.conversationId ? await waitingCards(ctx, input.conversationId) : [];
   if (waiting.length) {
-    const { heard, lang } = await heardNow;
+    const { heard } = await heardNow;
     const decision = voiceDecision(heard);
     if (decision) {
       emit({ t: "heard", heard });
@@ -190,7 +198,7 @@ export async function voiceTurn(
         SAID[loc === "ru" ? "ru" : loc === "en" ? "en" : "uz"][
           outcome.status === "completed" ? "done" : outcome.status === "rejected" ? "no" : "failed"
         ];
-      speaker = await talkVoice(ctx, lang, input.voice, signal).catch(() => null);
+      speaker = await voiceSoon;
       speakOut(reply);
       await sent;
       emit({
@@ -212,10 +220,10 @@ export async function voiceTurn(
     }
   }
 
-  const ready = heardNow.then(async ({ heard, lang }) => {
+  const ready = heardNow.then(async ({ heard }) => {
     emit({ t: "heard", heard });
     if (!heard) return;
-    speaker = await talkVoice(ctx, lang, input.voice, signal);
+    speaker = await voiceSoon;
     flush();
   });
   ready.catch(() => {});

@@ -3,11 +3,8 @@ import { Download, Share, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { LogoSymbol } from "@/components/brand/logo";
+import { isStandalone, runInstall, useInstallPrompt } from "@/lib/install-prompt";
 
-type PromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: string }>;
-};
 const HIDE_KEY = "nn:install-hidden";
 
 /**
@@ -17,39 +14,31 @@ const HIDE_KEY = "nn:install-hidden";
  */
 export function InstallBanner() {
   const t = useTranslations("install");
-  const [show, setShow] = useState<"android" | "ios" | null>(null);
-  const [prompt, setPrompt] = useState<PromptEvent | null>(null);
+  const [ios, setIos] = useState(false);
+  const [hidden, setHidden] = useState(true);
+  const { prompt } = useInstallPrompt();
 
   useEffect(() => {
-    const standalone =
-      matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
     const phone = matchMedia("(max-width: 767px)").matches;
-    let hidden = false;
+    let away = false;
     try {
-      hidden = Number(localStorage.getItem(HIDE_KEY) ?? 0) > Date.now();
+      away = Number(localStorage.getItem(HIDE_KEY) ?? 0) > Date.now();
     } catch {
       /* storage unavailable */
     }
-    if (standalone || !phone || hidden) return;
+    if (isStandalone() || !phone || away) return;
     const ua = navigator.userAgent;
-    const ios = /iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua);
-    // iPhone: shown after a moment; Android: when the browser says it can install.
-    const timer = ios ? setTimeout(() => setShow("ios"), 4000) : undefined;
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setPrompt(e as PromptEvent);
-      setShow("android");
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-    };
+    // iPhone: shown after a moment; Android: once the browser offers to install.
+    const timer = setTimeout(() => {
+      setIos(/iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua));
+      setHidden(false);
+    }, 4000);
+    return () => clearTimeout(timer);
   }, []);
+  const show = hidden ? null : prompt ? "android" : ios ? "ios" : null;
 
   const close = () => {
-    setShow(null);
+    setHidden(true);
     try {
       localStorage.setItem(HIDE_KEY, String(Date.now() + 30 * 86_400_000));
     } catch {
@@ -78,9 +67,8 @@ export function InstallBanner() {
         <button
           type="button"
           onClick={async () => {
-            await prompt.prompt();
-            await prompt.userChoice.catch(() => null);
-            setShow(null);
+            await runInstall(prompt);
+            setHidden(true);
           }}
           className="bg-primary text-primary-foreground inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold"
         >

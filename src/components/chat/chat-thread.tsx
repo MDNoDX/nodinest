@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import {
   clearChatAction,
   deleteMessageAction,
+  reactAction,
   setBlockedAction,
 } from "@/app/actions/dm";
 import { Avatar } from "@/components/ui/avatar";
@@ -28,9 +29,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
-import type { DmGif, DmMessage, DmPerson } from "@/server/dm";
+import type { DmGif, DmMessage, DmPerson, DmReactions } from "@/server/dm";
 import { refreshUnreadChats } from "./chats-button";
 import { Composer, type Voice } from "./composer";
+import { EmojiGif } from "./emoji-gif";
 import { cancel, onSent, queue as queueOut, retry, usePending, type Pending } from "./outbox";
 import { Attachment, KindLabel, ReadMark, clock, dayLabel, seenText, useNow } from "./parts";
 
@@ -42,8 +44,14 @@ type View = {
   otherReadAt: string | null;
   messages: DmMessage[];
   more: boolean;
+  reactions?: DmReactions;
+  reactedAt?: string | null;
 };
 const NEAR = 140;
+/** The reactions offered at once (the smile opens every emoji). */
+const QUICK = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥"];
+/** How far a finger pulls a message to the left to answer it. */
+const SWIPE = 56;
 /** Seen this recently = online. */
 const ONLINE_MS = 2 * 60_000;
 const kindOf = (m: DmMessage) =>
@@ -81,6 +89,13 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   const [reply, setReply] = useState<DmMessage | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [seen, setSeen] = useState(initial.other.seen ?? null);
+  const [reacts, setReacts] = useState<DmReactions>(initial.reactions ?? {});
+  const reactedAt = useRef(initial.reactedAt ?? null);
+  // Swiping a message to answer it (phones): which one and how far.
+  const [swipe, setSwipe] = useState<{ id: string; dx: number } | null>(null);
+  const touchAt = useRef<{ id: string; x: number; y: number; on: boolean | null } | null>(null);
+  const lastTap = useRef<{ id: string; at: number } | null>(null);
+  const swipedAt = useRef(0);
   const now = useNow();
   const [clearing, setClearing] = useState(false);
   const [below, setBelow] = useState(0);
@@ -160,7 +175,8 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
       if (stop) return;
       if (document.visibilityState === "visible") {
         const after = lastRef.current ?? new Date(0).toISOString();
-        const r = await fetch(`/api/dm/${initial.id}?after=${encodeURIComponent(after)}`, {
+        const rat = reactedAt.current ? `&rat=${encodeURIComponent(reactedAt.current)}` : "";
+        const r = await fetch(`/api/dm/${initial.id}?after=${encodeURIComponent(after)}${rat}`, {
           cache: "no-store",
         }).catch(() => null);
         if (r?.status === 404) return;
@@ -170,9 +186,15 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
               otherReadAt: string | null;
               gone: string[];
               seen?: string | null;
+              reactions?: DmReactions;
+              reactedAt?: string;
             })
           : null;
         if (!stop && j) {
+          if (j.reactions && j.reactedAt) {
+            reactedAt.current = j.reactedAt;
+            setReacts(j.reactions);
+          }
           setReadAt(j.otherReadAt);
           setSeen(j.seen ?? null);
           const fresh = j.messages.filter((m) => m.senderId !== me);
@@ -264,6 +286,46 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
     setReply(null);
     return id;
   };
+  // My reaction: the same emoji again takes it back; shown at once, then saved.
+  const react = async (m: DmMessage, e: string) => {
+    const before = reacts;
+    const others = (reacts[m.id] ?? []).filter((r) => r.u !== me);
+    const had = (reacts[m.id] ?? []).find((r) => r.u === me)?.e;
+    const next = had === e ? null : e;
+    setReacts({ ...reacts, [m.id]: next ? [...others, { e: next, u: me }] : others });
+    setPicked(null);
+    const r = await reactAction(m.id, next);
+    if (!r.ok) {
+      setReacts(before);
+      errorToast(te, r.code);
+    }
+  };
+  // Phones: a finger pulling a message to the left answers it (like Telegram).
+  const touchStart = (m: DmMessage, e: React.TouchEvent) => {
+    if (!writable || m.deleted || e.touches.length !== 1) return;
+    touchAt.current = { id: m.id, x: e.touches[0].clientX, y: e.touches[0].clientY, on: null };
+  };
+  const touchMove = (e: React.TouchEvent) => {
+    const s0 = touchAt.current;
+    if (!s0) return;
+    const dx = e.touches[0].clientX - s0.x;
+    const dy = e.touches[0].clientY - s0.y;
+    // The first clear move decides: sideways pulls the message, up or down scrolls.
+    if (s0.on === null && Math.abs(dx) + Math.abs(dy) > 8)
+      s0.on = Math.abs(dx) > Math.abs(dy) * 1.4 && dx < 0;
+    if (s0.on) setSwipe({ id: s0.id, dx: Math.max(-SWIPE * 1.4, Math.min(0, dx)) });
+  };
+  const touchEnd = (m: DmMessage, at: number) => {
+    const pulled = swipe?.id === m.id && swipe.dx <= -SWIPE;
+    touchAt.current = null;
+    setSwipe(null);
+    if (pulled) {
+      swipedAt.current = at;
+      setReply(m);
+      navigator.vibrate?.(12);
+    }
+  };
+
   const sendText = (body: string) => queue([{ body, replyToId: replyId() }]);
   const sendFiles = (files: File[], caption: string) => {
     const to = replyId();
@@ -395,7 +457,8 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                 prev?.senderId === m.senderId &&
                 Date.parse(m.createdAt) - Date.parse(prev.createdAt) < 5 * 60_000;
               const q = m.reply;
-              const media = !m.body && (!!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime)));
+              const media =
+                !m.body && (!!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime)));
               return (
                 <Fragment key={m.id}>
                   {newDay && (
@@ -407,13 +470,36 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                   )}
                   <div
                     id={`m-${m.id}`}
+                    onTouchStart={(e) => touchStart(m, e)}
+                    onTouchMove={touchMove}
+                    onTouchEnd={(e) => touchEnd(m, e.timeStamp)}
+                    onTouchCancel={(e) => touchEnd(m, e.timeStamp)}
                     className={cn(
-                      "group flex flex-col",
+                      "group relative flex flex-col",
                       mine ? "items-end" : "items-start",
                       !sameRun && "mt-2",
                     )}
                   >
-                    <div className="flex max-w-[85%] items-end gap-1 sm:max-w-[75%]">
+                    {swipe?.id === m.id && (
+                      <span
+                        aria-hidden
+                        className="text-primary bg-primary-soft absolute top-1/2 right-1 grid size-8 -translate-y-1/2 place-items-center rounded-full transition-transform"
+                        style={{
+                          transform: `translateY(-50%) scale(${Math.min(1, -swipe.dx / SWIPE)})`,
+                        }}
+                      >
+                        <CornerUpLeft className="size-4" />
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        "flex max-w-[85%] items-end gap-1 sm:max-w-[75%]",
+                        swipe?.id !== m.id && "transition-transform duration-200",
+                      )}
+                      style={
+                        swipe?.id === m.id ? { transform: `translateX(${swipe.dx}px)` } : undefined
+                      }
+                    >
                       {!touch && !m.deleted && writable && (
                         <span
                           className={cn(
@@ -434,11 +520,23 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                       <div
                         role="button"
                         tabIndex={0}
-                        onClick={() => setPicked((p) => (p === m.id ? null : m.id))}
+                        onClick={(e) => {
+                          // A second tap soon after on the same message: 👍 (like a double tap in Telegram).
+                          const at = e.timeStamp;
+                          if (at - swipedAt.current < 400) return; // the end of a swipe, not a tap
+                          const tap = lastTap.current;
+                          lastTap.current = { id: m.id, at };
+                          if (tap?.id === m.id && at - tap.at < 320 && !m.deleted) {
+                            lastTap.current = null;
+                            void react(m, QUICK[0]);
+                            return;
+                          }
+                          setPicked((p) => (p === m.id ? null : m.id));
+                        }}
                         onKeyDown={(e) => e.key === "Enter" && setPicked(m.id)}
                         className={cn(
-                          "min-w-0 cursor-default rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm outline-none",
-                          media ? "p-1" : "px-3 py-2",
+                          "relative min-w-0 cursor-default rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm outline-none select-none sm:select-text",
+                          media ? "p-0.5" : "px-3 py-2",
                           mine
                             ? "bg-primary-soft text-foreground rounded-br-md"
                             : "bg-surface border-border rounded-bl-md border",
@@ -482,8 +580,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                         )}
                         <span
                           className={cn(
-                            "text-muted float-right mt-1 ml-3 inline-flex translate-y-1 items-center gap-1 text-[11px] tabular-nums select-none",
-                            media && "mr-2 mb-1",
+                            "inline-flex items-center gap-1 text-[11px] tabular-nums select-none",
+                            // On a picture the time sits on it, like Telegram (no empty strip below).
+                            media
+                              ? "absolute right-2 bottom-2 rounded-full bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm"
+                              : "text-muted float-right mt-1 ml-3 translate-y-1",
                           )}
                         >
                           {clock(m.createdAt, locale)}
@@ -493,6 +594,29 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                         </span>
                       </div>
                     </div>
+                    {(reacts[m.id]?.length ?? 0) > 0 && (
+                      <Reactions list={reacts[m.id]} me={me} onPick={(e) => void react(m, e)} />
+                    )}
+                    {picked === m.id && !m.deleted && writable && (
+                      <div className="animate-scale-in bg-surface border-border mt-1 flex items-center gap-0.5 rounded-full border p-1 shadow-lg">
+                        {QUICK.map((e) => (
+                          <button
+                            key={e}
+                            type="button"
+                            onClick={() => void react(m, e)}
+                            aria-label={e}
+                            className={cn(
+                              "grid size-9 place-items-center rounded-full text-xl transition-transform hover:scale-125 active:scale-90",
+                              reacts[m.id]?.some((r) => r.u === me && r.e === e) &&
+                                "bg-primary-soft",
+                            )}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                        <EmojiGif onEmoji={(e) => void react(m, e)} className="size-9" />
+                      </div>
+                    )}
                     {picked === m.id && !m.deleted && (
                       <div className="animate-fade-in mt-1 flex gap-1">
                         {writable && (
@@ -745,3 +869,41 @@ function linkify(s: string) {
 }
 
 export type { View as ChatView };
+
+/** Reactions under a message: one pill per emoji with its count; mine is marked and takes it back. */
+function Reactions({
+  list,
+  me,
+  onPick,
+}: {
+  list: { e: string; u: string }[];
+  me: string;
+  onPick: (e: string) => void;
+}) {
+  const by = new Map<string, { n: number; mine: boolean }>();
+  for (const r of list) {
+    const x = by.get(r.e) ?? { n: 0, mine: false };
+    by.set(r.e, { n: x.n + 1, mine: x.mine || r.u === me });
+  }
+  return (
+    <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
+      {[...by].map(([e, x]) => (
+        <button
+          key={e}
+          type="button"
+          onClick={() => onPick(e)}
+          aria-pressed={x.mine}
+          className={cn(
+            "animate-scale-in inline-flex h-6 items-center gap-1 rounded-full border px-1.5 text-sm shadow-sm transition-colors",
+            x.mine
+              ? "border-primary/50 bg-primary-soft text-primary"
+              : "border-border bg-surface text-foreground",
+          )}
+        >
+          <span className="leading-none">{e}</span>
+          {x.n > 1 && <span className="text-xs font-semibold tabular-nums">{x.n}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}

@@ -194,4 +194,38 @@ describe("clearing, GIFs, voices and presence", () => {
     await dm.setShowOnline(b, false);
     expect((await dm.threadView(a, id)).other.seen).toBeNull();
   });
+
+  it("reactions: one per person, seen by both, changed or taken back; others cannot", async () => {
+    const dm = await import("@/server/dm");
+    const a = await person();
+    const b = await person();
+    const c = await person();
+    const id = await dm.openThread(a, b.username);
+    const m = await dm.sendMessage(a, id, { body: "Zör kitob ekan" });
+    await dm.react(b, m.id, "👍");
+    await dm.react(a, m.id, "❤️");
+    await dm.react(b, m.id, "🔥"); // changes b's, not a second one
+    const view = await dm.threadView(a, id);
+    expect(view.reactions[m.id]).toEqual([
+      { e: "❤️", u: a.userId },
+      { e: "🔥", u: b.userId },
+    ]);
+    expect(view.reactedAt).not.toBeNull();
+    // The poll brings them only when they changed since what the page knows.
+    const quiet = await dm.messagesAround(a, id, {
+      after: new Date().toISOString(),
+      reactedAt: view.reactedAt!,
+    });
+    expect(quiet.reactions).toBeUndefined();
+    await dm.react(b, m.id, null);
+    const fresh = await dm.messagesAround(a, id, {
+      after: new Date().toISOString(),
+      reactedAt: view.reactedAt!,
+    });
+    expect(fresh.reactions?.[m.id]).toEqual([{ e: "❤️", u: a.userId }]);
+    // Not a member: nothing to react to. Not an emoji: refused.
+    await expect(dm.react(c, m.id, "👍")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(dm.react(a, m.id, "hello")).rejects.toBeTruthy();
+    await expect(dm.react(a, m.id, "1")).rejects.toBeTruthy();
+  });
 });

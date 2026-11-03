@@ -329,7 +329,11 @@ export function Composer({
                   : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
               )}
             >
-              {mode === "hold" ? <Square className="size-4 fill-current" /> : <Mic className="size-5" />}
+              {mode === "hold" ? (
+                <Square className="size-4 fill-current" />
+              ) : (
+                <Mic className="size-5" />
+              )}
             </button>
           </span>
         )}
@@ -390,10 +394,7 @@ function AttachSheet({
     n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
   return (
     <Dialog open={!!files} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        title={t("sendFiles", { n: files?.length ?? 0 })}
-        closeLabel={tc("close")}
-      >
+      <DialogContent title={t("sendFiles", { n: files?.length ?? 0 })} closeLabel={tc("close")}>
         <div
           className={cn(
             "grid max-h-[50dvh] gap-2 overflow-y-auto",

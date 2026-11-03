@@ -11,6 +11,7 @@ import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
   dmMessages,
+  dmReactions,
   dmThreads,
   files,
   follows,
@@ -53,6 +54,8 @@ export type DmMessage = {
   } | null;
   reply: { id: string; senderId: string; text: string | null; kind: Kind } | null;
 };
+/** Reactions by message: who put which emoji. */
+export type DmReactions = Record<string, { e: string; u: string }[]>;
 export type Kind = "text" | "photo" | "voice" | "video" | "file" | "item" | "gif" | "deleted";
 export type DmThreadRow = {
   id: string;
@@ -391,22 +394,83 @@ export async function threadView(ctx: AppContext, threadId: string) {
     otherReadAt: t.otherRead?.toISOString() ?? null,
     messages: (await withReplies(ctx, t.id, rows.reverse())) as DmMessage[],
     more: rows.length === PAGE,
+    reactions: await reactionsOf(ctx, t),
+    reactedAt: t.reactedAt?.toISOString() ?? null,
   };
+}
+
+/** Every reaction in what I still see of a conversation (small: one per person per message). */
+async function reactionsOf(ctx: AppContext, t: { id: string; cleared: Date }) {
+  const rows = await withUser(db, ctx, (tx) =>
+    tx
+      .select({ m: dmReactions.messageId, e: dmReactions.emoji, u: dmReactions.userId })
+      .from(dmReactions)
+      .innerJoin(dmMessages, eq(dmMessages.id, dmReactions.messageId))
+      .where(and(eq(dmReactions.threadId, t.id), gt(dmMessages.createdAt, t.cleared)))
+      .orderBy(dmReactions.createdAt),
+  );
+  const out: DmReactions = {};
+  for (const r of rows) (out[r.m] ??= []).push({ e: r.e, u: r.u });
+  return out;
+}
+
+/** One emoji (a grapheme of pictographs, maybe with a skin tone or a joiner). */
+const emojiSchema = z
+  .string()
+  .max(16)
+  .regex(/^(?=.*\p{Extended_Pictographic})(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f)+$/u);
+
+/** My reaction on a message: an emoji, or null to take it back. One per person. */
+export async function react(ctx: AppContext, messageId: string, emoji: string | null) {
+  const id = uuid.parse(messageId);
+  const e = emoji === null ? null : emojiSchema.parse(emoji);
+  await withUser(db, ctx, async (tx) => {
+    const [m] = await tx
+      .select({ threadId: dmMessages.threadId })
+      .from(dmMessages)
+      .where(and(eq(dmMessages.id, id), isNull(dmMessages.deletedAt)));
+    if (!m) throw new AppError("NOT_FOUND");
+    if (e)
+      await tx
+        .insert(dmReactions)
+        .values({ messageId: id, threadId: m.threadId, userId: ctx.userId, emoji: e })
+        .onConflictDoUpdate({
+          target: [dmReactions.messageId, dmReactions.userId],
+          set: { emoji: e, createdAt: new Date() },
+        });
+    else
+      await tx
+        .delete(dmReactions)
+        .where(and(eq(dmReactions.messageId, id), eq(dmReactions.userId, ctx.userId)));
+    await tx.update(dmThreads).set({ reactedAt: new Date() }).where(eq(dmThreads.id, m.threadId));
+  });
 }
 
 /** Older messages (scrolling up) or newer ones (the open conversation asking every few seconds). */
 export async function messagesAround(
   ctx: AppContext,
   threadId: string,
-  o: { before?: string; after?: string },
+  o: { before?: string; after?: string; reactedAt?: string },
 ) {
   const t = await myThread(ctx, threadId);
+  // Reactions come again only when someone changed one since the page last heard.
+  const known = o.reactedAt ? Date.parse(o.reactedAt) : 0;
+  const fresh = !!t.reactedAt && (!known || t.reactedAt.getTime() > known);
+  const reacts = fresh
+    ? { reactions: await reactionsOf(ctx, t), reactedAt: t.reactedAt!.toISOString() }
+    : {};
   const before = o.before ? z.coerce.date().parse(o.before) : null;
   const after = o.after ? z.coerce.date().parse(o.after) : null;
   // Nothing new: one cheap answer for the poll.
   const seen = (await people([t.otherId], ctx.userId)).get(t.otherId)?.seen ?? null;
   if (after && !before && t.lastAt <= after)
-    return { messages: [], otherReadAt: t.otherRead?.toISOString() ?? null, more: false, seen };
+    return {
+      messages: [],
+      otherReadAt: t.otherRead?.toISOString() ?? null,
+      more: false,
+      seen,
+      ...reacts,
+    };
   const rows = await withUser(db, ctx, (tx) =>
     tx
       .select()
@@ -429,6 +493,7 @@ export async function messagesAround(
     otherReadAt: t.otherRead?.toISOString() ?? null,
     more: !!before && rows.length === PAGE,
     seen,
+    ...reacts,
   };
 }
 

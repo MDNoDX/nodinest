@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   clearChat,
   deleteMessage,
+  react,
   openThread,
   searchMessages,
   sendMessage,
@@ -44,6 +45,10 @@ export async function shareToAction(username: string, resourceId: string, body?:
 
 export async function deleteMessageAction(messageId: string) {
   return run(async ({ ctx }) => deleteMessage(ctx, messageId));
+}
+
+export async function reactAction(messageId: string, emoji: string | null) {
+  return run(async ({ ctx }) => react(ctx, messageId, emoji));
 }
 
 export async function setBlockedAction(userId: string, on: boolean) {

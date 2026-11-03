@@ -1539,6 +1539,8 @@ export const dmThreads = nodinest.table(
     aClearedAt: ts("a_cleared_at"),
     bClearedAt: ts("b_cleared_at"),
     lastAt: ts("last_at").notNull().defaultNow(),
+    /** The last time anyone reacted (or took a reaction back): the poll's cue. */
+    reactedAt: ts("reacted_at"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -1573,6 +1575,29 @@ export const dmMessages = nodinest.table(
     index("dm_messages_thread_idx").on(t.threadId, t.createdAt),
     index("dm_messages_file_idx").on(t.fileId),
     check("dm_messages_body_len", sql`char_length(${t.body}) <= 4000`),
+  ],
+);
+
+/** One reaction per person per message (an emoji), like Telegram's. */
+export const dmReactions = nodinest.table(
+  "dm_reactions",
+  {
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => dmMessages.id, { onDelete: "cascade" }),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => dmThreads.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.userId] }),
+    index("dm_reactions_thread_idx").on(t.threadId),
+    check("dm_reactions_emoji_len", sql`char_length(${t.emoji}) between 1 and 16`),
   ],
 );
 

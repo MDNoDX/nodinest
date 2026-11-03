@@ -4,7 +4,7 @@
  * conversation persistence and an audit trail of every action in ai_actions.
  */
 import "server-only";
-import type { Content, FunctionCall, Part } from "@google/genai";
+import { ThinkingLevel, type Content, type FunctionCall, type Part } from "@google/genai";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { aiActions, aiConversations, aiMessages } from "@/db/schema";
@@ -509,8 +509,9 @@ export async function runAssistant(
       tools,
       temperature: 0.7,
       maxOutputTokens: 4096,
-      // A little thought is enough for talk; speed matters more here.
-      thinkingConfig: { thinkingBudget: 512 },
+      // A little thought is enough for talk; speed matters more here (spoken: the
+      // lowest level the models take, which starts about twice as fast).
+      thinkingConfig: input.spoken ? { thinkingLevel: ThinkingLevel.LOW } : { thinkingBudget: 512 },
     };
     const res = input.onText
       ? await generateLive(contents, config, input.onText)

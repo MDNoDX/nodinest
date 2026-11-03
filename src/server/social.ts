@@ -661,10 +661,15 @@ export type MediaHit = {
  * poster's name, in either Uzbek alphabet. A private profile's posts are found
  * only by its accepted followers. With no words but a kind: the newest of it.
  */
-export async function searchMedia(ctx: AppContext, q: string, kind?: MediaKind | null) {
+export async function searchMedia(
+  ctx: AppContext,
+  q: string,
+  kind?: MediaKind | MediaKind[] | null,
+) {
   const k = normalizeText(q).replace(/^@/, "").slice(0, 80);
-  if (!k && !kind) return [];
-  const types = kind ? [...MEDIA_KINDS[kind]] : null;
+  const kinds = !kind ? [] : Array.isArray(kind) ? kind : [kind];
+  if (!k && !kinds.length) return [];
+  const types = kinds.length ? kinds.flatMap((x) => [...MEDIA_KINDS[x]]) : null;
   const esc = (s: string) => `%${s.replace(/[%_\\]/g, "\\$&")}%`;
   const like = esc(k);
   const other = esc(normalizeText(otherScript(k)));
@@ -692,7 +697,7 @@ export async function searchMedia(ctx: AppContext, q: string, kind?: MediaKind |
       ${match}
     order by ${k ? sql`(nodinest.nn_norm(r.title) like ${`${k.replace(/[%_\\]/g, "\\$&")}%`}) desc,` : sql``}
       lr.updated_at desc
-    limit ${kind ? 24 : 8}`);
+    limit ${kinds.length ? 24 : 8}`);
 }
 
 /** Takes a public source to my library: only its card, never files or text. */

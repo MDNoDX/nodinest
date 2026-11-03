@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { NativeBridge } from "@/components/pwa/native-bridge";
 import { Pwa } from "@/components/pwa/pwa";
+import { INSTALL_SCRIPT } from "@/lib/install-script";
 import { SiteAnalytics } from "@/components/pwa/analytics";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
@@ -59,6 +60,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
       className={`${inter.variable} ${brand.variable} ${serif.variable}`}
     >
+      <head>
+        {/* The browser's install offer comes early, before React: keep it for later pages. */}
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">
         <ThemeProvider>
           <NextIntlClientProvider>

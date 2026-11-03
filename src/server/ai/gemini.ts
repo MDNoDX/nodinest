@@ -15,7 +15,9 @@ import {
   type SafetySetting,
   type Part,
 } from "@google/genai";
+import { inArray } from "drizzle-orm";
 import { db } from "@/db";
+import { aiCache } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 import { getAiSettings, saveAiSettings } from "../settings";
 import { openRouterGenerate } from "./openrouter";
@@ -50,6 +52,38 @@ function gemini() {
 
 /** Per-instance memory of models that are out of quota → no wasted round-trips. */
 const cooldown = new Map<string, number>();
+let sharedAt = 0;
+
+/**
+ * The quota belongs to the key, not to one server: a model one instance found
+ * spent is skipped by the others too (kept in ai_cache, read at most every 30 s).
+ * A fresh instance would otherwise try each spent speech model in turn first.
+ */
+async function loadCooldowns(models: string[]) {
+  if (Date.now() - sharedAt < 30_000) return;
+  sharedAt = Date.now();
+  const rows = await db
+    .select({ key: aiCache.key, until: aiCache.expiresAt })
+    .from(aiCache)
+    .where(inArray(aiCache.key, models.map((m) => `cooldown:${m}`)))
+    .catch(() => []);
+  for (const r of rows) {
+    const model = r.key.slice("cooldown:".length);
+    const until = new Date(r.until).getTime();
+    if (until > (cooldown.get(model) ?? 0)) cooldown.set(model, until);
+  }
+}
+
+/** This model is out of quota until `until` (here and, through the cache, everywhere). */
+function rest(model: string, until: number) {
+  cooldown.set(model, until);
+  const expiresAt = new Date(until);
+  void db
+    .insert(aiCache)
+    .values({ key: `cooldown:${model}`, value: {}, expiresAt })
+    .onConflictDoUpdate({ target: aiCache.key, set: { expiresAt } })
+    .catch(() => {});
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -81,6 +115,7 @@ export async function generate(
   let sawQuota = false;
   const now = Date.now();
   const models = aiModels();
+  await loadCooldowns(models);
   // Skip models that recently hit their quota (unless all of them did).
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   const waited = new Set<string>();
@@ -106,7 +141,7 @@ export async function generate(
       }
       if (err instanceof ApiError && err.status === 429) {
         sawQuota = true;
-        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+        rest(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
         quotaDelay = Math.max(quotaDelay, retryDelayFrom(err) ?? 0);
         continue;
       }
@@ -185,6 +220,15 @@ const SAFETY: SafetySetting[] = [
 ];
 
 /** One model with bounded exponential backoff for transient failures. */
+/**
+ * Gemini 2.x models take a thinking budget, not a level: a level asked for
+ * (speed in the live talk) becomes the smallest budget they accept there.
+ */
+function fitThinking(model: string, config: GenerateContentConfig): GenerateContentConfig {
+  if (!config.thinkingConfig?.thinkingLevel || !/gemini-2\./.test(model)) return config;
+  return { ...config, thinkingConfig: { thinkingBudget: 512 } };
+}
+
 async function generateWith(
   model: string,
   contents: Content[],
@@ -201,7 +245,7 @@ async function generateWith(
         contents,
         config: {
           safetySettings: SAFETY,
-          ...config,
+          ...fitThinking(model, config),
           abortSignal: controller.signal,
           httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
         },
@@ -261,6 +305,7 @@ export async function generateLive(
   const timeoutMs = opts.timeoutMs ?? 30_000;
   const now = Date.now();
   const models = aiModels();
+  await loadCooldowns(models);
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   const order = ready.length ? ready : models;
   const parts: Part[] = [];
@@ -274,7 +319,7 @@ export async function generateLive(
         contents,
         config: {
           safetySettings: SAFETY,
-          ...config,
+          ...fitThinking(model, config),
           abortSignal: signal,
           httpOptions: { timeout: timeoutMs, retryOptions: { attempts: 1 } },
         },
@@ -286,47 +331,45 @@ export async function generateLive(
         return { it, first: first.value, model };
       });
   try {
-    // The model sometimes takes 10-20 s to begin. After HEDGE_MS without a
-    // word, the next model is asked too and the first to answer is kept.
-    const a = new AbortController();
-    const b = new AbortController();
-    controller.signal.addEventListener("abort", () => (a.abort(), b.abort()));
-    const lead = open(order[0], a.signal);
-    const second = order[1];
-    let hedge: ReturnType<typeof setTimeout> | undefined;
+    // The model sometimes takes 10-20 s to begin, while a second request to
+    // the same model usually starts at once. So after HEDGE_MS without a word
+    // the same model is asked again, after twice that the next model too; the
+    // first to answer is kept and the others are stopped. A failure starts
+    // the next try at once.
+    const tries = [order[0], order[0], order[1]].filter((m): m is string => !!m);
+    const stops = tries.map(() => new AbortController());
+    controller.signal.addEventListener("abort", () => stops.forEach((c) => c.abort()));
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let winnerAt = -1;
     const winner = await new Promise<Awaited<ReturnType<typeof open>>>((resolve, reject) => {
       let settled = false;
-      let hedged = false;
+      let started = 0;
       let failed = 0;
-      const win = (w: Awaited<ReturnType<typeof open>>) => {
-        if (settled) return;
-        settled = true;
-        resolve(w);
+      const next = () => {
+        if (settled || started >= tries.length) return;
+        const i = started++;
+        open(tries[i], stops[i].signal).then(
+          (w) => {
+            if (settled) return stops[i].abort();
+            settled = true;
+            winnerAt = i;
+            resolve(w);
+          },
+          (e) => {
+            failed++;
+            if (failed >= tries.length && !settled) {
+              settled = true;
+              reject(e);
+            } else if (failed >= started) next();
+          },
+        );
       };
-      const lost = (e: unknown) => {
-        if (++failed >= (hedged ? 2 : 1) && !settled) {
-          settled = true;
-          reject(e);
-        }
-      };
-      const start = () => {
-        if (settled || hedged || !second) return;
-        hedged = true;
-        open(second, b.signal).then(win, lost);
-      };
-      lead.then(win, (e) => {
-        // The first one failed: the second is asked at once instead of waiting.
-        if (second && !hedged && !settled) {
-          hedged = true;
-          failed++;
-          open(second, b.signal).then(win, lost);
-        } else lost(e);
-      });
-      hedge = setTimeout(start, HEDGE_MS);
+      next();
+      timers.push(setTimeout(next, HEDGE_MS), setTimeout(next, HEDGE_MS * 2));
     });
-    clearTimeout(hedge);
-    // The slower one is not needed any more.
-    (winner.model === order[0] ? b : a).abort();
+    timers.forEach(clearTimeout);
+    // The slower ones are not needed any more.
+    stops.forEach((c, i) => i !== winnerAt && c.abort());
     if (process.env.NODE_ENV !== "production")
       console.info(`[ai] ${winner.model} began in ${Date.now() - now} ms`);
     const take = (chunk: GenerateContentResponse) => {
@@ -367,6 +410,7 @@ export async function* generateStream(
   let sawQuota = false;
   const now = Date.now();
   const models = aiModels();
+  await loadCooldowns(models);
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   // Each model gets a second try after a short pause when it is overloaded (503).
   const attempts = (ready.length ? ready : models).flatMap((m) => [m, m]);
@@ -399,7 +443,7 @@ export async function* generateStream(
       if (started) throw err; // mid-answer: nothing sensible to retry
       if (err instanceof ApiError && err.status === 429) {
         sawQuota = true;
-        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+        rest(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
         continue;
       }
       if (
@@ -423,6 +467,14 @@ export async function* generateStream(
  * model, so all of them are used in turn. 3.8 models take one text part per
  * speaker ("speech metadata"); older ones a "Speaker: line" transcript.
  */
+/** Is any speech model left today? (The live talk then answers in text at once instead of waiting.) */
+export async function speechLeft() {
+  const models = ttsModels();
+  await loadCooldowns(models);
+  const now = Date.now();
+  return models.some((m) => (cooldown.get(m) ?? 0) <= now);
+}
+
 function ttsModels(): string[] {
   return (
     process.env.GEMINI_TTS_MODELS ??
@@ -498,6 +550,7 @@ export async function speakLive(
 ): Promise<boolean> {
   const now = Date.now();
   const models = ttsModels();
+  await loadCooldowns(models);
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   for (const model of ready.length ? ready : models) {
     let sent = false;
@@ -528,7 +581,7 @@ export async function speakLive(
     } catch (err) {
       if (sent || opts.signal?.aborted) return sent;
       if (err instanceof ApiError && err.status === 429)
-        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+        rest(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
     }
   }
   return false;
@@ -594,6 +647,7 @@ export async function speak(
   let sawQuota = false;
   const now = Date.now();
   const models = ttsModels();
+  await loadCooldowns(models);
   const ready = models.filter((m) => (cooldown.get(m) ?? 0) <= now);
   const order = ready.length ? ready : models;
   for (let k = 0; k < order.length; k++) {
@@ -616,7 +670,7 @@ export async function speak(
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         sawQuota = true;
-        cooldown.set(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
+        rest(model, Date.now() + Math.max(retryDelayFrom(err) ?? 0, 5 * 60 * 1000));
         continue;
       }
       if (

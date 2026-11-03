@@ -12,7 +12,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const q = req.nextUrl.searchParams;
     const after = q.get("after") ?? undefined;
-    const r = await messagesAround(ctx, id, { after, before: q.get("before") ?? undefined });
+    const r = await messagesAround(ctx, id, {
+      after,
+      before: q.get("before") ?? undefined,
+      reactedAt: q.get("rat") ?? undefined,
+    });
     const gone = after ? await deletedSince(ctx, id, after) : [];
     return json({ ...r, gone });
   } catch (err) {

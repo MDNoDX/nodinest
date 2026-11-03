@@ -6,30 +6,52 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { DmGif } from "@/server/dm";
 
-/** Emojis by kind, the most used first (no library: a few hundred cover a chat). */
+/** Emojis by kind, the most used first (no library: about a thousand cover a chat). */
 const EMOJI: [string, string][] = [
   [
     "smileys",
-    "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🤫 🤥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕",
+    "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 🥹 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 🙂‍↕️ 😏 😒 🙂‍↔️ 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😮‍💨 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🫣 🤗 🫡 🤔 🫢 🤭 🤫 🤥 😶 😶‍🌫️ 😐 😑 😬 🫨 🫠 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 😵‍💫 🫥 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾 🙈 🙉 🙊",
   ],
   [
     "gestures",
-    "👍 👎 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤝 🙏 👏 🙌 🫶 👐 🤲 💪 ✍️ 💅 🤳 🫡 🙇 🙋 🙆 🙅 🤷 🤦",
+    "👍 👎 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 🫵 🫱 🫲 🫸 🫷 🫳 🫴 👈 👉 👆 🖕 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 🤝 🙏 👏 🙌 🫶 👐 🤲 ✊ 👊 🤛 🤜 💪 🦾 ✍️ 💅 🤳 🙇 🙋 🙆 🙅 🤷 🤦 💁 🙎 🙍 🧏 👀 👁️ 👄 🫦 🧠 🫀 🦷 👶 🧒 👦 👧 🧑 👨 👩 🧔 👴 👵 🧕 👳 👲 🤵 👰 🤰 🫄 👼 🧑‍🎓 🧑‍🏫 🧑‍💻 🧑‍⚕️ 🧑‍🍳 🧑‍🔧 🧑‍🌾 👮 💂 🥷 👷 🫅 🤴 👸 🦸 🦹 🧙 🧚 🧞 👫 👪 💑",
   ],
   [
     "hearts",
-    "❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 🔥 ✨ ⭐ 🌟 💫 💯 ✅ ❌ ❗ ❓ 💤 💬 🎉 🎊 🎁 🏆 🥇",
+    "❤️ 🧡 💛 💚 💙 🩵 💜 🤎 🖤 🩶 🤍 🩷 ❤️‍🔥 ❤️‍🩹 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 💌 💋 🔥 ✨ ⭐ 🌟 💫 ⚡ 💥 💢 💦 💨 🕳️ 💬 🗨️ 💭 💤 💯 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ✖️ ➗ ❗ ❓ ‼️ ⁉️ ⚠️ 🚫 ⛔ 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 🔸 🔹 ▶️ ⏸️ ⏹️ ⏺️ ⏭️ ⏮️ 🔁 🔂 🔀 🔼 🔽 ⬆️ ⬇️ ⬅️ ➡️ ↩️ ↪️ 🆗 🆕 🆒 🆓 🔝 ♻️ ☪️ ☮️ ☯️ ♾️ 🔞 📵",
   ],
   [
     "study",
-    "📚 📖 📕 📗 📘 📙 📓 📒 📝 ✏️ 🖊️ 🖋️ 📌 📎 🔖 🗂️ 📅 ⏰ ⏳ 🧠 💡 🎓 🏫 🧪 🔬 🧮 🌍 🗺️ 🕌 🕋 📿 🤲",
+    "📚 📖 📕 📗 📘 📙 📓 📔 📒 📃 📄 📑 🧾 📰 🗞️ 📝 ✏️ ✒️ 🖊️ 🖋️ 🖍️ 📏 📐 📌 📍 📎 🖇️ 🔖 🏷️ 🗂️ 📁 📂 🗃️ 🗄️ 📅 📆 🗓️ ⏰ ⏱️ ⏲️ ⌛ ⏳ 🧠 💡 🔦 🕯️ 🎓 🏫 🧪 🧫 🧬 🔬 🔭 🧮 🌍 🌎 🌏 🗺️ 🧭 🕌 🕋 📿 🤲 📜 🪶 🔍 🔎 🔐 🔏 🖥️ 🖨️ 🗒️ 📊 📈 📉 💼 🎒",
   ],
   [
     "nature",
-    "🌸 🌹 🌷 🌻 🌼 🌱 🌿 🍀 🍁 🍂 🌳 🌲 🌴 🌵 🌊 🌙 🌞 ⛅ 🌧️ ❄️ 🌈 🐱 🐶 🐦 🦋 🐝 🐢 🦁 🐎",
+    "🌸 💮 🏵️ 🌹 🥀 🌺 🌷 🪷 🌻 🌼 🌱 🪴 🌿 ☘️ 🍀 🍁 🍂 🍃 🪹 🪺 🌳 🌲 🌴 🌵 🌾 🍄 🪨 🌊 💧 🌙 🌛 🌜 🌝 🌚 🌕 🌖 🌗 🌘 🌑 🌒 🌓 🌔 🌞 ☀️ 🌤️ ⛅ 🌥️ ☁️ 🌦️ 🌧️ ⛈️ 🌩️ 🌨️ ❄️ ☃️ ⛄ 🌬️ 🌪️ 🌫️ 🌈 ☔ 🔥 🌋 🏔️ ⛰️ 🏕️ 🏖️ 🏜️ 🏝️",
   ],
-  ["food", "☕ 🍵 🥛 🍞 🥐 🧀 🍳 🥗 🍲 🍜 🍕 🍔 🍟 🌯 🍉 🍇 🍎 🍐 🍊 🍌 🍒 🍓 🥝 🍯 🍰 🎂 🍫 🍬"],
-  ["things", "📱 💻 ⌨️ 🖥️ 🎧 🎤 🎬 📷 📸 🎵 🎶 🎮 ⚽ 🏀 🏃 🚶 🚗 ✈️ 🏠 🕰️ 💰 🔑 🔒 🔔 📢 🎯 🧩 🪄"],
+  [
+    "animals",
+    "🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐻‍❄️ 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🐤 🐣 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🪱 🐛 🦋 🐌 🐞 🐜 🪲 🕷️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🐆 🦓 🦍 🦧 🐘 🦛 🦏 🐪 🐫 🦒 🦘 🦬 🐃 🐂 🐄 🐎 🐖 🐏 🐑 🦙 🐐 🦌 🐕 🐩 🐈 🐈‍⬛ 🪶 🐓 🦃 🦚 🦜 🦢 🕊️ 🐇 🦝 🦨 🦡 🦫 🦦 🦥 🐁 🐀 🐿️ 🦔 🐾 🐉 🐲",
+  ],
+  [
+    "food",
+    "☕ 🍵 🫖 🧃 🥛 🧋 🥤 🍶 🍞 🥐 🥖 🫓 🥨 🥯 🧇 🥞 🧀 🍳 🥚 🥓 🥩 🍗 🍖 🌭 🍔 🍟 🍕 🫔 🌮 🌯 🥙 🧆 🥗 🥘 🫕 🍲 🍜 🍝 🍛 🍣 🍱 🥟 🍤 🍙 🍚 🍘 🥮 🍢 🍡 🍧 🍨 🍦 🥧 🧁 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🌰 🥜 🍯 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🍆 🥑 🥦 🥬 🥒 🌶️ 🫑 🌽 🥕 🫒 🧄 🧅 🥔 🍠 🍎 🍏 🍐 🍊 🍋 🍌 🍽️ 🍴 🥄 🧂",
+  ],
+  [
+    "travel",
+    "🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🛵 🏍️ 🚲 🛴 🛹 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 💺 🚁 🚀 🛸 🛰️ ⛵ 🚤 🛥️ 🛳️ ⛴️ 🚢 ⚓ 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ 🏠 🏡 🏘️ 🏚️ 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏩 💒 🏛️ ⛪ 🕍 🛕 🕌 🕋 ⛩️ 🌁 🌃 🏙️ 🌄 🌅 🌆 🌇 🌉 🌌 🎆 🎇 🗾 🏞️ 🛣️ 🛤️ ⛽ 🚥 🚦 🚧 🧳",
+  ],
+  [
+    "activities",
+    "⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛷 ⛸️ 🥌 🎿 ⛷️ 🏂 🏋️ 🤼 🤸 ⛹️ 🤺 🤾 🏌️ 🏇 🧘 🏄 🏊 🤽 🚣 🧗 🚵 🚴 🏃 🚶 🏆 🥇 🥈 🥉 🏅 🎖️ 🏵️ 🎗️ 🎫 🎟️ 🎪 🤹 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🪘 🎷 🎺 🪗 🎸 🪕 🎻 🎲 ♟️ 🎯 🎳 🎮 🎰 🧩 🎉 🎊 🎈 🎁 🎀 🪅 🪄",
+  ],
+  [
+    "things",
+    "📱 📲 💻 ⌨️ 🖥️ 🖱️ 💽 💾 💿 📀 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ 🕰️ ⌚ 📡 🔋 🪫 🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 💎 ⚖️ 🪜 🧰 🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪚 🔩 ⚙️ 🧱 ⛓️ 🧲 🔫 💣 🧨 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ 🏺 🔮 📿 🧿 💈 ⚗️ 🔭 🩺 💊 💉 🩹 🧬 🦠 🧹 🧺 🧻 🚽 🚰 🚿 🛁 🧼 🪥 🪒 🧽 🪣 🧴 🛎️ 🔑 🗝️ 🚪 🪑 🛋️ 🛏️ 🧸 🪆 🖼️ 🪞 🪟 🛍️ 🛒 🎁 ✉️ 📩 📨 📧 💌 📥 📤 📦 📪 📫 📬 📭 📮 🔔 🔕 📣 📢 🎯",
+  ],
+  [
+    "flags",
+    "🇺🇿 🇰🇿 🇰🇬 🇹🇯 🇹🇲 🇦🇫 🇹🇷 🇦🇿 🇷🇺 🇺🇦 🇧🇾 🇬🇪 🇦🇲 🇮🇷 🇸🇦 🇦🇪 🇶🇦 🇰🇼 🇪🇬 🇯🇴 🇵🇸 🇵🇰 🇮🇳 🇧🇩 🇮🇩 🇲🇾 🇨🇳 🇯🇵 🇰🇷 🇺🇸 🇬🇧 🇩🇪 🇫🇷 🇮🇹 🇪🇸 🇳🇱 🇵🇱 🇨🇿 🇸🇪 🇳🇴 🇫🇮 🇨🇦 🇧🇷 🇦🇷 🇲🇽 🇦🇺 🏳️ 🏴 🏁 🚩 🏳️‍🌈",
+  ],
 ];
 const RECENT_KEY = "nn:emoji-recent";
 
@@ -89,7 +111,7 @@ export function EmojiGif({
 
   const pick = (e: string) => {
     onEmoji(e);
-    const next = [e, ...recent.filter((x) => x !== e)].slice(0, 24);
+    const next = [e, ...recent.filter((x) => x !== e)].slice(0, 32);
     setRecent(next);
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(next));
@@ -147,11 +169,36 @@ export function EmojiGif({
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
             {tab === "emoji" ? (
               <>
+                {/* One button per kind: a jump to it (the list is long). */}
+                <div className="bg-surface sticky -top-2 z-10 -mx-2 -mt-2 mb-1 flex gap-0.5 overflow-x-auto px-2 py-1.5">
+                  {EMOJI.map(([k, list]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      title={t(`emojiKind.${k}`)}
+                      aria-label={t(`emojiKind.${k}`)}
+                      onClick={() =>
+                        document
+                          .getElementById(`emoji-${k}`)
+                          ?.scrollIntoView({ block: "start", behavior: "smooth" })
+                      }
+                      className="hover:bg-surface-2 grid size-8 shrink-0 place-items-center rounded-lg text-lg"
+                    >
+                      {list.split(" ")[0]}
+                    </button>
+                  ))}
+                </div>
                 {recent.length > 0 && (
                   <Group title={t("recentEmoji")} list={recent} onPick={pick} />
                 )}
                 {EMOJI.map(([k, list]) => (
-                  <Group key={k} title={t(`emojiKind.${k}`)} list={list.split(" ")} onPick={pick} />
+                  <Group
+                    key={k}
+                    id={`emoji-${k}`}
+                    title={t(`emojiKind.${k}`)}
+                    list={list.split(" ")}
+                    onPick={pick}
+                  />
                 ))}
               </>
             ) : res && res.key === key && !res.available ? (
@@ -210,16 +257,18 @@ export function EmojiGif({
 }
 
 function Group({
+  id,
   title,
   list,
   onPick,
 }: {
+  id?: string;
   title: string;
   list: string[];
   onPick: (e: string) => void;
 }) {
   return (
-    <section className="mb-2">
+    <section id={id} className="mb-2 scroll-mt-10">
       <h3 className="text-muted px-1 pb-1 text-[11px] font-semibold tracking-wide uppercase">
         {title}
       </h3>

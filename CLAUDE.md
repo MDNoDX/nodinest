@@ -79,7 +79,12 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - First-visit guide: `components/onboarding/tour.tsx` (targets `data-tour="…"`; key
   `nodinest-tour-v1`, replay from Settings). E2E marks it seen in `tests/e2e/helpers.ts`.
 - Taqriz AI panel answers stream from `POST /api/ai/stream` (`generateStream` in gemini.ts).
-- `generateLive` races a second model when the first is silent for 3.5 s (`HEDGE_MS`). The live talk
+- `generateLive` asks the same model again when it is silent for `HEDGE_MS` (2.2 s) and the next model
+  after twice that; the first to speak wins. Spoken turns use `thinkingLevel: LOW` (`fitThinking`
+  turns it into a budget for 2.x models). Spent models are remembered across instances in ai_cache
+  (`cooldown:<model>`, `loadCooldowns` / `rest`); `speechLeft()` lets the live talk skip speech at once
+  when every speech model is spent today. The voice is chosen at the start of a turn (`talkVoice` reads
+  the language later). The live talk
   with Gemini's voice speaks the first sentences at once and the rest in a second request; Uzbek goes
   to every voice through `sayable()` (x → kh, 2026 letters → common Latin). `show_card` can play
   steps / timeline / compare; cards reach the live talk as `visual` events while it speaks.
@@ -204,7 +209,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `composer.tsx` = hold-to-record voice (slide left cancels, up locks; `wave.ts` stores 40 bars in
   `dm_messages.meta`), emoji/GIF/sticker picker (`emoji-gif.tsx`, KLIPY through `/api/gif`, env
   KLIPY_API_KEY, GIPHY_API_KEY as the other choice; only static.klipy.com / media*.giphy.com URLs accepted), the attach sheet (look before sending).
-  Clear chat for me (`a/b_cleared_at`) or both (rows deleted). Presence: `user.last_seen_at`
+  Clear chat for me (`a/b_cleared_at`) or both (rows deleted). Reactions (`dm_reactions`, 0051, one
+  emoji per person per message; `react()`): the poll sends `rat` and gets every reaction again only when
+  `dm_threads.reacted_at` moved. Tap = quick bar, double tap = 👍, a phone swipes a message left to
+  answer it. GIFs / photos / videos get pixel sizes (`fitBox`) so a bubble hugs them, a GIF / video
+  label and the time on the picture. Presence: `user.last_seen_at`
   (heartbeat in `/api/dm/threads`), `show_online` off hides it both ways.
 - Posts (0049): 👍 "Zo'r" likes `post_likes` and comments `post_comments` (text / GIF) on a public
   learning record; Media "Kuzatayotganlarim" = big posts, "Umumiy" = tiles to the post page.
@@ -224,7 +233,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   avatar menu on phones). Home and Profile are separate; Review and Metrics are menu items again.
   Tablets (768+) get the narrow side menu instead of the bar (`--bottom-nav` is 0 there). Phones never
   zoom on a tap (16 px fields, `touch-action: manipulation`); drag-to-reorder measures places once.
-  `pwa/install-banner.tsx` invites phone browsers to install (Android prompt, iPhone steps).
+  `pwa/install-banner.tsx` invites phone browsers to install (Android prompt, iPhone steps). The
+  browser's install offer is caught in <head> (`lib/install-script.ts`) and shared by
+  `lib/install-prompt.ts`, so Settings → App always has the real "install" button; the manifest has
+  screenshots (`public/screenshots`, Android's richer install dialog) and `launch_handler`.
   Section colours are five families (`SECTION_HUE`). Covers come as small copies (`coverSrc(r, w)` →
   `/api/files/[id]?w=480`, sharp, cached a month). Chat messages never go to the bell (only push /
   Telegram, one ring per sender per 2 min); a new public post rings the owner's followers (`post`).
@@ -236,10 +248,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   "Yuborish" offers only the phone's own share sheet and a copied link (no per-app buttons).
   Signing out asks first (`settings/sign-out.tsx`, also from the avatar menu); "delete account" sits
   under it in the Settings list. Default menu order: home, Darsxona, Media, Chats, then the rest.
-- The top search (`layout/command-palette.tsx`, `/api/search/quick?scope=&kind=`) has tabs like
-  Telegram's: Hammasi (people + posts + my Darsxona), Darsxona (`quickSearch`), Foydalanuvçilar
-  (`searchPeople`) and kind icons (book / video / podcast / course / document → `MEDIA_KINDS`) that
-  search others' posts (`searchMedia`: title or poster, both alphabets; a private profile's only for
+- The top search (`layout/command-palette.tsx`, `/api/search/quick?in=`) has icon tabs like
+  Telegram's: all (people + posts + my Darsxona), Darsxona (`quickSearch`), people (`searchPeople`)
+  and kind icons (book / video / podcast / course / document → `MEDIA_KINDS`) that search others'
+  posts. A tap picks one; a double tap pins it (`nn:search-pins`) and pinned ones are searched together (`searchMedia`: title or poster, both alphabets; a private profile's only for
   its followers; a kind with no words lists its newest). Media has no search box of its own.
 - Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
   to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY and

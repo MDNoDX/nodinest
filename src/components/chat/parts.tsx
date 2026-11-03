@@ -62,7 +62,10 @@ export function seenText(
   now: number,
   iso: string,
   locale: string,
-  t: (k: "online" | "seenMin" | "seenHours" | "seenYesterday" | "seenOn", v?: Record<string, string | number>) => string,
+  t: (
+    k: "online" | "seenMin" | "seenHours" | "seenYesterday" | "seenOn",
+    v?: Record<string, string | number>,
+  ) => string,
 ) {
   const ms = now - Date.parse(iso);
   if (ms < 2 * 60_000) return t("online");
@@ -74,7 +77,8 @@ export function seenText(
   if (h < 24 && d.getDate() === today.getDate()) return t("seenHours", { n: h });
   const y = new Date(today);
   y.setDate(today.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return t("seenYesterday", { time: clock(iso, locale) });
+  if (d.toDateString() === y.toDateString())
+    return t("seenYesterday", { time: clock(iso, locale) });
   return t("seenOn", {
     date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(d),
   });
@@ -251,30 +255,53 @@ export function VoiceNote({
             className="chat-seek h-1.5 w-full cursor-pointer appearance-none rounded-full"
           />
         )}
-        <span className="text-muted text-[11px] tabular-nums">
-          {on || at ? fmt(at) : fmt(len)}
-        </span>
+        <span className="text-muted text-[11px] tabular-nums">{on || at ? fmt(at) : fmt(len)}</span>
       </div>
     </div>
   );
 }
 
 /** What a message carries besides its text. */
+/**
+ * A size that fits the bubble: never wider or taller than the box, never
+ * stretched. Percent widths would let the picture's own width push the bubble
+ * wide, so the size is worked out here in pixels.
+ */
+export function fitBox(w: number, h: number, maxW = 240, maxH = 260) {
+  const k = Math.min(1, maxW / w, maxH / h);
+  return { width: Math.round(w * k), height: Math.round(h * k) };
+}
+
+/** A small label on a picture saying what it is (GIF, video). */
+function MediaBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white backdrop-blur-sm">
+      {children}
+    </span>
+  );
+}
+
 export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
+  const t = useTranslations("chat");
   const f = m.file;
   const gif = m.meta?.gif;
-  if (gif)
+  if (gif) {
+    const box = fitBox(Number(gif.w) || 240, Number(gif.h) || 180);
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={gif.url}
-        alt="GIF"
-        loading="lazy"
-        width={gif.w}
-        height={gif.h}
-        className="h-auto max-h-60 w-auto max-w-[min(15rem,100%)] rounded-xl"
-      />
+      <span className="relative block overflow-hidden rounded-xl" style={box}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={gif.url}
+          alt="GIF"
+          loading="lazy"
+          width={box.width}
+          height={box.height}
+          className="bg-surface-2 block size-full object-cover"
+        />
+        <MediaBadge>GIF</MediaBadge>
+      </span>
     );
+  }
   if (f) {
     const src = `/api/files/${f.id}`;
     if (f.mime.startsWith("image/"))
@@ -285,23 +312,26 @@ export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
             src={src}
             alt={f.name}
             loading="lazy"
-            className="max-h-80 w-auto max-w-full rounded-xl object-contain"
+            className="bg-surface-2 block max-h-80 min-h-24 w-auto max-w-[min(17rem,68vw)] min-w-24 rounded-xl object-contain"
           />
         </a>
       );
     if (f.mime.startsWith("audio/"))
-      return (
-        <VoiceNote src={src} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />
-      );
+      return <VoiceNote src={src} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />;
     if (f.mime.startsWith("video/"))
       return (
-        <video
-          src={src}
-          controls
-          preload="metadata"
-          playsInline
-          className="max-h-80 w-full max-w-sm rounded-xl bg-black"
-        />
+        <span className="relative block w-[min(17rem,68vw)]">
+          <video
+            src={src}
+            controls
+            preload="metadata"
+            playsInline
+            className="block max-h-80 w-full rounded-xl bg-black"
+          />
+          <MediaBadge>
+            <Video className="size-3" /> {t("kind.video")}
+          </MediaBadge>
+        </span>
       );
     return (
       <a
