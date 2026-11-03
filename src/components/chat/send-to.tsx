@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Dialog as D } from "radix-ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { countShareAction } from "@/app/actions/social";
 import { shareToAction } from "@/app/actions/dm";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
@@ -21,12 +22,17 @@ export function SendTo({
   className,
   compact,
   share,
+  recordId,
+  onShared,
 }: {
   resourceId: string;
   className?: string;
   compact?: boolean;
   /** A public post's page: it can also go to other apps as a link. */
   share?: { path: string; title: string; closed?: boolean };
+  /** Someone's public post: each sending is counted for its owner. */
+  recordId?: string;
+  onShared?: (n: number) => void;
 }) {
   const t = useTranslations("chat");
   const te = useTranslations("errors");
@@ -70,6 +76,12 @@ export function SendTo({
   const toggle = (p: DmPerson) =>
     setPicked((x) => (x.some((y) => y.id === p.id) ? x.filter((y) => y.id !== p.id) : [...x, p]));
 
+  const counted = (n: number) => {
+    if (!recordId) return;
+    onShared?.(n);
+    void countShareAction(recordId, n).catch(() => null);
+  };
+
   const close = () => {
     setOpen(false);
     setPicked([]);
@@ -92,6 +104,7 @@ export function SendTo({
       last = r.data;
     }
     setBusy(false);
+    counted(picked.length);
     const names = picked.map((p) => p.name.split(" ")[0]).join(", ");
     const one = picked.length === 1 ? last : null;
     close();
@@ -108,6 +121,7 @@ export function SendTo({
   const native = async () => {
     try {
       await navigator.share({ title: share?.title, url: link() });
+      counted(1);
     } catch {
       /* closed by the person */
     }
@@ -115,6 +129,7 @@ export function SendTo({
   const copy = async () => {
     await navigator.clipboard?.writeText(link()).catch(() => null);
     toast.success(t("linkCopied"));
+    counted(1);
   };
   const canNative = typeof navigator !== "undefined" && "share" in navigator;
 

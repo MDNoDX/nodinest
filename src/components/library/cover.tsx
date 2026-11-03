@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import {
   BookOpen,
   FileText,
@@ -11,6 +10,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { typeHue } from "@/lib/hues";
+import { CoverPicture, SafeImg } from "./cover-picture";
+import { TypoCover } from "./cover-typo";
 
 const TYPE_ICON = {
   book: BookOpen,
@@ -63,28 +64,9 @@ export function Cover({
         : portrait
           ? "w-full aspect-[2/3]"
           : "w-full aspect-video";
-  const face = src ? (
-    <>
-      {/* Any picture shows whole; what it leaves empty takes its own colours. */}
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="absolute inset-0 size-full scale-110 object-cover blur-lg"
-      />
-      <img
-        src={src}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className="absolute inset-0 size-full object-contain"
-      />
-    </>
-  ) : (
-    <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />
-  );
+  const typo = <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />;
+  // A picture that cannot be loaded turns into the title cover (never a broken image).
+  const face = src ? <CoverPicture src={src} fallback={typo} /> : typo;
   // Books and courses: a little 3D book (it turns on hover and shows its pages).
   if (portrait && size !== "sm")
     return (
@@ -97,40 +79,24 @@ export function Cover({
         <span aria-hidden className="cover-back" />
       </div>
     );
-  // Audio: a vinyl record half out of its sleeve, in a 16:9 frame like videos.
+  // Audio: a vinyl record half out of its sleeve, in a 16:9 frame like videos,
+  // with nothing behind them (only the sleeve and the record).
   // On hover the record slides out and turns, its label (the cover) with it.
   if ((type === "podcast" || type === "interview") && size !== "sm")
     return (
       <div
         className={cn(
-          "rec relative shrink-0 overflow-hidden rounded-lg",
+          "rec relative shrink-0 overflow-hidden",
           size === "lg" ? "aspect-video w-full max-w-sm" : "aspect-video w-full",
           className,
         )}
         style={typeHue(type)}
       >
-        {src && (
-          <img
-            src={src}
-            alt=""
-            aria-hidden
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="absolute inset-0 size-full scale-125 object-cover opacity-60 blur-xl"
-          />
-        )}
-        <span aria-hidden className="rec-floor absolute inset-0" />
         <div className="rec-disc absolute top-[9%] bottom-[9%] aspect-square rounded-full">
           <div className="rec-spin absolute inset-0 rounded-full">
             <span className="rec-label absolute inset-[31%] overflow-hidden rounded-full">
               {src ? (
-                <img
-                  src={src}
-                  alt=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  className="size-full object-cover"
-                />
+                <SafeImg src={src} className="size-full object-cover" />
               ) : (
                 <span className="grid size-full place-items-center bg-[var(--hue)] text-white">
                   <Icon className="size-1/2" />
@@ -201,90 +167,6 @@ export function Cover({
             />
           ))}
         </span>
-      )}
-    </div>
-  );
-}
-
-/** Deep, calm book-cloth colours for covers made from the title. */
-const CLOTH = [
-  ["#1e3a8a", "#3b5bdb"],
-  ["#134e4a", "#2b8a7e"],
-  ["#7f1d1d", "#b0413e"],
-  ["#3f2a56", "#6d4c9f"],
-  ["#1f3b2c", "#3f7a52"],
-  ["#5b3a12", "#a8742c"],
-  ["#1e293b", "#475569"],
-] as const;
-
-function hash(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-/**
- * A cover for items without an image: the title set in serif on book cloth,
- * framed like a classic hardcover (colour picked from the title, so it stays
- * the same everywhere).
- */
-function TypoCover({
-  type,
-  title,
-  author,
-  size,
-  Icon,
-}: {
-  type: string;
-  title: string;
-  author?: string | null;
-  size: "sm" | "md" | "lg";
-  Icon: (typeof TYPE_ICON)[keyof typeof TYPE_ICON];
-}) {
-  const [from, to] = CLOTH[hash(title) % CLOTH.length];
-  const portrait = type === "book" || type === "course";
-  return (
-    <div
-      className="absolute inset-0 flex flex-col text-white"
-      style={{ background: `linear-gradient(160deg, ${to} 0%, ${from} 70%)` }}
-    >
-      {/* Spine shadow + a thin gilt frame. */}
-      <span aria-hidden className="absolute inset-y-0 left-0 w-2 bg-black/20" />
-      {size !== "sm" && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-[7%] rounded-[3px] border border-white/25"
-        />
-      )}
-      {size === "sm" ? (
-        <span className="m-auto font-serif text-lg leading-none font-semibold">
-          {title.trim().charAt(0).toUpperCase()}
-        </span>
-      ) : (
-        <div
-          className={cn(
-            "relative flex h-full flex-col items-center px-[14%] text-center",
-            portrait ? "justify-center gap-2 py-[16%]" : "justify-center gap-1 py-[8%]",
-          )}
-        >
-          <Icon className="size-4 opacity-60" aria-hidden />
-          <span
-            className={cn(
-              "font-serif leading-tight font-semibold text-balance",
-              size === "lg" ? "line-clamp-4 text-xl" : "line-clamp-4 text-sm",
-            )}
-          >
-            {title}
-          </span>
-          {author && (
-            <>
-              <span aria-hidden className="h-px w-6 bg-white/40" />
-              <span className="line-clamp-2 text-[10px] tracking-wide uppercase opacity-80">
-                {author}
-              </span>
-            </>
-          )}
-        </div>
       )}
     </div>
   );

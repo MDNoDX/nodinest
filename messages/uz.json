@@ -237,7 +237,7 @@
     "weekChart": "Sönggi 7 kun",
     "vsLastWeek": "ötgan haftaga nisbatan {delta}",
     "emptyTitle": "Uyangiz tayyor",
-    "emptyBody": "Örganayotgan birinçi kitob, kurs yoki videongizni qöşing — u şu yerda muqovasi bilan körinadi.",
+    "emptyBody": "Örganayotgan birinçi kitob, darslik yoki videongizni qöşing — u şu yerda muqovasi bilan körinadi.",
     "startSession": "Sessiyani boşlaş",
     "noActive": "Hozirça jarayonda heç narsa yöq. Darsxonangizdan tanlang.",
     "noPlans": "Rejalaştirilgan işlar yöq.",
@@ -248,7 +248,7 @@
     "heroSubtitle": "Kolleksiyangiz",
     "booksRead": "Öqilgan kitoblar",
     "pagesRead": "Öqilgan sahifalar",
-    "coursesDone": "Kurslar",
+    "coursesDone": "Darsliklar",
     "mediaDone": "Video va ma’ruzalar",
     "mediaHours": "{hours} soat tomoşa",
     "inLibrary": "Darsxonada: {count}",
@@ -273,7 +273,7 @@
   },
   "types": {
     "book": "Kitob",
-    "course": "Kurs",
+    "course": "Darslik",
     "video": "Video",
     "lecture": "Ma’ruza",
     "interview": "Suhbat / intervyu",
@@ -282,7 +282,7 @@
     "other": "Boşqa",
     "plural": {
       "book": "Kitoblar",
-      "course": "Kurslar",
+      "course": "Darsliklar",
       "video": "Videolar",
       "lecture": "Ma’ruzalar",
       "interview": "Suhbatlar",
@@ -366,7 +366,7 @@
     "sortAdded": "Yaqinda qöşilgan",
     "showArchived": "Arxivdagilarni körsatiş",
     "emptyTitle": "Hali manbalar yöq",
-    "emptyBody": "Örganayotgan birinçi kitob, kurs yoki videongizni qöşing — muqovasi bilan javonda turadi.",
+    "emptyBody": "Örganayotgan birinçi kitob, darslik yoki videongizni qöşing — muqovasi bilan javonda turadi.",
     "noMatches": "Bu filtrlarga mos heç narsa topilmadi.",
     "by": "{names}",
     "addToLibrary": "Darsxonamga qöşiş",
@@ -781,7 +781,7 @@
       "book": "Kitoblar",
       "video": "Videolar",
       "podcast": "Audio va podkastlar",
-      "course": "Kurslar",
+      "course": "Darsliklar",
       "document": "Hujjatlar"
     },
     "palette": {
@@ -1499,7 +1499,7 @@
     "founder": "Asoşçisi"
   },
   "install": {
-    "title": "Ilovani örnatiş (Mac va telefon)",
+    "title": "Ilovani örnatiş (telefon, Mac va Windows)",
     "why": "Röznomani alohida ilova sifatida örnating: Dock yoki boş ekranda öz ikonkasi bilan oçiladi, tezroq yuklanadi va internet bölmasa ham avval oçilgan sahifalar, muqovalar, PDF’lar va taqrizlaringiz işlaydi. Bepul, dökonsiz.",
     "installNow": "Ilovani örnatiş",
     "installed": "Ilova örnatilgan — siz uni ilova oynasida işlatyapsiz.",
@@ -1530,7 +1530,19 @@
     "androidTitle": "Android’da örnatiş (Chrome)",
     "android1": "Yuqori öngdagi ⋮ menyuni oçing.",
     "android2": "«Ilovani örnatiş» ni bosing va tasdiqlang. Röznoma ilovalar röyxatida paydo böladi.",
-    "androidNote": "Agar «Ilovani örnatiş» körinmasa, sahifani Chrome’da oçing va bir oz kuting — Chrome taklifni özi beradi."
+    "androidNote": "Agar «Ilovani örnatiş» körinmasa, sahifani Chrome’da oçing va bir oz kuting — Chrome taklifni özi beradi.",
+    "macTitle": "Mac uçun ilova",
+    "macSize": ".dmg · 0,4 MB",
+    "macDownload": "Mac uçun yuklab oliş",
+    "macStep1": "Yuklangan Roznoma .dmg faylini oçing va Röznoma belgisini «Applications» papkasiga suring.",
+    "macStep2": "Birinçi oçişda Mac «tekşirib bölmadi» desa: Tizim sozlamalari → Maxfiylik va xavfsizlik → pastda «Baribir oçiş» ni bosing.",
+    "macStep3": "Keyin Röznoma Launchpad va Dock’da oddiy ilova kabi oçiladi, yangilanişlar özi keladi.",
+    "windowsTitle": "Windows uçun ilova",
+    "windowsSize": ".exe · 97 MB",
+    "windowsDownload": "Windows uçun yuklab oliş",
+    "windowsStep1": "Yuklangan «Roznoma-Setup» faylini oçing.",
+    "windowsStep2": "Windows «kompyuteringizni himoya qildi» desa: «Batafsil» → «Baribir işga tuşiriş» ni bosing (ilova pullik imzo bilan imzolanmagan).",
+    "windowsStep3": "Örnatgandan keyin Röznoma Start menyusi va iş stolida turadi."
   },
   "offline": {
     "title": "Internet yöq",
@@ -2422,7 +2434,7 @@
     "requestedHint": "Javob kutilmoqda. Bekor qiliş uçun bosing.",
     "statBooks": "Kitob öqigan",
     "statVideos": "Video va audio",
-    "statCourses": "Kurs",
+    "statCourses": "Darslik",
     "statHours": "Soat (taxminan)",
     "openSource": "Manbani oçiş",
     "sharedOn": "Endi boşqalar köra oladi.",
@@ -2631,8 +2643,8 @@
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
-    "course": "Kurslar, darslar, ta’lim dasturlari",
-    "article": "Maqolalar, ilmiy işlar, tadqiqotlar, bloglar",
+    "course": "Darsliklar, kurslar, darslar va ta’lim dasturlari",
+    "article": "Maqolalar, ilmiy işlar, bloglar, PDF, Word va taqdimotlar",
     "video": "Videodarslar, ma’ruzalar, intervyular, hujjatli filmlar",
     "podcast": "Podkastlar, audiokitoblar, audio ma’ruzalar",
     "file": "PDF, Word, slaydlar, taqdimotlar, jadvallar",
@@ -2725,7 +2737,9 @@
     "comments": "Izohlar",
     "comment": "Izoh",
     "noComments": "Hali izoh yöq. Birinçi bölib yozing.",
-    "writeComment": "Izoh yozing…"
+    "writeComment": "Izoh yozing…",
+    "yourPost": "Postingiz",
+    "shares": "Ulaşilgan"
   },
   "sectionHint": {
     "close": "Yopiş",

@@ -457,8 +457,9 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                 prev?.senderId === m.senderId &&
                 Date.parse(m.createdAt) - Date.parse(prev.createdAt) < 5 * 60_000;
               const q = m.reply;
-              const media =
-                !m.body && (!!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime)));
+              // A picture (photo, video, GIF) sets the bubble's width; words under it wrap to it.
+              const pic = !!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime));
+              const media = pic && !m.body;
               return (
                 <Fragment key={m.id}>
                   {newDay && (
@@ -536,7 +537,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                         onKeyDown={(e) => e.key === "Enter" && setPicked(m.id)}
                         className={cn(
                           "relative min-w-0 cursor-default rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm outline-none select-none sm:select-text",
-                          media ? "p-0.5" : "px-3 py-2",
+                          media ? "p-0.5" : pic ? "p-1" : "px-3 py-2",
                           mine
                             ? "bg-primary-soft text-foreground rounded-br-md"
                             : "bg-surface border-border rounded-bl-md border",
@@ -556,7 +557,10 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                               void el?.offsetWidth;
                               el?.classList.add("chat-found");
                             }}
-                            className="border-primary bg-surface/50 mb-1.5 block w-full rounded-md border-l-2 px-2 py-1 text-left text-xs"
+                            className={cn(
+                              "border-primary bg-surface/50 mb-1.5 block rounded-md border-l-2 px-2 py-1 text-left text-xs",
+                              pic ? "w-0 min-w-full" : "w-full",
+                            )}
                           >
                             <span className="text-primary block font-semibold">
                               {q.senderId === me ? t("you") : other.name}
@@ -572,7 +576,14 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                           <>
                             <Attachment m={m} mine={mine} />
                             {m.body && (
-                              <span className={cn("block", (m.file || m.item) && "mt-1.5 px-1")}>
+                              <span
+                                className={cn(
+                                  "block",
+                                  (m.file || m.item) && "mt-1.5 px-1",
+                                  // Under a picture: as wide as the picture, never wider.
+                                  pic && "w-0 min-w-full px-2",
+                                )}
+                              >
                                 {linkify(m.body)}
                               </span>
                             )}
@@ -584,7 +595,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                             // On a picture the time sits on it, like Telegram (no empty strip below).
                             media
                               ? "absolute right-2 bottom-2 rounded-full bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm"
-                              : "text-muted float-right mt-1 ml-3 translate-y-1",
+                              : cn("text-muted float-right mt-1 ml-3 translate-y-1", pic && "mr-2 mb-1"),
                           )}
                         >
                           {clock(m.createdAt, locale)}
@@ -659,11 +670,15 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                       src={p.preview}
                       muted
                       playsInline
-                      className="mb-1 max-h-60 rounded-xl bg-black opacity-80"
+                      className="mb-1 max-h-60 w-[min(17rem,68vw)] rounded-xl bg-black opacity-80"
                     />
                   ) : p.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.preview} alt="" className="mb-1 max-h-60 rounded-xl opacity-80" />
+                    <img
+                      src={p.preview}
+                      alt=""
+                      className="mb-1 max-h-60 max-w-[min(17rem,68vw)] rounded-xl opacity-80"
+                    />
                   ) : null}
                   {p.gif && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -674,7 +689,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                       {p.file.type.startsWith("audio/") ? t("kind.voice") : p.file.name}
                     </span>
                   )}
-                  {p.body}
+                  {p.body && (
+                    <span className={cn("block", (p.preview || p.gif) && "w-0 min-w-full")}>
+                      {p.body}
+                    </span>
+                  )}
                   <span className="text-muted mt-1 flex items-center justify-end gap-1.5 text-[11px]">
                     {p.failed ? (
                       <button

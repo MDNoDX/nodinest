@@ -142,53 +142,41 @@ const postPath = (it: MediaItem) => `/u/${it.username}/item/${it.resourceId}`;
 
 function Tile({ it }: { it: MediaItem }) {
   const tt = useTranslations("types");
-  const src = coverSrc(it);
   const yt = it.sourceUrl ? youtubeIdFromUrl(it.sourceUrl) : null;
-  const pic = src ?? (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
+  const src = coverSrc(it, 320) ?? (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : null);
+  // Every tile has the same box; the cover keeps its own shape inside it (a
+  // book stands, a video lies, a record sits in its sleeve) and moves as it does
+  // in Darsxona, so tiles never push each other around.
+  const shape =
+    it.type === "book" || it.type === "course"
+      ? "h-full aspect-[2/3]"
+      : it.type === "article" || it.type === "file"
+        ? "h-full aspect-[3/4]"
+        : "w-full";
   return (
-    <li>
+    <li className="min-w-0">
       <Link
         href={postPath(it)}
-        className="group bg-surface-2 relative block aspect-[4/5] overflow-hidden rounded-xl"
+        className="group bg-surface border-border hover:border-border-strong relative flex h-full flex-col rounded-xl border p-2.5 transition-colors sm:p-3"
       >
-        {pic ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pic}
-              alt=""
-              aria-hidden
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-lg"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pic}
-              alt={it.title}
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              className="absolute inset-0 size-full object-contain transition-transform duration-500 group-hover:scale-105"
-            />
-          </>
-        ) : (
-          <div className="absolute inset-0 grid place-items-center p-3">
-            <Cover type={it.type as "book"} title={it.title} src={null} />
-          </div>
-        )}
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 pt-8 text-white">
-          <span className="line-clamp-2 text-xs font-semibold">{it.title}</span>
-          <span className="mt-1 flex items-center gap-2 text-[11px] text-white/75">
-            <Avatar name={it.name} image={it.image} className="size-4" />
-            <span className="truncate">{it.name}</span>
-            {it.likes > 0 && (
-              <span className="ml-auto inline-flex items-center gap-0.5 tabular-nums">
-                <ThumbsUp className="size-3" /> {it.likes}
-              </span>
-            )}
+        <span className="relative grid aspect-square place-items-center">
+          <span className={cn("block max-h-full max-w-full", shape)}>
+            <Cover type={it.type as "book"} title={it.title} src={src} className="size-full" />
           </span>
         </span>
-        <span className="absolute top-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white">
+        <span className="mt-2 line-clamp-2 text-[13px] leading-snug font-semibold sm:text-sm">
+          {it.title}
+        </span>
+        <span className="text-muted mt-auto flex items-center gap-1.5 pt-1.5 text-[11px] sm:text-xs">
+          <Avatar name={it.name} image={it.image} className="size-4" />
+          <span className="min-w-0 truncate">{it.name}</span>
+          {it.likes > 0 && (
+            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5 tabular-nums">
+              <ThumbsUp className="size-3" /> {it.likes}
+            </span>
+          )}
+        </span>
+        <span className="bg-surface/85 text-muted absolute top-2 right-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur">
           {tt(it.type as "book")}
         </span>
       </Link>
@@ -264,6 +252,7 @@ function FeedPost({ it }: { it: MediaItem }) {
           likes={it.likes}
           liked={it.liked}
           comments={it.comments}
+          shares={it.shares}
           share={{
             resourceId: it.resourceId,
             path: `/u/${it.username}/item/${it.resourceId}`,

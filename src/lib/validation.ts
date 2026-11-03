@@ -86,16 +86,12 @@ export const RESOURCE_TYPES = [
   "other",
 ] as const;
 export type ResourceType = (typeof RESOURCE_TYPES)[number];
-/** What people choose from: lectures and interviews are simply videos. */
-export const MAIN_TYPES: ResourceType[] = [
-  "book",
-  "course",
-  "article",
-  "video",
-  "podcast",
-  "file",
-  "other",
-];
+/**
+ * What people choose from (five): lectures and interviews are simply videos,
+ * a file (PDF, Word, slides) is an article. "file" and "other" stay in the
+ * database for what was added before; new entries are never made with them.
+ */
+export const MAIN_TYPES: ResourceType[] = ["book", "course", "article", "video", "podcast"];
 /** Books have their own details; every other type shares one simple set. */
 export const BOOK_LIKE: ResourceType[] = ["book", "file"];
 export const MEDIA_LIKE: ResourceType[] = [

@@ -795,12 +795,6 @@ a:focus-visible .cover-3d {
 
 /* Audio: a vinyl record half out of its sleeve; on hover it slides out and
    turns with its label, like a record put on the player. */
-.rec {
-  background: linear-gradient(135deg, color-mix(in oklab, var(--hue) 35%, #111), #0b0b0f);
-}
-.rec-floor {
-  background: radial-gradient(120% 90% at 30% 50%, transparent 40%, rgb(0 0 0 / 0.45));
-}
 .rec-sleeve {
   box-shadow:
     0 10px 24px rgb(0 0 0 / 0.45),
@@ -819,6 +813,10 @@ a:focus-visible .cover-3d {
     #0d0d0d;
   animation: disc-spin 2.4s linear infinite;
   animation-play-state: paused;
+}
+/* With nothing behind it, a faint rim keeps the black record visible on dark pages. */
+.rec-spin {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 .rec-label {
   box-shadow: 0 0 0 2px rgb(0 0 0 / 0.6);

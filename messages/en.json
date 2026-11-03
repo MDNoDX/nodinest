@@ -1499,7 +1499,7 @@
     "founder": "Founder"
   },
   "install": {
-    "title": "Install the app (Mac and phone)",
+    "title": "Install the app (phone, Mac and Windows)",
     "why": "Install Röznoma as an app: it opens from the Dock or home screen with its own icon, loads faster, and pages, covers, PDFs and write-ups you have opened keep working without internet. Free, no app store.",
     "installNow": "Install the app",
     "installed": "Installed — you are using the app window.",
@@ -1530,7 +1530,19 @@
     "androidTitle": "Install on Android (Chrome)",
     "android1": "Open the ⋮ menu at the top right.",
     "android2": "Tap “Install app” and confirm. Röznoma appears in your app list.",
-    "androidNote": "If it is not there, open the page in Chrome and wait a moment — Chrome offers it by itself."
+    "androidNote": "If it is not there, open the page in Chrome and wait a moment — Chrome offers it by itself.",
+    "macTitle": "Mac app",
+    "macSize": ".dmg · 0.4 MB",
+    "macDownload": "Download for Mac",
+    "macStep1": "Open the downloaded .dmg and drag Röznoma into Applications.",
+    "macStep2": "If the Mac says it cannot check the app on first launch: System Settings → Privacy & Security → “Open Anyway” at the bottom.",
+    "macStep3": "After that Röznoma opens from Launchpad and the Dock like any app; updates come by themselves.",
+    "windowsTitle": "Windows app",
+    "windowsSize": ".exe · 97 MB",
+    "windowsDownload": "Download for Windows",
+    "windowsStep1": "Open the downloaded “Roznoma-Setup” file.",
+    "windowsStep2": "If Windows says it “protected your PC”: “More info” → “Run anyway” (the app has no paid signature).",
+    "windowsStep3": "Once installed, Röznoma is in the Start menu and on the desktop."
   },
   "offline": {
     "title": "No internet",
@@ -2632,7 +2644,7 @@
   "typeHints": {
     "book": "Books, e-books, textbooks",
     "course": "Courses, lessons, study programmes",
-    "article": "Articles, papers, research, blogs",
+    "article": "Articles, papers, research, blogs, and PDFs, Word files or slides",
     "video": "Video lessons, lectures, interviews, documentaries",
     "podcast": "Podcasts, audiobooks, audio lectures",
     "file": "PDF, Word, slides, presentations, spreadsheets",
@@ -2725,7 +2737,9 @@
     "comments": "Comments",
     "comment": "Comment",
     "noComments": "No comments yet. Be the first.",
-    "writeComment": "Write a comment…"
+    "writeComment": "Write a comment…",
+    "yourPost": "Your post",
+    "shares": "Shared"
   },
   "sectionHint": {
     "close": "Close",

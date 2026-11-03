@@ -12,6 +12,7 @@ import {
   listPostComments,
   addComment,
   deleteComment,
+  countShare,
 } from "@/server/social";
 import { z } from "zod";
 import { run, runOpen } from "./_run";
@@ -85,6 +86,11 @@ export async function removeFollowerAction(userId: string) {
 
 export async function setLikeAction(recordId: string, on: boolean) {
   return run(async ({ ctx }) => setLike(ctx, recordId, on === true));
+}
+
+/** A public post was sent on: counted for its owner (not a write anyone sees except as a number). */
+export async function countShareAction(recordId: string, n: number) {
+  return run(async ({ ctx }) => countShare(ctx, recordId, Number(n) || 1));
 }
 
 export async function postCommentsAction(recordId: string) {

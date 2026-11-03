@@ -43,6 +43,11 @@ export function InstallApp() {
   const [busy, setBusy] = useState(false);
   const p = useSyncExternalStore(noop, platform, () => "server" as const);
   const standalone = useSyncExternalStore(noop, isStandalone, () => false);
+  const mac = useSyncExternalStore(
+    noop,
+    () => /Macintosh/.test(navigator.userAgent),
+    () => false,
+  );
 
   if (standalone || installed)
     return (
@@ -115,15 +120,36 @@ export function InstallApp() {
           ]}
           note={t("androidNote")}
         />
-      ) : (
-        <div className="border-border rounded-xl border p-4">
-          <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold">
-            <Laptop className="size-4 text-[var(--c-blue)]" /> {t("mac")}
-          </div>
-          <p className="text-muted text-[13px] leading-relaxed">
-            {p === "mac-safari" ? t("macSafari") : t("macChrome")}
-          </p>
+      ) : null}
+
+      {/* Computers: the apps themselves, as files (a Mac .dmg, a Windows installer). */}
+      {(p === "desktop" || p === "mac-safari" || p === "server") && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(mac ? (["mac", "windows"] as const) : (["windows", "mac"] as const)).map((os) => (
+            <div key={os} className="border-border flex flex-col gap-3 rounded-2xl border p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Laptop className="size-4 text-[var(--c-blue)]" /> {t(`${os}Title`)}
+                <span className="text-muted ml-auto text-xs font-normal">{t(`${os}Size`)}</span>
+              </div>
+              <a
+                href={`/api/download/${os}`}
+                className="bg-primary text-primary-foreground inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-transform active:scale-95"
+              >
+                <Download className="size-4" /> {t(`${os}Download`)}
+              </a>
+              <ol className="text-muted list-decimal space-y-1 pl-4 text-[13px] leading-relaxed">
+                {[1, 2, 3].map((i) => (
+                  <li key={i}>{t(`${os}Step${i}`)}</li>
+                ))}
+              </ol>
+            </div>
+          ))}
         </div>
+      )}
+      {(p === "desktop" || p === "mac-safari") && (
+        <p className="text-muted text-[13px] leading-relaxed">
+          {p === "mac-safari" ? t("macSafari") : t("macChrome")}
+        </p>
       )}
       <p className="text-muted text-xs">{t("offlineNote")}</p>
     </div>

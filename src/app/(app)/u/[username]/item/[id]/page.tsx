@@ -92,6 +92,7 @@ export default async function PublicItemPage({
             likes={it.likes}
             liked={it.liked}
             comments={it.comments}
+            shares={it.shares}
             share={{
               resourceId: it.resourceId,
               path: `/u/${it.username}/item/${it.resourceId}`,

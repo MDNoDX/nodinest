@@ -120,4 +120,32 @@ describe("a new public post rings for followers", () => {
     // My own posts are in my Darsxona, not here (and the private one is not followed).
     expect(await social.searchMedia(open, word)).toHaveLength(0);
   });
+
+  it("sends of a public post are counted and the owner sees likes, comments and shares", async () => {
+    const social = await import("@/server/social");
+    const owner = await person();
+    const fan = await person();
+    const r = await submitResource(db, owner, { type: "book", title: `Ulaş ${tag()}` });
+    if (r.mode !== "applied") throw new Error("applied");
+    const [rec] = await db
+      .select({ id: learningRecords.id })
+      .from(learningRecords)
+      .where(eq(learningRecords.resourceId, r.id));
+    // Private: nothing to count, nothing to show.
+    await expect(social.countShare(fan, rec.id, 2)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await social.myPostStats(owner, r.id)).toBeNull();
+    await social.setItemVisibility(owner, r.id, true);
+    await social.countShare(fan, rec.id, 3);
+    await social.countShare(fan, rec.id, 500); // at most 20 at a time
+    await social.setLike(fan, rec.id, true);
+    await social.addComment(fan, rec.id, { body: "Ajoyib" });
+    expect(await social.myPostStats(owner, r.id)).toMatchObject({
+      recordId: rec.id,
+      shares: 23,
+      likes: 1,
+      comments: 1,
+    });
+    // Only the owner reads them here.
+    expect(await social.myPostStats(fan, r.id)).toBeNull();
+  });
 });

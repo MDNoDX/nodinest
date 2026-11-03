@@ -28,7 +28,7 @@ import { normalizeUsername } from "@/lib/username";
 import { normalizeText, otherScript } from "@/lib/normalize";
 import type { WriteupDoc } from "@/lib/writeup-doc";
 import { notify } from "./notifications";
-import { enforceRateLimit } from "./rate-limit";
+import { enforceRateLimit, hitRateLimit } from "./rate-limit";
 import { ensureInLibrary } from "./records";
 
 /** The person `u` can be seen by me: public, me, or I am an accepted follower. */
@@ -161,13 +161,14 @@ export async function publicItem(ctx: AppContext, username: string, resourceId: 
       likes: number;
       liked: boolean;
       comments: number;
+      shares: number;
     }
   >(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
       r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
       lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
       lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
-      r.description, r.source_url as "sourceUrl", lr.id as "recordId",
+      r.description, r.source_url as "sourceUrl", lr.id as "recordId", lr.shares,
       (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
       exists(select 1 from nodinest.post_likes l
         where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
@@ -592,6 +593,7 @@ export type MediaItem = PublicItem & {
   sourceUrl: string | null;
   description: string | null;
   mine: boolean;
+  shares: number;
 };
 
 /**
@@ -604,6 +606,13 @@ export async function mediaFeed(
 ) {
   const followed = opts.scope === "following";
   const kind = opts.kind && opts.kind !== "all" ? opts.kind : null;
+  // A filter covers its relatives: articles the older files, videos lectures, audio interviews.
+  const group = kind === "article" ? "document" : kind;
+  const types = !group
+    ? null
+    : group in MEDIA_KINDS
+      ? [...MEDIA_KINDS[group as MediaKind]]
+      : [group];
   // A text timestamp (with milliseconds): a Date object cannot go into raw SQL.
   const b = opts.before ? new Date(opts.before) : null;
   const before = b && !Number.isNaN(b.getTime()) ? b.toISOString() : null;
@@ -612,7 +621,7 @@ export async function mediaFeed(
       r.cover_url as "coverUrl", r.cover_file_id as "coverFileId", lr.status::text as status,
       lr.rating, lr.progress_current as "progressCurrent", lr.progress_total as "progressTotal",
       lr.updated_at as "updatedAt", u.id as "ownerId", u.name, u.username, u.image,
-      r.source_url as "sourceUrl", r.description, lr.id as "recordId",
+      r.source_url as "sourceUrl", r.description, lr.id as "recordId", lr.shares,
       (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
       exists(select 1 from nodinest.post_likes l
         where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
@@ -624,7 +633,7 @@ export async function mediaFeed(
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
     join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
     where lr.visibility = 'public' and ${canSee(ctx)}
-      ${kind ? sql`and r.type::text = ${kind}` : sql``}
+      ${types ? sql`and r.type::text in (${sql.join(types.map((x) => sql`${x}`), sql`, `)})` : sql``}
       ${
         followed
           ? sql`and exists(select 1 from nodinest.follows f
@@ -776,6 +785,41 @@ export async function setLike(ctx: AppContext, recordId: string, on: boolean) {
     }).catch(() => null);
   const [n] = await db.select({ n: count() }).from(postLikes).where(eq(postLikes.recordId, p.id));
   return n?.n ?? 0;
+}
+
+/**
+ * A public post was sent on (to `n` chats, another app or a copied link), by
+ * anyone, its owner too: counted, at most 20 at a time and 10 times a day per
+ * person and post.
+ */
+export async function countShare(ctx: AppContext, recordId: string, n = 1) {
+  const p = await visiblePost(ctx, recordId);
+  const left = await hitRateLimit(db, `share:${ctx.userId}:${p.id}`, 10, 86_400);
+  if (!left.allowed) return;
+  const k = Math.max(1, Math.min(20, Math.floor(n)));
+  await db
+    .update(learningRecords)
+    .set({ shares: sql`${learningRecords.shares} + ${k}` })
+    .where(eq(learningRecords.id, p.id));
+}
+
+/** My own item as a post: likes, comments and shares (Darsxona shows them). */
+export async function myPostStats(ctx: AppContext, resourceId: string) {
+  const rid = z.string().uuid().parse(resourceId);
+  const [r] = await db.execute<{
+    recordId: string;
+    shares: number;
+    likes: number;
+    liked: boolean;
+    comments: number;
+  }>(sql`
+    select lr.id as "recordId", lr.shares,
+      (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
+      exists(select 1 from nodinest.post_likes l where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
+      (select count(*)::int from nodinest.post_comments c where c.record_id = lr.id and c.deleted_at is null) as comments
+    from nodinest.learning_records lr
+    where lr.user_id = ${ctx.userId} and lr.resource_id = ${rid} and lr.visibility = 'public'`);
+  return r ?? null;
 }
 
 export type PostComment = {

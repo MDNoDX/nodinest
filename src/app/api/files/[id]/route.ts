@@ -28,9 +28,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // the originals heavy). Made on the fly, kept by the browser for a month.
     const w = Number(req.nextUrl.searchParams.get("w"));
     if (w && SIZES.includes(w) && /^image\/(jpeg|png|webp|avif)$/.test(f.contentType)) {
+      const bytes = Buffer.from(await new Response(f.stream).arrayBuffer());
       try {
-        const bytes = Buffer.from(await new Response(f.stream).arrayBuffer());
-        const out = await sharp(bytes)
+        // failOn "none": phones sometimes save a photo a little short; browsers
+        // still show it, so the small copy is made from what is there too.
+        const out = await sharp(bytes, { failOn: "none", limitInputPixels: 40_000_000 })
           .rotate()
           .resize({ width: w, height: w * 2, fit: "inside", withoutEnlargement: true })
           .webp({ quality: 78 })
@@ -44,7 +46,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           },
         });
       } catch {
-        return new NextResponse(null, { status: 404 });
+        // Not readable as a picture here: the original, as it is (never an empty cover).
+        return new NextResponse(new Uint8Array(bytes), {
+          headers: {
+            "content-type": f.contentType,
+            "content-length": String(bytes.length),
+            "cache-control": "private, max-age=86400",
+            "x-content-type-options": "nosniff",
+          },
+        });
       }
     }
     const headers: Record<string, string> = {

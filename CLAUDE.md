@@ -221,7 +221,10 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `/u/[username]/item/[id]/read` through `sharedTextOwner()` (read-only, never the owner's marks).
 - Premium switch off (Admin → Premium, `premiumOn()`): everyone gets the premium limits and every
   `.premium-only` mark / link is hidden by a style in (app)/layout.
-- Covers: podcasts / interviews are a vinyl record half out of its sleeve (`.rec`, spins on hover);
+- Covers: podcasts / interviews are a vinyl record half out of its sleeve (`.rec`, spins on hover,
+  nothing behind it); a picture that fails to load becomes the title cover (`cover-picture.tsx`,
+  `cover-typo.tsx`); `/api/files/[id]?w=` reads short phone JPEGs (`failOn: "none"`) and falls back
+  to the original. Media tiles are one box each with the animated cover inside (no raw pictures).
   the year's Röznoma book gets `.journal-doc` in the editor (ruled paper, ornamented months).
 - Guests (not signed in): `(app)/layout` renders `layout/guest-shell.tsx`; pages that are public use
   `pageContextOrGuest()` / `apiUserOrGuest()` / `runOpen()` with `GUEST` (a nil uuid, sees only what is
@@ -277,6 +280,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   words highlighted, one click to apply).
 - Legal pages must forbid pirated PDFs and sharing books / audiobooks (also shown under uploads).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
+- Resource types people pick: five (`MAIN_TYPES`: book, course = "Darslik", article (files too, may
+  carry a PDF), video, podcast). `file` / `other` stay for old rows; filters fold relatives together.
+- Posts count sends (`learning_records.shares`, 0052, `countShare`, from SendTo); my own public item
+  shows its 👍 / comments / shares in Darsxona (`myPostStats`).
+- Desktop apps: `/api/download/mac|windows` redirects to a 10-minute signed link in the private Blob
+  store (`downloads/…`, uploaded by hand from dist/); rebuild with `apps/mac/build.sh` /
+  `apps/windows npm run build`, upload, then bump the paths in the route.
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.

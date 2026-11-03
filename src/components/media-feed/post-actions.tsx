@@ -26,6 +26,7 @@ export function PostActions({
   likes,
   liked,
   comments,
+  shares = 0,
   share,
   openComments = false,
   children,
@@ -34,6 +35,8 @@ export function PostActions({
   likes: number;
   liked: boolean;
   comments: number;
+  /** How many times others sent it on. */
+  shares?: number;
   share: { resourceId: string; path: string; title: string };
   /** The post page shows them at once. */
   openComments?: boolean;
@@ -47,6 +50,7 @@ export function PostActions({
   const [burst, setBurst] = useState(0);
   const [count, setCount] = useState(comments);
   const [open, setOpen] = useState(openComments);
+  const [sent, setSent] = useState(shares);
   const seq = useRef(0);
 
   const like = async () => {
@@ -99,12 +103,21 @@ export function PostActions({
           <MessageCircle className="size-[18px]" />
           <span className="tabular-nums">{count > 0 ? count : t("comment")}</span>
         </button>
-        <SendTo
-          resourceId={share.resourceId}
-          share={share}
-          compact
-          className="size-9 rounded-full"
-        />
+        <span className="text-muted inline-flex items-center">
+          <SendTo
+            resourceId={share.resourceId}
+            share={share}
+            recordId={recordId}
+            onShared={(k) => setSent((x) => x + k)}
+            compact
+            className="size-9 rounded-full"
+          />
+          {sent > 0 && (
+            <span className="-ml-1 pr-2 text-sm font-semibold tabular-nums" title={t("shares")}>
+              {sent}
+            </span>
+          )}
+        </span>
         <span className="ml-auto flex items-center gap-1">{children}</span>
       </div>
       {open && <Comments recordId={recordId} onCount={setCount} />}

@@ -10,6 +10,7 @@ import {
   Quote,
   StickyNote,
   Star,
+  Globe,
 } from "lucide-react";
 import { ResumeMark } from "@/components/media/resume-mark";
 import { getOwnBook } from "@/server/own-books";
@@ -38,10 +39,11 @@ import { listTextSources } from "@/server/booktext";
 import { getResourceDetail, getResourceHeader } from "@/server/catalog";
 import { collectionsContaining, listCollections } from "@/server/notes";
 import { isStorageConfigured, listAttachments } from "@/server/storage";
-import { publicOwnerOf } from "@/server/social";
+import { publicOwnerOf, myPostStats } from "@/server/social";
 import { AddMenu } from "@/components/library/add-menu";
 import { VisibilityToggle } from "@/components/social/visibility-toggle";
 import { SendTo } from "@/components/chat/send-to";
+import { PostActions } from "@/components/media-feed/post-actions";
 import { shareState } from "@/server/social";
 import { pickName } from "@/i18n/config";
 
@@ -80,7 +82,9 @@ export default async function ResourcePage({
     listTextSources(ctx, id),
     getResume(db, ctx, id),
   ]);
-  const extras = d?.record ? await shareState(ctx, id) : undefined;
+  const [extras, post] = d?.record
+    ? await Promise.all([shareState(ctx, id), myPostStats(ctx, id)])
+    : [undefined, null];
   if (!d) {
     // Someone else's entry: its public card, when they show it.
     const owner = await publicOwnerOf(ctx, id);
@@ -353,6 +357,27 @@ export default async function ResourcePage({
         main={
           <>
             <ResumeMark resourceId={id} />
+            {/* Shown to others: what they did with it (👍, comments, sent on). */}
+            {post && user.username && (
+              <section className="card p-4" aria-label={t("media.yourPost")}>
+                <h2 className="text-muted mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
+                  <Globe className="size-3.5" /> {t("media.yourPost")}
+                </h2>
+                <PostActions
+                  recordId={post.recordId}
+                  likes={post.likes}
+                  liked={post.liked}
+                  comments={post.comments}
+                  shares={post.shares}
+                  openComments={post.comments > 0}
+                  share={{
+                    resourceId: r.id,
+                    path: `/u/${user.username}/item/${r.id}`,
+                    title: r.title,
+                  }}
+                />
+              </section>
+            )}
             {playable && (
               <div className="flex flex-col gap-2">
                 <PlayInDock

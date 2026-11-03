@@ -616,6 +616,8 @@ export const learningRecords = nodinest.table(
     visibility: text("visibility").notNull().default("private"),
     /** The book's text (PDF) may be read by those who see this public item. */
     textPublic: boolean("text_public").notNull().default(false),
+    /** How many times a public post was sent on (to chats, other apps, a copied link). */
+    shares: integer("shares").notNull().default(0),
     rating: smallint("rating"),
     review: text("review"),
     progressCurrent: integer("progress_current"),

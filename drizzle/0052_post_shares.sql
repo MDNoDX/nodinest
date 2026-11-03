@@ -1,0 +1,1 @@
+ALTER TABLE "nodinest"."learning_records" ADD COLUMN "shares" integer DEFAULT 0 NOT NULL;

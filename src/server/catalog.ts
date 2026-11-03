@@ -718,7 +718,11 @@ export async function listResources(database: Database, ctx: AppContext, f: Libr
     );
     // The user's own books live in "Kitob yozish", not in the Darsxona.
     conds.push(sql`not exists (select 1 from nodinest.own_books o where o.resource_id = r.id)`);
-    if (f.type) conds.push(sql`r.type = ${f.type}`);
+    // "Maqola" covers the files added before (one type now), "Video" lectures and interviews.
+    if (f.type === "article") conds.push(sql`r.type in ('article', 'file')`);
+    else if (f.type === "video") conds.push(sql`r.type in ('video', 'lecture')`);
+    else if (f.type === "podcast") conds.push(sql`r.type in ('podcast', 'interview')`);
+    else if (f.type) conds.push(sql`r.type = ${f.type}`);
     if (f.categoryId)
       conds.push(
         sql`exists (select 1 from nodinest.resource_categories rc where rc.resource_id = r.id and rc.category_id = ${f.categoryId})`,
