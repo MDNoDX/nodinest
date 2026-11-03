@@ -111,6 +111,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               aria-current={tab === k && !listOnly ? "page" : undefined}
               className={cn(
                 "flex shrink-0 items-center gap-3 text-sm font-medium whitespace-nowrap transition-colors md:gap-2.5 md:rounded-xl md:px-3 md:py-2",
+                // Keyboard shortcuts mean nothing on a phone.
+                k === "keys" && "max-md:hidden",
                 "max-md:hover:bg-surface-2 max-md:h-14 max-md:px-4 max-md:text-base",
                 tab === k
                   ? "md:bg-surface md:text-foreground md:shadow-sm md:ring-1 md:ring-[var(--border)]"
@@ -124,19 +126,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               <ChevronRight className="text-muted size-4 md:hidden" />
             </Link>
           ))}
-          <SignOutButton className="max-md:h-14 max-md:rounded-none max-md:px-4 max-md:text-base md:mt-3" />
-          {!user.isSuperadmin && (
-            <DeleteAccount
-              trigger={
-                <button
-                  type="button"
-                  className="text-muted flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--c-rose)]/10 hover:text-[var(--c-rose)] max-md:h-14 max-md:rounded-none max-md:px-4 max-md:text-base"
-                >
-                  <Trash2 className="size-4" /> {t("settings.deleteAccount.button")}
-                </button>
-              }
-            />
-          )}
         </nav>
         <div className={cn("flex min-w-0 flex-col gap-6", listOnly && "max-md:hidden")}>
           {tab === "app" && (
@@ -234,6 +223,30 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               </div>
             </Card>
           )}
+          {tab === "profile" && (
+            // The account itself: signing out and deleting it, both asked once more.
+            <Card>
+              <CardHeader title={t("settings.account")} />
+              <div className="flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:items-center">
+                <SignOutButton className="border-border justify-center border sm:justify-start" />
+                {!user.isSuperadmin && (
+                  <DeleteAccount
+                    trigger={
+                      <button
+                        type="button"
+                        className="text-muted border-border flex items-center justify-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--c-rose)]/10 hover:text-[var(--c-rose)] sm:justify-start"
+                      >
+                        <Trash2 className="size-4" /> {t("settings.deleteAccount.button")}
+                      </button>
+                    }
+                  />
+                )}
+              </div>
+              {!user.isSuperadmin && (
+                <p className="text-muted px-5 pb-5 text-xs">{t("settings.deleteAccount.hint")}</p>
+              )}
+            </Card>
+          )}
           {tab === "look" && (
             <Card>
               <CardHeader title={t("settings.appearance")} />
@@ -242,8 +255,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               </div>
             </Card>
           )}
+          {/* Menu: a phone sets its bottom bar, a computer its side menu's order (each sees only its own). */}
           {tab === "menu" && (
-            <Card>
+            <Card className="md:hidden">
               <CardHeader title={t("settings.phoneTabs")} icon={<Smartphone />} hue="sky" />
               <div className="px-5 pb-5">
                 <PhoneTabsSettings
@@ -253,7 +267,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             </Card>
           )}
           {tab === "menu" && (
-            <Card id="menu">
+            <Card id="menu" className="max-md:hidden">
               <CardHeader title={t("settings.navOrder")} icon={<ListOrdered />} hue="teal" />
               <div className="px-5 pb-5">
                 <NavOrderSettings />

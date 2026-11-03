@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { takeSharedAction } from "@/app/actions/dm";
 import { Cover, coverSrc } from "@/components/library/cover";
+import { AskFirst } from "@/components/ui/ask-first";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
 import type { DmMessage, Kind as DmKind } from "@/server/dm";
@@ -356,6 +357,7 @@ export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
 
 function SharedItem({ m, mine }: { m: DmMessage; mine: boolean }) {
   const t = useTranslations("chat");
+  const tm = useTranslations("media");
   const tt = useTranslations("types");
   const it = m.item!;
   const [taken, setTaken] = useState(false);
@@ -378,24 +380,30 @@ function SharedItem({ m, mine }: { m: DmMessage; mine: boolean }) {
               {taken && <Check className="size-3.5" />} {t("open")}
             </Link>
           ) : (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() =>
+            <AskFirst
+              title={tm("takeTitle")}
+              message={tm("takeBody")}
+              confirmLabel={t("take")}
+              onConfirm={() =>
                 exec(() => takeSharedAction(m.id), {
                   onSuccess: () => setTaken(true),
                   success: t("taken"),
                 })
               }
-              className="bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-colors"
             >
-              {pending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <BookPlus className="size-3.5" />
-              )}
-              {t("take")}
-            </button>
+              <button
+                type="button"
+                disabled={pending}
+                className="bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-semibold transition-colors"
+              >
+                {pending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <BookPlus className="size-3.5" />
+                )}
+                {t("take")}
+              </button>
+            </AskFirst>
           )}
         </div>
       </div>

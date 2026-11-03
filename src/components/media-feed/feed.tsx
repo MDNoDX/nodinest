@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { takeSourceAction } from "@/app/actions/social";
+import { AskFirst } from "@/components/ui/ask-first";
 import { moreMediaAction } from "@/app/actions/media";
 import { Cover, coverSrc } from "@/components/library/cover";
 import { listTime } from "@/components/chat/parts";
@@ -260,32 +261,38 @@ function FeedPost({ it }: { it: MediaItem }) {
           }}
         >
           {!it.mine && (
-            <button
-              type="button"
-              disabled={taken || pending}
-              onClick={() =>
+            <AskFirst
+              title={t("takeTitle")}
+              message={t("takeBody")}
+              confirmLabel={t("take")}
+              onConfirm={() =>
                 exec(() => takeSourceAction(it.resourceId, it.ownerId), {
                   onSuccess: () => setTaken(true),
                   success: t("taken"),
                 })
               }
-              title={taken ? t("inLibrary") : t("take")}
-              className={cn(
-                "inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors",
-                taken
-                  ? "text-muted"
-                  : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
-              )}
             >
-              {pending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : taken ? (
-                <Check className="size-3.5" />
-              ) : (
-                <BookPlus className="size-3.5" />
-              )}
-              <span className="max-sm:hidden">{taken ? t("inLibrary") : t("take")}</span>
-            </button>
+              <button
+                type="button"
+                disabled={taken || pending}
+                title={taken ? t("inLibrary") : t("take")}
+                className={cn(
+                  "inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors",
+                  taken
+                    ? "text-muted"
+                    : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
+                )}
+              >
+                {pending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : taken ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <BookPlus className="size-3.5" />
+                )}
+                <span className="max-sm:hidden">{taken ? t("inLibrary") : t("take")}</span>
+              </button>
+            </AskFirst>
           )}
         </PostActions>
       </div>

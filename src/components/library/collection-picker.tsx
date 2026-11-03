@@ -27,7 +27,7 @@ export function CollectionPicker({
       <M.Trigger asChild>
         <Button
           variant="outline"
-          size="sm"
+          size={compact ? undefined : "sm"}
           loading={pending}
           title={t("resource.addToCollection")}
           aria-label={t("resource.addToCollection")}

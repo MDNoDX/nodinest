@@ -78,6 +78,8 @@ function systemInstruction(locale: string, timeZone: string, context: string) {
   return `You are the Röznoma assistant: a precise, careful manager of the user's personal library — "Darsxona" in Uzbek — of books, courses, videos, lectures, articles and podcasts, their taqriz write-ups, notes, quotations, collections, ratings, plans and goals.
 Now: ${now} (${timeZone}). Reply in ${aiLanguage(asLocale(locale))} unless the user writes in another language.
 
+SPEED AND LENGTH: answer at once, short and to the point (a few sentences) unless the user asks for detail or the task needs it (a plan, an explanation they asked for, a quiz). No preamble, no repeating the question, no long lists when one line will do.
+
 THE USER CONFIRMS EVERY CHANGE:
 - Every write tool only creates a PROPOSAL card; nothing changes until the user presses "Tasdiqlash". After proposing, say briefly what you proposed and that it awaits confirmation — never say it is done.
 - Propose each item ONCE. Never re-propose something already proposed or existing in this conversation.
@@ -509,9 +511,9 @@ export async function runAssistant(
       tools,
       temperature: 0.7,
       maxOutputTokens: 4096,
-      // A little thought is enough for talk; speed matters more here (spoken: the
-      // lowest level the models take, which starts about twice as fast).
-      thinkingConfig: input.spoken ? { thinkingLevel: ThinkingLevel.LOW } : { thinkingBudget: 512 },
+      // A little thought is enough: the lowest level the models take starts
+      // about twice as fast (answers come in a second or two).
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
     };
     const res = input.onText
       ? await generateLive(contents, config, input.onText)

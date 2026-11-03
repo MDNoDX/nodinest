@@ -242,4 +242,15 @@ describe("the year's book is written again", () => {
       .map((n) => (n.content ?? []).map((c) => c.text).join(""));
     expect(heads).toEqual(["Bahor"]);
   });
+
+  it("a one-day plan leaves a week after its day; repeating ones stay", async () => {
+    const r = await import("@/server/roznoma");
+    const u = await makeUser(db);
+    await r.saveRoutine(u, { title: "Har kuni", repeat: "daily" });
+    await r.saveRoutine(u, { title: "Eski bir martalik", repeat: "once", onDay: "2026-09-01" });
+    await r.saveRoutine(u, { title: "Yangi bir martalik", repeat: "once", onDay: "2026-09-06" });
+    await r.dropOldOnce(u, "2026-09-10");
+    const titles = (await r.listRoutines(u)).map((x) => x.title).sort();
+    expect(titles).toEqual(["Har kuni", "Yangi bir martalik"]);
+  });
 });

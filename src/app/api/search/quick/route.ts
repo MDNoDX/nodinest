@@ -23,13 +23,22 @@ export async function GET(req: NextRequest) {
     const people = all || wanted.has("people");
     const media = all || kinds.length > 0;
     const words = !!q.trim();
+    // Darsxona narrowed to one kind of my own things.
+    const LIB: Record<string, string> = {
+      book: "book",
+      video: "video",
+      podcast: "podcast",
+      course: "course",
+      document: "article",
+    };
+    const libType = LIB[p.get("lib") ?? ""] ?? null;
     if (!words && !(kinds.length && !library && !people)) return json({ items: [] });
 
     if (media) await enforceRateLimit(db, `mediasearch:${ctx.userId}`, 900, 3600);
     const [found, posts, mine] = await Promise.all([
       people && words ? searchPeople(ctx, q).catch(() => []) : [],
       media ? searchMedia(ctx, q, kinds.length ? kinds : null).catch(() => []) : [],
-      library && words ? quickSearch(db, ctx, q) : [],
+      library && words ? quickSearch(db, ctx, q, libType) : [],
     ]);
     // Only one place asked for: more of it.
     const lone = wanted.size === 1 || (kinds.length === wanted.size && !all);

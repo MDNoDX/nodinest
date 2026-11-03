@@ -477,10 +477,27 @@ export async function myItemsCount(ctx: AppContext) {
 
 /** My whole library with who may see each item (for the profile's switches). */
 export async function myItemsVisibility(ctx: AppContext) {
+  // With each item: whether it has a write-up / audiobook / book text to show too
+  // (null = it has none), so switching it on can ask about them right there.
   return withUser(db, ctx, (tx) =>
-    tx.execute<{ resourceId: string; title: string; type: string; public: boolean }>(sql`
+    tx.execute<{
+      resourceId: string;
+      title: string;
+      type: string;
+      public: boolean;
+      writeup: boolean | null;
+      audiobook: boolean | null;
+      text: boolean | null;
+    }>(sql`
       select lr.resource_id as "resourceId", r.title, r.type::text as type,
-        (lr.visibility = 'public') as public
+        (lr.visibility = 'public') as public,
+        (select w.is_public from nodinest.writeups w
+          where w.user_id = lr.user_id and w.resource_id = lr.resource_id and w.words > 0) as writeup,
+        (select a.is_public from nodinest.audiobooks a
+          where a.user_id = lr.user_id and a.resource_id = lr.resource_id and a.status = 'ready')
+          as audiobook,
+        case when exists(select 1 from nodinest.book_text_sources s where s.user_id = lr.user_id
+          and s.resource_id = lr.resource_id and s.status = 'ready') then lr.text_public end as text
       from nodinest.learning_records lr
       join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
       where lr.user_id = ${ctx.userId}

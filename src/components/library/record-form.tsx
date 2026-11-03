@@ -6,7 +6,7 @@ import { removeRecordAction, saveRecordAction } from "@/app/actions/personal";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm";
 import { Field } from "@/components/ui/field";
-import { Input, Select, Textarea } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { ReadingDateInput, todayValue } from "@/components/ui/reading-date-input";
 import { cn } from "@/lib/cn";
 import type { FieldErrors } from "@/lib/errors";
@@ -230,17 +230,7 @@ export function RecordForm({
         </Select>
       </div>
 
-      <Field label={t("record.review")} optional>
-        {(p) => (
-          <Textarea
-            {...p}
-            rows={3}
-            value={v.review}
-            onChange={(e) => set("review", e.target.value)}
-          />
-        )}
-      </Field>
-
+      {/* No "short review" here: thoughts belong in the taqriz and notes (an old one is kept as it is). */}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" loading={pending}>
           {t("common.save")}

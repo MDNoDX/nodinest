@@ -37,7 +37,11 @@ export default async function ProfileItemsPage({
         <ArrowLeft className="size-4" /> {p.name}
       </Link>
       {p.self ? (
-        <ItemsVisibility items={[...mine]} profilePublic={user.profilePublic} />
+        <ItemsVisibility
+          items={[...mine]}
+          profilePublic={user.profilePublic}
+          username={p.username}
+        />
       ) : (
         <>
           <h1 className="text-xl font-bold tracking-tight">{t("library")}</h1>

@@ -537,7 +537,8 @@
     "originalTitlePh": "Tarjima bölsa, asl tildagi nomi: The Alçemist",
     "identifiersHint": "ISBN yoki YouTube ID kabi yagona raqam. Bir manba ikki marta qöşilmasligini tekşiradi va muqova, davomiylikni topişga yordam beradi.",
     "publicHint": "Profilingizda körinadi. Profilingiz yopiq bölsa, faqat kuzatuvçilarga.",
-    "privateHint": "Faqat sizga körinadi."
+    "privateHint": "Faqat sizga körinadi.",
+    "readingReady": "matni tayyor"
   },
   "record": {
     "status": "Holati",
@@ -650,7 +651,8 @@
     "attributed": "— {name}",
     "kindNoteHint": "Fikr, xulosa yoki eslatma",
     "kindQuoteHint": "Kitob yoki ma’ruzadan aynan köçirma",
-    "forResource": "«{title}» böyiça qaydlar va iqtiboslar"
+    "forResource": "«{title}» böyiça qaydlar va iqtiboslar",
+    "moreTitle": "Manba va tafsilotlar"
   },
   "collections": {
     "title": "Töplamlar",
@@ -1165,7 +1167,8 @@
     "phoneTabsRemove": "Menyuga olib taşlaş",
     "phoneTabsAdd": "Pastga",
     "phoneTabsMenu": "Menyuda",
-    "phoneTabsFull": "Pastda {n} ta bölim bor — avval birini olib taşlang"
+    "phoneTabsFull": "Pastda {n} ta bölim bor — avval birini olib taşlang",
+    "account": "Hisob"
   },
   "admin": {
     "title": "Boşqaruv",
@@ -2496,13 +2499,13 @@
     "storyPh": "Bugun nimalar böldi?",
     "highlights": "Esda qoladiganlar",
     "highlightPh": "Bir voqea yoki fikr…",
-    "conclusion": "Kun xulosasi",
-    "lessonPh": "Bugungi xulosa",
+    "conclusion": "Kun iqtibosi",
+    "lessonPh": "Bugungi iqtibos",
     "productive": "Unumli vaqt",
     "hoursShort": "soat",
-    "better": "Bugun keçagidan unumlimi?",
-    "betterYes": "Unumli",
-    "betterNo": "Unumli emas",
+    "better": "Bugun keçagidan yaxşimi?",
+    "betterYes": "Ha",
+    "betterNo": "Yöq",
     "saveDay": "Saqlaş",
     "logSaved": "Kun kitobga yozildi.",
     "openBook": "Kitobni oçiş",
@@ -2739,7 +2742,9 @@
     "noComments": "Hali izoh yöq. Birinçi bölib yozing.",
     "writeComment": "Izoh yozing…",
     "yourPost": "Postingiz",
-    "shares": "Ulaşilgan"
+    "shares": "Ulaşilgan",
+    "takeTitle": "Darsxonangizga olasizmi?",
+    "takeBody": "Faqat kartasi (nomi, muqovasi, mualliflari) sizning Darsxonangizga qöşiladi — uning qaydlari, fayllari va matni emas."
   },
   "sectionHint": {
     "close": "Yopiş",

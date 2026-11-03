@@ -57,6 +57,22 @@ const FILTERS = [
   ["document", FileText],
 ] as const;
 type Filter = (typeof FILTERS)[number][0];
+/** My Darsxona's kinds (null = all) and the resource type each one searches. */
+const LIB_KINDS = [
+  [null, LayoutGrid],
+  ["book", BookOpen],
+  ["video", Play],
+  ["podcast", Headphones],
+  ["course", GraduationCap],
+  ["document", FileText],
+] as const;
+const LIB_TYPE: Record<string, string> = {
+  book: "book",
+  video: "video",
+  podcast: "podcast",
+  course: "course",
+  document: "article",
+};
 const KIND_SET = new Set<string>(["book", "video", "podcast", "course", "document"]);
 const PINS_KEY = "nn:search-pins";
 
@@ -91,6 +107,8 @@ export function CommandPalette() {
   const [q, setQ] = useState("");
   // Where to look now (none = everywhere) and what is pinned.
   const [sel, setSel] = useState<Filter[]>([]);
+  // Inside Darsxona: one kind of my own things (none = all of them).
+  const [libKind, setLibKind] = useState<string | null>(null);
   const [pins, setPins] = useState<Filter[]>([]);
   const [items, setItems] = useState<Hit[]>([]);
   const [loadedFor, setLoadedFor] = useState("");
@@ -112,13 +130,16 @@ export function CommandPalette() {
   // What is asked for: the words plus where to look (kinds alone list their newest posts).
   const where = sel.join(",");
   const onlyKinds = sel.length > 0 && sel.every((x) => KIND_SET.has(x));
-  const ask = `${where}|${debounced.trim()}`;
+  const inLib = sel.includes("library");
+  const lib = inLib ? libKind : null;
+  const ask = `${where}|${lib ?? ""}|${debounced.trim()}`;
   const asking = !!debounced.trim() || onlyKinds;
   useEffect(() => {
     if (!asking) return;
     const ctrl = new AbortController();
     const u = new URLSearchParams({ q: debounced });
     if (where) u.set("in", where);
+    if (lib) u.set("lib", lib);
     fetch(`/api/search/quick?${u}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((d: { items: Hit[] }) => {
@@ -128,13 +149,14 @@ export function CommandPalette() {
       })
       .catch(() => {});
     return () => ctrl.abort();
-  }, [ask, asking, debounced, where]);
+  }, [ask, asking, debounced, where, lib]);
 
   const typed = !!q.trim();
   const shows = typed || onlyKinds;
   const loading = shows && (q !== debounced || ask !== loadedFor);
   const pick = (x: Filter | null) => {
     setSel(x ? [x] : []);
+    if (x !== "library") setLibKind(null);
     setActive(0);
   };
   const pin = (x: Filter) => {
@@ -164,7 +186,7 @@ export function CommandPalette() {
           {
             group: "all",
             id: "all",
-            href: `/search?q=${encodeURIComponent(q)}`,
+            href: `/search?q=${encodeURIComponent(q)}${lib ? `&type=${LIB_TYPE[lib]}` : ""}`,
             title: t("search.showAllMine"),
             subtitle: q,
             kind: null,
@@ -261,6 +283,24 @@ export function CommandPalette() {
               </Fragment>
             ))}
           </div>
+          {/* Darsxona chosen: its own kinds below it (all of them unless one is picked). */}
+          {inLib && (
+            <div className="border-border animate-fade-in bg-surface-2/50 flex items-center gap-1 overflow-x-auto border-b px-2 py-1.5">
+              <span className="text-muted px-1.5 text-xs font-semibold">
+                {t("search.scope.library")}:
+              </span>
+              {LIB_KINDS.map(([k, Icon]) => (
+                <FilterBtn
+                  key={k ?? "all"}
+                  label={t(k ? `search.kinds.${k}` : "search.scope.all")}
+                  on={libKind === k}
+                  onClick={() => setLibKind(k)}
+                >
+                  <Icon className="size-4" />
+                </FilterBtn>
+              ))}
+            </div>
+          )}
           {!shows ? (
             <p className="text-muted px-4 py-5 text-center text-sm">
               {t(`search.paletteHint.${mode}`)}

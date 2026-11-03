@@ -2,7 +2,6 @@ import {
   BookOpen,
   ChevronRight,
   Clock3,
-  Eye,
   GraduationCap,
   Lock,
   MessageCircle,
@@ -20,7 +19,7 @@ import { ProfileEditor } from "@/components/social/profile-editor";
 import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContextOrGuest } from "@/lib/page";
-import { myItemsCount, profileByUsername, profileStats, publicItems } from "@/server/social";
+import { profileByUsername, profileStats, publicItems } from "@/server/social";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +39,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const name = decodeURIComponent(username).toLowerCase();
   // My own page: everything is asked for at once (no waiting in turn).
   const mine = !!user && name === user.username?.toLowerCase();
-  const [p, myItems, ownItems] = await Promise.all([
+  const [p, ownItems] = await Promise.all([
     profileByUsername(ctx, name),
-    mine ? myItemsCount(ctx) : Promise.resolve(0),
     mine && user ? publicItems(ctx, user.id) : Promise.resolve(null),
   ]);
   if (!p) notFound();
@@ -185,21 +183,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             cols="sm:grid-cols-6"
           />
         </section>
-      )}
-      {p.self && myItems > 0 && (
-        <Link
-          href={`/u/${p.username}/items`}
-          className="card hover:border-border-strong flex items-center gap-3 p-4 transition-colors"
-        >
-          <Eye className="size-5 text-[var(--c-emerald)]" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold">{t("whatOthersSee")}</span>
-            <span className="text-muted block text-xs">
-              {t("whatOthersSeeHint", { open: items.length, total: myItems })}
-            </span>
-          </span>
-          <ChevronRight className="text-muted size-4" />
-        </Link>
       )}
       {p.self && !p.profilePublic && (
         <p className="bg-surface-2 text-muted flex items-center gap-2 rounded-xl px-4 py-3 text-sm">

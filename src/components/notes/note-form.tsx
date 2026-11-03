@@ -1,5 +1,5 @@
 "use client";
-import { FileText, Quote, X } from "lucide-react";
+import { ChevronDown, FileText, Quote, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -105,8 +105,8 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
       <div role="radiogroup" aria-label={t("notes.kind")} className="grid grid-cols-2 gap-3">
         {(
           [
-            ["note", FileText, "teal", t("notes.kindNote"), t("notes.kindNoteHint")],
             ["quote", Quote, "violet", t("notes.kindQuote"), t("notes.kindQuoteHint")],
+            ["note", FileText, "teal", t("notes.kindNote"), t("notes.kindNoteHint")],
           ] as const
         ).map(([k, Icon, hue, label, hint]) => {
           const on = v.kind === k;
@@ -174,125 +174,116 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
         </Field>
       </section>
 
-      <section className="card grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
-        <Field label={t("notes.resource")} optional className="sm:col-span-2">
-          {(p) =>
-            v.resource ? (
-              <Picked
-                label={v.resource.label}
-                onClear={() => set("resource", null)}
-                clearLabel={t("common.remove")}
-              />
-            ) : (
-              <Combobox
-                id={p.id}
-                endpoint="/api/autocomplete/resources"
-                mapItem={mapResource}
-                placeholder={t("notes.resourcePlaceholder")}
-                onPick={(o) => set("resource", { id: o.id, label: o.label })}
-              />
-            )
-          }
-        </Field>
-        {isQuote && (
-          <Field
-            label={t("notes.person")}
-            optional
-            hint={t("notes.personHint")}
-            className="sm:col-span-2"
-          >
+      {/* Where it is from and the rest: closed until wanted (the source still shows in the title). */}
+      <details className="card group p-5 sm:p-6">
+        <summary className="flex cursor-pointer list-none items-center gap-2.5">
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
+            {t("notes.moreTitle")}
+            {v.resource && <span className="text-muted font-normal"> · {v.resource.label}</span>}
+          </span>
+          <ChevronDown className="text-muted size-4 shrink-0 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label={t("notes.resource")} optional className="sm:col-span-2">
             {(p) =>
-              v.person ? (
+              v.resource ? (
                 <Picked
-                  label={v.person.label}
-                  onClear={() => set("person", null)}
+                  label={v.resource.label}
+                  onClear={() => set("resource", null)}
                   clearLabel={t("common.remove")}
                 />
               ) : (
                 <Combobox
                   id={p.id}
-                  aria-describedby={p["aria-describedby"]}
-                  endpoint="/api/autocomplete/people"
-                  mapItem={mapPerson}
-                  placeholder={t("resource.contributorPlaceholder")}
-                  onPick={(o) => set("person", { id: o.id, label: o.label })}
+                  endpoint="/api/autocomplete/resources"
+                  mapItem={mapResource}
+                  placeholder={t("notes.resourcePlaceholder")}
+                  onPick={(o) => set("resource", { id: o.id, label: o.label })}
                 />
               )
             }
           </Field>
-        )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t("notes.pageFrom")} optional>
-            {(p) => (
-              <Input
-                {...p}
-                type="number"
-                min={0}
-                value={v.pageFrom}
-                onChange={(e) => set("pageFrom", e.target.value)}
-              />
-            )}
-          </Field>
-          <Field label={t("notes.pageTo")} optional error={errors.pageTo}>
-            {(p) => (
-              <Input
-                {...p}
-                type="number"
-                min={0}
-                value={v.pageTo}
-                onChange={(e) => set("pageTo", e.target.value)}
-              />
-            )}
-          </Field>
-        </div>
-        <Field label={t("notes.location")} optional>
-          {(p) => (
-            <Input {...p} value={v.location} onChange={(e) => set("location", e.target.value)} />
-          )}
-        </Field>
-        <Field label={t("common.tags")} optional className="sm:col-span-2">
-          {(p) => (
-            <TagInput
-              id={p.id}
-              aria-describedby={p["aria-describedby"]}
-              value={v.tags}
-              onChange={(tags) => set("tags", tags)}
-              removeLabel={t("common.remove")}
-            />
-          )}
-        </Field>
-        <Field label={t("common.visibility")} hint={t("notes.visibilityHint")}>
-          {(p) => (
-            <Select
-              {...p}
-              value={v.visibility}
-              onChange={(e) => set("visibility", e.target.value as NoteFormValue["visibility"])}
+          {isQuote && (
+            <Field
+              label={t("notes.person")}
+              optional
+              hint={t("notes.personHint")}
+              className="sm:col-span-2"
             >
-              <option value="private">{t("common.private")}</option>
-              <option value="public">{t("common.public")}</option>
-            </Select>
+              {(p) =>
+                v.person ? (
+                  <Picked
+                    label={v.person.label}
+                    onClear={() => set("person", null)}
+                    clearLabel={t("common.remove")}
+                  />
+                ) : (
+                  <Combobox
+                    id={p.id}
+                    aria-describedby={p["aria-describedby"]}
+                    endpoint="/api/autocomplete/people"
+                    mapItem={mapPerson}
+                    placeholder={t("resource.contributorPlaceholder")}
+                    onPick={(o) => set("person", { id: o.id, label: o.label })}
+                  />
+                )
+              }
+            </Field>
           )}
-        </Field>
-        {isQuote && (
-          <Field label={t("notes.verification")}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("notes.pageFrom")} optional>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="number"
+                  min={0}
+                  value={v.pageFrom}
+                  onChange={(e) => set("pageFrom", e.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t("notes.pageTo")} optional error={errors.pageTo}>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="number"
+                  min={0}
+                  value={v.pageTo}
+                  onChange={(e) => set("pageTo", e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t("notes.location")} optional>
+            {(p) => (
+              <Input {...p} value={v.location} onChange={(e) => set("location", e.target.value)} />
+            )}
+          </Field>
+          <Field label={t("common.tags")} optional className="sm:col-span-2">
+            {(p) => (
+              <TagInput
+                id={p.id}
+                aria-describedby={p["aria-describedby"]}
+                value={v.tags}
+                onChange={(tags) => set("tags", tags)}
+                removeLabel={t("common.remove")}
+              />
+            )}
+          </Field>
+          <Field label={t("common.visibility")} hint={t("notes.visibilityHint")}>
             {(p) => (
               <Select
                 {...p}
-                value={v.verification}
-                onChange={(e) =>
-                  set("verification", e.target.value as NoteFormValue["verification"])
-                }
+                value={v.visibility}
+                onChange={(e) => set("visibility", e.target.value as NoteFormValue["visibility"])}
               >
-                {(["unverified", "verified", "disputed"] as const).map((x) => (
-                  <option key={x} value={x}>
-                    {t(`verification.${x}`)}
-                  </option>
-                ))}
+                <option value="private">{t("common.private")}</option>
+                <option value="public">{t("common.public")}</option>
               </Select>
             )}
           </Field>
-        )}
-      </section>
+        </div>
+      </details>
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => router.back()}>

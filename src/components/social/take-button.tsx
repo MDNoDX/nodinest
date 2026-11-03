@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { takeSourceAction } from "@/app/actions/social";
+import { AskFirst } from "@/components/ui/ask-first";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/lib/use-action";
 
-/** Adds a card someone shows to my library (the card only, nothing of theirs). */
+/** Adds a card someone shows to my library (the card only, nothing of theirs), asked first. */
 export function TakeButton({
   resourceId,
   ownerId,
@@ -29,16 +30,20 @@ export function TakeButton({
       </Button>
     );
   return (
-    <Button
-      loading={pending}
-      onClick={() =>
+    <AskFirst
+      title={t("takeTitle")}
+      message={t("takeBody")}
+      confirmLabel={t("take")}
+      onConfirm={() =>
         exec(() => takeSourceAction(resourceId, ownerId), {
           onSuccess: () => setTaken(true),
           success: t("taken"),
         })
       }
     >
-      <BookPlus /> {t("take")}
-    </Button>
+      <Button loading={pending}>
+        <BookPlus /> {t("take")}
+      </Button>
+    </AskFirst>
   );
 }

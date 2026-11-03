@@ -11,7 +11,7 @@ import { addDays } from "@/lib/dates";
 import { fmtDay } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listGoalsWithProgress } from "@/server/goals";
-import { ensureDefaults, getDay, listRoutines } from "@/server/roznoma";
+import { dropOldOnce, ensureDefaults, getDay, listRoutines } from "@/server/roznoma";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
@@ -39,7 +39,8 @@ export default async function RoznomaPage({ searchParams }: { searchParams: SP }
   const qd = sp(q.day);
   const day = qd && /^\d{4}-\d{2}-\d{2}$/.test(qd) ? qd : today;
 
-  await ensureDefaults(ctx, locale);
+  // One-day plans leave a week after their day (never blocks the page).
+  await Promise.all([ensureDefaults(ctx, locale), dropOldOnce(ctx, today).catch(() => {})]);
   let body: React.ReactNode = null;
   if (tab === "day") {
     const [d, all] = await Promise.all([getDay(ctx, day), listRoutines(ctx)]);

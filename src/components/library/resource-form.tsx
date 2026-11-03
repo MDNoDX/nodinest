@@ -422,10 +422,11 @@ export function ResourceForm({
         <div className="mb-4 text-[15px] font-semibold tracking-tight">
           {t("resource.whatType")}
         </div>
+        {/* One row of icons (it fits a phone); the chosen one's name and hint come below. */}
         <div
           role="radiogroup"
           aria-label={t("resource.type")}
-          className="flex flex-wrap justify-center gap-2.5"
+          className="flex justify-center gap-2 sm:gap-3"
         >
           {/* An entry made before as "file" / "other" keeps its type on the list. */}
           {(MAIN_TYPES.includes(v.type) ? MAIN_TYPES : [...MAIN_TYPES, v.type]).map((ty) => {
@@ -437,26 +438,26 @@ export function ResourceForm({
                 type="button"
                 role="radio"
                 aria-checked={on}
+                aria-label={t(`types.${ty}`)}
                 onClick={() => set("type", ty)}
-                title={t(`typeHints.${ty}`)}
+                title={t(`types.${ty}`)}
                 style={hueStyle(TYPE_HUE[ty])}
                 className={cn(
-                  // Five: three above, two below (centred), on every screen.
-                  "flex w-[calc(50%-0.32rem)] items-center gap-2.5 rounded-xl border px-3 py-3 text-left text-sm font-medium transition-all sm:w-[calc(33.333%-0.42rem)]",
+                  "grid size-14 place-items-center rounded-2xl border transition-all sm:size-16",
                   on
-                    ? "hue-soft hue-border shadow-sm ring-2 ring-[var(--hue)]/40"
-                    : "border-border bg-surface hover:-translate-y-0.5 hover:shadow-sm",
+                    ? "hue-soft hue-border scale-105 shadow-sm ring-2 ring-[var(--hue)]/40"
+                    : "border-border bg-surface text-muted hover:-translate-y-0.5 hover:shadow-sm",
                 )}
               >
-                <span className="chip grid size-9 shrink-0 place-items-center rounded-lg">
-                  <Icon className="size-[18px]" />
-                </span>
-                <span className="leading-tight">{t(`types.${ty}`)}</span>
+                <Icon className={cn("size-6", on && "text-[var(--hue)]")} />
               </button>
             );
           })}
         </div>
-        <p className="text-muted mt-3 text-sm">{t(`typeHints.${v.type}`)}</p>
+        <p className="mt-3 text-center text-sm">
+          <span className="font-semibold">{t(`types.${v.type}`)}</span>
+          <span className="text-muted"> — {t(`typeHints.${v.type}`)}</span>
+        </p>
       </fieldset>
 
       {/* 2. Find online (closed until wanted) */}
@@ -667,38 +668,58 @@ export function ResourceForm({
         </div>
       </section>
 
-      {/* A PDF: books, and articles (which now cover files too). */}
-      {!resourceId && (isBook || v.type === "article") && storageEnabled && (
-        <section className="card p-5 sm:p-6">
-          <SectionTitle
-            title={t("resource.pdfTitle")}
-            icon={<FileText />}
-            hue="violet"
-            className="mb-1"
-          />
-          <p className="text-muted mb-3 text-sm">{t("resource.pdfHint")}</p>
-          {pdfId ? (
-            <p className="bg-surface-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-sm">
-              <FileText className="size-4 text-[var(--c-violet)]" /> {t("resource.pdfReady")}
-              <Button type="button" variant="ghost" size="sm" onClick={() => setPdfId(null)}>
-                <X /> {t("upload.remove")}
-              </Button>
-            </p>
-          ) : (
-            <FileUpload
-              purpose="attachment"
-              enabled={storageEnabled}
-              userId={userId}
-              label={t("resource.uploadPdf")}
-              variant="drop"
-              onUploaded={(id) => setPdfId(id)}
+      {/* 4. Classification (right under the basics) */}
+      <section className="card p-5 sm:p-6">
+        <SectionTitle title={t("resource.classification")} icon={<Tags />} hue="amber" />
+        {categories.length > 0 && (
+          <fieldset className="mb-4">
+            <legend className="mb-2 text-sm font-medium">{t("resource.categories")}</legend>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => {
+                const on = v.categoryIds.includes(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    style={hueStyle(hueFor(c.id))}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
+                      on
+                        ? "chip hue-border"
+                        : "border-border-strong text-muted hover:bg-surface-2 hover:text-foreground",
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={on}
+                      onChange={() =>
+                        set(
+                          "categoryIds",
+                          on ? v.categoryIds.filter((x) => x !== c.id) : [...v.categoryIds, c.id],
+                        )
+                      }
+                    />
+                    {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+        <Field label={t("common.tags")} optional>
+          {(p) => (
+            <TagInput
+              id={p.id}
+              aria-describedby={p["aria-describedby"]}
+              value={v.tags}
+              onChange={(tags) => set("tags", tags)}
+              removeLabel={t("common.remove")}
             />
           )}
-          <LegalPdfNote />
-        </section>
-      )}
+        </Field>
+      </section>
 
-      {/* 4. People */}
+      {/* 5. People */}
       <section className="card p-5 sm:p-6">
         <SectionTitle
           title={t("resource.contributors")}
@@ -780,7 +801,7 @@ export function ResourceForm({
         />
       </section>
 
-      {/* 5. Dates & details (closed): books have their own set; every other type shares one */}
+      {/* 6. Dates & details (closed): books have their own set; every other type shares one */}
       <details className="card group p-5 sm:p-6">
         <summary className="flex cursor-pointer list-none items-center gap-2.5">
           <IconChip icon={<DetailsIcon />} hue={TYPE_HUE[v.type]} />
@@ -995,58 +1016,40 @@ export function ResourceForm({
         </div>
       </details>
 
-      {/* 6. Classification */}
-      <section className="card p-5 sm:p-6">
-        <SectionTitle title={t("resource.classification")} icon={<Tags />} hue="amber" />
-        {categories.length > 0 && (
-          <fieldset className="mb-4">
-            <legend className="mb-2 text-sm font-medium">{t("resource.categories")}</legend>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((c) => {
-                const on = v.categoryIds.includes(c.id);
-                return (
-                  <label
-                    key={c.id}
-                    style={hueStyle(hueFor(c.id))}
-                    className={cn(
-                      "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-[var(--hue)]/40",
-                      on
-                        ? "chip hue-border"
-                        : "border-border-strong text-muted hover:bg-surface-2 hover:text-foreground",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={on}
-                      onChange={() =>
-                        set(
-                          "categoryIds",
-                          on ? v.categoryIds.filter((x) => x !== c.id) : [...v.categoryIds, c.id],
-                        )
-                      }
-                    />
-                    {pickName(locale, { uz: c.nameUz, ru: c.nameRu, en: c.nameEn })}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        )}
-        <Field label={t("common.tags")} optional>
-          {(p) => (
-            <TagInput
-              id={p.id}
-              aria-describedby={p["aria-describedby"]}
-              value={v.tags}
-              onChange={(tags) => set("tags", tags)}
-              removeLabel={t("common.remove")}
+      {/* 7. A PDF: books, and articles (which now cover files too). */}
+      {!resourceId && (isBook || v.type === "article") && storageEnabled && (
+        // Closed until wanted (open once a PDF is chosen); it comes last.
+        <details className="card group p-5 sm:p-6" open={!!pdfId || undefined}>
+          <summary className="flex cursor-pointer list-none items-center gap-2.5">
+            <IconChip icon={<FileText />} hue="violet" />
+            <span className="text-[15px] font-semibold tracking-tight">
+              {t("resource.pdfTitle")}
+            </span>
+            <ChevronDown className="text-muted ml-auto size-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <p className="text-muted mt-4 mb-3 text-sm">{t("resource.pdfHint")}</p>
+          {pdfId ? (
+            <p className="bg-surface-2 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-sm">
+              <FileText className="size-4 text-[var(--c-violet)]" /> {t("resource.pdfReady")}
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPdfId(null)}>
+                <X /> {t("upload.remove")}
+              </Button>
+            </p>
+          ) : (
+            <FileUpload
+              purpose="attachment"
+              enabled={storageEnabled}
+              userId={userId}
+              label={t("resource.uploadPdf")}
+              variant="drop"
+              onUploaded={(id) => setPdfId(id)}
             />
           )}
-        </Field>
-      </section>
+          <LegalPdfNote />
+        </details>
+      )}
 
-      {/* 7. More (collapsed) */}
+      {/* 8. More (collapsed) */}
       <details
         className="card group p-5 sm:p-6"
         open={!!(v.identifiers.length || v.links.length || v.sourceUrl)}

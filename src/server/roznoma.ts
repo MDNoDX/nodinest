@@ -9,7 +9,7 @@ import "server-only";
 import { uzScript } from "@/i18n/config";
 import { readPrefs } from "@/lib/notify-prefs";
 import { notify } from "./notifications";
-import { and, asc, between, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, withUser, type AppContext } from "@/db";
 import {
@@ -302,6 +302,35 @@ export async function setArchived(ctx: AppContext, ids: string[], archived: bool
             eq(routines.repeat, "once"),
           ),
         );
+  });
+}
+
+/**
+ * A plan for one day only ("once", not repeated) goes away by itself a week
+ * after its day, with its inner items: the archive keeps what repeats. The
+ * day's page in the year's book is not touched.
+ */
+export async function dropOldOnce(ctx: AppContext, today: string) {
+  const before = addDays(dayStr.parse(today), -7);
+  await withUser(db, ctx, async (tx) => {
+    const old = await tx
+      .select({ id: routines.id })
+      .from(routines)
+      .where(
+        and(
+          eq(routines.userId, ctx.userId),
+          eq(routines.repeat, "once"),
+          lt(routines.onDay, before),
+        ),
+      );
+    if (!old.length) return;
+    const ids = old.map((r) => r.id);
+    await tx
+      .delete(routines)
+      .where(and(inArray(routines.parentId, ids), eq(routines.userId, ctx.userId)));
+    await tx
+      .delete(routines)
+      .where(and(inArray(routines.id, ids), eq(routines.userId, ctx.userId)));
   });
 }
 
@@ -645,7 +674,10 @@ export async function syncDay(ctx: AppContext, day: string, locale: string) {
  * days were written in an earlier one). Days stay in order; each replaces itself.
  */
 export async function rebuildYearBook(ctx: AppContext, year: string, locale: string) {
-  const y = z.string().regex(/^\d{4}$/).parse(year);
+  const y = z
+    .string()
+    .regex(/^\d{4}$/)
+    .parse(year);
   await enforceRebuild(ctx);
   const rows = await withUser(db, ctx, (tx) =>
     tx.execute<{ day: string }>(sql`
@@ -762,7 +794,7 @@ async function writeIntoBook(
         { type: "text", text: ` ${L.highlights.join(", ")}` },
       ],
     } as Node);
-  if (L.lesson) section.push(marked(`✍️ ${L.lesson}`, "italic"));
+  if (L.lesson) section.push(marked(`❝ ${L.lesson} ❞`, "italic"));
   if (L.productiveMinutes != null)
     section.push(
       para(

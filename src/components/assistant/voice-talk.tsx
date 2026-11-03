@@ -59,9 +59,9 @@ const SPEECH_START = 0.09; // loudness that counts as speaking
 const SPEECH_MIN_MS = 160; // shorter sounds are clicks, not speech
 const SILENCE_MS = 480; // pause that ends the user's turn
 const MAX_MS = 45_000;
-const BARGE_LEVEL = 0.34; // speaking over the answer stops it…
-const BARGE_MS = 350; // …after this long; louder than the answer's own echo
-const BARGE_GRACE_MS = 700; // the speakers start: the mic hears them first
+const BARGE_LEVEL = 0.12; // speaking over the answer stops it (normal speech, not a shout)…
+const BARGE_MS = 300; // …after this long; clearly louder than the answer's own echo
+const BARGE_GRACE_MS = 600; // the speakers start: the mic hears them first
 
 /**
  * Live voice talk (like a phone call): it listens, notices when you stop
@@ -182,7 +182,8 @@ export function VoiceTalk({
       const now = performance.now();
       if (x.muted || now - began < BARGE_GRACE_MS) return;
       // Only a voice clearly louder than what the speakers are playing.
-      if (rms(x.mic, x.buf) < Math.max(BARGE_LEVEL, rms(x.out, x.buf) * 0.9)) since = 0;
+      // The echo reaches the mic much weaker than the speakers play it (echo cancellation).
+      if (rms(x.mic, x.buf) < Math.max(BARGE_LEVEL, rms(x.out, x.buf) * 0.55)) since = 0;
       else if (!since) since = now;
       else if (now - since > BARGE_MS) hush();
     }, 40);

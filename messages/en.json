@@ -537,7 +537,8 @@
     "originalTitlePh": "For a translation: the title in its own language, The Alchemist",
     "identifiersHint": "A unique number such as an ISBN or a YouTube ID. It prevents duplicates and helps find the cover and length.",
     "publicHint": "Shown on your profile.",
-    "privateHint": "Only you can see it."
+    "privateHint": "Only you can see it.",
+    "readingReady": "text ready"
   },
   "record": {
     "status": "Status",
@@ -650,7 +651,8 @@
     "attributed": "— {name}",
     "kindNoteHint": "A thought, takeaway or reminder",
     "kindQuoteHint": "An exact passage from a source",
-    "forResource": "Notes and quotes for “{title}”"
+    "forResource": "Notes and quotes for “{title}”",
+    "moreTitle": "Source and details"
   },
   "collections": {
     "title": "Collections",
@@ -1165,7 +1167,8 @@
     "phoneTabsRemove": "Move to the menu",
     "phoneTabsAdd": "To the bar",
     "phoneTabsMenu": "In the menu",
-    "phoneTabsFull": "The bar has {n} sections — remove one first"
+    "phoneTabsFull": "The bar has {n} sections — remove one first",
+    "account": "Account"
   },
   "admin": {
     "title": "Administration",
@@ -2496,13 +2499,13 @@
     "storyPh": "What happened today?",
     "highlights": "To remember",
     "highlightPh": "An event or a thought…",
-    "conclusion": "The day’s conclusion",
-    "lessonPh": "Today’s lesson",
+    "conclusion": "Quote of the day",
+    "lessonPh": "Today's quote",
     "productive": "Productive time",
     "hoursShort": "h",
-    "better": "More productive than yesterday?",
-    "betterYes": "Productive",
-    "betterNo": "Not productive",
+    "better": "Better than yesterday?",
+    "betterYes": "Yes",
+    "betterNo": "No",
     "saveDay": "Save",
     "logSaved": "The day is in your book.",
     "openBook": "Open the book",
@@ -2739,7 +2742,9 @@
     "noComments": "No comments yet. Be the first.",
     "writeComment": "Write a comment…",
     "yourPost": "Your post",
-    "shares": "Shared"
+    "shares": "Shared",
+    "takeTitle": "Add it to your Darsxona?",
+    "takeBody": "Only its card (title, cover, authors) is added to your Darsxona — not their notes, files or text."
   },
   "sectionHint": {
     "close": "Close",

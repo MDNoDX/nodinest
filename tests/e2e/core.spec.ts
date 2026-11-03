@@ -64,8 +64,8 @@ test("catalog: person + resource with author autocomplete, quote, search", async
   await expect(page.getByRole("heading", { name: "Xamsa", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Alisher Navoiy" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Qöşiş", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Iqtibos qöşiş" }).click();
+  // Quotes and notes are added from "My notes and quotes" (the top has only "Make questions").
+  await page.getByRole("link", { name: "Iqtibos qöşiş" }).first().click();
   await page.getByLabel("Aynan iqtibos").fill("Ilm — nur, jaholat — zulmat.");
   await page.getByRole("button", { name: "Saqlaş" }).click();
   await expect(page.getByText("“Ilm — nur, jaholat — zulmat.”")).toBeVisible();

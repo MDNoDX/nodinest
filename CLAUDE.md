@@ -280,6 +280,18 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   words highlighted, one click to apply).
 - Legal pages must forbid pirated PDFs and sharing books / audiobooks (also shown under uploads).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
+- Resource form order: type (one row of icons, the name + hint below) → find online → basics →
+  classification → people → details → PDF (closed) → more. The item page keeps "O'qish" closed, has
+  one "Savollar tuzish" button (quotes / notes come from "My notes and quotes") and icon-only actions
+  on phones; "Mening o'qishim" has no short review field. The note form puts Iqtibos first and keeps
+  the source & details closed (no verification select).
+- One-day plans (`repeat: once`) are deleted a week after their day (`dropOldOnce`, on /plans).
+- Settings: sign-out and delete account sit in the Profile tab (both ask first); the Menu tab shows
+  the phone bar on phones and the menu order on computers; shortcuts are hidden on phones. Taking
+  someone's post / shared card asks first (`ui/ask-first.tsx`). The profile has no "what others
+  see" card; /u/<me>/items lists every item with its switch (asks about write-up / audiobook /
+  text) and a link to the post. The assistant answers short by default with `thinkingLevel: LOW`;
+  barge-in in the live talk triggers on normal speech (`BARGE_LEVEL` 0.12).
 - Resource types people pick: five (`MAIN_TYPES`: book, course = "Darslik", article (files too, may
   carry a PDF), video, podcast). `file` / `other` stay for old rows; filters fold relatives together.
 - Posts count sends (`learning_records.shares`, 0052, `countShare`, from SendTo); my own public item

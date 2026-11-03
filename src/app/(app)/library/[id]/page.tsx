@@ -11,6 +11,7 @@ import {
   StickyNote,
   Star,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 import { ResumeMark } from "@/components/media/resume-mark";
 import { getOwnBook } from "@/server/own-books";
@@ -28,7 +29,7 @@ import { ReadingPanel } from "@/components/library/reading-panel";
 import { ResourceColumns } from "@/components/library/resource-columns";
 import { RecordForm } from "@/components/library/record-form";
 import { Button } from "@/components/ui/button";
-import { Badge, Card, CardHeader, TypeBadge } from "@/components/ui/misc";
+import { Badge, Card, CardHeader, IconChip, TypeBadge } from "@/components/ui/misc";
 import { formatPartialDate } from "@/lib/dates";
 import { fmtDate, fmtMinutes, fmtReading } from "@/lib/format";
 import { readingValue } from "@/lib/reading-date";
@@ -308,7 +309,7 @@ export default async function ResourcePage({
               {isMedia && r.sourceUrl && (
                 <Button asChild>
                   <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
-                    <PlayCircle /> {t("resource.watch")}
+                    <PlayCircle /> <span className="max-sm:sr-only">{t("resource.watch")}</span>
                   </a>
                 </Button>
               )}
@@ -316,19 +317,19 @@ export default async function ResourcePage({
               {hasText && (
                 <Button asChild>
                   <Link href={`/library/${r.id}/read`}>
-                    <BookOpenText /> {t("reader.read")}
+                    <BookOpenText /> <span className="max-sm:sr-only">{t("reader.read")}</span>
                   </Link>
                 </Button>
               )}
               <Button asChild variant={(isMedia && r.sourceUrl) || hasText ? "outline" : "primary"}>
                 <Link href={`/library/${r.id}/taqriz`}>
-                  <NotebookPen /> {t("taqriz.title")}
+                  <NotebookPen /> <span className="max-sm:sr-only">{t("taqriz.title")}</span>
                 </Link>
               </Button>
               {!isMedia && (
                 <Button asChild variant="outline">
                   <Link href={`/library/${r.id}/audiobook`}>
-                    <Headphones /> {t("audiobook.listen")}
+                    <Headphones /> <span className="max-sm:sr-only">{t("audiobook.listen")}</span>
                   </Link>
                 </Button>
               )}
@@ -682,8 +683,22 @@ export default async function ResourcePage({
         }
         extra={
           !isMedia && (
-            <Card id="reading" className="scroll-mt-20">
-              <CardHeader title={t("resource.reading")} icon={<FileText />} hue="violet" />
+            // Closed until wanted (open when a PDF was just added): the page stays short.
+            <details
+              id="reading"
+              className="card group scroll-mt-20"
+              open={typeof pendingPdf === "string" || undefined}
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-2.5 p-5">
+                <IconChip icon={<FileText />} hue="violet" />
+                <span className="text-[15px] font-semibold tracking-tight">
+                  {t("resource.reading")}
+                </span>
+                {sources.some((x) => x.status === "ready") && (
+                  <span className="text-muted text-xs">· {t("resource.readingReady")}</span>
+                )}
+                <ChevronDown className="text-muted ml-auto size-4 transition-transform group-open:rotate-180" />
+              </summary>
               <div className="px-5 pb-5">
                 <ReadingPanel
                   resourceId={r.id}
@@ -705,7 +720,7 @@ export default async function ResourcePage({
                   }
                 />
               </div>
-            </Card>
+            </details>
           )
         }
       />

@@ -1,11 +1,20 @@
 "use client";
 import { Eye, Search } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { VisibilityToggle } from "./visibility-toggle";
 
-type Item = { resourceId: string; title: string; type: string; public: boolean };
+type Item = {
+  resourceId: string;
+  title: string;
+  type: string;
+  public: boolean;
+  writeup: boolean | null;
+  audiobook: boolean | null;
+  text: boolean | null;
+};
 
 /**
  * On my profile: every item of my library with its own switch — what others
@@ -14,9 +23,11 @@ type Item = { resourceId: string; title: string; type: string; public: boolean }
 export function ItemsVisibility({
   items,
   profilePublic,
+  username,
 }: {
   items: Item[];
   profilePublic: boolean;
+  username: string;
 }) {
   const t = useTranslations("social");
   const tt = useTranslations("types");
@@ -51,14 +62,21 @@ export function ItemsVisibility({
       <ul className="divide-border divide-y">
         {shown.map((i) => (
           <li key={i.resourceId} className="flex items-center gap-3 py-2">
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium">{i.title}</span>
+            {/* The title opens the post as others see it (open), or the item in my library. */}
+            <Link
+              href={i.public ? `/u/${username}/item/${i.resourceId}` : `/library/${i.resourceId}`}
+              className="group min-w-0 flex-1"
+            >
+              <span className="block truncate text-sm font-medium group-hover:underline">
+                {i.title}
+              </span>
               <span className="text-muted text-xs">{tt(i.type as "book")}</span>
-            </span>
+            </Link>
             <VisibilityToggle
               resourceId={i.resourceId}
               initial={i.public}
               profilePublic={profilePublic}
+              extras={{ writeup: i.writeup, audiobook: i.audiobook, text: i.text }}
             />
           </li>
         ))}

@@ -537,8 +537,13 @@ export async function universalSearch(database: Database, ctx: AppContext, f: Se
 }
 
 /** Lightweight command-palette search (titles/names only). */
-export async function quickSearch(database: Database, ctx: AppContext, query: string) {
-  const r = await universalSearch(database, ctx, { q: query, sort: "relevance" });
+export async function quickSearch(
+  database: Database,
+  ctx: AppContext,
+  query: string,
+  resourceType: string | null = null,
+) {
+  const r = await universalSearch(database, ctx, { q: query, sort: "relevance", resourceType });
   const order: SearchGroup[] = ["resources", "booktext", "quotes", "notes", "taqriz", "people"];
   return order.flatMap((g) => (r.groups[g]?.hits ?? []).slice(0, 4));
 }
