@@ -1,7 +1,10 @@
 import {
+  BarChart3,
+  Brain,
   BookOpen,
   Building2,
   CalendarCheck,
+  Home,
   PenLine,
   Settings,
   ShieldCheck,
@@ -30,15 +33,15 @@ export type NavItem = {
  * Users can drag items to their own order (lib/nav-order.ts).
  */
 export const NAV_PRIMARY: NavItem[] = [
-  // Home is my profile: what I read, my numbers, who follows me.
-  { href: "/", key: "profile", icon: CircleUserRound, includes: ["/u", "/community", "/stats"] },
+  { href: "/", key: "dashboard", icon: Home },
   { href: "/plans", key: "plans", icon: CalendarCheck },
   {
     href: "/library",
     key: "library",
     icon: BookOpen,
-    includes: ["/people", "/publishers", "/notes", "/collections", "/review"],
+    includes: ["/people", "/publishers", "/notes", "/collections"],
   },
+  { href: "/review", key: "review", icon: Brain },
   { href: "/media", key: "media", icon: Clapperboard },
   { href: "/chats", key: "chats", icon: MessageCircle },
   { href: "/assistant", key: "assistant", icon: Sparkles },
@@ -46,6 +49,13 @@ export const NAV_PRIMARY: NavItem[] = [
 ];
 
 export const NAV_SECONDARY: NavItem[] = [
+  {
+    href: "/profile",
+    key: "profile",
+    icon: CircleUserRound,
+    includes: ["/u", "/community"],
+  },
+  { href: "/stats", key: "stats", icon: BarChart3 },
   { href: "/settings", key: "settings", icon: Settings },
   { href: "/admin", key: "admin", icon: ShieldCheck, admin: true },
 ];

@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { ReviewApp } from "@/components/review/review-app";
 import { PageHeader } from "@/components/ui/misc";
-import { DarsxonaTabs } from "@/components/library/darsxona-tabs";
 import { pageContext, sp, type SP } from "@/lib/page";
 import { listDecks } from "@/server/study-cards";
 
@@ -21,8 +20,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: SP })
   const decks = await listDecks(ctx);
   return (
     <>
-      <PageHeader section="library" title={tl("library.title")} />
-      <DarsxonaTabs current="review" />
+      <PageHeader section="review" title={tl("review.title")} />
       <ReviewApp
         decks={decks.map((d) => ({
           deck: d.deck,

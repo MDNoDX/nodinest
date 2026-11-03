@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Minus, Plus, RotateCcw, Smartphone } from "lucide-react";
+import { ArrowDown, ArrowUp, Minus, Plus, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { NAV_PRIMARY, NAV_SECONDARY } from "@/components/layout/nav-items";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { cn } from "@/lib/cn";
 import { MAX_PHONE_TABS, usePhoneTabs, writePhoneTabs } from "@/lib/phone-tabs";
 
 /**
- * Settings → the phone's bottom bar: which sections sit there (up to four,
- * beside "Menu") and in what order. What is at the bottom is not in the menu.
+ * Settings → the phone's bottom bar: which sections sit there (up to five,
+ * icons only) and in what order. What is at the bottom is not in the ☰ menu.
  */
 export function PhoneTabsSettings({ admin }: { admin: boolean }) {
   const t = useTranslations();
@@ -38,10 +38,6 @@ export function PhoneTabsSettings({ admin }: { admin: boolean }) {
             </span>
           );
         })}
-        <span className="text-muted flex flex-col items-center gap-0.5 text-[11px]">
-          <Smartphone className="size-5" />
-          {t("nav.more")}
-        </span>
       </div>
       <ol className="border-border divide-border divide-y rounded-xl border">
         {chosen.map((h, i) => {

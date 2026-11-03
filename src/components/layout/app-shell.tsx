@@ -1,7 +1,7 @@
 "use client";
-import { MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { LogOut, Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -17,6 +17,9 @@ import { sortByOrder, useNavOrder, writeNavOrder } from "@/lib/nav-order";
 import { NotificationBell } from "@/components/notifications/bell";
 import { ChatsButton, useUnreadChats } from "@/components/chat/chats-button";
 import { UploadTray } from "@/components/chat/upload-tray";
+import { InstallBanner } from "@/components/pwa/install-banner";
+import { clearOfflineData } from "@/components/pwa/pwa";
+import { authClient } from "@/lib/auth/client";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
 import { ThemeToggle } from "./theme-toggle";
@@ -198,6 +201,7 @@ export function AppShell({
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const pathname = usePathname();
+  const router = useRouter();
   const chosen = useSyncExternalStore(subscribeSidebar, readSidebar, () => false);
   // Tablets (768-1023 px): the menu is always the narrow one, beside the page.
   const tablet = useSyncExternalStore(subscribeTablet, readTablet, () => false);
@@ -233,7 +237,7 @@ export function AppShell({
   const secondary = sortByOrder(
     NAV_SECONDARY.filter((i) => !i.admin || user.admin),
     order,
-  );
+  ).map((i) => (i.key === "profile" && user.username ? { ...i, to: `/u/${user.username}` } : i));
   const { chats, bell } = useUnreadChats(unreadChats, unread);
   const badge = { admin: pendingSuggestions, chats };
   // Phones: the chosen sections sit in the bottom bar and are left out of the menu.
@@ -292,6 +296,25 @@ export function AppShell({
           >
             <MessageSquarePlus className="size-4" /> {t("feedback")}
           </Link>
+        )}
+        {mobile && (
+          // Phones have no avatar menu: the theme and signing out live here.
+          <div className="border-border mx-2 mb-2 flex items-center gap-2 border-t pt-2">
+            <ThemeToggle />
+            <span className="text-muted flex-1 truncate text-xs">{user.name}</span>
+            <button
+              type="button"
+              onClick={async () => {
+                await authClient.signOut();
+                await clearOfflineData();
+                router.push("/login");
+                router.refresh();
+              }}
+              className="text-muted hover:text-foreground inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm"
+            >
+              <LogOut className="size-4" /> {t("signOut")}
+            </button>
+          </div>
         )}
       </nav>
       {!mobile && (
@@ -362,6 +385,18 @@ export function AppShell({
               data-shell
               className="border-border bg-background/85 sticky top-0 z-30 flex h-14 items-center gap-2 border-b px-3 backdrop-blur sm:px-5"
             >
+              <button
+                className="text-muted hover:bg-surface-2 relative rounded-md p-2 md:hidden"
+                onClick={() => setMobileOpen(true)}
+                data-tour="nav-more"
+                aria-label={t("openMenu")}
+                aria-expanded={mobileOpen}
+              >
+                <Menu className="size-5" />
+                {pendingSuggestions > 0 && (
+                  <span className="bg-accent absolute top-1.5 right-1.5 size-2 rounded-full" />
+                )}
+              </button>
               <CommandPalette />
               <HeaderPlayer className="hidden w-80 max-w-[34vw] lg:flex" />
               <div className="ml-auto flex items-center gap-1.5">
@@ -374,7 +409,10 @@ export function AppShell({
                   <ChatsButton count={chats} />
                 </span>
                 <NotificationBell count={bell} />
-                <UserMenu user={user} />
+                {/* Phones: the profile is in the bottom bar; theme and sign-out in the menu. */}
+                <span className="max-md:hidden">
+                  <UserMenu user={user} />
+                </span>
               </div>
             </header>
             <div data-shell className="sticky top-14 z-20 px-3 pt-2 empty:hidden lg:hidden">
@@ -392,20 +430,12 @@ export function AppShell({
               {children}
             </main>
           </div>
-          {!immersive && (
-            <BottomNav
-              pathname={pathname}
-              items={phoneItems}
-              onMenu={() => setMobileOpen(!mobileOpen)}
-              menuOpen={mobileOpen}
-              chats={chats}
-              badge={pendingSuggestions}
-            />
-          )}
+          {!immersive && <BottomNav pathname={pathname} items={phoneItems} chats={chats} />}
           <OnboardingTour aiLimit={aiDailyLimit} />
           {alarms.on && <AlarmWatcher sound={alarms.sound} />}
           <OutboxSync />
           <UploadTray />
+          <InstallBanner />
         </div>
       </AudiobookProvider>
     </MediaDockProvider>

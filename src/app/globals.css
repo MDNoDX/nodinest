@@ -1600,3 +1600,39 @@ nav.overflow-x-auto,
     animation: none;
   }
 }
+
+/* Phones and tablets: a tap never zooms the page.
+   - double-tap zoom is off (pinch-zoom still works);
+   - iOS zooms into a field whose text is under 16 px, so fields are 16 px there. */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+/* While an item is held to reorder: nothing is selected, no callout, no scroll. */
+html.nn-dragging,
+html.nn-dragging * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  touch-action: none;
+}
+/* Long-pressing a draggable row never opens the phone's text menu. */
+[data-drag-row] {
+  -webkit-touch-callout: none;
+}
+
+/* Installed on the phone: the page does not bounce past its edges like a website. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}

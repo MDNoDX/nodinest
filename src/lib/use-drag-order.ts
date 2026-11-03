@@ -21,16 +21,22 @@ export function useDragOrder<T>(
     const touch = e.pointerType !== "mouse";
     let active = false;
     let over = from;
+    // The places are measured once, when the drag begins: measuring the list
+    // while it reorders itself made items jump back and forth (the "shaking").
+    let mids: number[] = [];
     const overAt = (y: number) => {
-      const lis = [...(list.current?.children ?? [])] as HTMLElement[];
-      const i = lis.findIndex((li) => {
-        const r = li.getBoundingClientRect();
-        return y < r.top + r.height / 2;
-      });
-      return i < 0 ? lis.length - 1 : i;
+      const i = mids.findIndex((m) => y < m);
+      return i < 0 ? mids.length - 1 : i;
     };
     const begin = () => {
       active = true;
+      const lis = [...(list.current?.children ?? [])] as HTMLElement[];
+      mids = lis.map((li) => {
+        const r = li.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+      // No text selection, callout or page scroll while an item is held (Safari, Chrome).
+      document.documentElement.classList.add("nn-dragging");
       setDrag({ from, over: from });
       navigator.vibrate?.(15);
     };
@@ -56,6 +62,7 @@ export function useDragOrder<T>(
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", end);
       window.removeEventListener("touchmove", noScroll);
+      document.documentElement.classList.remove("nn-dragging");
       if (active) {
         swallowClick.current = true;
         setTimeout(() => (swallowClick.current = false), 50);

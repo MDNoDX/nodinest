@@ -7,7 +7,6 @@ import { Card, CardHeader, EmptyState, PageHeader, StatTile } from "@/components
 import { cn } from "@/lib/cn";
 import { fmtMinutes } from "@/lib/format";
 import { pageContext, sp, type SP } from "@/lib/page";
-import { ProfileTabs } from "@/components/social/profile-tabs";
 import { StatsView } from "@/components/roznoma/stats-view";
 import { history } from "@/server/roznoma";
 import { getCollectionStats } from "@/server/stats";
@@ -19,7 +18,7 @@ export async function generateMetadata() {
 }
 
 export default async function StatsPage({ searchParams }: { searchParams: SP }) {
-  const { ctx, db, locale, tz, today, user } = await pageContext();
+  const { ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
   const params = await searchParams;
   const tabs = (
@@ -50,7 +49,6 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
   if (sp(params.tab) === "plans")
     return (
       <>
-        {user.username && <ProfileTabs current="stats" username={user.username} />}
         <PageHeader section="stats" title={t("stats.title")} />
         {tabs}
         <StatsView h={await history(ctx, today, 30)} locale={locale} />
@@ -81,8 +79,7 @@ export default async function StatsPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <>
-      {user.username && <ProfileTabs current="stats" username={user.username} />}
-        <PageHeader section="stats" title={t("stats.title")} />
+      <PageHeader section="stats" title={t("stats.title")} />
       {tabs}
       <nav className="mb-6 flex flex-wrap gap-1.5" aria-label={t("stats.byYear")}>
         <Link

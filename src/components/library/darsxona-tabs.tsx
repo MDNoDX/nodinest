@@ -21,7 +21,6 @@ export async function DarsxonaTabs({
   const due = await dueCount(ctx).catch(() => 0);
   const tabs = [
     { key: "library", href: "/library", icon: BookOpen, label: t("libraryTab") },
-    { key: "review", href: "/review", icon: Brain, label: t("review") },
     { key: "notes", href: "/notes", icon: Quote, label: t("notes") },
     { key: "collections", href: "/collections", icon: FolderHeart, label: t("collections") },
     { key: "people", href: "/people", icon: Users, label: t("people") },
@@ -31,26 +30,25 @@ export async function DarsxonaTabs({
     <>
       <nav
         aria-label={t("library")}
-        className="border-border -mt-3 mb-5 flex gap-1 overflow-x-auto border-b"
+        className="border-border -mt-3 mb-5 flex gap-1 overflow-x-auto border-b max-sm:gap-0"
       >
         {tabs.map(({ key, href, icon: Icon, label }) => (
           <Link
             key={key}
             href={href}
             aria-current={current === key ? "page" : undefined}
+            aria-label={label}
+            title={label}
             className={cn(
-              "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium",
+              // Phones: only the icon, big enough for a thumb; the name from sm up.
+              "-mb-px flex shrink-0 items-center justify-center gap-1.5 border-b-2 py-2 text-sm font-medium max-sm:h-11 max-sm:flex-1 sm:px-3",
               current === key
                 ? "border-primary text-foreground"
                 : "text-muted hover:text-foreground border-transparent",
             )}
           >
-            <Icon className="size-4" /> {label}
-            {key === "review" && due > 0 && (
-              <span className="bg-primary text-primary-foreground min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-bold tabular-nums">
-                {due > 999 ? "999+" : due}
-              </span>
-            )}
+            <Icon className="size-5 sm:size-4" />
+            <span className="max-sm:sr-only">{label}</span>
           </Link>
         ))}
       </nav>

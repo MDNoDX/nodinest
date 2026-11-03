@@ -1129,7 +1129,7 @@
     "feedbackTitle": "Ideas and messages to the admin",
     "feedbackBody": "Write an opinion, a bug or an idea; suggested edits to sources are here too.",
     "phoneTabs": "Phone bottom bar",
-    "phoneTabsHint": "Pick up to {n} sections for the bottom (“Menu” always comes last). A section at the bottom is not repeated in the menu.",
+    "phoneTabsHint": "Pick up to {n} sections for the bottom — on a phone they are icons only. A section at the bottom is not repeated in the ☰ menu.",
     "phoneTabsRemove": "Move to the menu",
     "phoneTabsAdd": "To the bar",
     "phoneTabsMenu": "In the menu",
@@ -1477,7 +1477,13 @@
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): Share → Add to Home Screen.",
     "android": "Android (Chrome): ⋮ menu → Install app, or accept the prompt.",
-    "offlineNote": "Offline: pages you have viewed and PDFs you have opened stay on the device; write-ups can be edited offline and sync when you are back online. The AI, search and adding new items need internet."
+    "offlineNote": "Offline: pages you have viewed and PDFs you have opened stay on the device; write-ups can be edited offline and sync when you are back online. The AI, search and adding new items need internet.",
+    "bannerTitle": "Put Röznoma on your phone",
+    "bannerAndroid": "It sits on the home screen like an app, opens fast and works offline.",
+    "bannerIos1": "Tap",
+    "bannerIos2": "below, then “Add to Home Screen”.",
+    "bannerInstall": "Install",
+    "bannerClose": "Close"
   },
   "offline": {
     "title": "No internet",

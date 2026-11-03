@@ -218,10 +218,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `pageContextOrGuest()` / `apiUserOrGuest()` / `runOpen()` with `GUEST` (a nil uuid, sees only what is
   public): /media, /u/*, /guide, public covers, people search, comments. Every other page still calls
   `pageContext()` and goes to /login; an action that needs a profile toasts "Profil ochish".
-- Phone layout: no ☰ on top; the bottom bar is up to four sections the person picked
-  (`lib/phone-tabs.ts`, Settings → Menu; profile, Darsxona, Media, Chats by default) + "Menu", and the
-  menu drawer leaves out what is on the bar. "/" is my profile (the hub: continue, questions, stats,
-  followers). Tablets (768+) get the narrow side menu instead of the bar (`--bottom-nav` is 0 there).
+- Phone layout: ☰ at the top left opens the menu; the bottom bar is up to five sections the person
+  picked (`lib/phone-tabs.ts`, Settings → Menu; home, Darsxona, Media, Chats, Profile by default), icons
+  only, and the menu leaves out what is on the bar; the theme and sign-out sit at the menu's foot (no
+  avatar menu on phones). Home and Profile are separate; Review and Metrics are menu items again.
+  Tablets (768+) get the narrow side menu instead of the bar (`--bottom-nav` is 0 there). Phones never
+  zoom on a tap (16 px fields, `touch-action: manipulation`); drag-to-reorder measures places once.
+  `pwa/install-banner.tsx` invites phone browsers to install (Android prompt, iPhone steps).
   Section colours are five families (`SECTION_HUE`). Covers come as small copies (`coverSrc(r, w)` →
   `/api/files/[id]?w=480`, sharp, cached a month). Chat messages never go to the bell (only push /
   Telegram, one ring per sender per 2 min); a new public post rings the owner's followers (`post`).

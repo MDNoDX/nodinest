@@ -1,15 +1,16 @@
 "use client";
 /**
- * The phone's bottom bar, chosen by the person (Settings → Menu): up to four
- * sections next to "Menu" (localStorage "nn:phone-tabs", hrefs, per device).
+ * The phone's bottom bar, chosen by the person (Settings → Menu): up to five
+ * sections, icons only (localStorage "nn:phone-tabs", hrefs, per device); the
+ * menu is the ☰ at the top left.
  * A section shown at the bottom is not repeated in the menu, and the other way round.
  */
 import { useSyncExternalStore } from "react";
 
 const KEY = "nn:phone-tabs";
 const EVENT = "nn:phone-tabs";
-export const MAX_PHONE_TABS = 4;
-export const DEFAULT_PHONE_TABS = ["/", "/library", "/media", "/chats"];
+export const MAX_PHONE_TABS = 5;
+export const DEFAULT_PHONE_TABS = ["/", "/library", "/media", "/chats", "/profile"];
 
 function read(): string {
   try {

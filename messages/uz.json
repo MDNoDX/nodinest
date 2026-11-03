@@ -1129,7 +1129,7 @@
     "feedbackTitle": "Takliflar va adminga yoziş",
     "feedbackBody": "Fikr, xato yoki taklifingizni yozing; manbalarga taklif qilingan özgarişlar ham şu yerda.",
     "phoneTabs": "Telefon pastki paneli",
-    "phoneTabsHint": "Pastda istagan {n} ta bölimni tanlang (oxirida «Menyu» doim turadi). Pastdagi bölim menyuda takrorlanmaydi.",
+    "phoneTabsHint": "Pastda istagan {n} ta bölimni tanlang — telefonda ular faqat belgi bölib turadi. Pastdagi bölim ☰ menyuda takrorlanmaydi.",
     "phoneTabsRemove": "Menyuga olib taşlaş",
     "phoneTabsAdd": "Pastga",
     "phoneTabsMenu": "Menyuda",
@@ -1477,7 +1477,13 @@
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): «Ulaşiş» tugmasi → «Boş ekranga qöşiş» (Add to Home Screen).",
     "android": "Android (Chrome): ⋮ menyu → «Ilovani örnatiş» yoki pastdagi taklifni tasdiqlang.",
-    "offlineNote": "Oflayn: körilgan sahifalar va oçilgan PDF’lar qurilmada saqlanadi; taqriz oflayn yoziladi va internet qaytganda özi yuboriladi. AI, qidiruv va yangi ma’lumot qöşiş uçun internet kerak."
+    "offlineNote": "Oflayn: körilgan sahifalar va oçilgan PDF’lar qurilmada saqlanadi; taqriz oflayn yoziladi va internet qaytganda özi yuboriladi. AI, qidiruv va yangi ma’lumot qöşiş uçun internet kerak.",
+    "bannerTitle": "Röznomani telefonga örnating",
+    "bannerAndroid": "Ilova kabi ekranda turadi, tez oçiladi va internetsiz ham işlaydi.",
+    "bannerIos1": "Pastdagi",
+    "bannerIos2": "tugmasini bosing, keyin «Uy ekraniga qöşiş».",
+    "bannerInstall": "Örnatiş",
+    "bannerClose": "Yopiş"
   },
   "offline": {
     "title": "Internet yöq",

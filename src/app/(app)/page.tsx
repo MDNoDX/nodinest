@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
-import { profileByUsername } from "@/server/social";
 import {
   BookCheck,
   BookOpen,
@@ -15,8 +14,6 @@ import {
   Sparkles,
   Star,
   Trophy,
-  Eye,
-  UserRoundPen,
 } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -83,7 +80,7 @@ export default async function DashboardPage() {
   if (!(await getCurrentUser())) redirect("/media");
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
-  const [records, stats, goals, notes, cols, last, decks, startSteps, me] = await Promise.all([
+  const [records, stats, goals, notes, cols, last, decks, startSteps] = await Promise.all([
     listMyRecords(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
     listGoalsWithProgress(db, ctx, today, tz),
@@ -92,8 +89,6 @@ export default async function DashboardPage() {
     lastResume(db, ctx),
     listDecks(ctx),
     getStartSteps(ctx),
-    // This page is my profile too: who follows me, my bio.
-    user.username ? profileByUsername(ctx, user.username) : Promise.resolve(null),
   ]);
   // Röznoma: today's plan (with ticks) and the goals, at a glance.
   await ensureDefaults(ctx, locale);
@@ -159,28 +154,22 @@ export default async function DashboardPage() {
     <>
       <section className="hero -mx-4 -mt-6 mb-7 rounded-b-3xl px-4 pt-7 pb-6 sm:-mx-6 sm:-mt-8 sm:px-6 sm:pt-9">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+          <Link
+            href={user.username ? `/u/${user.username}` : "/settings"}
+            className="group flex items-center gap-4 rounded-2xl"
+          >
             <Avatar
               name={user.name}
               image={user.image}
-              className="ring-surface size-16 text-xl ring-4"
+              className="ring-surface size-16 text-xl ring-4 transition-transform group-hover:scale-105"
             />
             <div>
               <div className="text-muted text-xs font-semibold tracking-wide uppercase">
                 {t("dashboard.heroSubtitle")}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{user.name}</h1>
-              {me && (
-                <div className="text-muted mt-0.5 flex flex-wrap items-center gap-x-3 text-sm">
-                  <span>@{me.username}</span>
-                  <Link href={`/u/${me.username}/followers`} className="hover:text-foreground">
-                    {t("social.followersN", { n: me.followers })}
-                  </Link>
-                  <Link href={`/u/${me.username}/following`} className="hover:text-foreground">
-                    {t("social.followingN", { n: me.following })}
-                  </Link>
-                </div>
-              )}
+              <h1 className="text-2xl font-bold tracking-tight group-hover:underline sm:text-3xl">
+                {user.name}
+              </h1>
               <div className="text-muted mt-0.5 text-sm">
                 {t("dashboard.inLibrary", { count: s.library })}
                 {s.avg_rating ? (
@@ -191,7 +180,7 @@ export default async function DashboardPage() {
                 ) : null}
               </div>
             </div>
-          </div>
+          </Link>
           <div className="flex flex-wrap gap-2">
             {last && (
               <Button variant="secondary" asChild className="max-w-xs">
@@ -221,18 +210,6 @@ export default async function DashboardPage() {
             <Button variant="outline" asChild>
               <Link href="/assistant">
                 <Sparkles /> AI
-              </Link>
-            </Button>
-            {user.username && (
-              <Button variant="outline" asChild>
-                <Link href={`/u/${user.username}`}>
-                  <Eye /> {t("dashboard.publicView")}
-                </Link>
-              </Button>
-            )}
-            <Button variant="ghost" asChild aria-label={t("dashboard.editProfile")}>
-              <Link href="/settings?tab=profile" title={t("dashboard.editProfile")}>
-                <UserRoundPen />
               </Link>
             </Button>
             <Button asChild data-tour="add">

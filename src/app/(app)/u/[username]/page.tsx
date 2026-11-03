@@ -17,7 +17,6 @@ import { FollowButton } from "@/components/social/follow-button";
 import { ItemGrid } from "@/components/social/item-grid";
 import { Avatar } from "@/components/ui/avatar";
 import { ProfileEditor } from "@/components/social/profile-editor";
-import { ProfileTabs } from "@/components/social/profile-tabs";
 import { isStorageConfigured } from "@/server/storage";
 import { EmptyState } from "@/components/ui/misc";
 import { pageContextOrGuest } from "@/lib/page";
@@ -76,11 +75,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   };
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
-      {p.self && (
-        <div className="-mb-8">
-          <ProfileTabs current="profile" username={p.username} />
-        </div>
-      )}
       <header className="card overflow-hidden">
         {/* A soft cover: warm for Premium readers */}
         <div
