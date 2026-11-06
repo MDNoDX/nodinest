@@ -1284,8 +1284,12 @@ html[data-reader-full] main {
 
 /* Tab rows scroll by swipe; a scrollbar under them is only noise. */
 nav.overflow-x-auto,
-.overflow-x-auto:has(> a[aria-current]) {
+.overflow-x-auto:has(> a[aria-current]),
+.no-scrollbar {
   scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* The main action: a soft gradient that lifts a little under the cursor. */

@@ -87,12 +87,32 @@ export function ChatLayout({
   const talking = new Set(threads.map((x) => x.other.id));
   const people = (found?.people ?? []).filter((p) => !talking.has(p.id));
 
+  // The visible height of the screen (smaller while the keyboard is up), so the
+  // talk shrinks to it like in Telegram instead of being pushed off the top.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const set = () => {
+      root.style.setProperty("--vvh", `${Math.round(vv.height)}px`);
+      // The phone scrolls the page to show the field: the page stays put, the talk moves.
+      if (window.scrollY) window.scrollTo(0, 0);
+    };
+    set();
+    vv.addEventListener("resize", set);
+    return () => {
+      vv.removeEventListener("resize", set);
+      root.style.removeProperty("--vvh");
+    };
+  }, []);
+
   return (
     <div
       className={cn(
-        "-mx-4 -my-6 flex sm:-mx-6 sm:-my-8 lg:h-[calc(100dvh-3.5rem)]",
-        // A phone: the list scrolls with the page; an open talk fills the screen.
-        open && "h-[calc(100dvh-3.5rem)]",
+        "-mx-4 -my-6 flex sm:-mx-6 sm:-my-8 lg:h-[calc(var(--vvh,100dvh)-3.5rem)]",
+        // A phone: the list scrolls with the page; an open talk fills what the
+        // keyboard leaves (--vvh follows the visible part of the screen).
+        open && "h-[calc(var(--vvh,100dvh)-3.5rem)]",
       )}
     >
       <aside

@@ -229,22 +229,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               <CardHeader title={t("settings.account")} />
               <div className="flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:items-center">
                 <SignOutButton className="border-border justify-center border sm:justify-start" />
-                {!user.isSuperadmin && (
-                  <DeleteAccount
-                    trigger={
-                      <button
-                        type="button"
-                        className="text-muted border-border flex items-center justify-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--c-rose)]/10 hover:text-[var(--c-rose)] sm:justify-start"
-                      >
-                        <Trash2 className="size-4" /> {t("settings.deleteAccount.button")}
-                      </button>
-                    }
-                  />
-                )}
+                {/* Shown to everyone; the owner's account (the superadmin) is told why it cannot go. */}
+                <DeleteAccount
+                  locked={user.isSuperadmin}
+                  trigger={
+                    <button
+                      type="button"
+                      className="text-muted border-border flex items-center justify-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--c-rose)]/10 hover:text-[var(--c-rose)] sm:justify-start"
+                    >
+                      <Trash2 className="size-4" /> {t("settings.deleteAccount.button")}
+                    </button>
+                  }
+                />
               </div>
-              {!user.isSuperadmin && (
-                <p className="text-muted px-5 pb-5 text-xs">{t("settings.deleteAccount.hint")}</p>
-              )}
+              <p className="text-muted px-5 pb-5 text-xs">{t("settings.deleteAccount.hint")}</p>
             </Card>
           )}
           {tab === "look" && (

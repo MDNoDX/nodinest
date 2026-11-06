@@ -1107,7 +1107,8 @@
       "body": "Barça şaxsiy ma’lumotlaringiz va fayllaringiz darhol öçiriladi. Katalogga qöşgan umumiy yozuvlar muallifsiz qoladi.",
       "typeIt": "Tasdiqlaş uçun DELETE deb yozing",
       "confirm": "Öçiriş",
-      "failed": "Hisobni öçirib bölmadi. Keyinroq urinib köring."
+      "failed": "Hisobni öçirib bölmadi. Keyinroq urinib köring.",
+      "locked": "Bu boş admin hisobi: saytning egasi sifatida uni öçirib bölmaydi. Boşqa hisoblarda bu yerda DELETE deb yozib tasdiqlanadi."
     },
     "navOrder": "Menyu tartibi",
     "navOrderHint": "Menyudagi bölimni bosib turing va kerakli joyga suring (yoki şu yerdagi strelkalar bilan). Tartib şu qurilmada saqlanadi.",
@@ -2616,17 +2617,32 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
+        "steps": [
+          "Boblar rejasi",
+          "Har kuni 500 söz",
+          "Tahrir",
+          "Nusxa çiqariş"
+        ]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
+        "steps": [
+          "A1",
+          "A2",
+          "B1",
+          "Ona tilida gaplaşuvçi bilan suhbat"
+        ]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": ["3 km", "5 km", "7 km", "10 km"]
+        "steps": [
+          "3 km",
+          "5 km",
+          "7 km",
+          "10 km"
+        ]
       }
     ],
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
@@ -2873,7 +2889,11 @@
     "linkCopied": "Havola nusxalandi",
     "shareEmpty": "Hali çatlar yöq — yuqoridan odamni qidiring yoki ilova orqali ulaşing.",
     "sendN": "{n} kişiga yuboriş",
-    "shareClosed": "Bu post yopiq: havolani boşqalar uni oçiq qilganingizdan keyin köradi."
+    "shareClosed": "Bu post yopiq: havolani boşqalar uni oçiq qilganingizdan keyin köradi.",
+    "download": "Yuklab oliş",
+    "close": "Yopiş",
+    "previous": "Oldingi",
+    "next": "Keyingi"
   },
   "guest": {
     "media": "Media",

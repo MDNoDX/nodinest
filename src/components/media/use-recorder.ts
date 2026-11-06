@@ -34,6 +34,8 @@ export function useRecorder(maxSeconds = 15 * 60) {
   );
 
   const start = useCallback(async () => {
+    // Never two at once (a second tap while the first is still opening).
+    if (rec.current && rec.current.state !== "inactive") return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true },

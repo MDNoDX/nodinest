@@ -46,6 +46,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
+  // Android: the page shrinks above the keyboard (instead of sliding under it),
+  // so a chat's field and its newest messages stay in view.
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f4ef" },
     { media: "(prefers-color-scheme: dark)", color: "#0d0e15" },

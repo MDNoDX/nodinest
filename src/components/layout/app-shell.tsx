@@ -1,5 +1,5 @@
 "use client";
-import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { LifeBuoy, Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,6 +20,7 @@ import { UploadTray } from "@/components/chat/upload-tray";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { HeaderPlayer } from "@/components/audiobook/header-player";
 import { OutboxSync } from "./outbox-sync";
+import { LocaleToggle } from "./locale-toggle";
 import { ThemeToggle } from "./theme-toggle";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { usePhoneTabs } from "@/lib/phone-tabs";
@@ -296,9 +297,19 @@ export function AppShell({
           </Link>
         )}
         {mobile && (
-          // Phones have no avatar menu: the theme lives here, signing out in Settings.
-          <div className="border-border mx-2 mb-2 flex items-center gap-2 border-t pt-2">
+          // Phones have no avatar menu: the theme, the language and the guide live
+          // here (signing out is in Settings → Profile).
+          <div className="border-border mx-2 mb-2 flex items-center gap-1 border-t pt-2">
             <ThemeToggle />
+            <LocaleToggle />
+            <Link
+              href="/guide"
+              aria-label={t("guide")}
+              title={t("guide")}
+              className="text-muted hover:bg-surface-2 hover:text-foreground grid size-9 place-items-center rounded-lg transition-colors"
+            >
+              <LifeBuoy className="size-[18px]" />
+            </Link>
           </div>
         )}
       </nav>

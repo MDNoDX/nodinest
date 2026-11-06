@@ -1107,7 +1107,8 @@
       "body": "All your personal data and files are deleted at once. Shared catalog entries you added stay, without an author.",
       "typeIt": "Type DELETE to confirm",
       "confirm": "Delete",
-      "failed": "Could not delete the account. Please try again later."
+      "failed": "Could not delete the account. Please try again later.",
+      "locked": "This is the main admin account: as the site's owner it cannot be deleted. Other accounts confirm here by typing DELETE."
     },
     "navOrder": "Menu order",
     "navOrderHint": "Press and hold a menu item, then drag it where you want (or use the arrows here). Saved on this device.",
@@ -2873,7 +2874,11 @@
     "linkCopied": "Link copied",
     "shareEmpty": "No chats yet — search for someone above or share through an app.",
     "sendN": "Send to {n}",
-    "shareClosed": "This post is private: others see the link once you make it public."
+    "shareClosed": "This post is private: others see the link once you make it public.",
+    "download": "Download",
+    "close": "Close",
+    "previous": "Previous",
+    "next": "Next"
   },
   "guest": {
     "media": "Media",

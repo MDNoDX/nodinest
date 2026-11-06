@@ -120,9 +120,19 @@ export function Composer({
     input.current?.focus();
   };
 
+  // The microphone takes a moment to open (longer on Android, and the first time
+  // it asks for permission): what the finger did meanwhile is kept and done
+  // once it is open, so a recording never runs on with no way to stop it.
+  const starting = useRef<Promise<void> | null>(null);
+  const afterStart = useRef<"send" | "cancel" | null>(null);
+
   const stopAndSend = async () => {
     setMode("off");
     setDrag({ x: 0, y: 0 });
+    if (starting.current) {
+      afterStart.current = "send";
+      return;
+    }
     const r = await rec.stop();
     setLevels([]);
     if (!r || r.seconds < 1) return;
@@ -133,16 +143,25 @@ export function Composer({
     setMode("off");
     setDrag({ x: 0, y: 0 });
     setLevels([]);
+    if (starting.current) afterStart.current = "cancel";
     rec.cancel();
   };
 
   // The mic button: down starts, up sends (or locks after a quick tap).
   const onDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (mode === "locked") return;
+    if (mode === "locked" || recording || starting.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     downAt.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     setMode("hold");
-    void rec.start();
+    navigator.vibrate?.(10);
+    afterStart.current = null;
+    starting.current = rec.start().finally(() => {
+      starting.current = null;
+      const then = afterStart.current;
+      afterStart.current = null;
+      if (then === "send") void stopAndSend();
+      else if (then === "cancel") rec.cancel();
+    });
   };
   const onMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     const d = downAt.current;
@@ -170,13 +189,22 @@ export function Composer({
     }
     void stopAndSend();
   };
+  // The phone took the touch away (a permission prompt, a system gesture):
+  // nothing is sent; the recording stays, with ✕ and ➤ to decide.
+  const onLost = () => {
+    downAt.current = null;
+    setDrag({ x: 0, y: 0 });
+    if (mode === "hold") setMode("locked");
+  };
 
   const pickFiles = (list: FileList | null) => {
     if (!list?.length) return;
     setSheet((s) => [...(s ?? []), ...list].slice(0, MAX_FILES));
   };
 
-  const live = recording || mode !== "off";
+  // Recording with nothing held (e.g. it opened after the finger left): it shows as locked.
+  const shown = recording && mode === "off" ? "locked" : mode;
+  const live = recording || shown !== "off";
   return (
     <div className="mx-auto max-w-3xl">
       {reply && (
@@ -212,7 +240,7 @@ export function Composer({
         />
         {live ? (
           <div className="bg-surface-2 flex h-11 min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl px-3">
-            {mode === "locked" ? (
+            {shown === "locked" ? (
               <button
                 type="button"
                 onClick={cancelVoice}
@@ -236,7 +264,7 @@ export function Composer({
                 />
               ))}
             </span>
-            {mode === "hold" && (
+            {shown === "hold" && (
               <span
                 className="text-muted flex shrink-0 items-center gap-1 text-xs transition-opacity"
                 style={{ opacity: 1 - Math.min(1, -drag.x / CANCEL_PX) * 0.7 }}
@@ -290,7 +318,7 @@ export function Composer({
           >
             <SendHorizontal className="size-5" />
           </button>
-        ) : mode === "locked" ? (
+        ) : shown === "locked" ? (
           <button
             type="button"
             onClick={() => void stopAndSend()}
@@ -301,7 +329,7 @@ export function Composer({
           </button>
         ) : (
           <span className="relative shrink-0">
-            {mode === "hold" && (
+            {shown === "hold" && (
               // Slide up to lock: the lock rises as the finger goes up.
               <span
                 className="bg-surface border-border text-muted absolute bottom-14 left-1/2 grid h-16 w-10 -translate-x-1/2 place-items-center rounded-full border shadow-lg"
@@ -315,21 +343,21 @@ export function Composer({
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}
-              onPointerCancel={onUp}
+              onPointerCancel={onLost}
               onContextMenu={(e) => e.preventDefault()}
               aria-label={t("record")}
               title={t("recordHint")}
               style={
-                mode === "hold" ? { transform: `translate(${drag.x}px, ${drag.y}px)` } : undefined
+                shown === "hold" ? { transform: `translate(${drag.x}px, ${drag.y}px)` } : undefined
               }
               className={cn(
                 "grid size-11 touch-none place-items-center rounded-full transition-colors select-none",
-                mode === "hold"
+                shown === "hold"
                   ? "bg-primary text-primary-foreground scale-125 shadow-lg"
                   : "bg-primary-soft text-primary hover:bg-primary hover:text-primary-foreground",
               )}
             >
-              {mode === "hold" ? (
+              {shown === "hold" ? (
                 <Square className="size-4 fill-current" />
               ) : (
                 <Mic className="size-5" />

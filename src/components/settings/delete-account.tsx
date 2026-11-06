@@ -14,7 +14,14 @@ import { authClient } from "@/lib/auth/client";
  * Settings → delete my account (typed confirmation; everything goes).
  * `trigger` replaces the button (the phone's list of sections uses a row).
  */
-export function DeleteAccount({ trigger }: { trigger?: React.ReactNode }) {
+export function DeleteAccount({
+  trigger,
+  locked = false,
+}: {
+  trigger?: React.ReactNode;
+  /** The superadmin account: it is never deleted (the dialog says so instead). */
+  locked?: boolean;
+}) {
   const t = useTranslations("settings.deleteAccount");
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
@@ -31,17 +38,21 @@ export function DeleteAccount({ trigger }: { trigger?: React.ReactNode }) {
         )}
       </DialogTrigger>
       <DialogContent title={t("title")} description={t("body")} closeLabel={tc("close")}>
-        <label className="mt-2 flex flex-col gap-1.5 text-sm">
-          {t("typeIt")}
-          <Input value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" />
-        </label>
+        {locked ? (
+          <p className="bg-surface-2 mt-2 rounded-xl p-3 text-sm">{t("locked")}</p>
+        ) : (
+          <label className="mt-2 flex flex-col gap-1.5 text-sm">
+            {t("typeIt")}
+            <Input value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" />
+          </label>
+        )}
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setOpen(false)}>
             {tc("cancel")}
           </Button>
           <Button
             variant="danger"
-            disabled={!ok}
+            disabled={!ok || locked}
             loading={pending}
             onClick={() =>
               start(async () => {

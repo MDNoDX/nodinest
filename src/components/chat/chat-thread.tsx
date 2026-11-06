@@ -33,6 +33,7 @@ import type { DmGif, DmMessage, DmPerson, DmReactions } from "@/server/dm";
 import { refreshUnreadChats } from "./chats-button";
 import { Composer, type Voice } from "./composer";
 import { EmojiGif } from "./emoji-gif";
+import { MediaViewer, type ViewerItem } from "./media-viewer";
 import { cancel, onSent, queue as queueOut, retry, usePending, type Pending } from "./outbox";
 import { Attachment, KindLabel, ReadMark, clock, dayLabel, seenText, useNow } from "./parts";
 
@@ -90,6 +91,8 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [seen, setSeen] = useState(initial.other.seen ?? null);
   const [reacts, setReacts] = useState<DmReactions>(initial.reactions ?? {});
+  // The full-screen viewer: which picture / video of the talk is open.
+  const [viewing, setViewing] = useState<string | null>(null);
   const reactedAt = useRef(initial.reactedAt ?? null);
   // Swiping a message to answer it (phones): which one and how far.
   const [swipe, setSwipe] = useState<{ id: string; dx: number } | null>(null);
@@ -143,6 +146,18 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
     } else toEnd();
     refreshUnreadChats();
   }, [toEnd]);
+
+  // The keyboard opens or closes: still at the newest line if we were there.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const keep = () => stick.current && requestAnimationFrame(() => toEnd());
+    vv.addEventListener("resize", keep);
+    return () => vv.removeEventListener("resize", keep);
+  }, [toEnd]);
+
+  // Like Telegram: pulling the messages down (towards older ones) puts the keyboard away.
+  const pullFrom = useRef<number | null>(null);
 
   // Keep at the bottom while there (pictures load, new messages arrive).
   useEffect(() => {
@@ -280,6 +295,37 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
       }
   }, [pending, te]);
   const writable = canWrite && !pending.some((p) => p.code === "FORBIDDEN");
+  // Every picture and video of the talk, oldest first, for the viewer.
+  const viewerItems: ViewerItem[] = list.flatMap((m): ViewerItem[] => {
+    if (m.deleted) return [];
+    const who = m.senderId === me ? t("you") : other.name;
+    const when = `${dayLabel(m.createdAt, locale, t("today"), t("yesterday"))} ${clock(m.createdAt, locale)}`;
+    if (m.meta?.gif)
+      return [
+        {
+          id: m.id,
+          kind: "gif" as const,
+          src: m.meta.gif.url,
+          name: "GIF",
+          caption: m.body,
+          who,
+          when,
+        },
+      ];
+    if (m.file && /^(image|video)\//.test(m.file.mime))
+      return [
+        {
+          id: m.id,
+          kind: m.file.mime.startsWith("video/") ? ("video" as const) : ("image" as const),
+          src: `/api/files/${m.file.id}`,
+          name: m.file.name,
+          caption: m.body,
+          who,
+          when,
+        },
+      ];
+    return [];
+  });
 
   const replyId = () => {
     const id = reply?.id;
@@ -435,7 +481,20 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
       </header>
 
       <div className="relative min-h-0 flex-1">
-        <div ref={box} onScroll={onScroll} className="chat-scroll h-full overflow-y-auto">
+        <div
+          ref={box}
+          onScroll={onScroll}
+          onTouchStart={(e) => (pullFrom.current = e.touches[0].clientY)}
+          onTouchMove={(e) => {
+            const y0 = pullFrom.current;
+            const el = document.activeElement;
+            if (y0 != null && e.touches[0].clientY - y0 > 40 && el instanceof HTMLTextAreaElement) {
+              el.blur();
+              pullFrom.current = null;
+            }
+          }}
+          className="chat-scroll h-full overflow-y-auto overscroll-contain"
+        >
           <div className="mx-auto flex max-w-3xl flex-col gap-1 px-3 py-4 sm:px-6">
             {more && (
               <div className="grid place-items-center py-2">
@@ -574,7 +633,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                           t("kind.deleted")
                         ) : (
                           <>
-                            <Attachment m={m} mine={mine} />
+                            <Attachment
+                              m={m}
+                              mine={mine}
+                              onOpen={pic ? () => setViewing(m.id) : undefined}
+                            />
                             {m.body && (
                               <span
                                 className={cn(
@@ -595,7 +658,10 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                             // On a picture the time sits on it, like Telegram (no empty strip below).
                             media
                               ? "absolute right-2 bottom-2 rounded-full bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm"
-                              : cn("text-muted float-right mt-1 ml-3 translate-y-1", pic && "mr-2 mb-1"),
+                              : cn(
+                                  "text-muted float-right mt-1 ml-3 translate-y-1",
+                                  pic && "mr-2 mb-1",
+                                ),
                           )}
                         >
                           {clock(m.createdAt, locale)}
@@ -794,6 +860,16 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
           />
         )}
       </footer>
+      {viewing && (
+        <MediaViewer
+          items={viewerItems}
+          at={Math.max(
+            0,
+            viewerItems.findIndex((v) => v.id === viewing),
+          )}
+          onClose={() => setViewing(null)}
+        />
+      )}
       <Dialog open={clearing} onOpenChange={setClearing}>
         <DialogContent title={t("clearTitle")} closeLabel={t("cancel")}>
           <p className="text-muted text-sm">{t("clearBody", { name: other.name })}</p>

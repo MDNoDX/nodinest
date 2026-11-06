@@ -5,6 +5,7 @@ import { isStorageConfigured, openFile } from "@/server/storage";
 
 /** The small sizes a picture may be asked for (no other, so nothing can be abused). */
 const SIZES = [160, 320, 480, 720];
+const CHUNK = 2 * 1024 * 1024;
 import { apiError, apiUserOrGuest } from "../../_utils";
 
 export const maxDuration = 300;
@@ -18,11 +19,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!z.string().uuid().safeParse(id).success || !isStorageConfigured())
       return new NextResponse(null, { status: 404 });
     const m = /^bytes=(\d+)-(\d*)$/.exec(req.headers.get("range") ?? "");
-    const f = await openFile(
-      ctx,
-      id,
-      m ? [Number(m[1]), m[2] ? Number(m[2]) : undefined] : undefined,
-    );
+    // "From here to the end" (how phones ask for a video) is answered in 2 MB
+    // pieces: playback starts sooner and no answer grows too big for a function;
+    // the player simply asks for the next piece.
+    const from = m ? Number(m[1]) : 0;
+    const to = m ? (m[2] ? Math.min(Number(m[2]), from + CHUNK - 1) : from + CHUNK - 1) : undefined;
+    const f = await openFile(ctx, id, m ? [from, to] : undefined);
     if (!f) return new NextResponse(null, { status: 404 });
     // ?w=480: a small copy of a picture for lists and cards (covers are many,
     // the originals heavy). Made on the fly, kept by the browser for a month.

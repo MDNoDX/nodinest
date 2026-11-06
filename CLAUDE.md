@@ -280,6 +280,15 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   words highlighted, one click to apply).
 - Legal pages must forbid pirated PDFs and sharing books / audiobooks (also shown under uploads).
 - Taqriz find/replace: `components/taqriz/find.ts` (decorations; folds case + Uzbek apostrophes).
+- Phone chats: the talk's height follows `visualViewport` (`--vvh`, plus `interactiveWidget:
+  resizes-content`), so the keyboard never pushes it off; pulling the messages down hides the keyboard.
+  Voice: what the finger does while the mic opens is kept (`starting` / `afterStart` in composer.tsx);
+  a lost touch (pointercancel) locks the recording instead of sending it. Pictures, videos and GIFs open
+  in `chat/media-viewer.tsx` (swipe, ← →, download). `/api/files` answers open-ended ranges in 2 MB
+  pieces (phones ask `bytes=0-` for a video).
+- Home on phones: the day's plan first, one sideways row of "reading", small counters, no finished
+  wall / latest notes there; no favourite authors or ranked collections anywhere on home.
+  The phone menu foot: theme, language globe (`layout/locale-toggle.tsx`, cycles) and the guide.
 - Resource form order: type (one row of icons, the name + hint below) → find online → basics →
   classification → people → details → PDF (closed) → more. The item page keeps "O'qish" closed, has
   one "Savollar tuzish" button (quotes / notes come from "My notes and quotes") and icon-only actions

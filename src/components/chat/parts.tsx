@@ -282,14 +282,35 @@ function MediaBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
+export function Attachment({
+  m,
+  mine,
+  onOpen,
+}: {
+  m: DmMessage;
+  mine: boolean;
+  /** A picture or video opens full screen (the chat's viewer). */
+  onOpen?: () => void;
+}) {
   const t = useTranslations("chat");
+  const open = (e: React.MouseEvent) => {
+    if (!onOpen) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onOpen();
+  };
   const f = m.file;
   const gif = m.meta?.gif;
   if (gif) {
     const box = fitBox(Number(gif.w) || 240, Number(gif.h) || 180);
     return (
-      <span className="relative block overflow-hidden rounded-xl" style={box}>
+      <span
+        role="button"
+        tabIndex={-1}
+        onClick={open}
+        className="relative block cursor-zoom-in overflow-hidden rounded-xl"
+        style={box}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={gif.url}
@@ -307,7 +328,13 @@ export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
     const src = `/api/files/${f.id}`;
     if (f.mime.startsWith("image/"))
       return (
-        <a href={src} target="_blank" rel="noreferrer" className="block">
+        <a
+          href={src}
+          target="_blank"
+          rel="noreferrer"
+          onClick={open}
+          className="block cursor-zoom-in"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
@@ -321,14 +348,25 @@ export function Attachment({ m, mine }: { m: DmMessage; mine: boolean }) {
       return <VoiceNote src={src} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />;
     if (f.mime.startsWith("video/"))
       return (
-        <span className="relative block w-[min(17rem,68vw)]">
+        // The first frame with a play button; a tap plays it full screen (phones too).
+        <span
+          role="button"
+          tabIndex={-1}
+          onClick={open}
+          className="relative block w-[min(17rem,68vw)] cursor-pointer"
+        >
           <video
-            src={src}
-            controls
+            src={`${src}#t=0.1`}
+            muted
             preload="metadata"
             playsInline
-            className="block max-h-80 w-full rounded-xl bg-black"
+            className="pointer-events-none block max-h-80 min-h-32 w-full rounded-xl bg-black object-cover"
           />
+          <span className="absolute inset-0 grid place-items-center">
+            <span className="grid size-12 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+              <Play className="size-5 translate-x-0.5 fill-current" />
+            </span>
+          </span>
           <MediaBadge>
             <Video className="size-3" /> {t("kind.video")}
           </MediaBadge>

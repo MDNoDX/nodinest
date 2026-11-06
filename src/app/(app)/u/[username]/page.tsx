@@ -128,7 +128,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </p>
         )}
         <div className="border-border mx-5 mb-5 flex divide-x divide-[var(--border)] rounded-2xl border sm:mx-7">
-          {stat(items.length, t("statItems"))}
+          {stat(items.length, t("statItems"), `/u/${p.username}/items`)}
           {stat(p.followers, t("statFollowers"), `/u/${p.username}/followers`)}
           {stat(p.following, t("statFollowing"), `/u/${p.username}/following`)}
         </div>

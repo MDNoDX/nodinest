@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 import {
   BookCheck,
   BookOpen,
-  BookOpenText,
   Brain,
   FileStack,
   GraduationCap,
@@ -13,12 +12,10 @@ import {
   Quote,
   Sparkles,
   Star,
-  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Cover, coverSrc } from "@/components/library/cover";
-import { ResourceCard } from "@/components/library/resource-card";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { fmtClock } from "@/lib/clock";
@@ -29,7 +26,7 @@ import { hueStyle, type Hue } from "@/lib/hues";
 import { listGoalsWithProgress } from "@/server/goals";
 import { ensureDefaults, getDay } from "@/server/roznoma";
 import { TodayCard } from "@/components/roznoma/today-card";
-import { getCollection, listCollections, listNotes } from "@/server/notes";
+import { listNotes } from "@/server/notes";
 import { listMyRecords } from "@/server/records";
 import { lastResume } from "@/server/resume";
 import { listDecks } from "@/server/study-cards";
@@ -43,6 +40,7 @@ import { adFor } from "@/server/ads";
 
 export const dynamic = "force-dynamic";
 
+/** A small counter: icon, the number and its name in one line (never a big block). */
 function Counter({
   label,
   value,
@@ -61,16 +59,17 @@ function Counter({
   return (
     <Link
       href={href}
-      className="card group relative overflow-hidden p-4 transition-shadow hover:shadow-md"
+      className="card group flex items-center gap-2.5 px-3 py-2.5 transition-shadow hover:shadow-md"
       style={hueStyle(hue)}
     >
-      <span aria-hidden className="hue-bar absolute inset-x-0 top-0 h-1" />
-      <div className="flex items-center justify-between">
-        <span className="text-muted text-xs font-medium">{label}</span>
-        <IconChip icon={icon} hue={hue} className="size-8 rounded-lg" />
-      </div>
-      <div className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="text-muted mt-0.5 text-xs">{sub}</div>}
+      <IconChip icon={icon} hue={hue} className="size-8 shrink-0 rounded-lg" />
+      <span className="min-w-0">
+        <span className="block text-lg leading-tight font-bold tabular-nums">{value}</span>
+        <span className="text-muted block truncate text-[11px] leading-tight">
+          {label}
+          {sub ? ` · ${sub}` : ""}
+        </span>
+      </span>
     </Link>
   );
 }
@@ -80,12 +79,11 @@ export default async function DashboardPage() {
   if (!(await getCurrentUser())) redirect("/media");
   const { user, ctx, db, locale, tz, today } = await pageContext();
   const t = await getTranslations();
-  const [records, stats, goals, notes, cols, last, decks, startSteps] = await Promise.all([
+  const [records, stats, goals, notes, last, decks, startSteps] = await Promise.all([
     listMyRecords(db, ctx),
     getCollectionStats(db, ctx, { timeZone: tz }),
     listGoalsWithProgress(db, ctx, today, tz),
     listNotes(db, ctx, {}),
-    listCollections(db, ctx),
     lastResume(db, ctx),
     listDecks(ctx),
     getStartSteps(ctx),
@@ -94,9 +92,7 @@ export default async function DashboardPage() {
   await ensureDefaults(ctx, locale);
   const todayPage = await getDay(ctx, today);
   const homeAd = await adFor(ctx, "home");
-  const ranked = cols.filter((c) => c.ranked && c.count > 0).slice(0, 2);
-  const rankedDetails = await Promise.all(ranked.map((c) => getCollection(db, ctx, c.id)));
-  const reading = records.filter((r) => r.status === "in_progress").slice(0, 6);
+  const reading = records.filter((r) => r.status === "in_progress").slice(0, 12);
   // Books whose text is on the site open straight in the reader, where the user stopped.
   const readable = await withBookText(
     ctx,
@@ -152,8 +148,8 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <section className="hero -mx-4 -mt-6 mb-7 rounded-b-3xl px-4 pt-7 pb-6 sm:-mx-6 sm:-mt-8 sm:px-6 sm:pt-9">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <section className="hero -mx-4 -mt-6 mb-5 rounded-b-3xl px-4 pt-5 pb-4 sm:-mx-6 sm:-mt-8 sm:mb-7 sm:px-6 sm:pt-8 sm:pb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
           <Link
             href={user.username ? `/u/${user.username}` : "/settings"}
             className="group flex items-center gap-4 rounded-2xl"
@@ -161,13 +157,13 @@ export default async function DashboardPage() {
             <Avatar
               name={user.name}
               image={user.image}
-              className="ring-surface size-16 text-xl ring-4 transition-transform group-hover:scale-105"
+              className="ring-surface size-12 text-lg ring-4 transition-transform group-hover:scale-105 sm:size-16 sm:text-xl"
             />
-            <div>
-              <div className="text-muted text-xs font-semibold tracking-wide uppercase">
+            <div className="min-w-0">
+              <div className="text-muted text-[11px] font-semibold tracking-wide uppercase sm:text-xs">
                 {t("dashboard.heroSubtitle")}
               </div>
-              <h1 className="text-2xl font-bold tracking-tight group-hover:underline sm:text-3xl">
+              <h1 className="truncate text-xl font-bold tracking-tight group-hover:underline sm:text-3xl">
                 {user.name}
               </h1>
               <div className="text-muted mt-0.5 text-sm">
@@ -181,9 +177,15 @@ export default async function DashboardPage() {
               </div>
             </div>
           </Link>
-          <div className="flex flex-wrap gap-2">
+          {/* One row of chips on a phone (it scrolls sideways); "add" is just its icon there. */}
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {last && (
-              <Button variant="secondary" asChild className="max-w-xs">
+              <Button
+                variant="secondary"
+                size="sm"
+                asChild
+                className="max-w-[15rem] shrink-0 sm:max-w-xs"
+              >
                 <Link
                   href={
                     last.place === "resource"
@@ -201,20 +203,26 @@ export default async function DashboardPage() {
               </Button>
             )}
             {due > 0 && (
-              <Button variant="secondary" asChild>
+              <Button variant="secondary" size="sm" asChild className="shrink-0">
                 <Link href="/review">
                   <Brain /> {t("dashboard.dueReview", { n: due })}
                 </Link>
               </Button>
             )}
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" asChild className="shrink-0">
               <Link href="/assistant">
                 <Sparkles /> AI
               </Link>
             </Button>
-            <Button asChild data-tour="add">
-              <Link href="/library/new">
-                <Plus /> {t("nav.newResource")}
+            <Button
+              size="sm"
+              asChild
+              data-tour="add"
+              className="shrink-0"
+              title={t("nav.newResource")}
+            >
+              <Link href="/library/new" aria-label={t("nav.newResource")}>
+                <Plus /> <span className="max-sm:sr-only">{t("nav.newResource")}</span>
               </Link>
             </Button>
           </div>
@@ -223,11 +231,11 @@ export default async function DashboardPage() {
         {counters.length > 0 && (
           <div
             className={cn(
-              "mt-6 grid grid-cols-2 gap-3",
+              "mt-4 grid grid-cols-2 gap-2 sm:mt-6 sm:gap-3",
               counters.length >= 4
-                ? "lg:grid-cols-4"
+                ? "md:grid-cols-4"
                 : counters.length === 3
-                  ? "lg:grid-cols-3"
+                  ? "md:grid-cols-3"
                   : "",
             )}
           >
@@ -284,27 +292,58 @@ export default async function DashboardPage() {
                   </Link>
                 }
               />
-              <div className="px-5 pb-5">
-                <ul className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-                  {reading.map((r) => (
-                    <li key={r.id}>
-                      <ResourceCard r={r} />
-                      {readable.has(r.resourceId) && (
-                        <Link
-                          href={`/library/${r.resourceId}/read`}
-                          className="text-primary hover:bg-primary-soft mt-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm font-semibold"
-                        >
-                          <BookOpenText className="size-4" /> {t("reader.continue")}
-                        </Link>
+              {/* One row that scrolls sideways: the cover, the title and how far. */}
+              <ul className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-5 pb-5">
+                {reading.map((r) => {
+                  const pct =
+                    r.progressTotal && r.progressCurrent != null
+                      ? Math.min(100, Math.round((r.progressCurrent / r.progressTotal) * 100))
+                      : null;
+                  const portrait = r.type === "book" || r.type === "course";
+                  return (
+                    <li
+                      key={r.id}
+                      className={cn(
+                        "shrink-0 snap-start",
+                        portrait ? "w-24 sm:w-28" : "w-40 sm:w-44",
                       )}
+                    >
+                      <Link
+                        href={
+                          readable.has(r.resourceId)
+                            ? `/library/${r.resourceId}/read`
+                            : `/library/${r.resourceId}`
+                        }
+                        title={r.title}
+                        className="group block"
+                      >
+                        <Cover
+                          type={r.type}
+                          title={r.title}
+                          src={coverSrc(r, 320)}
+                          className="w-full shadow-sm"
+                        />
+                        <span className="mt-1.5 line-clamp-2 text-xs leading-snug font-semibold">
+                          {r.title}
+                        </span>
+                        {pct != null && (
+                          <span className="bg-surface-2 mt-1 block h-1 overflow-hidden rounded-full">
+                            <span
+                              className="bg-primary block h-full rounded-full"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </span>
+                        )}
+                      </Link>
                     </li>
-                  ))}
-                </ul>
-              </div>
+                  );
+                })}
+              </ul>
             </Card>
           )}
 
-          <Card>
+          {/* Phones: the wall of finished books and the latest notes stay off the home page. */}
+          <Card className="max-md:hidden">
             <CardHeader
               title={t("dashboard.finishedWall")}
               icon={<BookCheck />}
@@ -351,7 +390,7 @@ export default async function DashboardPage() {
           </Card>
 
           {notes.items.length > 0 && (
-            <Card>
+            <Card className="max-md:hidden">
               <CardHeader
                 title={t("dashboard.recentNotes")}
                 icon={<Quote />}
@@ -384,7 +423,8 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <aside className="flex flex-col gap-6">
+        {/* The day's plan comes first on a phone. */}
+        <aside className="flex flex-col gap-6 max-lg:order-first">
           <TodayCard
             day={today}
             items={todayPage.items.map((i) => ({
@@ -404,73 +444,6 @@ export default async function DashboardPage() {
               target: g.target,
             }))}
           />
-
-          {rankedDetails.filter(Boolean).map((c) => (
-            <Card key={c!.collection.id}>
-              <CardHeader
-                title={c!.collection.name ?? ""}
-                icon={<Trophy />}
-                hue="amber"
-                action={
-                  <Link
-                    href={`/collections/${c!.collection.id}`}
-                    className="text-primary text-xs font-medium hover:underline"
-                  >
-                    {t("common.seeAll")}
-                  </Link>
-                }
-              />
-              <ol className="flex flex-col gap-2 px-5 pb-5">
-                {c!.items.slice(0, 5).map((it, i) =>
-                  it.resourceId ? (
-                    <li key={it.id}>
-                      <Link
-                        href={`/library/${it.resourceId}`}
-                        className="flex items-center gap-3 text-sm hover:underline"
-                      >
-                        <span
-                          className={
-                            i < 3
-                              ? "w-6 text-center text-base font-bold text-[var(--c-amber)]"
-                              : "text-muted w-6 text-center text-sm font-semibold"
-                          }
-                        >
-                          {i + 1}
-                        </span>
-                        <Cover
-                          type={it.resourceType!}
-                          title={it.resourceTitle!}
-                          src={coverSrc({ coverFileId: it.coverFileId, coverUrl: it.coverUrl })}
-                          size="sm"
-                        />
-                        <span className="min-w-0 flex-1 truncate font-medium">
-                          {it.resourceTitle}
-                        </span>
-                      </Link>
-                    </li>
-                  ) : null,
-                )}
-              </ol>
-            </Card>
-          ))}
-
-          {stats.authors.length > 0 && (
-            <Card>
-              <CardHeader title={t("stats.authors")} icon={<Star />} hue="orange" />
-              <ul className="flex flex-col gap-2 px-5 pb-5">
-                {stats.authors.slice(0, 5).map((a) => (
-                  <li key={a.id} className="flex items-center justify-between text-sm">
-                    <Link href={`/people/${a.id}`} className="truncate font-medium hover:underline">
-                      {a.name}
-                    </Link>
-                    <span className="text-muted text-xs tabular-nums">
-                      {t("stats.items", { count: a.n })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </aside>
       </div>
       {homeAd && (
