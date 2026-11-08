@@ -191,13 +191,14 @@ export default async function DashboardPage() {
           </Link>
           {/* All in sight, no sideways scrolling: "continue" takes the whole first line on a
               phone, the rest share the next one (equal widths); on a computer one row. */}
-          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+          {/* A phone: one full line each for "continue" and today's questions (their
+              words never cut), then AI and "add" side by side; a computer: one row. */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {last && (
               <Button
                 variant="secondary"
-                size="sm"
                 asChild
-                className="col-span-3 min-w-0 justify-start sm:max-w-xs"
+                className="col-span-2 h-10 min-w-0 justify-start sm:h-8 sm:max-w-xs sm:px-3 sm:text-sm"
               >
                 <Link
                   href={
@@ -216,20 +217,27 @@ export default async function DashboardPage() {
               </Button>
             )}
             {due > 0 && (
-              <Button variant="secondary" size="sm" asChild className="min-w-0">
+              <Button
+                variant="secondary"
+                asChild
+                className="col-span-2 h-10 justify-start sm:h-8 sm:px-3 sm:text-sm"
+              >
                 <Link href="/review">
-                  <Brain /> <span className="truncate">{t("dashboard.dueReview", { n: due })}</span>
+                  <Brain className="text-[var(--c-teal)]" />
+                  <span className="flex-1 text-left">{t("dashboard.dueReview", { n: due })}</span>
+                  <ChevronRight className="text-muted sm:hidden" />
                 </Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" asChild className={cn(due > 0 ? "" : "col-span-2")}>
+            <Button variant="outline" asChild className="h-10 sm:h-8 sm:px-3 sm:text-sm">
               <Link href="/assistant">
-                <Sparkles /> AI
+                <Sparkles /> <span className="sm:hidden">{t("nav.assistant")}</span>
+                <span className="max-sm:hidden">AI</span>
               </Link>
             </Button>
-            <Button size="sm" asChild data-tour="add" title={t("nav.newResource")}>
-              <Link href="/library/new" aria-label={t("nav.newResource")}>
-                <Plus /> <span className="max-sm:sr-only">{t("nav.newResource")}</span>
+            <Button asChild data-tour="add" className="h-10 sm:h-8 sm:px-3 sm:text-sm">
+              <Link href="/library/new">
+                <Plus /> {t("nav.newResource")}
               </Link>
             </Button>
           </div>
