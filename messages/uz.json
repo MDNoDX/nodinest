@@ -2885,7 +2885,27 @@
     "close": "Yopiş",
     "previous": "Oldingi",
     "next": "Keyingi",
-    "asFile": "Siqmasdan, asl sifatida yuboriş (sekinroq)"
+    "asFile": "Siqmasdan, asl sifatida yuboriş (sekinroq)",
+    "menu": {
+      "reply": "Javob beriş",
+      "copy": "Nusxa oliş",
+      "save": "Saqlaş",
+      "pin": "Qadaş",
+      "unpin": "Qadalganni oliş",
+      "forward": "Uzatiş",
+      "select": "Belgilaş",
+      "delete": "Öçiriş"
+    },
+    "selected": "{n} ta tanlandi",
+    "select": "Belgilaş",
+    "deleteOnlyMine": "Faqat öz xabarlaringizni öçira olasiz.",
+    "deleteConfirm": "{n} ta xabar ikkalangizda ham öçiriladi. Davom etasizmi?",
+    "pinnedDone": "Xabar qadaldi",
+    "unpinnedDone": "Qadalgan xabar olindi",
+    "pinnedTitle": "Qadalgan xabar",
+    "forwarded": "{name}ga uzatildi",
+    "forwardTo": "Kimga uzatamiz? ({n} ta xabar)",
+    "forwardedFrom": "Uzatildi: {name}"
   },
   "guest": {
     "media": "Media",

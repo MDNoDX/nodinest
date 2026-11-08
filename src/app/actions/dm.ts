@@ -4,6 +4,8 @@ import { z } from "zod";
 import {
   clearChat,
   deleteMessage,
+  forwardMessages,
+  pinMessage,
   react,
   openThread,
   searchMessages,
@@ -49,6 +51,14 @@ export async function deleteMessageAction(messageId: string) {
 
 export async function reactAction(messageId: string, emoji: string | null) {
   return run(async ({ ctx }) => react(ctx, messageId, emoji));
+}
+
+export async function pinMessageAction(threadId: string, messageId: string | null) {
+  return run(async ({ ctx }) => pinMessage(ctx, threadId, messageId));
+}
+
+export async function forwardMessagesAction(messageIds: string[], toThreadId: string) {
+  return run(async ({ ctx }) => forwardMessages(ctx, messageIds, toThreadId));
 }
 
 export async function setBlockedAction(userId: string, on: boolean) {

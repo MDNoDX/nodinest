@@ -1543,6 +1543,10 @@ export const dmThreads = nodinest.table(
     lastAt: ts("last_at").notNull().defaultNow(),
     /** The last time anyone reacted (or took a reaction back): the poll's cue. */
     reactedAt: ts("reacted_at"),
+    /** The message pinned at the top of the talk (either side may pin). */
+    pinnedId: uuid("pinned_id"),
+    /** When the pin changed: the poll's cue. */
+    pinnedAt: ts("pinned_at"),
     createdAt: createdAt(),
   },
   (t) => [

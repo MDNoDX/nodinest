@@ -3,11 +3,14 @@ import {
   ArrowDown,
   ArrowLeft,
   Ban,
+  Check,
   Copy,
   CornerUpLeft,
   Eraser,
   EllipsisVertical,
+  Forward,
   Loader2,
+  Pin,
   RotateCw,
   Trash2,
   UserRound,
@@ -21,6 +24,7 @@ import { toast } from "sonner";
 import {
   clearChatAction,
   deleteMessageAction,
+  pinMessageAction,
   reactAction,
   setBlockedAction,
 } from "@/app/actions/dm";
@@ -29,10 +33,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
-import type { DmGif, DmMessage, DmPerson, DmReactions } from "@/server/dm";
+import type { DmGif, DmMessage, DmPerson, DmPinned, DmReactions } from "@/server/dm";
 import { refreshUnreadChats } from "./chats-button";
 import { Composer, type Voice } from "./composer";
-import { EmojiGif } from "./emoji-gif";
+import { ForwardDialog, MessageMenu, type MenuAction } from "./message-menu";
 import { MediaViewer, type ViewerItem } from "./media-viewer";
 import { cancel, onSent, queue as queueOut, retry, usePending, type Pending } from "./outbox";
 import { Attachment, KindLabel, ReadMark, clock, dayLabel, seenText, useNow } from "./parts";
@@ -47,6 +51,8 @@ type View = {
   more: boolean;
   reactions?: DmReactions;
   reactedAt?: string | null;
+  pinned?: DmPinned;
+  pinnedAt?: string | null;
 };
 const NEAR = 140;
 /** The reactions offered at once (the smile opens every emoji). */
@@ -78,7 +84,16 @@ const kindOf = (m: DmMessage) =>
  * 3 s while the page is visible (slower when nothing happens); sending shows
  * the message at once and keeps it with "retry" if it fails.
  */
-export function ChatThread({ me, initial }: { me: string; initial: View }) {
+export function ChatThread({
+  me,
+  self,
+  initial,
+}: {
+  me: string;
+  /** My own name and picture (shown on my reactions). */
+  self?: { name: string; image: string | null };
+  initial: View;
+}) {
   const t = useTranslations("chat");
   const te = useTranslations("errors");
   const locale = useLocale();
@@ -91,6 +106,11 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [seen, setSeen] = useState(initial.other.seen ?? null);
   const [reacts, setReacts] = useState<DmReactions>(initial.reactions ?? {});
+  // Selecting several messages (Telegram's "Select"): their ids, or null when not selecting.
+  const [sel, setSel] = useState<Set<string> | null>(null);
+  const [forwarding, setForwarding] = useState<string[] | null>(null);
+  const [pinned, setPinned] = useState<DmPinned>(initial.pinned ?? null);
+  const pinnedAt = useRef(initial.pinnedAt ?? null);
   // The full-screen viewer: which picture / video of the talk is open.
   const [viewing, setViewing] = useState<string | null>(null);
   const reactedAt = useRef(initial.reactedAt ?? null);
@@ -190,7 +210,9 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
       if (stop) return;
       if (document.visibilityState === "visible") {
         const after = lastRef.current ?? new Date(0).toISOString();
-        const rat = reactedAt.current ? `&rat=${encodeURIComponent(reactedAt.current)}` : "";
+        const rat =
+          (reactedAt.current ? `&rat=${encodeURIComponent(reactedAt.current)}` : "") +
+          (pinnedAt.current ? `&pat=${encodeURIComponent(pinnedAt.current)}` : "");
         const r = await fetch(`/api/dm/${initial.id}?after=${encodeURIComponent(after)}${rat}`, {
           cache: "no-store",
         }).catch(() => null);
@@ -203,9 +225,15 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
               seen?: string | null;
               reactions?: DmReactions;
               reactedAt?: string;
+              pinned?: DmPinned;
+              pinnedAt?: string;
             })
           : null;
         if (!stop && j) {
+          if (j.pinnedAt) {
+            pinnedAt.current = j.pinnedAt;
+            setPinned(j.pinned ?? null);
+          }
           if (j.reactions && j.reactedAt) {
             reactedAt.current = j.reactedAt;
             setReacts(j.reactions);
@@ -398,6 +426,113 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
     toast.success(t("cleared"));
   };
 
+  const jump = (id: string) => {
+    const el = document.getElementById(`m-${id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.classList.remove("chat-found");
+    void el?.offsetWidth;
+    el?.classList.add("chat-found");
+  };
+  const pin = async (id: string | null) => {
+    setPicked(null);
+    const r = await pinMessageAction(initial.id, id);
+    if (!r.ok) return errorToast(te, r);
+    setPinned(r.data);
+    toast.success(t(id ? "pinnedDone" : "unpinnedDone"));
+  };
+  // What one message says, for copying several at once.
+  const asText = (m: DmMessage) => m.body ?? t(`kind.${kindOf(m)}` as "kind.text");
+  const toggle = (id: string, on?: boolean) =>
+    setSel((s) => {
+      const next = new Set(s ?? []);
+      if (on ?? !next.has(id)) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  // Press on a mark and slide over others: they all get marked (or unmarked).
+  const dragOn = useRef<boolean | null>(null);
+  const pressed = useRef<string | null>(null);
+  const startDrag = (id: string, e: React.PointerEvent) => {
+    if (!sel) return;
+    e.preventDefault();
+    const on = !sel.has(id);
+    dragOn.current = on;
+    pressed.current = id;
+    toggle(id, on);
+    const el = box.current;
+    let lastY = e.clientY;
+    const scroller = window.setInterval(() => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (lastY < r.top + 60) el.scrollBy(0, -14);
+      else if (lastY > r.bottom - 60) el.scrollBy(0, 14);
+    }, 30);
+    const move = (ev: PointerEvent) => {
+      lastY = ev.clientY;
+      const hit = document
+        .elementFromPoint(ev.clientX, ev.clientY)
+        ?.closest<HTMLElement>("[data-mid]");
+      const mid = hit?.dataset.mid;
+      if (mid && dragOn.current !== null) toggle(mid, dragOn.current);
+    };
+    const up = () => {
+      dragOn.current = null;
+      // The click that follows this press must not undo it; later taps count again.
+      window.setTimeout(() => (pressed.current = null), 0);
+      window.clearInterval(scroller);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+  const chosen = () => list.filter((m) => sel?.has(m.id) && !m.deleted);
+  const copyChosen = (msgs: DmMessage[]) => {
+    const text =
+      msgs.length === 1
+        ? asText(msgs[0])
+        : msgs
+            .map(
+              (m) =>
+                `${m.senderId === me ? (self?.name ?? t("you")) : other.name}, [${clock(m.createdAt, locale)}]\n${asText(m)}`,
+            )
+            .join("\n\n");
+    void navigator.clipboard?.writeText(text);
+    toast.success(t("copied"));
+  };
+  const deleteChosen = async (msgs: DmMessage[]) => {
+    const minesOnly = msgs.filter((m) => m.senderId === me);
+    if (!minesOnly.length) return toast(t("deleteOnlyMine"));
+    if (!window.confirm(t("deleteConfirm", { n: minesOnly.length }))) return;
+    for (const m of minesOnly) {
+      const r = await deleteMessageAction(m.id);
+      if (r.ok) merge([], [m.id]);
+    }
+    if (minesOnly.length < msgs.length) toast(t("deleteOnlyMine"));
+    setSel(null);
+  };
+  const act = (m: DmMessage, a: MenuAction) => {
+    setPicked(null);
+    if (a === "reply") setReply(m);
+    else if (a === "copy") copyChosen([m]);
+    else if (a === "save") {
+      const href = m.meta?.gif?.url ?? (m.file ? `/api/files/${m.file.id}` : null);
+      if (href) {
+        const link = document.createElement("a");
+        link.href = href;
+        link.download = m.file?.name ?? "gif";
+        link.target = "_blank";
+        link.click();
+      }
+    } else if (a === "pin") void pin(m.id);
+    else if (a === "unpin") void pin(null);
+    else if (a === "forward") setForwarding([m.id]);
+    else if (a === "select") setSel(new Set([m.id]));
+    else if (a === "delete") void remove(m);
+  };
+
   const remove = async (m: DmMessage) => {
     setPicked(null);
     const r = await deleteMessageAction(m.id);
@@ -416,70 +551,124 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
 
   return (
     <div data-thread className="flex h-full min-h-0 flex-col">
-      <header className="border-border bg-background/90 flex h-14 shrink-0 items-center gap-2 border-b px-2 backdrop-blur sm:px-3">
-        <Link
-          href="/chats"
-          aria-label={t("back")}
-          className="text-muted hover:bg-surface-2 grid size-9 place-items-center rounded-lg lg:hidden"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
-        <Link href={`/u/${other.username}`} className="flex min-w-0 flex-1 items-center gap-3">
-          <Avatar name={other.name} image={other.image} className="size-9" />
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold">{other.name}</span>
-            <span
-              className={cn(
-                "block truncate text-xs",
-                seen && now && now - Date.parse(seen) < ONLINE_MS
-                  ? "text-[var(--c-emerald)]"
-                  : "text-muted",
-              )}
-            >
-              {seen && now ? seenText(now, seen, locale, t) : `@${other.username}`}
+      {sel ? (
+        // Selecting: how many, and what to do with them (copy, forward, delete).
+        <header className="border-border bg-background/95 animate-fade-in flex h-14 shrink-0 items-center gap-1 border-b px-2 backdrop-blur sm:px-3">
+          <button
+            type="button"
+            onClick={() => setSel(null)}
+            aria-label={t("cancel")}
+            className="hover:bg-surface-2 grid size-10 place-items-center rounded-lg"
+          >
+            <X className="size-5" />
+          </button>
+          <span className="flex-1 text-[15px] font-semibold">{t("selected", { n: sel.size })}</span>
+          <IconBtn label={t("copy")} onClick={() => chosen().length && copyChosen(chosen())}>
+            <Copy className="size-5" />
+          </IconBtn>
+          <IconBtn
+            label={t("menu.forward")}
+            onClick={() => chosen().length && setForwarding(chosen().map((m) => m.id))}
+          >
+            <Forward className="size-5" />
+          </IconBtn>
+          <IconBtn
+            label={t("delete")}
+            onClick={() => chosen().length && void deleteChosen(chosen())}
+          >
+            <Trash2 className="text-danger size-5" />
+          </IconBtn>
+        </header>
+      ) : (
+        <header className="border-border bg-background/90 flex h-14 shrink-0 items-center gap-2 border-b px-2 backdrop-blur sm:px-3">
+          <Link
+            href="/chats"
+            aria-label={t("back")}
+            className="text-muted hover:bg-surface-2 grid size-9 place-items-center rounded-lg lg:hidden"
+          >
+            <ArrowLeft className="size-5" />
+          </Link>
+          <Link href={`/u/${other.username}`} className="flex min-w-0 flex-1 items-center gap-3">
+            <Avatar name={other.name} image={other.image} className="size-9" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">{other.name}</span>
+              <span
+                className={cn(
+                  "block truncate text-xs",
+                  seen && now && now - Date.parse(seen) < ONLINE_MS
+                    ? "text-[var(--c-emerald)]"
+                    : "text-muted",
+                )}
+              >
+                {seen && now ? seenText(now, seen, locale, t) : `@${other.username}`}
+              </span>
             </span>
-          </span>
-        </Link>
-        <M.Root>
-          <M.Trigger asChild>
-            <button
-              type="button"
-              aria-label={t("more")}
-              className="text-muted hover:bg-surface-2 grid size-9 place-items-center rounded-lg"
-            >
-              <EllipsisVertical className="size-5" />
-            </button>
-          </M.Trigger>
-          <M.Portal>
-            <M.Content
-              align="end"
-              sideOffset={6}
-              className="bg-surface border-border animate-scale-in z-50 min-w-48 rounded-xl border p-1 shadow-xl"
-            >
-              <M.Item asChild>
-                <Link
-                  href={`/u/${other.username}`}
-                  className="hover:bg-surface-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
+          </Link>
+          <M.Root>
+            <M.Trigger asChild>
+              <button
+                type="button"
+                aria-label={t("more")}
+                className="text-muted hover:bg-surface-2 grid size-9 place-items-center rounded-lg"
+              >
+                <EllipsisVertical className="size-5" />
+              </button>
+            </M.Trigger>
+            <M.Portal>
+              <M.Content
+                align="end"
+                sideOffset={6}
+                className="bg-surface border-border animate-scale-in z-50 min-w-48 rounded-xl border p-1 shadow-xl"
+              >
+                <M.Item asChild>
+                  <Link
+                    href={`/u/${other.username}`}
+                    className="hover:bg-surface-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
+                  >
+                    <UserRound className="size-4" /> {t("profile")}
+                  </Link>
+                </M.Item>
+                <M.Item
+                  onSelect={() => setClearing(true)}
+                  className="hover:bg-surface-2 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
                 >
-                  <UserRound className="size-4" /> {t("profile")}
-                </Link>
-              </M.Item>
-              <M.Item
-                onSelect={() => setClearing(true)}
-                className="hover:bg-surface-2 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
-              >
-                <Eraser className="size-4" /> {t("clear")}
-              </M.Item>
-              <M.Item
-                onSelect={() => void block(!blockedByMe)}
-                className="hover:bg-surface-2 text-danger flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
-              >
-                <Ban className="size-4" /> {t(blockedByMe ? "unblock" : "block")}
-              </M.Item>
-            </M.Content>
-          </M.Portal>
-        </M.Root>
-      </header>
+                  <Eraser className="size-4" /> {t("clear")}
+                </M.Item>
+                <M.Item
+                  onSelect={() => void block(!blockedByMe)}
+                  className="hover:bg-surface-2 text-danger flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none"
+                >
+                  <Ban className="size-4" /> {t(blockedByMe ? "unblock" : "block")}
+                </M.Item>
+              </M.Content>
+            </M.Portal>
+          </M.Root>
+        </header>
+      )}
+      {/* The pinned message: a tap goes to it, ✕ takes the pin off. */}
+      {pinned && !sel && (
+        <div className="border-border bg-surface/90 animate-fade-in flex shrink-0 items-center gap-2 border-b px-3 py-1.5 backdrop-blur">
+          <Pin className="text-primary size-4 shrink-0" />
+          <button
+            type="button"
+            onClick={() => jump(pinned.id)}
+            className="min-w-0 flex-1 text-left"
+          >
+            <span className="text-primary block text-xs font-semibold">{t("pinnedTitle")}</span>
+            <span className="text-muted block truncate text-sm">
+              <KindLabel kind={pinned.kind} text={pinned.text} />
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void pin(null)}
+            aria-label={t("menu.unpin")}
+            className="text-muted hover:bg-surface-2 grid size-8 place-items-center rounded-full"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       <div className="relative min-h-0 flex-1">
         <div
@@ -520,6 +709,8 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
               // A picture (photo, video, GIF) sets the bubble's width; words under it wrap to it.
               const pic = !!m.meta?.gif || (!!m.file && /^(image|video)\//.test(m.file.mime));
               const media = pic && !m.body;
+              // A sticker stands on its own, without a bubble (like Telegram).
+              const sticker = !!m.meta?.gif?.sticker && !m.body && !m.reply;
               return (
                 <Fragment key={m.id}>
                   {newDay && (
@@ -531,7 +722,8 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                   )}
                   <div
                     id={`m-${m.id}`}
-                    onTouchStart={(e) => touchStart(m, e)}
+                    data-mid={m.deleted ? undefined : m.id}
+                    onTouchStart={(e) => !sel && touchStart(m, e)}
                     onTouchMove={touchMove}
                     onTouchEnd={(e) => touchEnd(m, e.timeStamp)}
                     onTouchCancel={(e) => touchEnd(m, e.timeStamp)}
@@ -539,8 +731,32 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                       "group relative flex flex-col",
                       mine ? "items-end" : "items-start",
                       !sameRun && "mt-2",
+                      // Selecting: room for the mark on the left, and the chosen ones tinted.
+                      sel && "-mx-2 rounded-lg px-2 pl-10 transition-colors",
+                      sel?.has(m.id) && "bg-primary/10",
                     )}
                   >
+                    {sel && !m.deleted && (
+                      // The mark: tap it, or press and slide over others to mark them all.
+                      <span
+                        role="checkbox"
+                        aria-checked={sel.has(m.id)}
+                        aria-label={t("select")}
+                        onPointerDown={(e) => startDrag(m.id, e)}
+                        className="absolute inset-y-0 left-0 flex w-10 touch-none items-center justify-center"
+                      >
+                        <span
+                          className={cn(
+                            "grid size-6 place-items-center rounded-full border-2 transition-colors",
+                            sel.has(m.id)
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border-strong",
+                          )}
+                        >
+                          {sel.has(m.id) && <Check className="size-3.5" strokeWidth={3} />}
+                        </span>
+                      </span>
+                    )}
                     {swipe?.id === m.id && (
                       <span
                         aria-hidden
@@ -578,152 +794,159 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                           </IconBtn>
                         </span>
                       )}
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          // A second tap soon after on the same message: 👍 (like a double tap in Telegram).
-                          const at = e.timeStamp;
-                          if (at - swipedAt.current < 400) return; // the end of a swipe, not a tap
-                          const tap = lastTap.current;
-                          lastTap.current = { id: m.id, at };
-                          if (tap?.id === m.id && at - tap.at < 320 && !m.deleted) {
-                            lastTap.current = null;
-                            void react(m, QUICK[0]);
-                            return;
-                          }
-                          setPicked((p) => (p === m.id ? null : m.id));
-                        }}
-                        onKeyDown={(e) => e.key === "Enter" && setPicked(m.id)}
-                        className={cn(
-                          "relative min-w-0 cursor-default rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm outline-none select-none sm:select-text",
-                          media ? "p-0.5" : pic ? "p-1" : "px-3 py-2",
-                          mine
-                            ? "bg-primary-soft text-foreground rounded-br-md"
-                            : "bg-surface border-border rounded-bl-md border",
-                          sameRun && (mine ? "rounded-tr-md" : "rounded-tl-md"),
-                          picked === m.id && "ring-primary/50 ring-2",
-                          m.deleted && "text-muted italic",
-                        )}
+                      <MessageMenu
+                        open={picked === m.id && !sel && !m.deleted}
+                        onOpenChange={(o) => !o && setPicked(null)}
+                        align={mine ? "end" : "start"}
+                        quick={writable ? QUICK : []}
+                        myReaction={reacts[m.id]?.find((r) => r.u === me)?.e}
+                        actions={
+                          [
+                            writable && "reply",
+                            m.body && "copy",
+                            (m.file || m.meta?.gif) && "save",
+                            pinned?.id === m.id ? "unpin" : "pin",
+                            "forward",
+                            "select",
+                            mine && "delete",
+                          ].filter(Boolean) as MenuAction[]
+                        }
+                        onReact={(e) => void react(m, e)}
+                        onAction={(a) => act(m, a)}
                       >
-                        {q && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const el = document.getElementById(`m-${q.id}`);
-                              el?.scrollIntoView({ behavior: "smooth", block: "center" });
-                              el?.classList.remove("chat-found");
-                              void el?.offsetWidth;
-                              el?.classList.add("chat-found");
-                            }}
-                            className={cn(
-                              "border-primary bg-surface/50 mb-1.5 block rounded-md border-l-2 px-2 py-1 text-left text-xs",
-                              pic ? "w-0 min-w-full" : "w-full",
-                            )}
-                          >
-                            <span className="text-primary block font-semibold">
-                              {q.senderId === me ? t("you") : other.name}
-                            </span>
-                            <span className="text-muted line-clamp-1">
-                              <KindLabel kind={q.kind} text={q.text} />
-                            </span>
-                          </button>
-                        )}
-                        {m.deleted ? (
-                          t("kind.deleted")
-                        ) : (
-                          <>
-                            <Attachment
-                              m={m}
-                              mine={mine}
-                              onOpen={pic ? () => setViewing(m.id) : undefined}
-                            />
-                            {m.body && (
-                              <span
-                                className={cn(
-                                  "block",
-                                  (m.file || m.item) && "mt-1.5 px-1",
-                                  // Under a picture: as wide as the picture, never wider.
-                                  pic && "w-0 min-w-full px-2",
-                                )}
-                              >
-                                {linkify(m.body)}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        <span
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onContextMenu={(e) => {
+                            // A right click on a computer opens the same window.
+                            if (sel || m.deleted) return;
+                            e.preventDefault();
+                            setPicked(m.id);
+                          }}
+                          onPointerDown={(e) =>
+                            sel && e.pointerType === "mouse" && startDrag(m.id, e)
+                          }
+                          onClick={(e) => {
+                            if (sel) {
+                              // A mouse press already marked it (and may have slid over others).
+                              if (pressed.current === m.id) pressed.current = null;
+                              else if (!m.deleted) toggle(m.id);
+                              return;
+                            }
+                            // A second tap soon after on the same message: 👍 (like a double tap in Telegram).
+                            const at = e.timeStamp;
+                            if (at - swipedAt.current < 400) return; // the end of a swipe, not a tap
+                            const tap = lastTap.current;
+                            lastTap.current = { id: m.id, at };
+                            if (tap?.id === m.id && at - tap.at < 320 && !m.deleted) {
+                              lastTap.current = null;
+                              void react(m, QUICK[0]);
+                              return;
+                            }
+                            setPicked((p) => (p === m.id ? null : m.id));
+                          }}
+                          onKeyDown={(e) => e.key === "Enter" && setPicked(m.id)}
                           className={cn(
-                            "inline-flex items-center gap-1 text-[11px] tabular-nums select-none",
-                            // On a picture the time sits on it, like Telegram (no empty strip below).
-                            media
-                              ? "absolute right-2 bottom-2 rounded-full bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm"
-                              : cn(
-                                  "text-muted float-right mt-1 ml-3 translate-y-1",
-                                  pic && "mr-2 mb-1",
-                                ),
+                            "relative min-w-0 cursor-default rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap shadow-sm outline-none select-none sm:select-text",
+                            media ? "p-0.5" : pic ? "p-1" : "px-3 py-2",
+                            sticker
+                              ? "border-0 bg-transparent p-0 shadow-none"
+                              : mine
+                                ? "bg-primary-soft text-foreground rounded-br-md"
+                                : "bg-surface border-border rounded-bl-md border",
+                            sameRun && (mine ? "rounded-tr-md" : "rounded-tl-md"),
+                            picked === m.id && "ring-primary/50 ring-2",
+                            m.deleted && "text-muted italic",
                           )}
                         >
-                          {clock(m.createdAt, locale)}
-                          {mine && !m.deleted && (
-                            <ReadMark read={!!readAt && readAt >= m.createdAt} />
+                          {q && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const el = document.getElementById(`m-${q.id}`);
+                                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                el?.classList.remove("chat-found");
+                                void el?.offsetWidth;
+                                el?.classList.add("chat-found");
+                              }}
+                              className={cn(
+                                "border-primary bg-surface/50 mb-1.5 block rounded-md border-l-2 px-2 py-1 text-left text-xs",
+                                pic ? "w-0 min-w-full" : "w-full",
+                              )}
+                            >
+                              <span className="text-primary block font-semibold">
+                                {q.senderId === me ? t("you") : other.name}
+                              </span>
+                              <span className="text-muted line-clamp-1">
+                                <KindLabel kind={q.kind} text={q.text} />
+                              </span>
+                            </button>
                           )}
-                        </span>
-                      </div>
-                    </div>
-                    {(reacts[m.id]?.length ?? 0) > 0 && (
-                      <Reactions list={reacts[m.id]} me={me} onPick={(e) => void react(m, e)} />
-                    )}
-                    {picked === m.id && !m.deleted && writable && (
-                      <div className="animate-scale-in bg-surface border-border mt-1 flex items-center gap-0.5 rounded-full border p-1 shadow-lg">
-                        {QUICK.map((e) => (
-                          <button
-                            key={e}
-                            type="button"
-                            onClick={() => void react(m, e)}
-                            aria-label={e}
+                          {m.meta?.fwd && !m.deleted && (
+                            <span
+                              className={cn(
+                                "text-primary mb-1 flex items-center gap-1 text-xs font-semibold",
+                                pic && "px-2 pt-1",
+                              )}
+                            >
+                              <Forward className="size-3.5" />
+                              {t("forwardedFrom", { name: m.meta.fwd.name })}
+                            </span>
+                          )}
+                          {m.deleted ? (
+                            t("kind.deleted")
+                          ) : (
+                            <>
+                              <Attachment
+                                m={m}
+                                mine={mine}
+                                onOpen={pic ? () => setViewing(m.id) : undefined}
+                              />
+                              {m.body && (
+                                <span
+                                  className={cn(
+                                    "block",
+                                    (m.file || m.item) && "mt-1.5 px-1",
+                                    // Under a picture: as wide as the picture, never wider.
+                                    pic && "w-0 min-w-full px-2",
+                                  )}
+                                >
+                                  {linkify(m.body)}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          <span
                             className={cn(
-                              "grid size-9 place-items-center rounded-full text-xl transition-transform hover:scale-125 active:scale-90",
-                              reacts[m.id]?.some((r) => r.u === me && r.e === e) &&
-                                "bg-primary-soft",
+                              "inline-flex items-center gap-1 text-[11px] tabular-nums select-none",
+                              // On a picture the time sits on it, like Telegram (no empty strip below).
+                              media
+                                ? "absolute right-2 bottom-2 rounded-full bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm"
+                                : cn(
+                                    "text-muted float-right mt-1 ml-3 translate-y-1",
+                                    pic && "mr-2 mb-1",
+                                  ),
                             )}
                           >
-                            {e}
-                          </button>
-                        ))}
-                        <EmojiGif onEmoji={(e) => void react(m, e)} className="size-9" />
-                      </div>
-                    )}
-                    {picked === m.id && !m.deleted && (
-                      <div className="animate-fade-in mt-1 flex gap-1">
-                        {writable && (
-                          <Chip
-                            onClick={() => {
-                              setReply(m);
-                              setPicked(null);
-                            }}
-                          >
-                            <CornerUpLeft className="size-3.5" /> {t("reply")}
-                          </Chip>
-                        )}
-                        {m.body && (
-                          <Chip
-                            onClick={() => {
-                              void navigator.clipboard?.writeText(m.body ?? "");
-                              setPicked(null);
-                              toast.success(t("copied"));
-                            }}
-                          >
-                            <Copy className="size-3.5" /> {t("copy")}
-                          </Chip>
-                        )}
-                        {mine && (
-                          <Chip danger onClick={() => void remove(m)}>
-                            <Trash2 className="size-3.5" /> {t("delete")}
-                          </Chip>
-                        )}
-                      </div>
+                            {clock(m.createdAt, locale)}
+                            {mine && !m.deleted && (
+                              <ReadMark read={!!readAt && readAt >= m.createdAt} />
+                            )}
+                          </span>
+                        </div>
+                      </MessageMenu>
+                    </div>
+                    {(reacts[m.id]?.length ?? 0) > 0 && (
+                      <Reactions
+                        list={reacts[m.id]}
+                        me={me}
+                        who={{
+                          [me]: self ?? { name: t("you"), image: null },
+                          [other.id]: { name: other.name, image: other.image },
+                        }}
+                        onPick={(e) => void react(m, e)}
+                      />
                     )}
                   </div>
                 </Fragment>
@@ -898,6 +1121,13 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
           />
         )}
       </footer>
+      <ForwardDialog
+        ids={forwarding}
+        onClose={() => {
+          setForwarding(null);
+          setSel(null);
+        }}
+      />
       {viewing && (
         <MediaViewer
           items={viewerItems}
@@ -955,29 +1185,6 @@ function IconBtn({
   );
 }
 
-function Chip({
-  onClick,
-  children,
-  danger,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "bg-surface border-border inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium shadow-sm",
-        danger ? "text-danger" : "hover:bg-surface-2",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 const URL_RE = /(https?:\/\/[^\s<>"]+[^\s<>".,;:!?)])/g;
 
 /** Links in a message open in a new tab; everything else stays plain text. */
@@ -1003,40 +1210,62 @@ function linkify(s: string) {
 
 export type { View as ChatView };
 
-/** Reactions under a message: one pill per emoji with its count; mine is marked and takes it back. */
+/**
+ * Reactions under a message, like Telegram: each emoji with the faces of who
+ * put it (a count when there are more); mine stands out and takes it back.
+ */
 function Reactions({
   list,
   me,
+  who,
   onPick,
 }: {
   list: { e: string; u: string }[];
   me: string;
+  who: Record<string, { name: string; image: string | null }>;
   onPick: (e: string) => void;
 }) {
-  const by = new Map<string, { n: number; mine: boolean }>();
-  for (const r of list) {
-    const x = by.get(r.e) ?? { n: 0, mine: false };
-    by.set(r.e, { n: x.n + 1, mine: x.mine || r.u === me });
-  }
+  const by = new Map<string, string[]>();
+  for (const r of list) by.set(r.e, [...(by.get(r.e) ?? []), r.u]);
   return (
     <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
-      {[...by].map(([e, x]) => (
-        <button
-          key={e}
-          type="button"
-          onClick={() => onPick(e)}
-          aria-pressed={x.mine}
-          className={cn(
-            "animate-scale-in inline-flex h-6 items-center gap-1 rounded-full border px-1.5 text-sm shadow-sm transition-colors",
-            x.mine
-              ? "border-primary/50 bg-primary-soft text-primary"
-              : "border-border bg-surface text-foreground",
-          )}
-        >
-          <span className="leading-none">{e}</span>
-          {x.n > 1 && <span className="text-xs font-semibold tabular-nums">{x.n}</span>}
-        </button>
-      ))}
+      {[...by].map(([e, users]) => {
+        const mine = users.includes(me);
+        return (
+          <button
+            key={e}
+            type="button"
+            onClick={() => onPick(e)}
+            aria-pressed={mine}
+            title={users.map((u) => who[u]?.name ?? "").join(", ")}
+            className={cn(
+              "animate-scale-in inline-flex h-7 items-center gap-1 rounded-full py-0.5 pr-0.5 pl-2 text-[15px] shadow-sm transition-colors",
+              mine
+                ? "bg-primary text-primary-foreground"
+                : "border-border bg-surface text-foreground border",
+            )}
+          >
+            <span className="leading-none">{e}</span>
+            {users.length <= 3 ? (
+              <span className="flex -space-x-1.5">
+                {users.map((u) => (
+                  <Avatar
+                    key={u}
+                    name={who[u]?.name ?? "?"}
+                    image={who[u]?.image ?? null}
+                    className={cn(
+                      "size-6 text-[9px] ring-2",
+                      mine ? "ring-primary" : "ring-[var(--surface)]",
+                    )}
+                  />
+                ))}
+              </span>
+            ) : (
+              <span className="pr-1.5 text-xs font-semibold tabular-nums">{users.length}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

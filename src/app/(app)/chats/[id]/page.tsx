@@ -12,8 +12,15 @@ export async function generateMetadata() {
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const { ctx } = await pageContext();
+  const { ctx, user } = await pageContext();
   const view = await threadView(ctx, id).catch(() => null);
   if (!view) notFound();
-  return <ChatThread key={view.id} me={ctx.userId} initial={view} />;
+  return (
+    <ChatThread
+      key={view.id}
+      me={ctx.userId}
+      self={{ name: user.name, image: user.image }}
+      initial={view}
+    />
+  );
 }

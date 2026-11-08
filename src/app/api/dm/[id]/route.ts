@@ -16,6 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       after,
       before: q.get("before") ?? undefined,
       reactedAt: q.get("rat") ?? undefined,
+      pinnedAt: q.get("pat") ?? undefined,
     });
     const gone = after ? await deletedSince(ctx, id, after) : [];
     return json({ ...r, gone });

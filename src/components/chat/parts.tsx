@@ -308,7 +308,10 @@ export function Attachment({
         role="button"
         tabIndex={-1}
         onClick={open}
-        className="relative block cursor-zoom-in overflow-hidden rounded-xl"
+        className={cn(
+          "relative block cursor-zoom-in overflow-hidden",
+          !gif.sticker && "rounded-xl",
+        )}
         style={box}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -318,9 +321,12 @@ export function Attachment({
           loading="lazy"
           width={box.width}
           height={box.height}
-          className="bg-surface-2 block size-full object-cover"
+          className={cn(
+            "block size-full",
+            gif.sticker ? "object-contain" : "bg-surface-2 object-cover",
+          )}
         />
-        <MediaBadge>GIF</MediaBadge>
+        {!gif.sticker && <MediaBadge>GIF</MediaBadge>}
       </span>
     );
   }

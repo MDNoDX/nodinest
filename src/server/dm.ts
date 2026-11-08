@@ -35,8 +35,24 @@ export type DmPerson = {
   /** When they were last on the site; null when either side hides it. */
   seen?: string | null;
 };
-export type DmGif = { id: string; url: string; still?: string; w: number; h: number };
-export type DmMeta = { gif?: DmGif; wave?: number[]; seconds?: number };
+export type DmGif = {
+  id: string;
+  url: string;
+  still?: string;
+  w: number;
+  h: number;
+  /** A sticker: shown on its own, without a bubble. */
+  sticker?: boolean;
+};
+export type DmMeta = {
+  gif?: DmGif;
+  wave?: number[];
+  seconds?: number;
+  /** Forwarded: whose message it was. */
+  fwd?: { name: string };
+};
+/** The pinned message at the top of a talk, ready to show. */
+export type DmPinned = { id: string; kind: Kind; text: string | null } | null;
 export type DmMessage = {
   id: string;
   senderId: string;
@@ -180,10 +196,7 @@ async function myThread(ctx: AppContext, threadId: string) {
       .select()
       .from(dmThreads)
       .where(
-        and(
-          eq(dmThreads.id, id),
-          or(eq(dmThreads.aId, ctx.userId), eq(dmThreads.bId, ctx.userId)),
-        ),
+        and(eq(dmThreads.id, id), or(eq(dmThreads.aId, ctx.userId), eq(dmThreads.bId, ctx.userId))),
       ),
   );
   if (!t) throw new AppError("NOT_FOUND");
@@ -205,10 +218,7 @@ export async function openThread(ctx: AppContext, username: string) {
     .select({ id: user.id })
     .from(user)
     .where(
-      and(
-        sql`lower(${user.username}) = ${normalizeUsername(username)}`,
-        eq(user.status, "active"),
-      ),
+      and(sql`lower(${user.username}) = ${normalizeUsername(username)}`, eq(user.status, "active")),
     );
   if (!o || o.id === ctx.userId) throw new AppError("NOT_FOUND");
   const [a, b] = pair(ctx.userId, o.id);
@@ -396,6 +406,8 @@ export async function threadView(ctx: AppContext, threadId: string) {
     more: rows.length === PAGE,
     reactions: await reactionsOf(ctx, t),
     reactedAt: t.reactedAt?.toISOString() ?? null,
+    pinned: await pinnedOf(ctx, t),
+    pinnedAt: t.pinnedAt?.toISOString() ?? null,
   };
 }
 
@@ -418,7 +430,9 @@ async function reactionsOf(ctx: AppContext, t: { id: string; cleared: Date }) {
 const emojiSchema = z
   .string()
   .max(16)
-  .regex(/^(?=.*\p{Extended_Pictographic})(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f)+$/u);
+  .regex(
+    /^(?=.*\p{Extended_Pictographic})(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f)+$/u,
+  );
 
 /** My reaction on a message: an emoji, or null to take it back. One per person. */
 export async function react(ctx: AppContext, messageId: string, emoji: string | null) {
@@ -450,15 +464,21 @@ export async function react(ctx: AppContext, messageId: string, emoji: string | 
 export async function messagesAround(
   ctx: AppContext,
   threadId: string,
-  o: { before?: string; after?: string; reactedAt?: string },
+  o: { before?: string; after?: string; reactedAt?: string; pinnedAt?: string },
 ) {
   const t = await myThread(ctx, threadId);
   // Reactions come again only when someone changed one since the page last heard.
   const known = o.reactedAt ? Date.parse(o.reactedAt) : 0;
   const fresh = !!t.reactedAt && (!known || t.reactedAt.getTime() > known);
-  const reacts = fresh
-    ? { reactions: await reactionsOf(ctx, t), reactedAt: t.reactedAt!.toISOString() }
-    : {};
+  const reacts = {
+    ...(fresh
+      ? { reactions: await reactionsOf(ctx, t), reactedAt: t.reactedAt!.toISOString() }
+      : {}),
+    // The pin, again only when it changed since the page last heard.
+    ...(t.pinnedAt && (!o.pinnedAt || t.pinnedAt.getTime() > Date.parse(o.pinnedAt))
+      ? { pinned: await pinnedOf(ctx, t), pinnedAt: t.pinnedAt.toISOString() }
+      : {}),
+  };
   const before = o.before ? z.coerce.date().parse(o.before) : null;
   const after = o.after ? z.coerce.date().parse(o.after) : null;
   // Nothing new: one cheap answer for the poll.
@@ -535,11 +555,15 @@ export async function markRead(ctx: AppContext, threadId: string) {
 /** Only the GIF services' own media hosts (KLIPY, GIPHY): nothing else is shown. */
 const GIPHY_URL = /^https:\/\/(static\.klipy\.com|media\d?\.giphy\.com)\/[\w./-]+$/;
 export const gifSchema = z.object({
-  id: z.string().max(40).regex(/^[\w-]+$/),
+  id: z
+    .string()
+    .max(40)
+    .regex(/^[\w-]+$/),
   url: z.string().max(400).regex(GIPHY_URL),
   still: z.string().max(400).regex(GIPHY_URL).optional(),
   w: z.number().int().min(1).max(2000),
   h: z.number().int().min(1).max(2000),
+  sticker: z.boolean().optional(),
 });
 
 const sendInput = z
@@ -649,6 +673,97 @@ export async function deleteMessage(ctx: AppContext, messageId: string) {
       .returning({ id: dmMessages.id }),
   );
   if (!done.length) throw new AppError("NOT_FOUND");
+}
+
+/** The pinned message of a talk (null when none, or it was deleted / cleared for me). */
+async function pinnedOf(
+  ctx: AppContext,
+  t: { pinnedId: string | null; cleared: Date },
+): Promise<DmPinned> {
+  if (!t.pinnedId) return null;
+  const [m] = await withUser(db, ctx, (tx) =>
+    tx
+      .select()
+      .from(dmMessages)
+      .where(and(eq(dmMessages.id, t.pinnedId!), gt(dmMessages.createdAt, t.cleared))),
+  );
+  if (!m || m.deletedAt) return null;
+  const [one] = await shape([m]);
+  return { id: one.id, kind: kindOfMessage(one), text: one.body };
+}
+
+const kindOfMessage = (m: DmMessage): Kind =>
+  kindOf({ deleted: m.deleted, mime: m.file?.mime, item: !!m.item, gif: !!m.meta?.gif });
+
+/** Pins a message at the top of the talk for both people, or takes the pin off (null). */
+export async function pinMessage(ctx: AppContext, threadId: string, messageId: string | null) {
+  const t = await myThread(ctx, threadId);
+  const id = messageId === null ? null : uuid.parse(messageId);
+  if (id) {
+    const [m] = await withUser(db, ctx, (tx) =>
+      tx
+        .select({ id: dmMessages.id })
+        .from(dmMessages)
+        .where(
+          and(eq(dmMessages.id, id), eq(dmMessages.threadId, t.id), isNull(dmMessages.deletedAt)),
+        ),
+    );
+    if (!m) throw new AppError("NOT_FOUND");
+  }
+  await withUser(db, ctx, (tx) =>
+    tx.update(dmThreads).set({ pinnedId: id, pinnedAt: new Date() }).where(eq(dmThreads.id, t.id)),
+  );
+  return pinnedOf(ctx, { pinnedId: id, cleared: t.cleared });
+}
+
+/**
+ * Sends copies of messages I can see to another talk of mine, each marked
+ * "forwarded from <who wrote it>". Files stay the same files (members of the new
+ * talk may open them through the new message).
+ */
+export async function forwardMessages(ctx: AppContext, messageIds: string[], toThreadId: string) {
+  const ids = z.array(uuid).min(1).max(50).parse(messageIds);
+  const to = await myThread(ctx, toThreadId);
+  if (await isBlocked(ctx.userId, to.otherId)) throw new AppError("FORBIDDEN", "dm_blocked");
+  await enforceRateLimit(db, `dm:${ctx.userId}`, 40, 60);
+  const src = await withUser(db, ctx, (tx) =>
+    tx
+      .select()
+      .from(dmMessages)
+      .where(and(inArray(dmMessages.id, ids), isNull(dmMessages.deletedAt)))
+      .orderBy(dmMessages.createdAt),
+  );
+  if (!src.length) throw new AppError("NOT_FOUND");
+  const names = await people([...new Set(src.map((m) => m.senderId))]);
+  let at = Date.now();
+  await withUser(db, ctx, async (tx) => {
+    for (const m of src) {
+      const meta = (m.meta ?? {}) as DmMeta;
+      await tx.insert(dmMessages).values({
+        threadId: to.id,
+        senderId: ctx.userId,
+        body: m.body,
+        fileId: m.fileId,
+        resourceId: m.resourceId,
+        meta: { ...meta, fwd: meta.fwd ?? { name: names.get(m.senderId)?.name ?? "" } },
+        createdAt: new Date(at++),
+      });
+    }
+    await tx
+      .update(dmThreads)
+      .set(
+        to.side === "a"
+          ? { lastAt: new Date(at), aReadAt: new Date(at) }
+          : { lastAt: new Date(at), bReadAt: new Date(at) },
+      )
+      .where(eq(dmThreads.id, to.id));
+  });
+  await notify(to.otherId, "message", {
+    actorId: ctx.userId,
+    body: src[0].body?.slice(0, 120) ?? null,
+    href: `/chats/${to.id}`,
+  }).catch(() => null);
+  return to.id;
 }
 
 export async function setBlocked(ctx: AppContext, otherId: string, on: boolean) {

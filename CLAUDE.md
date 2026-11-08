@@ -286,6 +286,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   a lost touch (pointercancel) locks the recording instead of sending it. Pictures, videos and GIFs open
   in `chat/media-viewer.tsx` (swipe, ← →, download). `/api/files` answers open-ended ranges in 2 MB
   pieces (phones ask `bytes=0-` for a video).
+- A message's window (`chat/message-menu.tsx`, Radix Popover anchored to the bubble; tap or right click):
+  quick reactions + every emoji, then Reply / Copy / Save / Pin / Forward / Select / Delete. Pin:
+  `dm_threads.pinned_id/pinned_at` (0053, either side, a bar under the header; the poll sends `pat`).
+  Forward (`forwardMessages`): copies into another of my talks with `meta.fwd.name`; files stay the
+  same files (fileFor lets the new talk open them). Select: a mark column (press and slide to mark many,
+  mouse drag works on bubbles), then copy / forward / delete (only mine). Reactions show who put them
+  (faces). Stickers (`gif.sticker`) have no bubble.
 - Chat photos go lighter (`lib/compress-image.ts`, ≤ 2560 px JPEG 85%) unless "send in full quality"
   is ticked in the attach sheet; a picture going up shows its ring and ✕ on itself.
 - Android app (`apps/mobile/android`): release builds are signed with the key in

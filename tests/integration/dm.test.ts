@@ -228,4 +228,37 @@ describe("clearing, GIFs, voices and presence", () => {
     await expect(dm.react(a, m.id, "hello")).rejects.toBeTruthy();
     await expect(dm.react(a, m.id, "1")).rejects.toBeTruthy();
   });
+
+  it("pin and forward: both see the pin; copies keep who wrote them; strangers cannot", async () => {
+    const dm = await import("@/server/dm");
+    const a = await person();
+    const b = await person();
+    const c = await person();
+    const ab = await dm.openThread(a, b.username);
+    const ac = await dm.openThread(a, c.username);
+    const m = await dm.sendMessage(b, ab, { body: "Shu kitobni öqing" });
+    const pinned = await dm.pinMessage(a, ab, m.id);
+    expect(pinned).toMatchObject({ id: m.id, text: "Shu kitobni öqing" });
+    expect((await dm.threadView(b, ab)).pinned?.id).toBe(m.id);
+    // The poll brings the pin only when it changed.
+    const v = await dm.threadView(b, ab);
+    const quiet = await dm.messagesAround(b, ab, {
+      after: new Date().toISOString(),
+      pinnedAt: v.pinnedAt!,
+    });
+    expect(quiet.pinned).toBeUndefined();
+    await dm.pinMessage(b, ab, null);
+    expect((await dm.threadView(a, ab)).pinned).toBeNull();
+    // Forwarding b's message to c: c sees it, marked with b's name.
+    await dm.forwardMessages(a, [m.id], ac);
+    const inC = (await dm.threadView(c, ac)).messages;
+    expect(inC.at(-1)).toMatchObject({
+      body: "Shu kitobni öqing",
+      meta: { fwd: { name: expect.any(String) } },
+    });
+    // c cannot pin in a talk that is not theirs, nor forward a message they cannot see.
+    await expect(dm.pinMessage(c, ab, m.id)).rejects.toBeTruthy();
+    const cc = await dm.openThread(c, b.username);
+    await expect(dm.forwardMessages(c, [m.id], cc)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
 });

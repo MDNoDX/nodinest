@@ -210,7 +210,7 @@ export function EmojiGif({
                     key={g.id}
                     type="button"
                     onClick={() => {
-                      onGif?.(g);
+                      onGif?.(tab === "stickers" ? { ...g, sticker: true } : g);
                       setOpen(false);
                     }}
                     className="mb-2 block w-full overflow-hidden rounded-lg transition-transform hover:scale-[1.03]"

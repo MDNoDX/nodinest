@@ -2885,7 +2885,27 @@
     "close": "Close",
     "previous": "Previous",
     "next": "Next",
-    "asFile": "Send without compression, in full quality (slower)"
+    "asFile": "Send without compression, in full quality (slower)",
+    "menu": {
+      "reply": "Reply",
+      "copy": "Copy",
+      "save": "Save",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "forward": "Forward",
+      "select": "Select",
+      "delete": "Delete"
+    },
+    "selected": "{n} selected",
+    "select": "Select",
+    "deleteOnlyMine": "You can delete only your own messages.",
+    "deleteConfirm": "{n} message(s) will be deleted for both of you. Continue?",
+    "pinnedDone": "Message pinned",
+    "unpinnedDone": "Message unpinned",
+    "pinnedTitle": "Pinned message",
+    "forwarded": "Forwarded to {name}",
+    "forwardTo": "Forward to whom? ({n} message(s))",
+    "forwardedFrom": "Forwarded from {name}"
   },
   "guest": {
     "media": "Media",
