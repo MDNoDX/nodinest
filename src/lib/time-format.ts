@@ -40,3 +40,21 @@ export function clockText(v: string, h12: boolean) {
   const h = Number(v.slice(0, 2));
   return `${h % 12 || 12}:${v.slice(3, 5)} ${h >= 12 ? "PM" : "AM"}`;
 }
+
+/**
+ * A plan item's time as one short label: "06:20 – 07:00" with both ends,
+ * "06:20 –" when only the start is set, "– 07:00" when only the end is,
+ * null without any (nothing is shown then).
+ */
+export function timeRange(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  h12: boolean,
+) {
+  const a = start ? clockText(start, h12) : "";
+  const b = end ? clockText(end, h12) : "";
+  if (a && b) return `${a} – ${b}`;
+  if (a) return `${a} –`;
+  if (b) return `– ${b}`;
+  return null;
+}

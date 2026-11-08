@@ -427,6 +427,7 @@ export default async function DashboardPage() {
               icon: i.icon,
               amount: i.amount,
               time: i.time,
+              endTime: i.endTime,
               done: i.done,
               status: i.status,
               value: i.value,

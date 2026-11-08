@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/charts/hbar-list";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { dayPercent, type CheckStatus } from "@/lib/roznoma";
+import { timeRange, useHour12 } from "@/lib/time-format";
 import { Tick } from "./plan-item";
 import { PlanIcon } from "./plan-icon";
 
@@ -17,6 +18,7 @@ type Item = {
   icon: string | null;
   amount: string | null;
   time: string | null;
+  endTime?: string | null;
   done: boolean;
   status: CheckStatus | null;
   value: number | null;
@@ -36,6 +38,7 @@ export function TodayCard({
   const t = useTranslations("roznoma");
   const td = useTranslations("dashboard");
   const [items, setItems] = useState(initial);
+  const h12 = useHour12();
   const done = items.filter((i) => i.done).length;
   const pct = dayPercent(items);
   return (
@@ -54,14 +57,16 @@ export function TodayCard({
             {items.slice(0, 6).map((i) => (
               <li key={i.id}>
                 <div className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm">
-                  <span className="text-muted w-10 shrink-0 text-xs tabular-nums">
-                    {i.time ?? "•"}
-                  </span>
                   <PlanIcon name={i.icon} className="size-4 shrink-0" />
                   <span className={cn("min-w-0 flex-1 truncate", i.done && "text-muted")}>
                     {i.title}
                     {i.amount && <span className="text-muted"> · {i.amount}</span>}
                   </span>
+                  {timeRange(i.time, i.endTime, h12) && (
+                    <span className="text-muted shrink-0 text-[11px] font-semibold whitespace-nowrap tabular-nums">
+                      {timeRange(i.time, i.endTime, h12)}
+                    </span>
+                  )}
                   <Tick
                     small
                     status={i.status}

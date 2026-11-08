@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { amountTarget, itemScore, type CheckStatus } from "@/lib/roznoma";
-import { clockText, useHour12 } from "@/lib/time-format";
+import { timeRange, useHour12 } from "@/lib/time-format";
 import { PlanIcon } from "./plan-icon";
 import type { RoutineValue } from "./routine-dialog";
 
@@ -122,6 +122,7 @@ export function PlanItem({
     setOpen(false);
   };
 
+  const range = timeRange(it.time, it.endTime, h12);
   return (
     <li
       className={cn(
@@ -148,13 +149,6 @@ export function PlanItem({
         onKeyDown={(e) => e.key === "Enter" && setOpen((o) => !o)}
         className="flex cursor-pointer items-center gap-3 px-3 py-2.5"
       >
-        <span className="text-muted w-11 shrink-0 text-center text-xs font-semibold tabular-nums">
-          {it.time ? (
-            clockText(it.time, h12)
-          ) : (
-            <span className="bg-border-strong mx-auto block size-1.5 rounded-full" />
-          )}
-        </span>
         <span className="bg-surface-2 grid size-9 shrink-0 place-items-center rounded-xl">
           <PlanIcon name={it.icon} className="size-[18px]" />
         </span>
@@ -192,6 +186,12 @@ export function PlanItem({
             )}
           </div>
         </div>
+        {/* When: on the right, before the arrow and the tick ("06:20 –", "– 07:00", both). */}
+        {range && (
+          <span className="text-muted shrink-0 text-xs font-semibold whitespace-nowrap tabular-nums">
+            {range}
+          </span>
+        )}
         {hasSubs && (
           <ChevronRight
             className={cn("text-muted size-4 shrink-0 transition-transform", open && "rotate-90")}
