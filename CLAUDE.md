@@ -286,8 +286,17 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   a lost touch (pointercancel) locks the recording instead of sending it. Pictures, videos and GIFs open
   in `chat/media-viewer.tsx` (swipe, ← →, download). `/api/files` answers open-ended ranges in 2 MB
   pieces (phones ask `bytes=0-` for a video).
+- Chat photos go lighter (`lib/compress-image.ts`, ≤ 2560 px JPEG 85%) unless "send in full quality"
+  is ticked in the attach sheet; a picture going up shows its ring and ✕ on itself.
+- Android app (`apps/mobile/android`): release builds are signed with the key in
+  `~/Library/Application Support/Roznoma/android/` (keystore.properties; back it up — updates need the
+  same key). Build: JAVA_HOME=openjdk@21, ANDROID_HOME=/opt/homebrew/share/android-commandlinetools,
+  `./gradlew assembleRelease`, upload to Blob `downloads/Roznoma-<v>.apk`, `/api/download/android`.
+  Android's back button closes an open window, then goes back, then minimizes (`listenForBack`).
 - Home on phones: the day's plan first, one sideways row of "reading", small counters, no finished
-  wall / latest notes there; no favourite authors or ranked collections anywhere on home.
+  wall / latest notes there (on a computer the latest notes sit in the side column); an odd counter gets a
+  "Metrics →" tile beside it on phones; counters are small on phones, big cards from md up; action
+  chips are all in sight (no sideways scroll). No favourite authors or ranked collections on home.
   The phone menu foot: theme, language globe (`layout/locale-toggle.tsx`, cycles) and the guide.
 - Resource form order: type (one row of icons, the name + hint below) → find online → basics →
   classification → people → details → PDF (closed) → more. The item page keeps "O'qish" closed, has

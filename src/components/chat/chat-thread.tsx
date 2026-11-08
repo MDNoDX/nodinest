@@ -373,11 +373,12 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
   };
 
   const sendText = (body: string) => queue([{ body, replyToId: replyId() }]);
-  const sendFiles = (files: File[], caption: string) => {
+  const sendFiles = (files: File[], caption: string, original = false) => {
     const to = replyId();
     queue(
       files.map((file, i) => ({
         file,
+        original,
         body: i === 0 ? caption : undefined,
         replyToId: i === 0 ? to : undefined,
         preview: /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : undefined,
@@ -731,21 +732,58 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
             {pending.map((p) => (
               <div key={p.key} className="chat-msg-in mt-2 flex flex-col items-end">
                 <div className="bg-primary-soft relative max-w-[85%] rounded-2xl rounded-br-md px-3 py-2 text-[15px] whitespace-pre-wrap sm:max-w-[75%]">
-                  {p.preview && p.file?.type.startsWith("video/") ? (
-                    <video
-                      src={p.preview}
-                      muted
-                      playsInline
-                      className="mb-1 max-h-60 w-[min(17rem,68vw)] rounded-xl bg-black opacity-80"
-                    />
-                  ) : p.preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={p.preview}
-                      alt=""
-                      className="mb-1 max-h-60 max-w-[min(17rem,68vw)] rounded-xl opacity-80"
-                    />
-                  ) : null}
+                  {p.preview && (
+                    // Telegram-like: the picture itself, a ring with ✕ on it while it goes up.
+                    <span className="relative -mx-2 -mt-1 mb-1 block overflow-hidden rounded-xl">
+                      {p.file?.type.startsWith("video/") ? (
+                        <video
+                          src={`${p.preview}#t=0.1`}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="block max-h-72 w-[min(17rem,68vw)] bg-black object-cover"
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.preview}
+                          alt=""
+                          className="block max-h-72 max-w-[min(17rem,68vw)] object-cover"
+                        />
+                      )}
+                      <span className="absolute inset-0 grid place-items-center bg-black/35">
+                        {p.failed ? (
+                          <button
+                            type="button"
+                            onClick={() => retry(p)}
+                            aria-label={t("retry")}
+                            className="grid size-12 place-items-center rounded-full bg-black/60 text-white"
+                          >
+                            <RotateCw className="size-5" />
+                          </button>
+                        ) : (
+                          <span
+                            className="chat-upload grid size-12 place-items-center rounded-full"
+                            style={{ ["--pct" as string]: `${p.progress ?? 0}%` }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => cancel(p.key)}
+                              aria-label={t("cancelSend")}
+                              className="grid size-10 place-items-center rounded-full bg-black/70 text-white"
+                            >
+                              <X className="size-5" />
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                      {!p.failed && (
+                        <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] text-white tabular-nums">
+                          {p.progress ?? 0}%
+                        </span>
+                      )}
+                    </span>
+                  )}
                   {p.gif && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.gif.url} alt="GIF" className="max-h-52 rounded-xl opacity-80" />
@@ -769,7 +807,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                       >
                         <RotateCw className="size-3.5" /> {t("retry")}
                       </button>
-                    ) : p.file ? (
+                    ) : p.file && !p.preview ? (
                       // A file going up: how far, and a cross to stop it.
                       <span
                         className="chat-upload grid size-7 place-items-center rounded-full"
@@ -788,7 +826,7 @@ export function ChatThread({ me, initial }: { me: string; initial: View }) {
                     ) : (
                       <Loader2 className="size-3.5 animate-spin" />
                     )}
-                    {p.file && !p.failed && `${p.progress ?? 0}%`}
+                    {p.file && !p.preview && !p.failed && `${p.progress ?? 0}%`}
                     {p.failed && (
                       <button
                         type="button"

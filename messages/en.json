@@ -259,7 +259,7 @@
     "setGoal": "Set a goal",
     "topLists": "My rankings",
     "emptyReading": "Nothing in progress.",
-    "emptyFinished": "Books you finish will be shown here.",
+    "emptyFinished": "Books, audio and videos you finish will be shown here.",
     "avgRating": "Average rating",
     "rated": "{count} rated",
     "continue": "Continue: {title}",
@@ -1546,7 +1546,13 @@
     "windowsDownload": "Download for Windows",
     "windowsStep1": "Open the downloaded “Roznoma-Setup” file.",
     "windowsStep2": "If Windows says it “protected your PC”: “More info” → “Run anyway” (the app has no paid signature).",
-    "windowsStep3": "Once installed, Röznoma is in the Start menu and on the desktop."
+    "windowsStep3": "Once installed, Röznoma is in the Start menu and on the desktop.",
+    "androidTitleApk": "Android app (APK)",
+    "androidSize": ".apk · 4.6 MB",
+    "androidDownload": "Download for Android",
+    "androidApk1": "Open the downloaded “Roznoma-1.0.apk” file.",
+    "androidApk2": "If the phone asks about “unknown sources”: Settings → allow installs from this browser.",
+    "androidApk3": "Tap “Install” — Röznoma appears among your apps and opens without the browser."
   },
   "offline": {
     "title": "No internet",
@@ -2878,7 +2884,8 @@
     "download": "Download",
     "close": "Close",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "asFile": "Send without compression, in full quality (slower)"
   },
   "guest": {
     "media": "Media",

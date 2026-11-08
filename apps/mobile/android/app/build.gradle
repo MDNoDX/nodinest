@@ -16,8 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // The release key lives outside the repo (keep a copy: updates must be signed
+    // with the same key): ~/Library/Application Support/Roznoma/android/keystore.properties
+    // or the file named by ROZNOMA_KEYSTORE_PROPS.
+    def keyProps = new Properties()
+    def keyFile = file(System.getenv("ROZNOMA_KEYSTORE_PROPS") ?: "${System.getProperty('user.home')}/Library/Application Support/Roznoma/android/keystore.properties")
+    if (keyFile.exists()) keyFile.withInputStream { keyProps.load(it) }
+    signingConfigs {
+        if (keyProps.storeFile) {
+            release {
+                storeFile file(keyProps.storeFile)
+                storePassword keyProps.storePassword
+                keyAlias keyProps.keyAlias
+                keyPassword keyProps.keyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keyProps.storeFile) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

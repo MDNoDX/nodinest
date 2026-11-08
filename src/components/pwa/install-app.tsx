@@ -1,6 +1,7 @@
 "use client";
 import {
   Bell,
+  Smartphone,
   CheckCircle2,
   Download,
   EllipsisVertical,
@@ -121,6 +122,29 @@ export function InstallApp() {
           note={t("androidNote")}
         />
       ) : null}
+
+      {/* Android: the app itself as a file too (works on every Android browser). */}
+      {p === "android" && (
+        <div className="border-border flex flex-col gap-3 rounded-2xl border p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Smartphone className="size-4 text-[var(--c-emerald)]" /> {t("androidTitleApk")}
+            <span className="text-muted ml-auto text-xs font-normal">{t("androidSize")}</span>
+          </div>
+          {/* A file download (a redirect to the store), not a page: a plain link. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/download/android"
+            className="bg-primary text-primary-foreground inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-transform active:scale-95"
+          >
+            <Download className="size-4" /> {t("androidDownload")}
+          </a>
+          <ol className="text-muted list-decimal space-y-1 pl-4 text-[13px] leading-relaxed">
+            {[1, 2, 3].map((i) => (
+              <li key={i}>{t(`androidApk${i}`)}</li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {/* Computers: the apps themselves, as files (a Mac .dmg, a Windows installer). */}
       {(p === "desktop" || p === "mac-safari" || p === "server") && (

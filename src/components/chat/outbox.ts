@@ -6,6 +6,7 @@
  */
 import { useSyncExternalStore } from "react";
 import { sendMessageAction } from "@/app/actions/dm";
+import { compressImage } from "@/lib/compress-image";
 import { uploadMedia } from "@/lib/upload-media";
 import type { DmGif, DmMessage } from "@/server/dm";
 
@@ -25,6 +26,8 @@ export type Pending = {
   gif?: DmGif;
   wave?: number[] | null;
   seconds?: number;
+  /** "As a file": the picture goes as it is, not made lighter. */
+  original?: boolean;
 };
 
 let all: Pending[] = [];
@@ -90,9 +93,11 @@ async function deliver(p: Pending) {
   try {
     let fileId: string | undefined;
     if (p.file) {
-      const up = await uploadMedia(p.file, {
+      // Photos are made lighter first (much faster on a phone), unless sent as a file.
+      const file = p.original ? p.file : await compressImage(p.file);
+      const up = await uploadMedia(file, {
         userId: me,
-        name: p.file.name,
+        name: file.name,
         signal: stopper.signal,
         onProgress: (n) => patch(p.key, { progress: n }),
       });

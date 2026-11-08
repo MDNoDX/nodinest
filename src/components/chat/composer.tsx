@@ -49,7 +49,7 @@ export function Composer({
   reply: Reply | null;
   onCancelReply: () => void;
   onText: (body: string) => void;
-  onFiles: (files: File[], caption: string) => void;
+  onFiles: (files: File[], caption: string, original?: boolean) => void;
   onVoice: (v: Voice) => void;
   onGif: (g: DmGif) => void;
 }) {
@@ -376,9 +376,9 @@ export function Composer({
         onAdd={() => fileInput.current?.click()}
         onRemove={(i) => setSheet((s) => (s && s.length > 1 ? s.filter((_, j) => j !== i) : null))}
         onClose={() => setSheet(null)}
-        onSend={() => {
+        onSend={(original) => {
           if (!sheet?.length) return;
-          onFiles(sheet, text.trim());
+          onFiles(sheet, text.trim(), original);
           setSheet(null);
           setText("");
         }}
@@ -403,11 +403,14 @@ function AttachSheet({
   onAdd: () => void;
   onRemove: (i: number) => void;
   onClose: () => void;
-  onSend: () => void;
+  onSend: (original: boolean) => void;
 }) {
   const t = useTranslations("chat");
   const tc = useTranslations("common");
   const [urls, setUrls] = useState<string[]>([]);
+  // Photos are made lighter by default (fast, like Telegram); "as a file" keeps them whole.
+  const [original, setOriginal] = useState(false);
+  const photos = (files ?? []).some((f) => /^image\/(jpeg|png|webp|heic|heif)$/.test(f.type));
   useEffect(() => {
     const made = (files ?? []).map((f) =>
       /^(image|video)\//.test(f.type) ? URL.createObjectURL(f) : "",
@@ -496,6 +499,17 @@ function AttachSheet({
           aria-label={t("caption")}
           className="bg-surface-2 focus:ring-primary/40 mt-3 w-full resize-none rounded-xl px-3 py-2 text-sm outline-none focus:ring-2"
         />
+        {photos && (
+          <label className="text-muted mt-2 flex cursor-pointer items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              checked={original}
+              onChange={(e) => setOriginal(e.target.checked)}
+              className="size-4 accent-[var(--primary)]"
+            />
+            {t("asFile")}
+          </label>
+        )}
         <div className="mt-3 flex items-center justify-between gap-2">
           <Button variant="ghost" onClick={onAdd} disabled={(files?.length ?? 0) >= MAX_FILES}>
             <Paperclip /> {t("addMore")}
@@ -504,7 +518,7 @@ function AttachSheet({
             <Button variant="ghost" onClick={onClose}>
               {tc("cancel")}
             </Button>
-            <Button onClick={onSend}>
+            <Button onClick={() => onSend(original)}>
               <SendHorizontal /> {t("send")}
             </Button>
           </div>

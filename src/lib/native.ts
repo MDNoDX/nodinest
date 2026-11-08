@@ -18,7 +18,12 @@ type BrowserPlugin = {
   close: () => Promise<void>;
 };
 type AppPlugin = {
-  addListener: (e: "appUrlOpen", fn: (d: { url: string }) => void) => Promise<unknown>;
+  addListener: {
+    (e: "appUrlOpen", fn: (d: { url: string }) => void): Promise<unknown>;
+    (e: "backButton", fn: (d: { canGoBack: boolean }) => void): Promise<unknown>;
+  };
+  exitApp: () => Promise<void>;
+  minimizeApp?: () => Promise<void>;
 };
 
 /** Google refuses web views: sign-in happens in the system browser and comes back by link. */
@@ -36,6 +41,25 @@ export function listenForSignIn() {
     // An API route that sets the session cookie: a full load, not a page change.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `/api/app/handoff?code=${code}`;
+  });
+}
+
+/**
+ * Android's back button: first an open window (menu, sheet, viewer) closes,
+ * then the previous page; on the first page the app goes to the background
+ * (like Telegram), it is not closed.
+ */
+export function listenForBack() {
+  void plugin<AppPlugin>("App")?.addListener("backButton", ({ canGoBack }) => {
+    const open = document.querySelector(
+      '[role="dialog"][data-state="open"], [data-state="open"][role="menu"]',
+    );
+    if (open) {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      return;
+    }
+    if (canGoBack && window.history.length > 1) window.history.back();
+    else void (plugin<AppPlugin>("App")?.minimizeApp?.() ?? plugin<AppPlugin>("App")?.exitApp());
   });
 }
 

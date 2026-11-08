@@ -12,6 +12,8 @@ import {
   Quote,
   Sparkles,
   Star,
+  BarChart3,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -40,7 +42,10 @@ import { adFor } from "@/server/ads";
 
 export const dynamic = "force-dynamic";
 
-/** A small counter: icon, the number and its name in one line (never a big block). */
+/**
+ * A counter: on a phone small (icon, number and name in one line); from md up
+ * the bigger card with the coloured top line.
+ */
 function Counter({
   label,
   value,
@@ -59,16 +64,23 @@ function Counter({
   return (
     <Link
       href={href}
-      className="card group flex items-center gap-2.5 px-3 py-2.5 transition-shadow hover:shadow-md"
+      className="card group relative flex items-center gap-2.5 overflow-hidden px-3 py-2.5 transition-shadow hover:shadow-md md:block md:p-4"
       style={hueStyle(hue)}
     >
-      <IconChip icon={icon} hue={hue} className="size-8 shrink-0 rounded-lg" />
-      <span className="min-w-0">
-        <span className="block text-lg leading-tight font-bold tabular-nums">{value}</span>
-        <span className="text-muted block truncate text-[11px] leading-tight">
+      <span aria-hidden className="hue-bar absolute inset-x-0 top-0 h-1 max-md:hidden" />
+      <div className="contents md:flex md:items-center md:justify-between">
+        <span className="text-muted text-xs font-medium max-md:hidden">{label}</span>
+        <IconChip icon={icon} hue={hue} className="size-8 shrink-0 rounded-lg" />
+      </div>
+      <span className="min-w-0 md:block">
+        <span className="block text-lg leading-tight font-bold tabular-nums md:mt-2 md:text-3xl md:tracking-tight">
+          {value}
+        </span>
+        <span className="text-muted block truncate text-[11px] leading-tight md:hidden">
           {label}
           {sub ? ` · ${sub}` : ""}
         </span>
+        {sub && <span className="text-muted mt-0.5 block text-xs max-md:hidden">{sub}</span>}
       </span>
     </Link>
   );
@@ -177,14 +189,15 @@ export default async function DashboardPage() {
               </div>
             </div>
           </Link>
-          {/* One row of chips on a phone (it scrolls sideways); "add" is just its icon there. */}
-          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+          {/* All in sight, no sideways scrolling: "continue" takes the whole first line on a
+              phone, the rest share the next one (equal widths); on a computer one row. */}
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             {last && (
               <Button
                 variant="secondary"
                 size="sm"
                 asChild
-                className="max-w-[15rem] shrink-0 sm:max-w-xs"
+                className="col-span-3 min-w-0 justify-start sm:max-w-xs"
               >
                 <Link
                   href={
@@ -203,24 +216,18 @@ export default async function DashboardPage() {
               </Button>
             )}
             {due > 0 && (
-              <Button variant="secondary" size="sm" asChild className="shrink-0">
+              <Button variant="secondary" size="sm" asChild className="min-w-0">
                 <Link href="/review">
-                  <Brain /> {t("dashboard.dueReview", { n: due })}
+                  <Brain /> <span className="truncate">{t("dashboard.dueReview", { n: due })}</span>
                 </Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" asChild className="shrink-0">
+            <Button variant="outline" size="sm" asChild className={cn(due > 0 ? "" : "col-span-2")}>
               <Link href="/assistant">
                 <Sparkles /> AI
               </Link>
             </Button>
-            <Button
-              size="sm"
-              asChild
-              data-tour="add"
-              className="shrink-0"
-              title={t("nav.newResource")}
-            >
+            <Button size="sm" asChild data-tour="add" title={t("nav.newResource")}>
               <Link href="/library/new" aria-label={t("nav.newResource")}>
                 <Plus /> <span className="max-sm:sr-only">{t("nav.newResource")}</span>
               </Link>
@@ -239,6 +246,18 @@ export default async function DashboardPage() {
                   : "",
             )}
           >
+            {/* A phone shows two a row: an odd last one gets "Metrics →" beside it. */}
+            {counters.length % 2 === 1 && (
+              <Link
+                href="/stats"
+                className="card text-primary order-last flex items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold md:hidden"
+              >
+                <span className="flex items-center gap-2">
+                  <BarChart3 className="size-4" /> {t("nav.stats")}
+                </span>
+                <ChevronRight className="size-4" />
+              </Link>
+            )}
             {counters.map((c) => (
               <Counter
                 key={c.key}
@@ -388,39 +407,6 @@ export default async function DashboardPage() {
               )}
             </div>
           </Card>
-
-          {notes.items.length > 0 && (
-            <Card className="max-md:hidden">
-              <CardHeader
-                title={t("dashboard.recentNotes")}
-                icon={<Quote />}
-                hue="violet"
-                action={
-                  <Link href="/notes" className="text-primary text-xs font-medium hover:underline">
-                    {t("common.seeAll")}
-                  </Link>
-                }
-              />
-              <ul className="divide-border divide-y px-5 pb-4">
-                {notes.items.slice(0, 4).map((n) => (
-                  <li key={n.id} className="py-3">
-                    <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
-                      {n.kind === "quote" ? (
-                        <blockquote className="line-clamp-2 border-l-2 border-[var(--c-violet)] pl-3 font-serif italic">
-                          “{n.quoteText}”
-                        </blockquote>
-                      ) : (
-                        <p className="line-clamp-2 text-sm">
-                          {n.title && <strong>{n.title} — </strong>}
-                          <span className="text-muted">{n.body}</span>
-                        </p>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </div>
 
         {/* The day's plan comes first on a phone. */}
@@ -444,6 +430,40 @@ export default async function DashboardPage() {
               target: g.target,
             }))}
           />
+
+          {/* The narrow column on a computer: the latest notes and quotes (phones skip them). */}
+          {notes.items.length > 0 && (
+            <Card className="max-md:hidden">
+              <CardHeader
+                title={t("dashboard.recentNotes")}
+                icon={<Quote />}
+                hue="violet"
+                action={
+                  <Link href="/notes" className="text-primary text-xs font-medium hover:underline">
+                    {t("common.seeAll")}
+                  </Link>
+                }
+              />
+              <ul className="divide-border divide-y px-5 pb-4">
+                {notes.items.slice(0, 5).map((n) => (
+                  <li key={n.id} className="py-3">
+                    <Link href={`/notes/${n.id}`} className="block hover:opacity-80">
+                      {n.kind === "quote" ? (
+                        <blockquote className="line-clamp-3 border-l-2 border-[var(--c-violet)] pl-3 font-serif text-[15px] italic">
+                          “{n.quoteText}”
+                        </blockquote>
+                      ) : (
+                        <p className="line-clamp-3 text-sm">
+                          {n.title && <strong>{n.title} — </strong>}
+                          <span className="text-muted">{n.body}</span>
+                        </p>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </aside>
       </div>
       {homeAd && (

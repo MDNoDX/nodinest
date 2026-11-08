@@ -253,13 +253,13 @@
     "mediaHours": "{hours} soat tomoşa",
     "inLibrary": "Darsxonada: {count}",
     "reading": "Hozir öqiyapman",
-    "finishedWall": "Öqilganlar",
+    "finishedWall": "Yakunlanganlar",
     "yearGoal": "{year}-yil maqsadi",
     "noYearGoal": "Yillik maqsad qöyilmagan.",
     "setGoal": "Maqsad qöyiş",
     "topLists": "Reytinglarim",
     "emptyReading": "Hozir heç narsa öqilmayapti.",
-    "emptyFinished": "Öqib tugatgan kitoblaringiz şu yerda çiroyli körinadi.",
+    "emptyFinished": "Tugatgan kitob, audio va videolaringiz şu yerda çiroyli körinadi.",
     "avgRating": "Örtaça baho",
     "rated": "{count} ta baholangan",
     "continue": "Davom ettiriş: {title}",
@@ -1546,7 +1546,13 @@
     "windowsDownload": "Windows uçun yuklab oliş",
     "windowsStep1": "Yuklangan «Roznoma-Setup» faylini oçing.",
     "windowsStep2": "Windows «kompyuteringizni himoya qildi» desa: «Batafsil» → «Baribir işga tuşiriş» ni bosing (ilova pullik imzo bilan imzolanmagan).",
-    "windowsStep3": "Örnatgandan keyin Röznoma Start menyusi va iş stolida turadi."
+    "windowsStep3": "Örnatgandan keyin Röznoma Start menyusi va iş stolida turadi.",
+    "androidTitleApk": "Android ilovasi (APK)",
+    "androidSize": ".apk · 4,6 MB",
+    "androidDownload": "Android uçun yuklab oliş",
+    "androidApk1": "Yuklangan «Roznoma-1.0.apk» faylini oçing.",
+    "androidApk2": "Telefon «noma’lum manbalar» haqida sörasa: Sozlamalar → şu brauzerga «Ruxsat beriş» ni yoqing.",
+    "androidApk3": "«Örnatiş» ni bosing — Röznoma ilovalar röyxatida paydo böladi va brauzersiz oçiladi."
   },
   "offline": {
     "title": "Internet yöq",
@@ -2617,32 +2623,17 @@
       {
         "title": "Kitobimni yozib tugataş",
         "kind": "work",
-        "steps": [
-          "Boblar rejasi",
-          "Har kuni 500 söz",
-          "Tahrir",
-          "Nusxa çiqariş"
-        ]
+        "steps": ["Boblar rejasi", "Har kuni 500 söz", "Tahrir", "Nusxa çiqariş"]
       },
       {
         "title": "Yangi til örganiş",
         "kind": "language",
-        "steps": [
-          "A1",
-          "A2",
-          "B1",
-          "Ona tilida gaplaşuvçi bilan suhbat"
-        ]
+        "steps": ["A1", "A2", "B1", "Ona tilida gaplaşuvçi bilan suhbat"]
       },
       {
         "title": "10 km yuguriş",
         "kind": "sport",
-        "steps": [
-          "3 km",
-          "5 km",
-          "7 km",
-          "10 km"
-        ]
+        "steps": ["3 km", "5 km", "7 km", "10 km"]
       }
     ],
     "simpleHint": "Işni bajarganda öngdagi doirani bosing. Foiz özi hisoblanadi. Yangi işni pastdagi maydonga yozing.",
@@ -2893,7 +2884,8 @@
     "download": "Yuklab oliş",
     "close": "Yopiş",
     "previous": "Oldingi",
-    "next": "Keyingi"
+    "next": "Keyingi",
+    "asFile": "Siqmasdan, asl sifatida yuboriş (sekinroq)"
   },
   "guest": {
     "media": "Media",

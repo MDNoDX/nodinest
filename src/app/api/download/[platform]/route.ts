@@ -6,13 +6,15 @@ import { hitRateLimit } from "@/server/rate-limit";
 
 /**
  * The installed apps, kept in the (private) file store under downloads/:
- * /api/download/mac → the DMG, /api/download/windows → the installer. Each
+ * /api/download/mac → the DMG, /api/download/windows → the installer,
+ * /api/download/android → the signed APK. Each
  * answer is a link signed for ten minutes, so the file comes straight from
  * the store (big files never pass through a function).
  */
 const DOWNLOADS = {
   mac: "downloads/Roznoma-1.1.dmg",
   windows: "downloads/Roznoma-Setup-1.0.0.exe",
+  android: "downloads/Roznoma-1.0.apk",
 } as const;
 
 export async function GET(
