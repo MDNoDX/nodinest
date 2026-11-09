@@ -21,7 +21,7 @@ import { cn } from "@/lib/cn";
 import type { DmGif, Kind } from "@/server/dm";
 import { EmojiGif } from "./emoji-gif";
 import { KindLabel } from "./parts";
-import { BARS, shape, waveOf } from "./wave";
+import { BARS, shape, waveOf, waveOfLevels } from "./wave";
 
 export type Voice = { file: File; wave: number[] | null; seconds: number };
 export type Reply = { senderName: string; kind: Kind; text: string | null };
@@ -83,12 +83,15 @@ export function Composer({
     level.current = rec.level;
   }, [rec.level]);
   const recording = rec.state === "recording";
+  // Every level heard, for the message's bars (no decoding of the file after it ends).
+  const heard = useRef<number[]>([]);
   useEffect(() => {
     if (!recording) return;
-    const timer = setInterval(
-      () => setLevels((l) => [...l.slice(-(BARS - 1)), level.current]),
-      100,
-    );
+    heard.current = [];
+    const timer = setInterval(() => {
+      heard.current.push(level.current);
+      setLevels((l) => [...l.slice(-(BARS - 1)), level.current]);
+    }, 100);
     return () => clearInterval(timer);
   }, [recording]);
 
@@ -137,7 +140,9 @@ export function Composer({
     setLevels([]);
     if (!r || r.seconds < 1) return;
     const file = new File([r.blob], r.name, { type: r.mime });
-    onVoice({ file, wave: await waveOf(r.blob), seconds: r.seconds });
+    // Like Telegram: the bars come from the levels heard, so it goes at once.
+    const wave = heard.current.length >= 8 ? waveOfLevels(heard.current) : await waveOf(r.blob);
+    onVoice({ file, wave, seconds: r.seconds });
   };
   const cancelVoice = () => {
     setMode("off");

@@ -10,7 +10,7 @@
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v8-push";
+const VERSION = "v9-files";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;
@@ -118,17 +118,23 @@ async function page(event) {
   }
 }
 
-async function file(req) {
-  const cache = await caches.open(FILES);
+// The answer goes back at once; its offline copy is written while it plays
+// (waiting for the copy first made every voice and video start late).
+async function file(req, event) {
   try {
     const res = await fetch(req);
     if (good(res) && !res.headers.get("content-range")) {
-      await cache.put(req, res.clone());
-      await trim(FILES, 40);
+      const copy = res.clone();
+      event.waitUntil(
+        caches
+          .open(FILES)
+          .then((cache) => cache.put(req, copy).then(() => trim(FILES, 60)))
+          .catch(() => {}),
+      );
     }
     return res;
   } catch {
-    return (await cache.match(req)) || Response.error();
+    return (await caches.match(req, { cacheName: FILES })) || Response.error();
   }
 }
 
@@ -151,7 +157,9 @@ self.addEventListener("fetch", (event) => {
       return;
     }
     if (p.startsWith("/api/files/")) {
-      event.respondWith(req.destination === "image" ? staleWhileRevalidate(req, event) : file(req));
+      event.respondWith(
+        req.destination === "image" ? staleWhileRevalidate(req, event) : file(req, event),
+      );
       return;
     }
     if (p.startsWith("/api/")) return;

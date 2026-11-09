@@ -41,7 +41,17 @@ import { Composer, type Voice } from "./composer";
 import { ForwardDialog, MessageMenu, type MenuAction } from "./message-menu";
 import { MediaViewer, type ViewerItem } from "./media-viewer";
 import { cancel, onSent, queue as queueOut, retry, usePending, type Pending } from "./outbox";
-import { Attachment, KindLabel, ReadMark, clock, dayLabel, seenText, useNow } from "./parts";
+import {
+  Attachment,
+  KindLabel,
+  ReadMark,
+  VoiceNote,
+  clock,
+  dayLabel,
+  seenText,
+  useNow,
+} from "./parts";
+import { blobUrl } from "./voice-cache";
 
 type View = {
   id: string;
@@ -1034,10 +1044,18 @@ export function ChatThread({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.gif.url} alt="GIF" className="max-h-52 rounded-xl opacity-80" />
                   )}
-                  {p.file && !p.preview && (
-                    <span className="text-muted block text-sm">
-                      {p.file.type.startsWith("audio/") ? t("kind.voice") : p.file.name}
-                    </span>
+                  {p.file && !p.preview && p.file.type.startsWith("audio/") ? (
+                    // My voice at once, bars and all, playable while it goes up.
+                    <VoiceNote
+                      src={blobUrl(p.file)}
+                      mine
+                      wave={p.wave}
+                      seconds={p.seconds}
+                      upload={p.failed ? undefined : (p.progress ?? 0)}
+                    />
+                  ) : (
+                    p.file &&
+                    !p.preview && <span className="text-muted block text-sm">{p.file.name}</span>
                   )}
                   {p.body && (
                     <span className={cn("block", (p.preview || p.gif) && "w-0 min-w-full")}>

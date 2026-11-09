@@ -9,6 +9,7 @@ import { sendMessageAction } from "@/app/actions/dm";
 import { compressImage } from "@/lib/compress-image";
 import { uploadMedia } from "@/lib/upload-media";
 import type { DmGif, DmMessage } from "@/server/dm";
+import { seedVoice } from "./voice-cache";
 
 export type Pending = {
   key: string;
@@ -102,6 +103,8 @@ async function deliver(p: Pending) {
         onProgress: (n) => patch(p.key, { progress: n }),
       });
       fileId = up.fileId;
+      // My own voice is already here: the sent bubble plays it without a download.
+      if (file.type.startsWith("audio/")) seedVoice(up.fileId, file);
     }
     if (stopper.signal.aborted) return;
     const r = await sendMessageAction(p.threadId, {

@@ -33,5 +33,17 @@ export async function waveOf(blob: Blob, n = BARS): Promise<number[] | null> {
   }
 }
 
+/** The same shape from the levels heard while recording (ten a second). */
+export function waveOfLevels(levels: number[], n = BARS): number[] {
+  const peaks: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const from = Math.floor((i * levels.length) / n);
+    const to = Math.max(from + 1, Math.floor(((i + 1) * levels.length) / n));
+    peaks.push(Math.max(...levels.slice(from, to)));
+  }
+  const max = Math.max(...peaks, 0.01);
+  return peaks.map((p) => Math.round(Math.max(0.06, Math.min(1, p / max)) * 100) / 100);
+}
+
 /** A short list of levels (0-1) as bars that never look flat. */
 export const shape = (levels: number[]) => levels.map((v) => Math.max(0.08, Math.min(1, v)));

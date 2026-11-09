@@ -300,6 +300,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   a lost touch (pointercancel) locks the recording instead of sending it. Pictures, videos and GIFs open
   in `chat/media-viewer.tsx` (swipe, ← →, download). `/api/files` answers open-ended ranges in 2 MB
   pieces (phones ask `bytes=0-` for a video).
+- Voice messages (`chat/voice-cache.ts`, `VoiceNote` in parts.tsx): fetched whole (3 at a time) when the
+  bubble nears the screen and played from a `blob:`, so a tap plays at once; tapped before it came →
+  ✕ in a ring with the real progress, and `unlockPlayer` plays a moment of silence inside the tap so
+  phones let it start by itself on arrival. My own recording is seeded under its new file id after the
+  upload (never downloaded); the bubble on its way is the same player with the upload ring. The bars
+  come from the levels heard while recording (`waveOfLevels`), no decoding before sending. sw.js
+  `file()` answers at once and writes its offline copy in `waitUntil`.
 - A message's window (`chat/message-menu.tsx`, Radix Popover anchored to the bubble; tap or right click):
   quick reactions + every emoji, then Reply / Copy / Save / Pin / Forward / Select / Delete. Pin:
   `dm_threads.pinned_id/pinned_at` (0053, either side, a bar under the header; the poll sends `pat`).

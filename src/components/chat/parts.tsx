@@ -12,6 +12,7 @@ import {
   Sticker,
   Play,
   Video,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -22,6 +23,7 @@ import { AskFirst } from "@/components/ui/ask-first";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
 import type { DmMessage, Kind as DmKind } from "@/server/dm";
+import { loadVoice, markPlaying, unlockPlayer, useVoice, voiceSrc } from "./voice-cache";
 
 type Kind = DmKind;
 
@@ -138,78 +140,195 @@ const fmt = (s: number) =>
 // One voice plays at a time.
 let playingNow: HTMLAudioElement | null = null;
 
-/** A voice message: play / pause, its bars (the part heard is coloured, a tap moves there), the time. */
+/** Plays one voice (stopping another); the button shows pause at once. */
+function playOne(a: HTMLAudioElement, setOn: (on: boolean) => void) {
+  if (playingNow && playingNow !== a) playingNow.pause();
+  playingNow = a;
+  markPlaying(a.currentSrc || a.src);
+  setOn(true);
+  return a.play().catch(() => setOn(false));
+}
+
+/**
+ * The ring around the play button: how much has come (or gone up), or a
+ * turning arc while the size is not known yet.
+ */
+function LoadRing({ value, strong }: { value: number | null; strong: boolean }) {
+  const r = 22;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute -inset-1 size-12 -rotate-90 transition-opacity",
+        value == null && "voice-spin",
+        strong ? "opacity-100" : "opacity-60",
+      )}
+    >
+      <circle cx="24" cy="24" r={r} fill="none" strokeWidth="2.5" className="stroke-current/15" />
+      <circle
+        cx="24"
+        cy="24"
+        r={r}
+        fill="none"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        className="stroke-primary transition-[stroke-dashoffset] duration-300 ease-out"
+        strokeDasharray={c}
+        strokeDashoffset={value == null ? c * 0.72 : c * (1 - Math.max(0.04, value))}
+      />
+    </svg>
+  );
+}
+
+/**
+ * A voice message, played like Telegram's: the file is fetched whole as soon
+ * as the bubble comes near the screen, so a tap plays at once. Tapped before it
+ * has come, the button turns into a ring (with ✕ to change one's mind) and it
+ * plays the moment it is here. Its bars: the part heard is coloured, a tap
+ * moves there.
+ */
 export function VoiceNote({
+  fileId,
   src,
   mine,
   wave,
   seconds,
+  upload,
 }: {
-  src: string;
+  /** A message on the server: downloaded once, kept in memory. */
+  fileId?: string;
+  /** A recording still on this device (on its way up). */
+  src?: string;
   mine: boolean;
-  wave?: number[];
+  wave?: number[] | null;
   seconds?: number;
+  /** 0-100 while it goes up. */
+  upload?: number;
 }) {
   const t = useTranslations("chat");
   const ref = useRef<HTMLAudioElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const v = useVoice(fileId);
+  const url = src ?? v.url ?? (v.status === "failed" && fileId ? voiceSrc(fileId) : undefined);
   const [on, setOn] = useState(false);
+  const [want, setWant] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [at, setAt] = useState(0);
   const [len, setLen] = useState(seconds ?? 0);
+
+  // Near the screen: start fetching (a few at a time, nearest first).
+  useEffect(() => {
+    const el = box.current;
+    if (!fileId || !el) return;
+    const io = new IntersectionObserver(
+      (es) => {
+        if (es.some((e) => e.isIntersecting)) {
+          loadVoice(fileId);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [fileId]);
+
   useEffect(() => {
     const a = ref.current;
     if (!a) return;
     const time = () => setAt(a.currentTime);
-    const meta = () => Number.isFinite(a.duration) && setLen(a.duration);
+    // (Not the moment of silence that opens the player on a tap.)
+    const meta = () => Number.isFinite(a.duration) && a.duration > 0.05 && setLen(a.duration);
     const end = () => {
       setOn(false);
       setAt(0);
+      markPlaying(null);
     };
     const pause = () => setOn(false);
+    const wait = () => setStalled(true);
+    const go = () => setStalled(false);
     a.addEventListener("timeupdate", time);
     a.addEventListener("loadedmetadata", meta);
     a.addEventListener("durationchange", meta);
     a.addEventListener("ended", end);
     a.addEventListener("pause", pause);
+    a.addEventListener("waiting", wait);
+    a.addEventListener("playing", go);
+    a.addEventListener("canplay", go);
     return () => {
       a.removeEventListener("timeupdate", time);
       a.removeEventListener("loadedmetadata", meta);
       a.removeEventListener("durationchange", meta);
       a.removeEventListener("ended", end);
       a.removeEventListener("pause", pause);
+      a.removeEventListener("waiting", wait);
+      a.removeEventListener("playing", go);
+      a.removeEventListener("canplay", go);
     };
   }, []);
+
+  // Tapped while it was still coming: it plays as soon as it is here.
+  useEffect(() => {
+    const a = ref.current;
+    if (!want || !url || !a) return;
+    void playOne(a, setOn).finally(() => setWant(false));
+  }, [want, url]);
+
   const toggle = () => {
     const a = ref.current;
     if (!a) return;
     if (on) return a.pause();
-    if (playingNow && playingNow !== a) playingNow.pause();
-    playingNow = a;
-    void a.play().then(() => setOn(true));
+    if (!url) {
+      // Not here yet: to the front of the line, and play when it comes; a second tap = never mind.
+      if (want) return setWant(false);
+      if (fileId) loadVoice(fileId, true);
+      if (playingNow && playingNow !== a) playingNow.pause();
+      unlockPlayer(a);
+      return setWant(true);
+    }
+    void playOne(a, setOn);
   };
   const seek = (frac: number) => {
     const a = ref.current;
-    if (!a || !len) return;
+    if (!a || !len || !url) return;
     a.currentTime = Math.max(0, Math.min(len - 0.05, frac * len));
     setAt(a.currentTime);
   };
   const pct = len ? Math.min(1, at / len) : 0;
   const bars = wave && wave.length ? wave : null;
+  const coming = !url && v.status === "loading";
+  const busy = want || (on && stalled);
+  const going = upload != null;
   return (
-    <div className="flex w-64 max-w-full items-center gap-3 py-1">
-      <audio ref={ref} src={src} preload="metadata" />
+    <div ref={box} className="flex w-64 max-w-full items-center gap-3 py-1">
+      <audio ref={ref} src={url} preload={url?.startsWith("blob:") ? "auto" : "metadata"} />
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           toggle();
         }}
-        aria-label={on ? t("pause") : t("play")}
+        aria-label={want ? t("cancelSend") : on ? t("pause") : t("play")}
+        aria-busy={coming || busy || undefined}
         className={cn(
-          "grid size-10 shrink-0 place-items-center rounded-full transition-transform active:scale-95",
+          "relative grid size-10 shrink-0 place-items-center rounded-full transition-transform active:scale-95",
           mine ? "bg-primary text-primary-foreground" : "bg-primary-soft text-primary",
         )}
       >
-        {on ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
+        {want ? (
+          <X className="size-4" />
+        ) : on ? (
+          <Pause className="size-4" />
+        ) : (
+          <Play className="size-4 translate-x-px" />
+        )}
+        {going ? (
+          <LoadRing value={(upload ?? 0) / 100} strong />
+        ) : coming || busy ? (
+          <LoadRing value={coming ? v.progress : null} strong={busy} />
+        ) : null}
       </button>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {bars ? (
@@ -351,7 +470,7 @@ export function Attachment({
         </a>
       );
     if (f.mime.startsWith("audio/"))
-      return <VoiceNote src={src} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />;
+      return <VoiceNote fileId={f.id} mine={mine} wave={m.meta?.wave} seconds={m.meta?.seconds} />;
     if (f.mime.startsWith("video/"))
       return (
         // The first frame with a play button; a tap plays it full screen (phones too).
