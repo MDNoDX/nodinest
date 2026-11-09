@@ -292,7 +292,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   Forward (`forwardMessages`): copies into another of my talks with `meta.fwd.name`; files stay the
   same files (fileFor lets the new talk open them). Select: a mark column (press and slide to mark many,
   mouse drag works on bubbles), then copy / forward / delete: the bin shows only when one of mine is
-  chosen, only mine are deleted (for both), and a mix says so in the question. A reaction is the emoji
+  chosen, only mine are deleted (for both), and a mix says so in the question. A deleted message
+  vanishes for both without a "message deleted" line: rows stay soft-deleted only so the poll
+  (`deletedSince`) can tell the other side; every list, preview and reply quote skips them. A reaction is the emoji
   itself (no pill) standing half over the bubble's lower edge, with a tiny face of who put it. The
   quick row is the person's own (`lib/quick-reactions.ts`, "nn:quick-reactions", per device): the
   arrow opens every emoji, "Change" picks a place and the next emoji goes there. Stickers

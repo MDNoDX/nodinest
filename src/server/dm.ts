@@ -268,10 +268,13 @@ export async function threadList(ctx: AppContext): Promise<DmThreadRow[]> {
                 '-infinity'::timestamptz))) as unread
       from nodinest.dm_threads t
       left join lateral (select * from nodinest.dm_messages x where x.thread_id = t.id
-        and x.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at
+        and x.deleted_at is null and x.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at
           else t.b_cleared_at end, '-infinity'::timestamptz)
         order by x.created_at desc limit 1) m on true
-      where ${ctx.userId} in (t.a_id, t.b_id) and m.id is not null
+      where ${ctx.userId} in (t.a_id, t.b_id) and exists(
+        select 1 from nodinest.dm_messages y where y.thread_id = t.id
+          and y.created_at > coalesce(case when t.a_id = ${ctx.userId} then t.a_cleared_at
+            else t.b_cleared_at end, '-infinity'::timestamptz))
       order by t.last_at desc
       limit 200`),
   );
@@ -332,7 +335,8 @@ async function shape(rows: Row[], replies: Row[] = []): Promise<DmMessage[]> {
   return rows.map((r) => {
     const deleted = !!r.deletedAt;
     const f = !deleted && r.fileId ? fm.get(r.fileId) : undefined;
-    const q = r.replyToId ? rm.get(r.replyToId) : undefined;
+    const q0 = r.replyToId ? rm.get(r.replyToId) : undefined;
+    const q = q0 && !q0.deletedAt ? q0 : undefined;
     return {
       id: r.id,
       senderId: r.senderId,
@@ -382,7 +386,13 @@ export async function threadView(ctx: AppContext, threadId: string) {
       tx
         .select()
         .from(dmMessages)
-        .where(and(eq(dmMessages.threadId, t.id), gt(dmMessages.createdAt, t.cleared)))
+        .where(
+          and(
+            eq(dmMessages.threadId, t.id),
+            gt(dmMessages.createdAt, t.cleared),
+            isNull(dmMessages.deletedAt),
+          ),
+        )
         .orderBy(desc(dmMessages.createdAt))
         .limit(PAGE),
     ),
@@ -499,6 +509,8 @@ export async function messagesAround(
         and(
           eq(dmMessages.threadId, t.id),
           gt(dmMessages.createdAt, t.cleared),
+          // A deleted message is gone for both, without a trace.
+          isNull(dmMessages.deletedAt),
           before ? lt(dmMessages.createdAt, before) : undefined,
           after ? gt(dmMessages.createdAt, after) : undefined,
         ),

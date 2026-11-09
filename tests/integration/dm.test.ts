@@ -67,7 +67,9 @@ describe("messages between two people", () => {
     await dm.deleteMessage(a, later.id);
     expect(await dm.deletedSince(b, id, since)).toEqual([later.id]);
     const after = await dm.threadView(b, id);
-    expect(after.messages.at(-1)).toMatchObject({ id: later.id, deleted: true, body: null });
+    // Gone for both without a trace ("message deleted" is never shown).
+    expect(after.messages.map((m) => m.id)).not.toContain(later.id);
+    expect((await dm.threadList(a)).find((x) => x.id === id)).toBeTruthy();
 
     // Search over my conversations.
     expect((await dm.searchMessages(b, "kitob")).map((m) => m.id)).toEqual([first.id]);

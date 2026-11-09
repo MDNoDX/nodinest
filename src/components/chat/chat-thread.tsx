@@ -192,13 +192,15 @@ export function ChatThread({
 
   const merge = useCallback((add: DmMessage[], gone: string[] = []) => {
     if (!add.length && !gone.length) return;
+    if (gone.length) setPinned((p) => (p && gone.includes(p.id) ? null : p));
     setList((l) => {
       const byId = new Map(l.map((m) => [m.id, m]));
       for (const m of add) byId.set(m.id, m);
-      for (const id of gone) {
-        const m = byId.get(id);
-        if (m) byId.set(id, { ...m, deleted: true, body: null, file: null, item: null });
-      }
+      // Deleted: gone from the talk without a trace, and from the quotes of answers to it.
+      for (const id of gone) byId.delete(id);
+      if (gone.length)
+        for (const [id, m] of byId)
+          if (m.reply && gone.includes(m.reply.id)) byId.set(id, { ...m, reply: null });
       return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     });
   }, []);
