@@ -3,6 +3,7 @@ import { Archive, ChevronDown, Music, Play } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { saveRoutineAction, setArchivedAction } from "@/app/actions/roznoma";
+import { tell } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
@@ -374,7 +375,7 @@ export function RoutineDialog({
                           const f = e.target.files?.[0];
                           e.target.value = "";
                           if (!f) return;
-                          if (f.size > 10 * 1024 * 1024) return alert(t("soundTooBig"));
+                          if (f.size > 10 * 1024 * 1024) return void tell(t("soundTooBig"));
                           setUploading(true);
                           const up = await uploadMedia(f, { userId, name: f.name }).catch(
                             () => null,

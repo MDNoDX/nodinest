@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { deleteRoutinesAction, setArchivedAction } from "@/app/actions/roznoma";
+import { ask } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
@@ -120,8 +121,9 @@ export function RoutinesView({
             variant="ghost"
             className="text-danger"
             loading={pending}
-            onClick={() => {
-              if (!window.confirm(t("deleteConfirm", { n: chosen.length }))) return;
+            onClick={async () => {
+              if (!(await ask({ message: t("deleteConfirm", { n: chosen.length }), remove: true })))
+                return;
               exec(() => deleteRoutinesAction(chosen), {
                 onSuccess: () => {
                   setChosen([]);

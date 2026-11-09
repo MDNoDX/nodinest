@@ -28,11 +28,13 @@ import {
   reactAction,
   setBlockedAction,
 } from "@/app/actions/dm";
+import { ask } from "@/components/ui/ask";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
+import { useQuickReactions } from "@/lib/quick-reactions";
 import type { DmGif, DmMessage, DmPerson, DmPinned, DmReactions } from "@/server/dm";
 import { refreshUnreadChats } from "./chats-button";
 import { Composer, type Voice } from "./composer";
@@ -56,7 +58,6 @@ type View = {
 };
 const NEAR = 140;
 /** The reactions offered at once (the smile opens every emoji). */
-const QUICK = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥"];
 /** How far a finger pulls a message to the left to answer it. */
 const SWIPE = 56;
 /** Seen this recently = online. */
@@ -95,6 +96,7 @@ export function ChatThread({
   initial: View;
 }) {
   const t = useTranslations("chat");
+  const quick = useQuickReactions();
   const te = useTranslations("errors");
   const locale = useLocale();
   const [list, setList] = useState(initial.messages);
@@ -505,7 +507,8 @@ export function ChatThread({
   const deleteChosen = async (msgs: DmMessage[]) => {
     const minesOnly = msgs.filter((m) => m.senderId === me);
     if (!minesOnly.length) return toast(t("deleteOnlyMine"));
-    if (!window.confirm(t("deleteConfirm", { n: minesOnly.length }))) return;
+    if (!(await ask({ message: t("deleteConfirm", { n: minesOnly.length }), remove: true })))
+      return;
     for (const m of minesOnly) {
       const r = await deleteMessageAction(m.id);
       if (r.ok) merge([], [m.id]);
@@ -535,13 +538,16 @@ export function ChatThread({
 
   const remove = async (m: DmMessage) => {
     setPicked(null);
+    // The message's window closes first, then the question shows alone.
+    await new Promise((r) => requestAnimationFrame(r));
+    if (!(await ask({ message: t("deleteConfirm", { n: 1 }), remove: true }))) return;
     const r = await deleteMessageAction(m.id);
     if (!r.ok) return errorToast(te, r);
     merge([], [m.id]);
   };
 
   const block = async (on: boolean) => {
-    if (on && !window.confirm(t("blockConfirm", { name: other.name }))) return;
+    if (on && !(await ask({ message: t("blockConfirm", { name: other.name }) }))) return;
     const r = await setBlockedAction(other.id, on);
     if (!r.ok) return errorToast(te, r);
     setBlockedByMe(on);
@@ -731,6 +737,8 @@ export function ChatThread({
                       "group relative flex flex-col",
                       mine ? "items-end" : "items-start",
                       !sameRun && "mt-2",
+                      // Reactions sit half over the bubble's lower edge: room for the other half.
+                      (reacts[m.id]?.length ?? 0) > 0 && "mb-3",
                       // Selecting: room for the mark on the left, and the chosen ones tinted.
                       sel && "-mx-2 rounded-lg px-2 pl-10 transition-colors",
                       sel?.has(m.id) && "bg-primary/10",
@@ -798,7 +806,7 @@ export function ChatThread({
                         open={picked === m.id && !sel && !m.deleted}
                         onOpenChange={(o) => !o && setPicked(null)}
                         align={mine ? "end" : "start"}
-                        quick={writable ? QUICK : []}
+                        quick={writable ? quick : []}
                         myReaction={reacts[m.id]?.find((r) => r.u === me)?.e}
                         actions={
                           [
@@ -840,7 +848,7 @@ export function ChatThread({
                             lastTap.current = { id: m.id, at };
                             if (tap?.id === m.id && at - tap.at < 320 && !m.deleted) {
                               lastTap.current = null;
-                              void react(m, QUICK[0]);
+                              void react(m, quick[0]);
                               return;
                             }
                             setPicked((p) => (p === m.id ? null : m.id));
@@ -934,20 +942,20 @@ export function ChatThread({
                               <ReadMark read={!!readAt && readAt >= m.createdAt} />
                             )}
                           </span>
+                          {(reacts[m.id]?.length ?? 0) > 0 && (
+                            <Reactions
+                              list={reacts[m.id]}
+                              me={me}
+                              who={{
+                                [me]: self ?? { name: t("you"), image: null },
+                                [other.id]: { name: other.name, image: other.image },
+                              }}
+                              onPick={(e) => void react(m, e)}
+                            />
+                          )}
                         </div>
                       </MessageMenu>
                     </div>
-                    {(reacts[m.id]?.length ?? 0) > 0 && (
-                      <Reactions
-                        list={reacts[m.id]}
-                        me={me}
-                        who={{
-                          [me]: self ?? { name: t("you"), image: null },
-                          [other.id]: { name: other.name, image: other.image },
-                        }}
-                        onPick={(e) => void react(m, e)}
-                      />
-                    )}
                   </div>
                 </Fragment>
               );
@@ -1211,8 +1219,9 @@ function linkify(s: string) {
 export type { View as ChatView };
 
 /**
- * Reactions under a message, like Telegram: each emoji with the faces of who
- * put it (a count when there are more); mine stands out and takes it back.
+ * Reactions on a message: the emoji itself, no pill, standing half over the
+ * bubble's lower edge (the words stay readable above it). A small face says who
+ * put it (a count when more than two did); tapping mine takes it back.
  */
 function Reactions({
   list,
@@ -1228,44 +1237,45 @@ function Reactions({
   const by = new Map<string, string[]>();
   for (const r of list) by.set(r.e, [...(by.get(r.e) ?? []), r.u]);
   return (
-    <div className="-mt-1.5 flex flex-wrap gap-1 px-1">
+    <span className="absolute -bottom-3 left-3 z-[1] flex items-end gap-1.5">
       {[...by].map(([e, users]) => {
         const mine = users.includes(me);
         return (
           <button
             key={e}
             type="button"
-            onClick={() => onPick(e)}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onPick(e);
+            }}
+            onPointerDown={(ev) => ev.stopPropagation()}
             aria-pressed={mine}
+            aria-label={`${e} ${users.map((u) => who[u]?.name ?? "").join(", ")}`}
             title={users.map((u) => who[u]?.name ?? "").join(", ")}
-            className={cn(
-              "animate-scale-in inline-flex h-7 items-center gap-1 rounded-full py-0.5 pr-0.5 pl-2 text-[15px] shadow-sm transition-colors",
-              mine
-                ? "bg-primary text-primary-foreground"
-                : "border-border bg-surface text-foreground border",
-            )}
+            className="animate-scale-in relative grid place-items-center leading-none transition-transform active:scale-90"
           >
-            <span className="leading-none">{e}</span>
-            {users.length <= 3 ? (
-              <span className="flex -space-x-1.5">
+            <span className="text-[22px] [filter:drop-shadow(0_1px_1.5px_rgb(0_0_0/0.35))]">
+              {e}
+            </span>
+            {users.length <= 2 ? (
+              <span className="absolute -right-1.5 -bottom-1 flex -space-x-1.5">
                 {users.map((u) => (
                   <Avatar
                     key={u}
                     name={who[u]?.name ?? "?"}
                     image={who[u]?.image ?? null}
-                    className={cn(
-                      "size-6 text-[9px] ring-2",
-                      mine ? "ring-primary" : "ring-[var(--surface)]",
-                    )}
+                    className="size-3.5 text-[6px] ring-[1.5px] ring-[var(--surface)]"
                   />
                 ))}
               </span>
             ) : (
-              <span className="pr-1.5 text-xs font-semibold tabular-nums">{users.length}</span>
+              <span className="bg-surface absolute -right-2 -bottom-1 rounded-full px-1 text-[10px] font-bold tabular-nums">
+                {users.length}
+              </span>
             )}
           </button>
         );
       })}
-    </div>
+    </span>
   );
 }

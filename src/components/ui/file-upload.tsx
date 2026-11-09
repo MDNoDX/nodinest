@@ -28,8 +28,7 @@ async function smaller(file: File, max = 1000) {
     c.width = Math.round(bmp.width * k);
     c.height = Math.round(bmp.height * k);
     c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
-    const as = (type: string, q: number) =>
-      new Promise<Blob | null>((ok) => c.toBlob(ok, type, q));
+    const as = (type: string, q: number) => new Promise<Blob | null>((ok) => c.toBlob(ok, type, q));
     let blob = await as("image/webp", 0.82);
     if (!blob || blob.type !== "image/webp") blob = await as("image/jpeg", 0.84);
     if (!blob || blob.size >= file.size) return file;
@@ -51,6 +50,7 @@ export function FileUpload({
   currentFileId,
   onUploaded,
   onRemoved,
+  onBusy,
   label,
   resourceId,
   userId,
@@ -62,6 +62,8 @@ export function FileUpload({
   currentFileId?: string | null;
   onUploaded: (fileId: string) => void;
   onRemoved?: () => void;
+  /** True while a file goes up (a form can wait for it before saving). */
+  onBusy?: (busy: boolean) => void;
   label: string;
   resourceId?: string;
   userId: string;
@@ -90,6 +92,7 @@ export function FileUpload({
 
   const doUpload = async (picked: File) => {
     setProgress(0);
+    onBusy?.(true);
     const ctl = new AbortController();
     stopper.current = ctl;
     if (picked.type.startsWith("image/")) setPreview(URL.createObjectURL(picked));
@@ -133,6 +136,7 @@ export function FileUpload({
             : t("errors.STORAGE_UNAVAILABLE"),
       );
     } finally {
+      onBusy?.(false);
       setProgress(null);
       setPreview((p) => {
         if (p) URL.revokeObjectURL(p);

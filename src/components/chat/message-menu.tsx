@@ -1,13 +1,16 @@
 "use client";
 import {
   CheckCircle2,
+  ChevronDown,
   Copy,
   CornerUpLeft,
   Download,
   Forward,
   Loader2,
+  Pencil,
   Pin,
   PinOff,
+  RotateCcw,
   Search,
   Trash2,
 } from "lucide-react";
@@ -20,16 +23,18 @@ import { forwardMessagesAction } from "@/app/actions/dm";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
+import { DEFAULT_QUICK, writeQuickReactions } from "@/lib/quick-reactions";
 import type { DmThreadRow } from "@/server/dm";
-import { EmojiGif } from "./emoji-gif";
+import { EmojiGrid } from "./emoji-gif";
 
 export type MenuAction =
   "reply" | "copy" | "save" | "pin" | "unpin" | "forward" | "select" | "delete";
 
 /**
  * A message's own little window, like Telegram's: the reactions on top (the
- * arrow opens every emoji), then what can be done with it. It stays next to
- * the message and moves out of the screen's edge by itself.
+ * arrow opens every emoji, where the row itself can be changed), then what can
+ * be done with it. It stays next to the message and moves out of the screen's
+ * edge by itself.
  */
 export function MessageMenu({
   open,
@@ -52,17 +57,6 @@ export function MessageMenu({
   onAction: (a: MenuAction) => void;
   children: React.ReactNode;
 }) {
-  const t = useTranslations("chat");
-  const icon: Record<MenuAction, React.ReactNode> = {
-    reply: <CornerUpLeft className="size-[18px]" />,
-    copy: <Copy className="size-[18px]" />,
-    save: <Download className="size-[18px]" />,
-    pin: <Pin className="size-[18px]" />,
-    unpin: <PinOff className="size-[18px]" />,
-    forward: <Forward className="size-[18px]" />,
-    select: <CheckCircle2 className="size-[18px]" />,
-    delete: <Trash2 className="size-[18px]" />,
-  };
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Anchor asChild>{children}</Popover.Anchor>
@@ -73,55 +67,175 @@ export function MessageMenu({
           sideOffset={6}
           collisionPadding={10}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="animate-scale-in z-[60] flex w-[min(17rem,calc(100vw-1.5rem))] flex-col gap-2 outline-none"
+          // React passes events up through the portal: a slide in the emoji
+          // list must not pull the message behind it (swipe to reply).
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          className="animate-scale-in z-[60] flex w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-2 outline-none"
         >
-          {onReact && quick.length > 0 && (
-            <div className="bg-surface/95 border-border flex items-center justify-between rounded-full border px-1 py-1 shadow-xl backdrop-blur-xl">
-              {quick.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => onReact(e)}
-                  aria-label={e}
-                  aria-pressed={myReaction === e}
-                  className={cn(
-                    "grid size-8 place-items-center rounded-full text-[20px] transition-transform hover:scale-125 active:scale-90",
-                    myReaction === e && "bg-primary-soft",
-                  )}
-                >
-                  {e}
-                </button>
-              ))}
-              <EmojiGif onEmoji={onReact} className="size-8" />
-            </div>
-          )}
-          <ul className="bg-surface/95 border-border overflow-hidden rounded-2xl border py-1 shadow-xl backdrop-blur-xl">
-            {actions.map((a, i) => (
-              <li
-                key={a}
-                className={cn(
-                  // Like Telegram: a thin line before "pin" and before "delete".
-                  i > 0 &&
-                    (a === "pin" || a === "unpin" || a === "delete") &&
-                    "border-border border-t",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => onAction(a)}
-                  className={cn(
-                    "hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-2.5 text-left text-[15px] transition-colors",
-                    a === "delete" && "text-danger",
-                  )}
-                >
-                  {icon[a]} {t(`menu.${a}`)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <MenuBody
+            quick={quick}
+            myReaction={myReaction}
+            actions={actions}
+            onReact={onReact}
+            onAction={onAction}
+          />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+/** Inside the window (made anew each time it opens, so it opens on the short list). */
+function MenuBody({
+  quick,
+  myReaction,
+  actions,
+  onReact,
+  onAction,
+}: {
+  quick: string[];
+  myReaction?: string;
+  actions: MenuAction[];
+  onReact: (emoji: string) => void;
+  onAction: (a: MenuAction) => void;
+}) {
+  const t = useTranslations("chat");
+  const [more, setMore] = useState(false);
+  // Changing the row: which place the next emoji goes to (null = not changing).
+  const [slot, setSlot] = useState<number | null>(null);
+  const editing = slot !== null;
+  const icon: Record<MenuAction, React.ReactNode> = {
+    reply: <CornerUpLeft className="size-[18px]" />,
+    copy: <Copy className="size-[18px]" />,
+    save: <Download className="size-[18px]" />,
+    pin: <Pin className="size-[18px]" />,
+    unpin: <PinOff className="size-[18px]" />,
+    forward: <Forward className="size-[18px]" />,
+    select: <CheckCircle2 className="size-[18px]" />,
+    delete: <Trash2 className="size-[18px]" />,
+  };
+  // An emoji from the big list: a reaction, or (while changing) the new one
+  // for the chosen place; one already in the row swaps places with it.
+  const put = (e: string) => {
+    if (slot === null) return onReact(e);
+    const next = [...quick];
+    const was = next.indexOf(e);
+    if (was >= 0) next[was] = next[slot];
+    next[slot] = e;
+    writeQuickReactions(next);
+    setSlot((slot + 1) % next.length);
+  };
+  const box = "bg-surface/95 border-border border shadow-xl backdrop-blur-xl";
+  return (
+    <>
+      {quick.length > 0 && (
+        <div className={cn(box, "flex items-center justify-between rounded-full px-1 py-1")}>
+          {quick.map((e, i) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => (editing ? setSlot(i) : onReact(e))}
+              aria-label={e}
+              aria-pressed={editing ? slot === i : myReaction === e}
+              className={cn(
+                "grid size-8 place-items-center rounded-full text-[20px] transition-transform",
+                editing ? "active:scale-90" : "hover:scale-125 active:scale-90",
+                !editing && myReaction === e && "bg-primary-soft",
+                editing && slot === i && "ring-primary bg-primary-soft scale-110 ring-2",
+              )}
+            >
+              {e}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setMore((m) => !m);
+              setSlot(null);
+            }}
+            aria-expanded={more}
+            aria-label={t("quick.more")}
+            title={t("quick.more")}
+            className="text-muted hover:text-foreground grid size-8 place-items-center rounded-full"
+          >
+            <ChevronDown className={cn("size-5 transition-transform", more && "rotate-180")} />
+          </button>
+        </div>
+      )}
+      {more ? (
+        <div className={cn(box, "flex flex-col overflow-hidden rounded-2xl")}>
+          <div className="border-border flex items-center gap-1 border-b px-3 py-1.5">
+            <span
+              className={cn(
+                "text-muted min-w-0 flex-1 text-xs font-semibold",
+                editing ? "leading-snug" : "truncate",
+              )}
+            >
+              {editing ? t("quick.hint") : t("quick.title")}
+            </span>
+            {editing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => writeQuickReactions(null)}
+                  disabled={quick.join() === DEFAULT_QUICK.join()}
+                  aria-label={t("quick.reset")}
+                  title={t("quick.reset")}
+                  className="text-muted hover:text-foreground grid size-7 shrink-0 place-items-center rounded-full disabled:opacity-40"
+                >
+                  <RotateCcw className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSlot(null)}
+                  className="text-primary shrink-0 rounded-full px-2 py-1 text-xs font-semibold"
+                >
+                  {t("quick.done")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSlot(0)}
+                className="text-primary hover:bg-primary-soft inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+              >
+                <Pencil className="size-3.5" /> {t("quick.edit")}
+              </button>
+            )}
+          </div>
+          <div className="h-[min(16rem,45dvh)] overflow-y-auto p-2">
+            <EmojiGrid onPick={put} />
+          </div>
+        </div>
+      ) : (
+        <ul className={cn(box, "overflow-hidden rounded-2xl py-1")}>
+          {actions.map((a, i) => (
+            <li
+              key={a}
+              className={cn(
+                // Like Telegram: a thin line before "pin" and before "delete".
+                i > 0 &&
+                  (a === "pin" || a === "unpin" || a === "delete") &&
+                  "border-border border-t",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onAction(a)}
+                className={cn(
+                  "hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-2.5 text-left text-[15px] transition-colors",
+                  a === "delete" && "text-danger",
+                )}
+              >
+                {icon[a]} {t(`menu.${a}`)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 

@@ -7,6 +7,7 @@ import { NativeBridge } from "@/components/pwa/native-bridge";
 import { Pwa } from "@/components/pwa/pwa";
 import { INSTALL_SCRIPT } from "@/lib/install-script";
 import { SiteAnalytics } from "@/components/pwa/analytics";
+import { AskHost } from "@/components/ui/ask";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <NextIntlClientProvider>
             {children}
             <Toaster />
+            <AskHost />
             <Pwa />
             <NativeBridge />
             <SiteAnalytics />

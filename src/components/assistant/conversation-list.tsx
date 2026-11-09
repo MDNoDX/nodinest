@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { deleteConversationsAction } from "@/app/actions/ai";
+import { ask } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useAction } from "@/lib/use-action";
@@ -60,8 +61,9 @@ export function ConversationList({
             className="text-danger ml-auto"
             disabled={chosen.length === 0}
             loading={pending}
-            onClick={() => {
-              if (!window.confirm(t("deleteChats", { n: chosen.length }))) return;
+            onClick={async () => {
+              if (!(await ask({ message: t("deleteChats", { n: chosen.length }), remove: true })))
+                return;
               exec(() => deleteConversationsAction(chosen), {
                 onSuccess: () => {
                   setSelecting(false);

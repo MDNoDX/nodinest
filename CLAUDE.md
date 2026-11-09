@@ -291,8 +291,16 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `dm_threads.pinned_id/pinned_at` (0053, either side, a bar under the header; the poll sends `pat`).
   Forward (`forwardMessages`): copies into another of my talks with `meta.fwd.name`; files stay the
   same files (fileFor lets the new talk open them). Select: a mark column (press and slide to mark many,
-  mouse drag works on bubbles), then copy / forward / delete (only mine). Reactions show who put them
-  (faces). Stickers (`gif.sticker`) have no bubble.
+  mouse drag works on bubbles), then copy / forward / delete (only mine). A reaction is the emoji
+  itself (no pill) standing half over the bubble's lower edge, with a tiny face of who put it. The
+  quick row is the person's own (`lib/quick-reactions.ts`, "nn:quick-reactions", per device): the
+  arrow opens every emoji, "Change" picks a place and the next emoji goes there. Stickers
+  (`gif.sticker`) have no bubble.
+- Never use the browser's `confirm()` / `alert()` ("…vercel.app says"): call `ask({ message, remove })`
+  / `tell(message)` from `components/ui/ask.tsx` (one centred window, `AskHost` in the root layout),
+  or `ConfirmButton` for a button.
+- The profile form waits for a photo still going up before it saves (Save pressed early used to keep
+  the old picture); saved, Settings goes back to its list and the profile editor closes.
 - Chat photos go lighter (`lib/compress-image.ts`, ≤ 2560 px JPEG 85%) unless "send in full quality"
   is ticked in the attach sheet; a picture going up shows its ring and ✕ on itself.
 - Android app (`apps/mobile/android`): release builds are signed with the key in

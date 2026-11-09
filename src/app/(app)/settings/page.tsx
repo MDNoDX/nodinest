@@ -202,6 +202,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
                   )}
                 </dl>
                 <EditProfile
+                  back="/settings"
                   userId={user.id}
                   storage={storage}
                   initial={{

@@ -73,7 +73,8 @@
     "createAnyway": "Create anyway",
     "tryAgain": "Try again",
     "or": "or",
-    "change": "Change"
+    "change": "Change",
+    "ok": "OK"
   },
   "nav": {
     "main": "Main navigation",
@@ -2905,7 +2906,15 @@
     "pinnedTitle": "Pinned message",
     "forwarded": "Forwarded to {name}",
     "forwardTo": "Forward to whom? ({n} message(s))",
-    "forwardedFrom": "Forwarded from {name}"
+    "forwardedFrom": "Forwarded from {name}",
+    "quick": {
+      "more": "More emojis",
+      "title": "Quick reactions",
+      "edit": "Change",
+      "hint": "Tap the spot to replace, then pick a new emoji below",
+      "reset": "Default",
+      "done": "Done"
+    }
   },
   "guest": {
     "media": "Media",

@@ -1,7 +1,7 @@
 "use client";
 import { AtSign, Check, Loader2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setPasswordAction } from "@/app/actions/account";
 import { checkUsernameAction, saveFullProfileAction } from "@/app/actions/personal";
 import { PasswordInput, PasswordRules } from "@/components/ui/password-input";
@@ -75,6 +75,32 @@ export function ProfileForm({
   const [pw, setPw] = useState({ a: "", b: "" });
   const pwOk = !askPassword || (passwordOk(pw.a) && pw.a === pw.b);
   const ready = v.firstName.trim() && check === "free" && pwOk;
+  const [uploading, setUploading] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const queued = useRef(false);
+  // What the form holds now (an upload's callback was made by an older render).
+  const latest = useRef({ v, pw });
+  useEffect(() => {
+    latest.current = { v, pw };
+  });
+
+  const save = (val: ProfileValue) =>
+    exec(
+      async () => {
+        const r = await saveFullProfileAction({
+          firstName: val.firstName,
+          lastName: val.lastName || null,
+          username: normalizeUsername(val.username),
+          image: val.image,
+          ...(val.phone === undefined ? {} : { phone: val.phone || null }),
+        });
+        if (!r.ok) return r;
+        return askPassword
+          ? setPasswordAction(latest.current.pw.a)
+          : { ok: true as const, data: undefined };
+      },
+      { success: t("saved"), onSuccess: () => onSaved?.() },
+    );
 
   return (
     <form
@@ -82,20 +108,14 @@ export function ProfileForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready) return;
-        exec(
-          async () => {
-            const r = await saveFullProfileAction({
-              firstName: v.firstName,
-              lastName: v.lastName || null,
-              username: name,
-              image: v.image,
-              ...(v.phone === undefined ? {} : { phone: v.phone || null }),
-            });
-            if (!r.ok) return r;
-            return askPassword ? setPasswordAction(pw.a) : { ok: true as const, data: undefined };
-          },
-          { success: t("saved"), onSuccess: () => onSaved?.() },
-        );
+        // The new photo is still going up: save as soon as it is there, so the
+        // old picture is never saved by a Save pressed too early.
+        if (uploading) {
+          queued.current = true;
+          setWaiting(true);
+          return;
+        }
+        save(v);
       }}
     >
       <div className="flex items-center gap-4">
@@ -106,7 +126,23 @@ export function ProfileForm({
             enabled={storage}
             userId={userId}
             label={t("photo")}
-            onUploaded={(id) => setV((x) => ({ ...x, image: `/api/files/${id}` }))}
+            onBusy={(b) => {
+              setUploading(b);
+              if (!b && queued.current) {
+                // The upload failed (a toast said why): nothing is saved.
+                queued.current = false;
+                setWaiting(false);
+              }
+            }}
+            onUploaded={(id) => {
+              const next = { ...latest.current.v, image: `/api/files/${id}` };
+              setV(next);
+              if (queued.current) {
+                queued.current = false;
+                setWaiting(false);
+                save(next);
+              }
+            }}
           />
           {v.image && (
             <button
@@ -228,7 +264,13 @@ export function ProfileForm({
       >
         {check === "taken" ? t("taken") : check === "invalid" ? t("invalid") : ""}
       </p>
-      <Button type="submit" size="lg" loading={pending} disabled={!ready} className="self-start">
+      <Button
+        type="submit"
+        size="lg"
+        loading={pending || waiting}
+        disabled={!ready}
+        className="self-start"
+      >
         {submitLabel}
       </Button>
     </form>

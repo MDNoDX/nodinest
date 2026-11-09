@@ -3,6 +3,7 @@ import { Headphones, HardDrive, Image as ImageIcon, Library, Trash2 } from "luci
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ask } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { fmtBytes } from "@/lib/format";
 
@@ -54,7 +55,8 @@ export function StorageTools() {
   }, []);
 
   const clear = async (key: (typeof GROUPS)[number]["key"] | "all") => {
-    if (!window.confirm(t(key === "all" ? "confirmAll" : `confirm_${key}`))) return;
+    if (!(await ask({ message: t(key === "all" ? "confirmAll" : `confirm_${key}`), remove: true })))
+      return;
     setBusy(key);
     const names = await caches.keys();
     for (const n of names)

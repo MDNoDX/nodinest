@@ -2,7 +2,7 @@
 import { Loader2, Search, Smile } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Popover } from "radix-ui";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { DmGif } from "@/server/dm";
 
@@ -81,7 +81,6 @@ export function EmojiGif({
   const t = useTranslations("chat");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("emoji");
-  const [recent, setRecent] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [res, setRes] = useState<{
     key: string;
@@ -109,26 +108,9 @@ export function EmojiGif({
     };
   }, [open, tab, q, key]);
 
-  const pick = (e: string) => {
-    onEmoji(e);
-    const next = [e, ...recent.filter((x) => x !== e)].slice(0, 32);
-    setRecent(next);
-    try {
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable */
-    }
-  };
-
   const loading = tab !== "emoji" && res?.key !== key;
   return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (o) setRecent(readRecent());
-      }}
-    >
+    <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
           type="button"
@@ -168,39 +150,7 @@ export function EmojiGif({
           )}
           <div className="min-h-0 flex-1 overflow-y-auto p-2">
             {tab === "emoji" ? (
-              <>
-                {/* One button per kind: a jump to it (the list is long). */}
-                <div className="bg-surface sticky -top-2 z-10 -mx-2 -mt-2 mb-1 flex gap-0.5 overflow-x-auto px-2 py-1.5">
-                  {EMOJI.map(([k, list]) => (
-                    <button
-                      key={k}
-                      type="button"
-                      title={t(`emojiKind.${k}`)}
-                      aria-label={t(`emojiKind.${k}`)}
-                      onClick={() =>
-                        document
-                          .getElementById(`emoji-${k}`)
-                          ?.scrollIntoView({ block: "start", behavior: "smooth" })
-                      }
-                      className="hover:bg-surface-2 grid size-8 shrink-0 place-items-center rounded-lg text-lg"
-                    >
-                      {list.split(" ")[0]}
-                    </button>
-                  ))}
-                </div>
-                {recent.length > 0 && (
-                  <Group title={t("recentEmoji")} list={recent} onPick={pick} />
-                )}
-                {EMOJI.map(([k, list]) => (
-                  <Group
-                    key={k}
-                    id={`emoji-${k}`}
-                    title={t(`emojiKind.${k}`)}
-                    list={list.split(" ")}
-                    onPick={pick}
-                  />
-                ))}
-              </>
+              <EmojiGrid onPick={onEmoji} />
             ) : res && res.key === key && !res.available ? (
               <p className="text-muted p-4 text-center text-sm">{t("gifOff")}</p>
             ) : (
@@ -253,6 +203,59 @@ export function EmojiGif({
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+/**
+ * Every emoji by kind, the recently used first, with a jump button per kind.
+ * Lives in a scrolling box with p-2 (the jump bar sticks to its top).
+ */
+export function EmojiGrid({ onPick }: { onPick: (e: string) => void }) {
+  const t = useTranslations("chat");
+  const id = useId();
+  const [recent, setRecent] = useState<string[]>(readRecent);
+  const pick = (e: string) => {
+    onPick(e);
+    const next = [e, ...recent.filter((x) => x !== e)].slice(0, 32);
+    setRecent(next);
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  return (
+    <>
+      {/* One button per kind: a jump to it (the list is long). */}
+      <div className="bg-surface sticky -top-2 z-10 -mx-2 -mt-2 mb-1 flex gap-0.5 overflow-x-auto px-2 py-1.5">
+        {EMOJI.map(([k, list]) => (
+          <button
+            key={k}
+            type="button"
+            title={t(`emojiKind.${k}`)}
+            aria-label={t(`emojiKind.${k}`)}
+            onClick={() =>
+              document
+                .getElementById(`${id}-${k}`)
+                ?.scrollIntoView({ block: "start", behavior: "smooth" })
+            }
+            className="hover:bg-surface-2 grid size-8 shrink-0 place-items-center rounded-lg text-lg"
+          >
+            {list.split(" ")[0]}
+          </button>
+        ))}
+      </div>
+      {recent.length > 0 && <Group title={t("recentEmoji")} list={recent} onPick={pick} />}
+      {EMOJI.map(([k, list]) => (
+        <Group
+          key={k}
+          id={`${id}-${k}`}
+          title={t(`emojiKind.${k}`)}
+          list={list.split(" ")}
+          onPick={pick}
+        />
+      ))}
+    </>
   );
 }
 

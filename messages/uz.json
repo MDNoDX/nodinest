@@ -73,7 +73,8 @@
     "createAnyway": "Baribir yaratiş",
     "tryAgain": "Qayta uriniş",
     "or": "yoki",
-    "change": "Özgartiriş"
+    "change": "Özgartiriş",
+    "ok": "Tuşunarli"
   },
   "nav": {
     "main": "Asosiy navigatsiya",
@@ -2905,7 +2906,15 @@
     "pinnedTitle": "Qadalgan xabar",
     "forwarded": "{name}ga uzatildi",
     "forwardTo": "Kimga uzatamiz? ({n} ta xabar)",
-    "forwardedFrom": "Uzatildi: {name}"
+    "forwardedFrom": "Uzatildi: {name}",
+    "quick": {
+      "more": "Boşqa emojilar",
+      "title": "Tez reaksiyalar",
+      "edit": "Özgartiriş",
+      "hint": "Almaştiradigan joyni bosing, keyin pastdan yangi emojini tanlang",
+      "reset": "Asl holiga",
+      "done": "Tayyor"
+    }
   },
   "guest": {
     "media": "Media",

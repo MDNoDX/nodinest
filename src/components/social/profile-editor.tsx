@@ -40,7 +40,12 @@ export function ProfileEditor({
       </div>
       {open && (
         <div className="bg-surface-2/50 mt-2 flex w-full flex-col gap-6 rounded-xl p-5 text-left">
-          <EditProfile userId={userId} storage={storage} initial={initial} />
+          <EditProfile
+            userId={userId}
+            storage={storage}
+            initial={initial}
+            onDone={() => setOpen(false)}
+          />
           <div className="border-border border-t pt-5">
             <h3 className="mb-3 text-sm font-semibold">{t("visibilityTitle")}</h3>
             <ProfileVisibility initial={profilePublic} bio={bio} username={null} />

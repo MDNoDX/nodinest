@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { removeFollowerAction } from "@/app/actions/social";
 import { PremiumBadge } from "@/components/premium/premium-badge";
+import { ask } from "@/components/ui/ask";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/lib/use-action";
@@ -61,8 +62,9 @@ export function FollowList({
                 size="sm"
                 variant="ghost"
                 loading={pending}
-                onClick={() => {
-                  if (!window.confirm(t("removeFollowerConfirm", { name: r.name }))) return;
+                onClick={async () => {
+                  if (!(await ask({ message: t("removeFollowerConfirm", { name: r.name }) })))
+                    return;
                   exec(() => removeFollowerAction(r.id), {
                     success: t("removed"),
                     onSuccess: () => setGone((g) => [...g, r.id]),

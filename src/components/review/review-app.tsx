@@ -31,6 +31,7 @@ import {
   reviewCardAction,
   updateCardAction,
 } from "@/app/actions/cards";
+import { ask } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useDebounced } from "@/lib/hooks";
@@ -473,7 +474,7 @@ function DeckCards({ deck }: { deck: string }) {
           size="sm"
           variant="ghost"
           onClick={async () => {
-            if (!window.confirm(t("deleteDeckConfirm", { deck }))) return;
+            if (!(await ask({ message: t("deleteDeckConfirm", { deck }), remove: true }))) return;
             const r = await deleteDeckAction(deck);
             if (r.ok) router.refresh();
           }}
