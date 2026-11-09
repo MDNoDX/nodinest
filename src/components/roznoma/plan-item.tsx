@@ -188,7 +188,7 @@ export function PlanItem({
         </div>
         {/* When: on the right, before the arrow and the tick ("06:20 –", "– 07:00", both). */}
         {range && (
-          <span className="text-muted shrink-0 text-xs font-semibold whitespace-nowrap tabular-nums">
+          <span className="bg-surface-2 text-foreground/85 shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold whitespace-nowrap tabular-nums md:px-2.5 md:py-1 md:text-sm">
             {range}
           </span>
         )}

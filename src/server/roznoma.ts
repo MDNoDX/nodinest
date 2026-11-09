@@ -29,6 +29,7 @@ import { addDays, dayKey } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { moderationIssue } from "@/lib/moderation";
 import { GOAL_KINDS, guessIcon } from "@/lib/plan-icons";
+import { getPlanIcons } from "./plan-icons";
 import {
   ACTIVE_DAY_MINUTES,
   awakeMinutes,
@@ -235,7 +236,7 @@ export async function saveRoutine(ctx: AppContext, raw: unknown, id?: string) {
   if ([a.title, a.note].some((v) => moderationIssue(v))) throw new AppError("INDECENT");
   const v = {
     title: a.title,
-    icon: a.icon || guessIcon(a.title),
+    icon: a.icon || guessIcon(a.title, await getPlanIcons()),
     note: a.note || null,
     amount: a.amount || null,
     time: normalizeTime(a.time),

@@ -11,6 +11,8 @@ import { unreadCount } from "@/server/notifications";
 import { unreadChats } from "@/server/dm";
 import { limitsFor, premiumOn } from "@/server/premium";
 import { adFor } from "@/server/ads";
+import { getPlanIcons } from "@/server/plan-icons";
+import { PlanIconsProvider } from "@/components/roznoma/plan-icon";
 import { AdCard } from "@/components/ads/ad-card";
 import { getTranslations } from "next-intl/server";
 
@@ -27,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user.username) redirect("/welcome");
   // Badge on "Takliflar": new messages to the admin (superadmin account).
   const ctx = toCtx(user);
-  const [pending, plan, ad, unread, chats] = await Promise.all([
+  const [pending, plan, ad, unread, chats, icons] = await Promise.all([
     user.isSuperadmin || user.adminPerms.includes("feedback")
       ? db.select({ n: count() }).from(feedback).where(eq(feedback.status, "new"))
       : Promise.resolve([{ n: 0 }]),
@@ -35,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     adFor(ctx, "sidebar"),
     unreadCount(ctx),
     unreadChats(ctx),
+    getPlanIcons(),
   ]);
   const paid = await premiumOn();
   const tAds = await getTranslations("ads");
@@ -61,7 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Premium switched off: every Premium mark and link disappears. */}
       {!paid && <style>{".premium-only{display:none!important}"}</style>}
       <TimezoneSync current={user.timezone} />
-      {children}
+      <PlanIconsProvider value={icons}>{children}</PlanIconsProvider>
     </AppShell>
   );
 }

@@ -1,26 +1,40 @@
 "use server";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { addCustomIcon, removeCustomIcon } from "@/server/custom-icons";
+import { grabPicture, removeIcon, resetIcon, saveIcon, saveIconOrder } from "@/server/plan-icons";
 import { run } from "./_run";
 
-export async function addIconAction(input: { icon: string; name: string; words: string }) {
-  return run(async ({ ctx }) => {
-    const { id, name, words } = await addCustomIcon(ctx, input);
-    revalidatePath("/admin/icons");
-    return { id, name, words };
-  });
+// Every action answers with the whole new index, so the page shows exactly what is stored.
+
+export async function saveIconAction(input: {
+  key: string;
+  name?: string;
+  words?: string;
+  picture?: { type: string; data: string };
+}) {
+  return run(({ ctx }) => saveIcon(ctx, input));
+}
+
+export async function resetIconAction(key: string) {
+  return run(({ ctx }) => resetIcon(ctx, z.string().max(20).parse(key)));
 }
 
 export async function removeIconAction(id: string) {
-  return run(async ({ ctx }) => {
-    await removeCustomIcon(
+  return run(({ ctx }) =>
+    removeIcon(
       ctx,
       z
         .string()
         .regex(/^[a-f0-9]{12}$/)
         .parse(id),
-    );
-    revalidatePath("/admin/icons");
-  });
+    ),
+  );
+}
+
+export async function saveIconOrderAction(order: string[] | null) {
+  return run(({ ctx }) => saveIconOrder(ctx, order));
+}
+
+/** A picture from a pasted link, cleaned, for the preview before saving. */
+export async function grabIconAction(url: string) {
+  return run(({ ctx }) => grabPicture(ctx, url));
 }

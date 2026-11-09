@@ -1,9 +1,13 @@
+import { getTranslations } from "next-intl/server";
 import { IconsAdmin } from "@/components/admin/icons-admin";
 import { pageContext } from "@/lib/page";
-import { getCustomIcons } from "@/server/custom-icons";
+import { getPlanIcons } from "@/server/plan-icons";
+
+export async function generateMetadata() {
+  return { title: (await getTranslations("admin"))("icons") };
+}
 
 export default async function AdminIcons() {
   await pageContext({ admin: true });
-  const list = await getCustomIcons();
-  return <IconsAdmin initial={list.map(({ id, name, words }) => ({ id, name, words }))} />;
+  return <IconsAdmin initial={await getPlanIcons()} />;
 }

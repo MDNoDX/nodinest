@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { iconSvg, searchIcons } from "@/server/custom-icons";
+import { iconSvg, searchIcons } from "@/server/plan-icons";
 import { apiError, apiUser } from "../../_utils";
 
 /** ?q=… finds icons; ?icon=prefix:name shows one. Owner only. */

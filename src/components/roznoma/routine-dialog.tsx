@@ -1,7 +1,7 @@
 "use client";
 import { Archive, ChevronDown, Music, Play } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { saveRoutineAction, setArchivedAction } from "@/app/actions/roznoma";
 import { tell } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import {
-  ALARM_SOUNDS,
-  PICKER_ICONS,
-  UNITS,
-  guessIcon,
-  type AddedIcon,
-  type Unit,
-} from "@/lib/plan-icons";
+import { ALARM_SOUNDS, UNITS, guessIcon, pickerKeys, type Unit } from "@/lib/plan-icons";
 import { uploadMedia } from "@/lib/upload-media";
 import { useAction } from "@/lib/use-action";
 import { playAlarm } from "./alarm-sound";
-import { PlanIcon } from "./plan-icon";
+import { PlanIcon, usePlanIcons } from "./plan-icon";
 import { TimeField } from "./time-field";
 
 export type RoutineValue = {
@@ -114,19 +107,11 @@ export function RoutineDialog({
   const [uploading, setUploading] = useState(false);
   const days = t("weekdaysShort").split(",");
   const inner = !!(parentId ?? initial?.parentId);
-  const [added, setAdded] = useState<AddedIcon[]>([]);
-  useEffect(() => {
-    if (!open) return;
-    let on = true;
-    fetch("/api/plan-icons")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: AddedIcon[]) => on && setAdded(list))
-      .catch(() => {});
-    return () => {
-      on = false;
-    };
-  }, [open]);
-  const icon = v.icon ?? guessIcon(v.title, added);
+  const tn = useTranslations("planIcons");
+  const icons = usePlanIcons();
+  const icon = v.icon ?? guessIcon(v.title, icons);
+  const nameOf = (k: string) =>
+    k.startsWith("c:") ? icons.custom.find((c) => `c:${c.id}` === k)?.name : tn(k as "pin");
   const amount =
     unit === "full" ? words.full : !n ? null : unit === "none" ? n : `${n} ${words[unit]}`;
 
@@ -188,11 +173,12 @@ export function RoutineDialog({
           </div>
           {iconsOpen && (
             <div className="bg-surface-2 grid max-h-48 grid-cols-6 gap-1 overflow-y-auto rounded-xl p-2 sm:grid-cols-10">
-              {[...added.map((a) => `c:${a.id}`), ...PICKER_ICONS].map((k) => (
+              {pickerKeys(icons).map((k) => (
                 <button
                   key={k}
                   type="button"
-                  aria-label={k}
+                  aria-label={nameOf(k)}
+                  title={nameOf(k)}
                   onClick={() => {
                     setV({ ...v, icon: k });
                     setIconsOpen(false);

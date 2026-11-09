@@ -5,19 +5,24 @@
  */
 import { normalizeText } from "@/lib/normalize";
 
-/** What the picker shows, the most used first (hearts are left out on purpose). */
+/**
+ * What the picker shows, the most used first (hearts are left out on purpose):
+ * study, workout, writing, reading, prayer, dhikr. The owner can change the
+ * order and every picture in Admin → Icons (`PlanIconsCfg`).
+ */
 export const PICKER_ICONS = [
-  "mosque",
-  "dua",
-  "beads",
-  "quran",
-  "book",
-  "books",
-  "pen",
-  "memo",
   "grad",
-  "brain",
   "dumbbell",
+  "pen",
+  "book",
+  "mosque",
+  "beads",
+  "dua",
+  "quran",
+  "books",
+  "memo",
+  "notebook",
+  "brain",
   "run",
   "walk",
   "bike",
@@ -75,7 +80,6 @@ export const PICKER_ICONS = [
   "bulb",
   "sparkles",
   "star",
-  "notebook",
   "pin",
 ];
 
@@ -152,14 +156,59 @@ const GUESS: [RegExp, string][] = [
   [/mashina|haydash|drive|машин/, "car"],
 ];
 
-export type AddedIcon = { id: string; name: string; words: string };
+/** An icon the owner added; `img` is its picture (`/api/plan-icons/<img>`). */
+export type AddedIcon = { id: string; name: string; words: string; img: string };
 
-/** The owner's icons go first: they were added for exactly these words. */
-export function guessIcon(title: string, added: AddedIcon[] = []): string {
+/** The owner's choices (app_settings "plan_icons"), the same for everyone. */
+export type PlanIconsCfg = {
+  custom: AddedIcon[];
+  /** One of our icons with its picture replaced: key → picture id. */
+  over: Record<string, string>;
+  /** Words that pick one of our icons, besides the built-in guess. */
+  words: Record<string, string>;
+  /** The picker's order (our keys and "c:<id>"); null = ours. */
+  order: string[] | null;
+};
+export const NO_ICONS: PlanIconsCfg = { custom: [], over: {}, words: {}, order: null };
+
+/** Every icon the picker offers, in the owner's order; new ones of the owner first. */
+export function pickerKeys(cfg: PlanIconsCfg): string[] {
+  const own = cfg.custom.map((c) => `c:${c.id}`);
+  const valid = new Set([...own, ...PICKER_ICONS]);
+  const order = (cfg.order ?? PICKER_ICONS).filter((k) => valid.has(k));
+  const seen = new Set(order);
+  return [
+    ...own.filter((k) => !seen.has(k)),
+    ...order,
+    ...PICKER_ICONS.filter((k) => !seen.has(k)),
+  ];
+}
+
+/** Where a plan item's picture comes from. */
+export function iconSrc(name: string | null, cfg: PlanIconsCfg = NO_ICONS): string {
+  if (name?.startsWith("c:")) {
+    const id = name.slice(2);
+    const own = cfg.custom.find((c) => c.id === id);
+    if (own) return `/api/plan-icons/${own.img}`;
+    name = null; // removed by the owner: the plain pin
+  }
+  const k = iconKey(name);
+  return cfg.over[k] ? `/api/plan-icons/${cfg.over[k]}` : `/plan-icons/${k}.svg`;
+}
+
+const words = (s: string) =>
+  s
+    .split(/[,\n]/)
+    .map((x) => normalizeText(x).trim())
+    .filter(Boolean);
+
+/** The owner's words go first (they were written for exactly this), then our guess. */
+export function guessIcon(title: string, cfg: Partial<PlanIconsCfg> = {}): string {
   const t = normalizeText(title);
-  for (const a of added)
-    for (const w of a.words.split(/[,\n]/).map((x) => normalizeText(x).trim()))
-      if (w && t.includes(w)) return `c:${a.id}`;
+  for (const a of cfg.custom ?? [])
+    if (words(a.words).some((w) => t.includes(w))) return `c:${a.id}`;
+  for (const [k, w] of Object.entries(cfg.words ?? {}))
+    if (PICKER_ICONS.includes(k) && words(w).some((x) => t.includes(x))) return k;
   for (const [re, icon] of GUESS) if (re.test(t)) return icon;
   return "pin";
 }

@@ -88,6 +88,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   with Gemini's voice speaks the first sentences at once and the rest in a second request; Uzbek goes
   to every voice through `sayable()` (x → kh, 2026 letters → common Latin). `show_card` can play
   steps / timeline / compare; cards reach the live talk as `visual` events while it speaks.
+- Plan icons (`lib/plan-icons.ts`, `server/plan-icons.ts`, Admin → Icons): the picker starts with
+  study, workout, writing, reading, prayer, dhikr. The superadmin can replace any of our pictures,
+  add new ones (Iconify search, a PNG / SVG / WebP / JPG file, or a link via `safeFetch`), give
+  words that pick an icon from a title, and drag the order. Index in app_settings `plan_icons`
+  (`PlanIconsCfg`, cached 30 s, passed to the client by `PlanIconsProvider` in (app)/layout);
+  each picture is its own row `plan_icon:<id>` (clean SVG or 192 px WebP), a new id per change,
+  served immutable by `/api/plan-icons/[id]`. Always render with `PlanIcon` / `iconSrc()`.
 - Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
   The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
