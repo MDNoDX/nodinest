@@ -2270,7 +2270,8 @@
     "fullScreen": "Töliq ekran",
     "exitFull": "Töliq ekrandan çiqiş",
     "prevPage": "Oldingi sahifa",
-    "nextPage": "Keyingi sahifa"
+    "nextPage": "Keyingi sahifa",
+    "readPct": "{pct}% öqildi"
   },
   "guide": {
     "title": "Qöllanma",

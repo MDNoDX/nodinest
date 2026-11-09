@@ -2270,7 +2270,8 @@
     "fullScreen": "Full screen",
     "exitFull": "Exit full screen",
     "prevPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "readPct": "{pct}% read"
   },
   "guide": {
     "title": "Guide",

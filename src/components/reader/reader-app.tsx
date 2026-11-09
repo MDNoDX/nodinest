@@ -461,6 +461,7 @@ export function ReaderApp({
           <Sheet
             key={at}
             n={at}
+            total={total}
             page={pages[at]}
             picture={
               !!data.fileId &&
@@ -577,8 +578,13 @@ export function ReaderApp({
 }
 
 /** One page of the book, numbered as in the PDF: the same text size on every page; a long one scrolls. */
+/** How far through the book page n is (the last page = 100 %). */
+const pctOf = (n: number, total: number) =>
+  Math.min(100, Math.max(0, Math.round((n / Math.max(1, total)) * 100)));
+
 function Sheet({
   n,
+  total,
   page,
   picture,
   fileId,
@@ -593,6 +599,7 @@ function Sheet({
   onMark,
 }: {
   n: number;
+  total: number;
   page?: Page;
   picture: boolean;
   fileId: string | null;
@@ -672,13 +679,19 @@ function Sheet({
           )
         )}
       </div>
+      {/* Where I am: the page of how many, and how far through the book. */}
       <footer className="book-foot">
-        <span className="tabular-nums">{n}</span>
+        <span className="tabular-nums">
+          {n} / {total}
+        </span>
         {canFlip && (
           <button type="button" onClick={onFlip} title={t("originalHint")} className="book-flip">
             {flipped ? t("hideOriginal") : t("original")}
           </button>
         )}
+        <span className="tabular-nums" aria-label={t("readPct", { pct: pctOf(n, total) })}>
+          {pctOf(n, total)}%
+        </span>
       </footer>
     </section>
   );

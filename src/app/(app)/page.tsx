@@ -354,11 +354,17 @@ export default async function DashboardPage() {
                           {r.title}
                         </span>
                         {pct != null && (
-                          <span className="bg-surface-2 mt-1 block h-1 overflow-hidden rounded-full">
-                            <span
-                              className="bg-primary block h-full rounded-full"
-                              style={{ width: `${pct}%` }}
-                            />
+                          // How far: the bar and the number beside it.
+                          <span className="mt-1 flex items-center gap-1.5">
+                            <span className="bg-surface-2 block h-1 flex-1 overflow-hidden rounded-full">
+                              <span
+                                className="bg-primary block h-full rounded-full"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                            <span className="text-muted text-[11px] font-semibold tabular-nums">
+                              {pct}%
+                            </span>
                           </span>
                         )}
                       </Link>
