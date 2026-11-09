@@ -7,7 +7,10 @@ import {
   createGoal,
   deleteRoutines,
   reorderRoutines,
+  removeGoal,
+  reopenGoal,
   resolveGoal,
+  updateGoal,
   saveDayLog,
   saveRoutine,
   setArchived,
@@ -109,6 +112,27 @@ export async function setGoalStepAction(stepId: string, done: boolean | null) {
     const out = await setGoalStep(ctx, stepId, done);
     revalidatePath("/");
     return out;
+  });
+}
+
+export async function updateGoalAction(id: string, input: unknown) {
+  return run(async ({ ctx }) => {
+    await updateGoal(ctx, id, input);
+    fresh();
+  });
+}
+
+export async function removeGoalAction(id: string) {
+  return run(async ({ ctx }) => {
+    await removeGoal(ctx, id);
+    fresh();
+  });
+}
+
+export async function reopenGoalAction(id: string) {
+  return run(async ({ ctx }) => {
+    await reopenGoal(ctx, id);
+    fresh();
   });
 }
 

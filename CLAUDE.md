@@ -95,6 +95,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   (`PlanIconsCfg`, cached 30 s, passed to the client by `PlanIconsProvider` in (app)/layout);
   each picture is its own row `plan_icon:<id>` (clean SVG or 192 px WebP), a new id per change,
   served immutable by `/api/plan-icons/[id]`. Always render with `PlanIcon` / `iconSrc()`.
+- Dates people pick go through `ui/date-picker.tsx` (our words, Monday first, quick choices,
+  month/year view, keys), never `<input type="date">` (the browser's "mm/dd/yyyy", "Clear").
+- Goals (`goals-view.tsx`): edit (window, steps renamed / removed / reordered by `updateGoal`, ticks
+  kept) and delete (asks first) sit on the card, shown on hover or after a tap on its head.
+- Adding / changing plans and goals shows at once (a faded `tmp-` row until the server answers;
+  a failure puts things back). Actions that call `revalidatePath` already bring the new page in
+  their answer: never add `router.refresh()` after them (`exec(..., { refresh: false })`).
 - Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
   The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in

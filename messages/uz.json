@@ -2685,7 +2685,16 @@
     "ofAwake": "uyğoq vaqtdan",
     "rebuildBook": "Kitobni yangilaş",
     "rebuildHint": "Yilning barça kunlari kitobda yangi körinişda qayta yoziladi",
-    "rebuilt": "{n} kun kitobda yangi körinişda yozildi"
+    "rebuilt": "{n} kun kitobda yangi körinişda yozildi",
+    "goalEdit": "Maqsadni tahrirlaş",
+    "goalKind": "Turi",
+    "goalDeleteTitle": "Maqsad öçirilsinmi?",
+    "goalDeleteBody": "«{title}» va uning barça qadamlari butunlay öçiriladi.",
+    "goalDeleted": "Maqsad öçirildi",
+    "goalSaved": "Maqsad saqlandi",
+    "goalReopen": "Qayta boşlaş",
+    "goalReopened": "Maqsad yana faol",
+    "removeStep": "Qadamni olib taşlaş"
   },
   "typeHints": {
     "book": "Kitoblar, elektron kitoblar, öquv qöllanmalar",
@@ -3037,5 +3046,24 @@
     "sparkles": "Yaltiroq",
     "star": "Yulduz",
     "pin": "Oddiy belgi"
+  },
+  "datePicker": {
+    "choose": "Sanani tanlang",
+    "clear": "Tozalaş",
+    "today": "Bugun",
+    "prev": "Oldingi oy",
+    "next": "Keyingi oy",
+    "prevYear": "Oldingi yil",
+    "nextYear": "Keyingi yil",
+    "pickMonth": "Oy va yilni tanlaş",
+    "left": "{n, plural, =0 {bugun} other {# kun qoldi}}",
+    "preset": {
+      "week": "1 hafta",
+      "month": "1 oy",
+      "month3": "3 oy",
+      "month6": "6 oy",
+      "yearEnd": "Yil oxiri",
+      "year": "1 yil"
+    }
   }
 }

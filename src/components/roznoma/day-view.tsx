@@ -39,7 +39,7 @@ import { DayAudio, type DayRecording } from "./day-audio";
 import { Highlights } from "./highlights";
 import { TimeField } from "./time-field";
 import { PlanItem, type PlanRow, type PlanState, type SubRow } from "./plan-item";
-import { RoutineDialog, type RoutineValue } from "./routine-dialog";
+import { EMPTY_ROUTINE, RoutineDialog, type RoutineValue } from "./routine-dialog";
 
 export type DayItem = PlanRow;
 export type DayLogValue = {
@@ -230,14 +230,50 @@ export function DayView({
     else toast(t("archived"));
   };
 
+  /**
+   * An item saved in the window, shown at once: a new one joins the day when it
+   * belongs to it, a changed one (or an inner one) is replaced in place. The
+   * server's list replaces all of it when the action answers.
+   */
+  const showSaved = (v: RoutineValue & { id: string; archived?: boolean }) => {
+    const before = items;
+    const blank = { status: null, value: null, note2: null };
+    const weekday = ((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+    const onThisDay =
+      !v.archived &&
+      (v.repeat === "daily" ||
+        (v.repeat === "weekly" && v.weekdays.includes(weekday)) ||
+        (v.repeat === "once" && (v.onDay ?? day) === day));
+    setItems((l) => {
+      if (v.parentId)
+        return l.map((x) =>
+          x.id !== v.parentId
+            ? x
+            : {
+                ...x,
+                subs: x.subs.some((s) => s.id === v.id)
+                  ? x.subs.map((s) => (s.id === v.id ? { ...s, ...v } : s))
+                  : [...x.subs, { ...blank, ...v }],
+              },
+        );
+      if (l.some((x) => x.id === v.id)) return l.map((x) => (x.id === v.id ? { ...x, ...v } : x));
+      return onThisDay ? [...l, { ...blank, ...v, streak: 0, done: false, subs: [] }] : l;
+    });
+    return () => setItems(before);
+  };
+
   const addQuick = async () => {
     const title = quick.trim();
     if (!title) return;
     setQuick("");
-    // A new line for this day (it can be made regular by editing it).
-    const r = await saveRoutineAction({ title, repeat: "once", onDay: day, alarm: false });
-    if (!r.ok) return errorToast(te, r);
-    router.refresh();
+    // A new line for this day (it can be made regular by editing it), shown at once.
+    const v = { title, repeat: "once" as const, onDay: day, alarm: false };
+    const undo = showSaved({ ...EMPTY_ROUTINE, ...v, id: `tmp-${Date.now()}` });
+    const r = await saveRoutineAction(v).catch(() => null);
+    if (!r?.ok) {
+      undo();
+      return errorToast(te, r && !r.ok ? r : "INTERNAL");
+    }
   };
 
   // The server's list after an add / edit.
@@ -409,9 +445,12 @@ export function DayView({
               <div
                 key={it.id}
                 onPointerDown={(e) => dragStart(e, items.indexOf(it))}
+                aria-busy={it.id.startsWith("tmp-")}
                 className={cn(
-                  "transition-transform",
+                  "transition-[transform,opacity]",
                   dragged === it.id && "ring-primary/40 scale-[1.02] rounded-2xl shadow-lg ring-2",
+                  // Not saved yet: shown, nothing on it to press until it is.
+                  it.id.startsWith("tmp-") && "animate-fade-in pointer-events-none opacity-60",
                 )}
               >
                 <PlanItem
@@ -623,7 +662,7 @@ export function DayView({
           parentId={editing.parentId}
           day={day}
           userId={userId}
-          onSaved={() => router.refresh()}
+          onShow={showSaved}
         />
       )}
       <Dialog open={picking} onOpenChange={setPicking}>
@@ -636,9 +675,12 @@ export function DayView({
                     type="button"
                     onClick={async () => {
                       setPicking(false);
-                      const res = await setArchivedAction([r.id], false, day);
-                      if (!res.ok) return errorToast(te, res);
-                      router.refresh();
+                      const undo = showSaved({ ...r, archived: false });
+                      const res = await setArchivedAction([r.id], false, day).catch(() => null);
+                      if (!res?.ok) {
+                        undo();
+                        return errorToast(te, res && !res.ok ? res : "INTERNAL");
+                      }
                     }}
                     className="hover:bg-surface-2 flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left"
                   >

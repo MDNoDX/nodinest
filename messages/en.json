@@ -2685,7 +2685,16 @@
     "ofAwake": "of waking hours",
     "rebuildBook": "Refresh the book",
     "rebuildHint": "Every day of the year is written into the book again in the new layout",
-    "rebuilt": "{n} days written in the new layout"
+    "rebuilt": "{n} days written in the new layout",
+    "goalEdit": "Edit goal",
+    "goalKind": "Kind",
+    "goalDeleteTitle": "Delete this goal?",
+    "goalDeleteBody": "“{title}” and all its steps will be deleted for good.",
+    "goalDeleted": "Goal deleted",
+    "goalSaved": "Goal saved",
+    "goalReopen": "Start again",
+    "goalReopened": "The goal is active again",
+    "removeStep": "Remove step"
   },
   "typeHints": {
     "book": "Books, e-books, textbooks",
@@ -3037,5 +3046,24 @@
     "sparkles": "Sparkles",
     "star": "Star",
     "pin": "Plain pin"
+  },
+  "datePicker": {
+    "choose": "Choose a date",
+    "clear": "Clear",
+    "today": "Today",
+    "prev": "Previous month",
+    "next": "Next month",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "pickMonth": "Choose month and year",
+    "left": "{n, plural, =0 {today} one {# day left} other {# days left}}",
+    "preset": {
+      "week": "1 week",
+      "month": "1 month",
+      "month3": "3 months",
+      "month6": "6 months",
+      "yearEnd": "Year end",
+      "year": "1 year"
+    }
   }
 }

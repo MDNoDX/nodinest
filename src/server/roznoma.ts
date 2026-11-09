@@ -1035,6 +1035,98 @@ export async function createGoal(ctx: AppContext, raw: unknown) {
   });
 }
 
+/**
+ * Changes a goal: its name, why, kind, deadline and the whole list of steps
+ * (kept ones by id and in the new order, missing ones deleted, new ones added).
+ * Every step done = reached; otherwise it is active again.
+ */
+export async function updateGoal(ctx: AppContext, goalId: string, raw: unknown) {
+  const gid = uuid.parse(goalId);
+  const a = z
+    .object({
+      title: z.string().trim().min(1).max(200),
+      note: z.string().trim().max(2000).nullish(),
+      kind: z.enum(GOAL_KINDS).nullish(),
+      dueOn: dayStr.nullish(),
+      steps: z
+        .array(stepInput.extend({ id: uuid.optional(), done: z.boolean().optional() }))
+        .max(50),
+    })
+    .parse(raw);
+  if (
+    [a.title, a.note, ...a.steps.flatMap((s) => [s.title, s.note])].some((s) => moderationIssue(s))
+  )
+    throw new AppError("INDECENT");
+  await withUser(db, ctx, async (tx) => {
+    const [g] = await tx
+      .select({ id: goals.id, status: goals.status })
+      .from(goals)
+      .where(and(eq(goals.id, gid), eq(goals.userId, ctx.userId)));
+    if (!g) throw new AppError("NOT_FOUND");
+    const old = await tx
+      .select({ id: goalSteps.id, done: goalSteps.done })
+      .from(goalSteps)
+      .where(eq(goalSteps.goalId, gid));
+    const kept = new Set(a.steps.map((s) => s.id).filter(Boolean));
+    const gone = old.filter((s) => !kept.has(s.id)).map((s) => s.id);
+    if (gone.length) await tx.delete(goalSteps).where(inArray(goalSteps.id, gone));
+    const known = new Map(old.map((s) => [s.id, s.done]));
+    let done = 0;
+    for (const [i, s] of a.steps.entries()) {
+      const isDone = s.done ?? (s.id ? (known.get(s.id) ?? false) : false);
+      if (isDone) done++;
+      if (s.id && known.has(s.id))
+        await tx
+          .update(goalSteps)
+          .set({ title: s.title, note: s.note || null, position: i, done: isDone })
+          .where(eq(goalSteps.id, s.id));
+      else
+        await tx.insert(goalSteps).values({
+          goalId: gid,
+          userId: ctx.userId,
+          title: s.title,
+          note: s.note || null,
+          position: i,
+          done: isDone,
+        });
+    }
+    const reached = a.steps.length > 0 && done === a.steps.length;
+    await tx
+      .update(goals)
+      .set({
+        title: a.title,
+        note: a.note || null,
+        kind: a.kind ?? null,
+        dueOn: a.dueOn ?? null,
+        metric: "steps",
+        target: Math.max(1, a.steps.length),
+        // An archived goal stays there; anything else follows its steps.
+        ...(g.status === "archived" ? {} : { status: reached ? "achieved" : "active" }),
+        missed: false,
+      })
+      .where(eq(goals.id, gid));
+  });
+}
+
+/** Deletes a goal with its steps (for good). */
+export async function removeGoal(ctx: AppContext, goalId: string) {
+  const gid = uuid.parse(goalId);
+  await withUser(db, ctx, (tx) =>
+    tx.delete(goals).where(and(eq(goals.id, gid), eq(goals.userId, ctx.userId))),
+  );
+}
+
+/** A goal from the archive goes back to work (its steps as they were). */
+export async function reopenGoal(ctx: AppContext, goalId: string) {
+  const gid = uuid.parse(goalId);
+  await withUser(db, ctx, (tx) =>
+    tx
+      .update(goals)
+      .set({ status: "active", missed: false })
+      .where(and(eq(goals.id, gid), eq(goals.userId, ctx.userId))),
+  );
+}
+
 export async function addGoalStep(ctx: AppContext, goalId: string, raw: unknown) {
   const s = stepInput.parse(raw);
   const gid = uuid.parse(goalId);

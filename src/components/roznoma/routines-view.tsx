@@ -1,6 +1,5 @@
 "use client";
 import { AlarmClock, ArchiveRestore, Check, CheckSquare, Plus, Repeat, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { deleteRoutinesAction, setArchivedAction } from "@/app/actions/roznoma";
@@ -29,7 +28,6 @@ export function RoutinesView({
   userId: string;
 }) {
   const t = useTranslations("roznoma");
-  const router = useRouter();
   const { pending, exec } = useAction();
   const [editing, setEditing] = useState<R | "new" | null>(null);
   const [selecting, setSelecting] = useState(false);
@@ -41,7 +39,14 @@ export function RoutinesView({
       : r.repeat === "weekly"
         ? r.weekdays.map((d) => days[d - 1]).join(", ")
         : (r.onDay ?? "");
-  const top = routines.filter((r) => !r.parentId);
+  // Shown at once after the window saves; the server's list replaces it.
+  const [list, setList] = useState(routines);
+  const [prev, setPrev] = useState(routines);
+  if (prev !== routines) {
+    setPrev(routines);
+    setList(routines);
+  }
+  const top = list.filter((r) => !r.parentId);
   const active = top.filter((r) => !r.archived);
   const stored = top.filter((r) => r.archived);
 
@@ -91,7 +96,7 @@ export function RoutinesView({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => exec(() => setArchivedAction([r.id], false, today))}
+          onClick={() => exec(() => setArchivedAction([r.id], false, today), { refresh: false })}
           aria-label={t("bringBack")}
           title={t("bringBack")}
         >
@@ -125,6 +130,7 @@ export function RoutinesView({
               if (!(await ask({ message: t("deleteConfirm", { n: chosen.length }), remove: true })))
                 return;
               exec(() => deleteRoutinesAction(chosen), {
+                refresh: false,
                 onSuccess: () => {
                   setChosen([]);
                   setSelecting(false);
@@ -159,7 +165,15 @@ export function RoutinesView({
           day={today}
           userId={userId}
           stored={editing === "new" ? false : editing.archived}
-          onSaved={() => router.refresh()}
+          onShow={(v) => {
+            const before = list;
+            setList((l) =>
+              l.some((x) => x.id === v.id)
+                ? l.map((x) => (x.id === v.id ? { ...x, ...v } : x))
+                : [...l, { ...v, archived: false }],
+            );
+            return () => setList(before);
+          }}
         />
       )}
     </div>

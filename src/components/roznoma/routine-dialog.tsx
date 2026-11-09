@@ -1,16 +1,19 @@
 "use client";
 import { Archive, ChevronDown, Music, Play } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 import { saveRoutineAction, setArchivedAction } from "@/app/actions/roznoma";
 import { tell } from "@/components/ui/ask";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input, Select } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 import { ALARM_SOUNDS, UNITS, guessIcon, pickerKeys, type Unit } from "@/lib/plan-icons";
 import { uploadMedia } from "@/lib/upload-media";
+import { errorToast } from "@/lib/error-toast";
 import { useAction } from "@/lib/use-action";
 import { playAlarm } from "./alarm-sound";
 import { PlanIcon, usePlanIcons } from "./plan-icon";
@@ -35,7 +38,7 @@ export type RoutineValue = {
   parentId?: string | null;
 };
 
-const EMPTY: RoutineValue = {
+export const EMPTY_ROUTINE: RoutineValue = {
   title: "",
   icon: null,
   note: null,
@@ -81,6 +84,7 @@ export function RoutineDialog({
   parentId,
   stored = false,
   onSaved,
+  onShow,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -92,13 +96,18 @@ export function RoutineDialog({
   /** Adding to the plans (not to today's list). */
   stored?: boolean;
   onSaved?: () => void;
+  /**
+   * Shows the item on the page at once (before the server answers); returns
+   * how to take it back if saving fails. The window closes without waiting.
+   */
+  onShow?: (v: RoutineValue & { id: string; archived?: boolean }) => () => void;
 }) {
   const t = useTranslations("roznoma");
   const tc = useTranslations("common");
-  const locale = useLocale();
-  const { pending, exec } = useAction();
+  const te = useTranslations("errors");
+  const { exec } = useAction();
   const words = Object.fromEntries(UNITS.map((u) => [u, t(`unit_${u}`)])) as Record<Unit, string>;
-  const [v, setV] = useState<RoutineValue>(initial ?? { ...EMPTY, onDay: day });
+  const [v, setV] = useState<RoutineValue>(initial ?? { ...EMPTY_ROUTINE, onDay: day });
   const parsed = parseAmount(initial?.amount ?? null, words);
   const [n, setN] = useState(parsed.n);
   const [unit, setUnit] = useState<Unit>(parsed.unit);
@@ -120,29 +129,27 @@ export function RoutineDialog({
       <DialogContent title={initial?.id ? t("editItem") : t("newItem")} closeLabel={tc("close")}>
         <form
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            exec(
-              () =>
-                saveRoutineAction(
-                  {
-                    ...v,
-                    amount,
-                    icon,
-                    onDay: v.repeat === "once" ? (v.onDay ?? day) : null,
-                    parentId: parentId ?? initial?.parentId ?? null,
-                    archived: stored,
-                  },
-                  initial?.id,
-                ),
-              {
-                success: t("saved"),
-                onSuccess: () => {
-                  onOpenChange(false);
-                  onSaved?.();
-                },
-              },
-            );
+            const payload = {
+              ...v,
+              amount,
+              icon,
+              onDay: v.repeat === "once" ? (v.onDay ?? day) : null,
+              parentId: parentId ?? initial?.parentId ?? null,
+              archived: stored,
+            };
+            // Shown and closed at once; the server's list replaces it when it
+            // answers (revalidatePath in the action), a failure takes it back.
+            const undo = onShow?.({ ...payload, id: initial?.id ?? `tmp-${Date.now()}` });
+            onOpenChange(false);
+            const r = await saveRoutineAction(payload, initial?.id).catch(() => null);
+            if (!r?.ok) {
+              undo?.();
+              return errorToast(te, r && !r.ok ? r : "INTERNAL");
+            }
+            toast.success(t("saved"));
+            onSaved?.();
           }}
         >
           <div className="flex items-end gap-3">
@@ -280,12 +287,10 @@ export function RoutineDialog({
                 </div>
               )}
               {v.repeat === "once" && (
-                <Input
-                  type="date"
-                  lang={locale}
+                <DatePicker
                   value={v.onDay ?? day}
-                  onChange={(e) => setV({ ...v, onDay: e.target.value || day })}
-                  aria-label={t("onDay")}
+                  onChange={(d) => setV({ ...v, onDay: d || day })}
+                  placeholder={t("onDay")}
                 />
               )}
             </div>
@@ -389,9 +394,7 @@ export function RoutineDialog({
           )}
 
           <div className="flex items-center gap-2">
-            <Button type="submit" loading={pending}>
-              {t("save")}
-            </Button>
+            <Button type="submit">{t("save")}</Button>
             {initial?.id && (
               <Button
                 type="button"
@@ -399,6 +402,7 @@ export function RoutineDialog({
                 className="ml-auto"
                 onClick={() =>
                   exec(() => setArchivedAction([initial.id!], true), {
+                    refresh: false,
                     success: t("archived"),
                     onSuccess: () => {
                       onOpenChange(false);
