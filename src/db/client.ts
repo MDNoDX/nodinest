@@ -27,7 +27,10 @@ export function createDb(url: string, opts: { max?: number } = {}): Database {
     max: opts.max ?? (process.env.NODE_ENV === "production" ? 5 : 10),
     // Required for Supabase/PgBouncer transaction pooling.
     prepare: false,
-    idle_timeout: 20,
+    // Keep connections between page loads: opening one (TLS + auth to Neon's
+    // pooler) costs more than the queries of a whole page. The pooler holds
+    // idle clients cheaply; a closed one is reopened on the next query.
+    idle_timeout: process.env.NODE_ENV === "production" ? 240 : 20,
     connect_timeout: 10,
     onnotice: () => {},
   });

@@ -72,7 +72,7 @@ export function MessageMenu({
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
-          className="animate-scale-in z-[60] flex w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-2 outline-none"
+          className="data-[state=open]:animate-scale-in z-[60] flex w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-2 outline-none"
         >
           <MenuBody
             quick={quick}
@@ -280,7 +280,7 @@ export function ForwardDialog({ ids, onClose }: { ids: string[] | null; onClose:
   return (
     <D.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Overlay className="animate-fade-in fixed inset-0 z-[70] bg-black/45 backdrop-blur-[2px]" />
+        <D.Overlay className="data-[state=open]:animate-fade-in fixed inset-0 z-[70] bg-black/45 backdrop-blur-[2px]" />
         <D.Content
           aria-describedby={undefined}
           className="bg-surface border-border fixed inset-x-0 bottom-0 z-[70] mx-auto flex max-h-[80dvh] w-full max-w-md flex-col rounded-t-3xl border pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:rounded-3xl"

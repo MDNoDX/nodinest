@@ -153,7 +153,7 @@ export function TimeField({
         <Dialog.Overlay className="data-[state=open]:animate-fade-in fixed inset-0 z-[80] bg-black/40" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="bg-surface border-border animate-scale-in fixed top-1/2 left-1/2 z-[80] flex max-h-[calc(100dvh-1.5rem)] w-[18.5rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4 overflow-y-auto rounded-3xl border p-4 shadow-xl"
+          className="bg-surface border-border data-[state=open]:animate-scale-in fixed top-1/2 left-1/2 z-[80] flex max-h-[calc(100dvh-1.5rem)] w-[18.5rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4 overflow-y-auto rounded-3xl border p-4 shadow-xl"
         >
           <Dialog.Title className="text-muted self-start text-[11px] font-semibold tracking-wide uppercase">
             {t("pickTime")}

@@ -45,7 +45,7 @@ export function UserMenu({
           <M.Content
             align="end"
             sideOffset={8}
-            className="border-border bg-surface animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
+            className="border-border bg-surface data-[state=open]:animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
           >
             <div className="px-2 py-2">
               <div className="flex items-center gap-1 truncate text-sm font-semibold">

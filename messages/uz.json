@@ -2899,8 +2899,6 @@
     },
     "selected": "{n} ta tanlandi",
     "select": "Belgilaş",
-    "deleteOnlyMine": "Faqat öz xabarlaringizni öçira olasiz.",
-    "deleteConfirm": "{n} ta xabar ikkalangizda ham öçiriladi. Davom etasizmi?",
     "pinnedDone": "Xabar qadaldi",
     "unpinnedDone": "Qadalgan xabar olindi",
     "pinnedTitle": "Qadalgan xabar",
@@ -2914,7 +2912,10 @@
       "hint": "Almaştiradigan joyni bosing, keyin pastdan yangi emojini tanlang",
       "reset": "Asl holiga",
       "done": "Tayyor"
-    }
+    },
+    "deleteMineOfChosen": "Faqat sizning xabarlaringiz öçiriladi (ikkalangizda ham). Suhbatdoşingiz xabarlari qoladi.",
+    "deleteTitle": "{n} ta xabarni öçirasizmi?",
+    "deleteBoth": "Xabar ikkalangizda ham öçiriladi."
   },
   "guest": {
     "media": "Media",

@@ -2899,8 +2899,6 @@
     },
     "selected": "{n} selected",
     "select": "Select",
-    "deleteOnlyMine": "You can delete only your own messages.",
-    "deleteConfirm": "{n} message(s) will be deleted for both of you. Continue?",
     "pinnedDone": "Message pinned",
     "unpinnedDone": "Message unpinned",
     "pinnedTitle": "Pinned message",
@@ -2914,7 +2912,10 @@
       "hint": "Tap the spot to replace, then pick a new emoji below",
       "reset": "Default",
       "done": "Done"
-    }
+    },
+    "deleteMineOfChosen": "Only your messages will be deleted (for both of you). The other person’s messages stay.",
+    "deleteTitle": "Delete {n} message(s)?",
+    "deleteBoth": "They will be deleted for both of you."
   },
   "guest": {
     "media": "Media",

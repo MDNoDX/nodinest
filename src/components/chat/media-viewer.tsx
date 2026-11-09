@@ -49,7 +49,7 @@ export function MediaViewer({
   return (
     <D.Root open onOpenChange={(o) => !o && onClose()}>
       <D.Portal>
-        <D.Overlay className="animate-fade-in fixed inset-0 z-[80] bg-black/95" />
+        <D.Overlay className="data-[state=open]:animate-fade-in fixed inset-0 z-[80] bg-black/95" />
         <D.Content
           aria-describedby={undefined}
           className="fixed inset-0 z-[80] flex flex-col bg-black text-white outline-none"

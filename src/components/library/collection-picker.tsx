@@ -42,7 +42,7 @@ export function CollectionPicker({
         <M.Content
           align="start"
           sideOffset={6}
-          className="border-border bg-surface animate-scale-in z-50 w-60 rounded-xl border p-1.5 shadow-xl"
+          className="border-border bg-surface data-[state=open]:animate-scale-in z-50 w-60 rounded-xl border p-1.5 shadow-xl"
         >
           {collections.map((c) => {
             const on = selected.includes(c.id);

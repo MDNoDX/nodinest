@@ -504,16 +504,24 @@ export function ChatThread({
     void navigator.clipboard?.writeText(text);
     toast.success(t("copied"));
   };
+  // Only my own messages can go (for both of us); theirs stay. With some of
+  // theirs among the chosen ones, the question says so.
   const deleteChosen = async (msgs: DmMessage[]) => {
-    const minesOnly = msgs.filter((m) => m.senderId === me);
-    if (!minesOnly.length) return toast(t("deleteOnlyMine"));
-    if (!(await ask({ message: t("deleteConfirm", { n: minesOnly.length }), remove: true })))
-      return;
-    for (const m of minesOnly) {
-      const r = await deleteMessageAction(m.id);
-      if (r.ok) merge([], [m.id]);
-    }
-    if (minesOnly.length < msgs.length) toast(t("deleteOnlyMine"));
+    const mine = msgs.filter((m) => m.senderId === me);
+    if (!mine.length) return;
+    const asked = await ask({
+      title: t("deleteTitle", { n: mine.length }),
+      message: t(mine.length < msgs.length ? "deleteMineOfChosen" : "deleteBoth"),
+      remove: true,
+    });
+    if (!asked) return;
+    const done = await Promise.all(
+      mine.map((m) => deleteMessageAction(m.id).then((r) => (r.ok ? m.id : null))),
+    );
+    merge(
+      [],
+      done.filter((id): id is string => !!id),
+    );
     setSel(null);
   };
   const act = (m: DmMessage, a: MenuAction) => {
@@ -540,7 +548,12 @@ export function ChatThread({
     setPicked(null);
     // The message's window closes first, then the question shows alone.
     await new Promise((r) => requestAnimationFrame(r));
-    if (!(await ask({ message: t("deleteConfirm", { n: 1 }), remove: true }))) return;
+    const asked = await ask({
+      title: t("deleteTitle", { n: 1 }),
+      message: t("deleteBoth"),
+      remove: true,
+    });
+    if (!asked) return;
     const r = await deleteMessageAction(m.id);
     if (!r.ok) return errorToast(te, r);
     merge([], [m.id]);
@@ -578,12 +591,12 @@ export function ChatThread({
           >
             <Forward className="size-5" />
           </IconBtn>
-          <IconBtn
-            label={t("delete")}
-            onClick={() => chosen().length && void deleteChosen(chosen())}
-          >
-            <Trash2 className="text-danger size-5" />
-          </IconBtn>
+          {/* Delete only when one of mine is chosen (theirs cannot be deleted). */}
+          {chosen().some((m) => m.senderId === me) && (
+            <IconBtn label={t("delete")} onClick={() => void deleteChosen(chosen())}>
+              <Trash2 className="text-danger size-5" />
+            </IconBtn>
+          )}
         </header>
       ) : (
         <header className="border-border bg-background/90 flex h-14 shrink-0 items-center gap-2 border-b px-2 backdrop-blur sm:px-3">
@@ -624,7 +637,7 @@ export function ChatThread({
               <M.Content
                 align="end"
                 sideOffset={6}
-                className="bg-surface border-border animate-scale-in z-50 min-w-48 rounded-xl border p-1 shadow-xl"
+                className="bg-surface border-border data-[state=open]:animate-scale-in z-50 min-w-48 rounded-xl border p-1 shadow-xl"
               >
                 <M.Item asChild>
                   <Link

@@ -144,7 +144,7 @@ export function ExportMenu({
         <M.Content
           align="end"
           sideOffset={6}
-          className="border-border bg-surface animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
+          className="border-border bg-surface data-[state=open]:animate-scale-in z-50 w-64 rounded-xl border p-1.5 shadow-xl"
         >
           <M.Label className="text-muted px-2 pt-1 pb-1.5 text-[11px] font-semibold tracking-wide uppercase">
             {book ? t("thisBook") : resourceId ? t("thisOne") : t("all")}

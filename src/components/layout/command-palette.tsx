@@ -220,8 +220,8 @@ export function CommandPalette() {
         </button>
       </D.Trigger>
       <D.Portal>
-        <D.Overlay className="animate-fade-in fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
-        <D.Content className="border-border bg-surface animate-scale-in fixed top-[12vh] left-1/2 z-50 w-[min(56rem,94vw)] -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl">
+        <D.Overlay className="data-[state=open]:animate-fade-in fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+        <D.Content className="border-border bg-surface data-[state=open]:animate-scale-in fixed top-[12vh] left-1/2 z-50 w-[min(56rem,94vw)] -translate-x-1/2 overflow-hidden rounded-2xl border shadow-2xl">
           <D.Title className="sr-only">{t("nav.commandPalette")}</D.Title>
           <D.Description className="sr-only">{t("nav.commandHint")}</D.Description>
           <div className="border-border flex items-center gap-2 border-b px-4">

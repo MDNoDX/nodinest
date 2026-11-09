@@ -82,7 +82,7 @@ export function StatusRibbon({
         <M.Content
           align="start"
           sideOffset={4}
-          className="border-border bg-surface animate-scale-in z-50 w-52 rounded-xl border p-1.5 shadow-xl"
+          className="border-border bg-surface data-[state=open]:animate-scale-in z-50 w-52 rounded-xl border p-1.5 shadow-xl"
         >
           {(["planned", "in_progress", "completed"] as Status[]).map((s) => {
             const L = LOOK[s];

@@ -132,7 +132,7 @@ export function EmojiGif({
           sideOffset={8}
           collisionPadding={8}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="bg-surface border-border animate-scale-in z-[70] flex h-[min(24rem,60dvh)] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border shadow-2xl"
+          className="bg-surface border-border data-[state=open]:animate-scale-in z-[70] flex h-[min(24rem,60dvh)] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border shadow-2xl"
         >
           {tab !== "emoji" && (
             <label className="bg-surface-2 m-2 mb-0 flex h-9 items-center gap-2 rounded-xl px-3">

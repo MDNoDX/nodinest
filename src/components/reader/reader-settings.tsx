@@ -63,7 +63,7 @@ export function ReaderSettings({ className }: { className?: string }) {
         <P.Content
           align="end"
           sideOffset={8}
-          className="border-border bg-surface animate-scale-in z-50 flex w-72 flex-col gap-3.5 rounded-xl border p-4 shadow-xl"
+          className="border-border bg-surface data-[state=open]:animate-scale-in z-50 flex w-72 flex-col gap-3.5 rounded-xl border p-4 shadow-xl"
         >
           <div>
             <p className="text-muted mb-1.5 text-xs font-medium">{t("paper")}</p>
