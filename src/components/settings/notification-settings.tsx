@@ -4,10 +4,16 @@ import { useTranslations } from "next-intl";
 import { PushSwitch } from "./push-switch";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { botLinkAction, setNotifyPrefAction, unlinkBotAction } from "@/app/actions/notifications";
+import {
+  botLinkAction,
+  setNotifyPrefAction,
+  setPlanTimeAction,
+  unlinkBotAction,
+} from "@/app/actions/notifications";
+import { TimeField } from "@/components/roznoma/time-field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import type { NotifyKey, NotifyPrefs } from "@/lib/notify-prefs";
+import type { NotifyKey, NotifyPrefs, PlanTimeKey, PlanTimes } from "@/lib/notify-prefs";
 import { useAction } from "@/lib/use-action";
 
 const KEYS: NotifyKey[] = ["messages", "people", "plans", "goals", "news", "sound"];
@@ -15,14 +21,40 @@ const KEYS: NotifyKey[] = ["messages", "people", "plans", "goals", "news", "soun
 /** Settings → Notifications: a switch per kind, and the Telegram bot. */
 export function NotificationSettings({
   prefs,
+  times: initialTimes,
   bot,
 }: {
   prefs: NotifyPrefs;
+  /** When the day's plan list and the evening summary go to the bot. */
+  times: PlanTimes;
   bot: { linked: boolean; name: string | null };
 }) {
   const t = useTranslations("notifications");
   const te = useTranslations("errors");
   const [v, setV] = useState(prefs);
+  const [times, setTimes] = useState(initialTimes);
+  const setTime = (k: PlanTimeKey, at: string | null) => {
+    const before = times[k];
+    setTimes((s) => ({ ...s, [k]: at }));
+    void setPlanTimeAction(k, at ?? "off").then((r) => {
+      if (!r.ok) {
+        setTimes((s) => ({ ...s, [k]: before }));
+        toast.error(te(r.code as "VALIDATION"));
+      }
+    });
+  };
+  // The plan messages' times: a clock each; emptied, that message is not sent.
+  const timeRow = (k: PlanTimeKey) => (
+    <li key={k} className="flex items-center gap-3 py-3">
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium">{t(`planTime.${k}`)}</span>
+        <span className="text-muted block text-xs">{t(`planTimeHint.${k}`)}</span>
+      </span>
+      <span className="w-28 shrink-0">
+        <TimeField value={times[k]} onChange={(at) => setTime(k, at)} />
+      </span>
+    </li>
+  );
   const { exec, pending } = useAction();
   const [linking, startLink] = useTransition();
   const flip = (k: NotifyKey) => {
@@ -103,7 +135,12 @@ export function NotificationSettings({
             </Button>
           )}
         </div>
-        {bot.linked && <ul className="mt-2">{row("telegram")}</ul>}
+        {bot.linked && (
+          <ul className="divide-border mt-2 divide-y">
+            {row("telegram")}
+            {v.telegram && v.plans && (["morningAt", "eveningAt"] as PlanTimeKey[]).map(timeRow)}
+          </ul>
+        )}
       </section>
     </div>
   );

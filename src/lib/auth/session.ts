@@ -30,7 +30,7 @@ export type CurrentUser = {
   profilePublic: boolean;
   /** "Online / last seen" shown (and seen) in chats. */
   showOnline: boolean;
-  notify: Record<string, boolean>;
+  notify: Record<string, boolean | string>;
   bio: string | null;
   /** Private phone number (only shown to the owner). */
   phone: string | null;

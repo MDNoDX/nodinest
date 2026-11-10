@@ -39,7 +39,7 @@ import { MenuReset, NavOrderSettings } from "@/components/settings/nav-order";
 import { ProfileVisibility } from "@/components/social/profile-visibility";
 import { PremiumBadge } from "@/components/premium/premium-badge";
 import { NotificationSettings } from "@/components/settings/notification-settings";
-import { readPrefs } from "@/lib/notify-prefs";
+import { readPlanTimes, readPrefs } from "@/lib/notify-prefs";
 import { botStatus } from "@/server/notifications";
 import { isStorageConfigured, storageUsage, userQuotaBytes } from "@/server/storage";
 import { StorageHint } from "@/components/write/storage-hint";
@@ -139,7 +139,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
           {tab === "premium" && <PremiumPanel ctx={ctx} user={user} />}
           {tab === "notifications" && (
             <section className="card p-5 sm:p-6">
-              <NotificationSettings prefs={readPrefs(user.notify)} bot={await botStatus(ctx)} />
+              <NotificationSettings
+                prefs={readPrefs(user.notify)}
+                times={readPlanTimes(user.notify)}
+                bot={await botStatus(ctx)}
+              />
             </section>
           )}
           {tab === "help" && (

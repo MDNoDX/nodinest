@@ -2754,7 +2754,7 @@
     },
     "prefHint": {
       "people": "Kuzatiş, sörov, manbangizni oliş",
-      "plans": "Eslatmalar va haftalik yakun",
+      "plans": "Ertalabki röyxat, vaqtidagi eslatma, keçki xulosa va haftalik yakun",
       "goals": "Muddat yaqinlaşganda",
       "news": "Sayt haqidagi xabarlar",
       "telegram": "Yuqoridagi yoqilgan bildirişnomalar botga ham keladi",
@@ -2771,7 +2771,15 @@
     "pushOn": "Bu qurilmaga bildirişnoma keladi",
     "pushFailed": "Yoqib bölmadi. Keyinroq qayta urinib köring.",
     "pushUnsupported": "Bu brauzer yoki ilova hozirça qöllamaydi (iPhone'da saytni «Uy ekraniga qöşiş» kerak).",
-    "pushDenied": "Brauzer sozlamalarida bildirişnomaga ruxsat bering."
+    "pushDenied": "Brauzer sozlamalarida bildirişnomaga ruxsat bering.",
+    "planTime": {
+      "morningAt": "Ertalabki röyxat",
+      "eveningAt": "Keçki xulosa"
+    },
+    "planTimeHint": {
+      "morningAt": "Kunning rejalari botga şu vaqtda keladi. Böş qoldirsangiz kelmaydi.",
+      "eveningAt": "Nima qolgani (yoki hammasi bajarilgani) şu vaqtda keladi."
+    }
   },
   "media": {
     "title": "Media",

@@ -12,7 +12,15 @@ import { db, withUser, type AppContext } from "@/db";
 import { botUsers, notifications, user } from "@/db/schema";
 import type { Locale } from "@/i18n/config";
 import { AppError } from "@/lib/errors";
-import { NOTIFY_KEYS, PREF_OF, readPrefs, type NotifyKey } from "@/lib/notify-prefs";
+import {
+  HHMM,
+  NOTIFY_KEYS,
+  PLAN_TIMES,
+  PREF_OF,
+  readPrefs,
+  type NotifyKey,
+  type PlanTimeKey,
+} from "@/lib/notify-prefs";
 import { esc, tgTo } from "./monitor/telegram";
 import { pushTo } from "./push";
 import { hitRateLimit } from "./rate-limit";
@@ -155,6 +163,18 @@ export async function deleteNotifications(ctx: AppContext, ids: string[]) {
     tx
       .delete(notifications)
       .where(and(eq(notifications.userId, ctx.userId), inArray(notifications.id, list))),
+  );
+}
+
+/** The morning list / evening summary time ("HH:MM"), or "off". */
+export async function setPlanTime(ctx: AppContext, key: PlanTimeKey, value: string) {
+  if (!(key in PLAN_TIMES)) throw new AppError("VALIDATION", "key");
+  if (value !== "off" && !HHMM.test(value)) throw new AppError("VALIDATION", "time");
+  await withUser(db, ctx, (tx) =>
+    tx
+      .update(user)
+      .set({ notify: sql`${user.notify} || ${JSON.stringify({ [key]: value })}::jsonb` })
+      .where(eq(user.id, ctx.userId)),
   );
 }
 

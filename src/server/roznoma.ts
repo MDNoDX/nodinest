@@ -7,7 +7,7 @@
  */
 import "server-only";
 import { uzScript } from "@/i18n/config";
-import { readPrefs } from "@/lib/notify-prefs";
+import { readPlanTimes, readPrefs } from "@/lib/notify-prefs";
 import { notify } from "./notifications";
 import { and, asc, between, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -1235,6 +1235,50 @@ export async function dailyNudges(now = new Date()) {
   }
 }
 
+/** The words of the plan messages in Telegram (Uzbek in the 2026 Latin alphabet). */
+const REMIND = {
+  uz: {
+    morning: (n: number) => `☀️ <b>Bugungi rejalar</b> — ${n} ta`,
+    more: (n: number) => `… yana ${n} ta`,
+    atTime: "Bajarsangiz, Rejalar’da belgilab qöying ✅",
+    left: (n: number) => `🌙 <b>Kun tugayapti</b>: ${n} ta iş qoldi`,
+    allDone: (n: number) => `🌙 <b>Barakalla!</b> Bugungi ${n} ta reja bajarildi ✅`,
+    open: "Rejalarni oçiş",
+  },
+  ru: {
+    morning: (n: number) => `☀️ <b>Планы на сегодня</b> — ${n}`,
+    more: (n: number) => `… и ещё ${n}`,
+    atTime: "Когда сделаете, отметьте в Планах ✅",
+    left: (n: number) => `🌙 <b>День заканчивается</b>: осталось ${n}`,
+    allDone: (n: number) => `🌙 <b>Молодец!</b> Все ${n} планов на сегодня выполнены ✅`,
+    open: "Открыть планы",
+  },
+  en: {
+    morning: (n: number) => `☀️ <b>Today's plans</b> — ${n}`,
+    more: (n: number) => `… and ${n} more`,
+    atTime: "Tick it off in Plans when done ✅",
+    left: (n: number) => `🌙 <b>The day is ending</b>: ${n} left`,
+    allDone: (n: number) => `🌙 <b>Well done!</b> All ${n} of today's plans are done ✅`,
+    open: "Open plans",
+  },
+};
+
+/** One line of a plan in a message: its time, title and amount. */
+const planLine = (i: { time: string | null; title: string; amount: string | null }) =>
+  `${i.time ? `<b>${esc(i.time)}</b> ` : "• "}${esc(i.title)}${i.amount ? ` · ${esc(i.amount)}` : ""}`;
+
+/** At most `max` lines, then "… and N more". */
+const someLines = (lines: string[], max: number, more: (n: number) => string) =>
+  lines.length > max ? [...lines.slice(0, max), more(lines.length - max)] : lines;
+
+/**
+ * Run every minute or few (cron): plan messages in Telegram for those who
+ * linked the bot and keep "plans" and "telegram" on. In the morning (their
+ * time, 07:00 unless changed) the day's list; at each plan's time a reminder
+ * (alarm on); in the evening (21:30 unless changed) what is still undone, or a
+ * word of praise. Each goes once a day; a late run still sends the morning list
+ * within three hours and the evening one within an hour.
+ */
 export async function sendReminders(now = new Date()) {
   const people = await db
     .select({
@@ -1247,45 +1291,71 @@ export async function sendReminders(now = new Date()) {
     .from(botUsers)
     .innerJoin(user, eq(user.id, botUsers.userId))
     .where(and(eq(botUsers.blocked, false), eq(user.status, "active")));
+  const site = process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app";
+  const mins = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
   let sent = 0;
   for (const p of people) {
     const prefs = readPrefs(p.notify);
     if (!prefs.plans || !prefs.telegram) continue;
+    const times = readPlanTimes(p.notify);
     const ctx: AppContext = { userId: p.userId, role: "user" };
     const today = dayKey(now, p.tz);
-    const hm = new Intl.DateTimeFormat("en-GB", {
-      timeZone: p.tz,
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).format(now);
-    const mins = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
-    const nowMin = mins(hm);
-    const page = await getDay(ctx, today);
-    const uz = p.locale !== "ru" && p.locale !== "en";
-    for (const i of page.items) {
-      if (i.done || !i.alarm || !i.time) continue;
-      const t = mins(i.time);
-      if (nowMin < t || nowMin - t > 15) continue;
-      if (!(await hitRateLimit(db, `remind:${i.id}:${today}`, 1, 86_400)).allowed) continue;
-      await tgTo(
-        p.tg,
-        `⏰ <b>${esc(i.time)}</b> — ${esc(i.title)}${i.amount ? ` · ${esc(i.amount)}` : ""}\n${uz ? "Bajarsangiz, Rejalar’da belgilab qöying ✅" : p.locale === "ru" ? "Когда сделаете, отметьте в Планах ✅" : "Tick it off in Plans when done ✅"}`,
-      ).catch(() => null);
+    const nowMin = mins(
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: p.tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(now),
+    );
+    const within = (at: string | null, span: number) =>
+      at != null && nowMin >= mins(at) && nowMin - mins(at) < span;
+    const morning = within(times.morningAt, 180);
+    const evening = within(times.eveningAt, 60);
+    const items = (await getDay(ctx, today)).items;
+    const atTime = items.filter((i) => !i.done && i.alarm && i.time && within(i.time, 15));
+    if (!morning && !evening && !atTime.length) continue;
+    const words = REMIND[p.locale === "ru" ? "ru" : p.locale === "en" ? "en" : "uz"];
+    // Uzbek Cyrillic: our words are converted, never the tags or the plans' own titles.
+    const w = (html: string) =>
+      html.replace(
+        /(<[^>]+>)|([^<]+)/g,
+        (_, tag: string, txt: string) => tag ?? uzScript(p.locale, txt),
+      );
+    const say = (text: string) =>
+      tgTo(p.tg, `${text}\n\n<a href="${site}/plans">${w(words.open)}</a>`).catch(() => null);
+    const once = async (key: string) =>
+      (await hitRateLimit(db, `${key}:${today}`, 1, 86_400)).allowed;
+
+    if (morning && items.length && (await once(`remind-am:${p.userId}`))) {
+      // Timed ones first, in order of time; the rest as they stand on the page.
+      const list = [...items].sort(
+        (a, b) => (a.time ? mins(a.time) : 9999) - (b.time ? mins(b.time) : 9999),
+      );
+      await say(
+        [
+          w(words.morning(list.length)),
+          ...someLines(list.map(planLine), 15, (n) => w(words.more(n))),
+        ].join("\n"),
+      );
       sent++;
     }
-    const left = page.items.filter((i) => !i.done);
-    if (left.length && nowMin >= 21 * 60 + 30 && nowMin < 22 * 60 + 30) {
-      if ((await hitRateLimit(db, `remind-eod:${p.userId}:${today}`, 1, 86_400)).allowed) {
-        await tgTo(
-          p.tg,
-          `🌙 ${uz ? `Kun tugayapti: ${left.length} ta iş qoldi` : p.locale === "ru" ? `День заканчивается: осталось ${left.length}` : `The day is ending: ${left.length} left`}\n${left
-            .slice(0, 8)
-            .map((i) => `• ${esc(i.title)}`)
-            .join("\n")}`,
-        ).catch(() => null);
-        sent++;
-      }
+    for (const i of atTime) {
+      if (!(await once(`remind:${i.id}`))) continue;
+      await say(`⏰ ${planLine(i)}\n${w(words.atTime)}`);
+      sent++;
+    }
+    if (evening && items.length && (await once(`remind-eod:${p.userId}`))) {
+      const left = items.filter((i) => !i.done);
+      await say(
+        left.length
+          ? [
+              w(words.left(left.length)),
+              ...someLines(left.map(planLine), 10, (n) => w(words.more(n))),
+            ].join("\n")
+          : w(words.allDone(items.length)),
+      );
+      sent++;
     }
   }
   return sent;

@@ -2754,7 +2754,7 @@
     },
     "prefHint": {
       "people": "Follows, requests, sources taken",
-      "plans": "Reminders and the weekly result",
+      "plans": "Morning list, reminders, evening summary and the week’s result",
       "goals": "When a deadline is near",
       "news": "Messages about the site",
       "telegram": "The notifications that are on also reach the bot",
@@ -2771,7 +2771,15 @@
     "pushOn": "This device will get notifications",
     "pushFailed": "Could not turn it on. Try again later.",
     "pushUnsupported": "This browser or app does not support it yet (on iPhone, add the site to the Home Screen).",
-    "pushDenied": "Allow notifications in the browser settings."
+    "pushDenied": "Allow notifications in the browser settings.",
+    "planTime": {
+      "morningAt": "Morning list",
+      "eveningAt": "Evening summary"
+    },
+    "planTimeHint": {
+      "morningAt": "The day’s plans reach the bot at this time. Leave empty to turn it off.",
+      "eveningAt": "What is left (or that all is done), at this time."
+    }
   },
   "media": {
     "title": "Media",

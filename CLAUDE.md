@@ -277,6 +277,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `/api/audiobook/[id]/progress?idx=`); the ring uses it, the time estimate only fills between steps.
 - `rebuildYearBook()` (day page → "Kitobni yangilash") writes every day of the year again in the
   current layout.
+- Plan messages in Telegram (`sendReminders` in server/roznoma.ts, `/api/cron/reminders`): the day's list
+  in the morning (`user.notify.morningAt`, 07:00), each timed plan with its alarm on at its time (15 min
+  window), what is left in the evening (`eveningAt`, 21:30; "off" stops one; Settings → Notifications,
+  `lib/notify-prefs.ts` `readPlanTimes`). Each once a day (rate_limits keys). Triggered every minute by
+  cron-job.org (GitHub's schedule runs only every few hours) and once by the daily Vercel cron.
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

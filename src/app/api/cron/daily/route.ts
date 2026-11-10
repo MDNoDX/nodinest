@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { dailySummary } from "@/server/monitor/summary";
-import { dailyNudges } from "@/server/roznoma";
+import { dailyNudges, sendReminders } from "@/server/roznoma";
 import { sweepOrphanBlobs } from "@/server/storage";
 import { moveWaiting } from "@/server/tg-storage";
 
@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
   await moveWaiting(200_000).catch(() => 0);
   await sweepOrphanBlobs().catch((e) => console.error("sweep", e));
   await dailyNudges().catch((e) => console.error("nudges", e));
+  // A sure run in the morning (09:00-10:00 in Tashkent): the day's plan list
+  // arrives even when the minute cron is down (it is sent once a day anyway).
+  await sendReminders().catch((e) => console.error("reminders", e));
   await dailySummary();
   return new Response("ok");
 }

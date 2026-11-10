@@ -333,6 +333,10 @@ const uz: GuideSection[] = [
         title: "Botga yozing",
         text: "Botga istalgan taklif yoki savolni yozing — u adminga boradi, javob esa botga va saytdagi Takliflar böliminga keladi.",
       },
+      {
+        title: "Rejalar botga keladi",
+        text: "Sozlamalar → Bildirişnomalar’da botni ulang. Ertalab kunning rejalari röyxati, vaqti bor rejalar öz vaqtida, keçqurun esa nima qolgani botga keladi. Ertalabki va keçki xabar vaqtini şu yerda özgartirasiz yoki öçirasiz.",
+      },
     ],
   },
   {
@@ -689,6 +693,10 @@ const en: GuideSection[] = [
       {
         title: "Write to the bot",
         text: "Send any suggestion or question to the bot — it goes to the admin, and the answer comes back to the bot and to Suggestions on the site.",
+      },
+      {
+        title: "Plans come to the bot",
+        text: "Link the bot in Settings → Notifications. In the morning the day’s plan list arrives, timed plans at their time, and in the evening what is left. Change or turn off the morning and evening times there.",
       },
     ],
   },

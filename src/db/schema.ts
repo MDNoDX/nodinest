@@ -176,8 +176,8 @@ export const user = nodinest.table(
     lastSeenAt: ts("last_seen_at"),
     /** Show "online / last seen"; off hides it both ways. */
     showOnline: boolean("show_online").notNull().default(true),
-    /** Notification switches (lib/notify-prefs.ts); a missing key means on. */
-    notify: jsonb("notify").$type<Record<string, boolean>>().notNull().default({}),
+    /** Notification switches and plan message times (lib/notify-prefs.ts); a missing key means on / the default. */
+    notify: jsonb("notify").$type<Record<string, boolean | string>>().notNull().default({}),
     bio: text("bio"),
     /** Optional, private: only the owner (and the site admin) sees it. */
     phone: text("phone"),

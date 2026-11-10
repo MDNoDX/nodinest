@@ -1,12 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { run } from "./_run";
-import { type NotifyKey } from "@/lib/notify-prefs";
+import { type NotifyKey, type PlanTimeKey } from "@/lib/notify-prefs";
 import {
   botLinkCode,
   deleteNotifications,
   markAllRead,
   setNotifyPref,
+  setPlanTime,
   unlinkBot,
 } from "@/server/notifications";
 
@@ -28,6 +29,13 @@ export async function setNotifyPrefAction(key: NotifyKey, on: boolean) {
   return run(async ({ ctx }) => {
     await setNotifyPref(ctx, key, !!on);
     revalidatePath("/", "layout");
+  });
+}
+
+export async function setPlanTimeAction(key: PlanTimeKey, value: string) {
+  return run(async ({ ctx }) => {
+    await setPlanTime(ctx, key, String(value));
+    revalidatePath("/settings");
   });
 }
 
