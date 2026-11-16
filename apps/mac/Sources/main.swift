@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     buildMenu()
     let cfg = WKWebViewConfiguration()
     cfg.websiteDataStore = .default()  // persistent: stay signed in
-    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/1.1"
+    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/1.2"
     cfg.preferences.javaScriptCanOpenWindowsAutomatically = true
     cfg.preferences.isElementFullscreenEnabled = true
     cfg.mediaTypesRequiringUserActionForPlayback = []

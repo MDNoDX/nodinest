@@ -12,7 +12,7 @@ import { hitRateLimit } from "@/server/rate-limit";
  * the store (big files never pass through a function).
  */
 const DOWNLOADS = {
-  mac: "downloads/Roznoma-1.1.dmg",
+  mac: "downloads/Roznoma-1.2.dmg",
   windows: "downloads/Roznoma-Setup-1.0.0.exe",
   android: "downloads/Roznoma-1.0.apk",
 } as const;
