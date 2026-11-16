@@ -13,6 +13,7 @@ import { AppError } from "@/lib/errors";
 import { passwordOk } from "@/lib/password";
 import { normalizeUsername } from "@/lib/username";
 import { hitRateLimit } from "./rate-limit";
+import { remindPlansChanged } from "./remind-schedule";
 
 export const MAX_DEVICES = 2;
 
@@ -158,4 +159,5 @@ export async function syncTimezone(ctx: AppContext, tz: string) {
   if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(tz) || tz.length > 64) return;
   if (!Intl.supportedValuesOf("timeZone").includes(tz)) return;
   await db.update(user).set({ timezone: tz }).where(eq(user.id, ctx.userId));
+  remindPlansChanged();
 }

@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
+  CloudOff,
   HardDrive,
   Keyboard,
   LifeBuoy,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
+import { OfflineSettings } from "@/components/settings/offline-settings";
 import { getTranslations } from "next-intl/server";
 import { EditProfile } from "@/components/profile/edit-profile";
 import { AppearanceForm } from "@/components/settings/settings-forms";
@@ -133,6 +135,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
               <CardHeader title={t("install.title")} icon={<AppWindow />} hue="blue" />
               <div className="px-5 pb-5">
                 <InstallApp />
+              </div>
+            </Card>
+          )}
+          {tab === "app" && (
+            <Card id="offline">
+              <CardHeader title={t("offline.modeTitle")} icon={<CloudOff />} hue="emerald" />
+              <div className="px-5 pb-5">
+                <OfflineSettings />
               </div>
             </Card>
           )}

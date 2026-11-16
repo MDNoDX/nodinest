@@ -282,6 +282,16 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   window), what is left in the evening (`eveningAt`, 21:30; "off" stops one; Settings → Notifications,
   `lib/notify-prefs.ts` `readPlanTimes`). Each once a day (rate_limits keys). Triggered every minute by
   cron-job.org (GitHub's schedule runs only every few hours) and once by the daily Vercel cron.
+- The minute cron must not wake Neon (free compute is 100 CU-hours a month): `/api/cron/reminders`
+  reads the cached moments (`server/remind-schedule.ts`, `unstable_cache`, 6 h, tag `remind-plans`,
+  `remindPlansChanged()` after plan / time / bot / timezone changes) and `dueNow` (lib/remind-due.ts);
+  only a due moment touches the database ("idle" otherwise). Book formatting runs only then + daily.
+- Offline mode (Settings → App, `lib/offline-sync.ts`, `/api/offline` = `server/offline.ts` manifest):
+  on by itself in the Mac / Windows app (UA), a switch elsewhere; every 12 h the worker warms the pages
+  (`warm` in sw.js, 2 at a time, progress over a MessagePort) with their `_next/static` chunks and
+  covers, and the reader's `nn-books` keeps the text of books in progress. `/offline` lists saved pages.
+  Reading progress made offline waits in the outbox (`progress` job). The Mac app reloads by itself
+  when the network is back (NWPathMonitor).
 - Notifications: `server/notifications.ts` (`notify()` = bell + Telegram when linked and on; table
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).

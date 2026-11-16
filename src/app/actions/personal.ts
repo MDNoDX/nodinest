@@ -39,6 +39,7 @@ import {
 } from "@/server/notes";
 import { removeLearningRecord, setLearningStatus, upsertLearningRecord } from "@/server/records";
 import { run } from "./_run";
+import { remindPlansChanged } from "@/server/remind-schedule";
 
 const id = z.string().uuid();
 const optId = z.string().uuid().nullable().optional();
@@ -267,6 +268,7 @@ export async function saveTimezoneAction(timezone: string) {
     await withUser(db, ctx, (tx) =>
       tx.update(user).set({ timezone: tz }).where(eq(user.id, ctx.userId)),
     );
+    remindPlansChanged();
     revalidatePath("/", "layout");
   });
 }

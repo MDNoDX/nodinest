@@ -5,6 +5,15 @@ import { checkRoutineAction, saveDayLogAction } from "@/app/actions/roznoma";
 import { flush, waiting, type Job } from "@/lib/outbox";
 
 const send = async (job: Job) => {
+  if (job.kind === "progress") {
+    const r = await fetch(`/api/book/${job.id}/progress`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page: job.page, total: job.total }),
+    });
+    // A book removed meanwhile is not worth keeping in the queue.
+    return r.ok || r.status === 404 || r.status === 400;
+  }
   const r =
     job.kind === "check"
       ? await checkRoutineAction(job.id, job.day, job.state as never)

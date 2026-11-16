@@ -32,6 +32,7 @@ import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
 import { PAPER, paperVars, useReaderPrefs } from "./reader-prefs";
 import { MarkMenu, NoteDialog, SelectionMenu, type Sel } from "./reader-selection";
+import { enqueue } from "@/lib/outbox";
 import { ReaderSettings } from "./reader-settings";
 import { ReaderSide, type SideTab } from "./reader-side";
 
@@ -274,12 +275,16 @@ export function ReaderApp({
   useEffect(() => {
     if (viewer) return;
     const timer = setTimeout(() => {
+      // No network: the page waits in the outbox and goes when it is back.
+      const later = () =>
+        enqueue({ kind: "progress", id: resource.id, day: "", page: left, total });
+      if (!navigator.onLine) return later();
       void fetch(`/api/book/${resource.id}/progress`, {
         method: "POST",
         keepalive: true,
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ page: left, total }),
-      }).catch(() => {});
+      }).catch(later);
     }, 4000);
     return () => clearTimeout(timer);
   }, [left, resource.id, total, viewer]);

@@ -19,6 +19,7 @@ import { getTranslations } from "next-intl/server";
 export const dynamic = "force-dynamic";
 
 import { TimezoneSync } from "@/components/layout/timezone-sync";
+import { OfflineSync } from "@/components/pwa/offline-sync";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -64,6 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Premium switched off: every Premium mark and link disappears. */}
       {!paid && <style>{".premium-only{display:none!important}"}</style>}
       <TimezoneSync current={user.timezone} />
+      <OfflineSync />
       <PlanIconsProvider value={icons}>{children}</PlanIconsProvider>
     </AppShell>
   );

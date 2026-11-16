@@ -23,6 +23,7 @@ import {
 } from "@/lib/notify-prefs";
 import { esc, tgTo } from "./monitor/telegram";
 import { pushTo } from "./push";
+import { remindPlansChanged } from "./remind-schedule";
 import { hitRateLimit } from "./rate-limit";
 
 export type Kind = keyof typeof PREF_OF;
@@ -176,6 +177,7 @@ export async function setPlanTime(ctx: AppContext, key: PlanTimeKey, value: stri
       .set({ notify: sql`${user.notify} || ${JSON.stringify({ [key]: value })}::jsonb` })
       .where(eq(user.id, ctx.userId)),
   );
+  remindPlansChanged();
 }
 
 export async function setNotifyPref(ctx: AppContext, key: NotifyKey, on: boolean) {
@@ -186,6 +188,7 @@ export async function setNotifyPref(ctx: AppContext, key: NotifyKey, on: boolean
       .set({ notify: sql`${user.notify} || ${JSON.stringify({ [key]: on })}::jsonb` })
       .where(eq(user.id, ctx.userId)),
   );
+  remindPlansChanged();
 }
 
 // ── Linking the Telegram bot ───────────────────────────────────────────────
@@ -226,6 +229,7 @@ export async function redeemBotLink(tgId: number, code: string) {
   if (!u) return null;
   await db.update(botUsers).set({ userId: null }).where(eq(botUsers.userId, userId));
   await db.update(botUsers).set({ userId }).where(eq(botUsers.tgId, tgId));
+  remindPlansChanged();
   return u.name;
 }
 

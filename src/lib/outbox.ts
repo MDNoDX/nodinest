@@ -1,8 +1,8 @@
 "use client";
 /**
  * Work done with no network waits here, on this device, and goes to the server
- * when the connection is back: plan ticks and the day's page. (Book writing has
- * its own drafts in the editor.)
+ * when the connection is back: plan ticks, the day's page and the page a book
+ * was read to. (Book writing has its own drafts in the editor.)
  */
 const KEY = "nn:outbox";
 
@@ -13,7 +13,8 @@ export type Job =
       day: string;
       state: { status: string | null; value: number | null; note: string | null };
     }
-  | { kind: "day"; day: string; log: unknown };
+  | { kind: "day"; day: string; log: unknown }
+  | { kind: "progress"; id: string; day: string; page: number; total: number };
 
 const read = (): Job[] => {
   try {
@@ -33,9 +34,7 @@ const write = (jobs: Job[]) => {
 /** Keeps the job; a later change to the same thing replaces the earlier one. */
 export function enqueue(job: Job) {
   const same = (j: Job) =>
-    j.kind === job.kind &&
-    j.day === job.day &&
-    (j.kind !== "check" || j.id === (job as typeof j).id);
+    j.kind === job.kind && j.day === job.day && (j.kind === "day" || j.id === (job as typeof j).id);
   write([...read().filter((j) => !same(j)), job]);
 }
 

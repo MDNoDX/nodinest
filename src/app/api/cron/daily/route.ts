@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
+import { formatWaiting } from "@/server/book-format";
 import { dailySummary } from "@/server/monitor/summary";
 import { dailyNudges, sendReminders } from "@/server/roznoma";
 import { sweepOrphanBlobs } from "@/server/storage";
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
   // A sure run in the morning (09:00-10:00 in Tashkent): the day's plan list
   // arrives even when the minute cron is down (it is sent once a day anyway).
   await sendReminders().catch((e) => console.error("reminders", e));
+  await formatWaiting().catch(() => {});
   await dailySummary();
   return new Response("ok");
 }

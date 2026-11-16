@@ -1,6 +1,7 @@
 import { CloudOff } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { RetryButton } from "./retry";
+import { SavedPages } from "./saved";
 
 export const dynamic = "force-static";
 
@@ -12,7 +13,7 @@ export async function generateMetadata() {
 export default async function OfflinePage() {
   const t = await getTranslations("offline");
   return (
-    <main className="grid min-h-dvh place-items-center px-6 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 text-center">
       <div className="max-w-sm">
         <span className="bg-primary-soft text-primary mx-auto grid size-14 place-items-center rounded-2xl">
           <CloudOff className="size-7" />
@@ -21,6 +22,7 @@ export default async function OfflinePage() {
         <p className="text-muted mt-2 text-sm leading-relaxed">{t("body")}</p>
         <RetryButton label={t("retry")} />
       </div>
+      <SavedPages />
     </main>
   );
 }

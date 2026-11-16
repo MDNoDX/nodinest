@@ -2,21 +2,24 @@
  *
  *  /_next/static, icons, fonts   cache-first (immutable, content-hashed)
  *  images (covers, portraits)    stale-while-revalidate, capped
- *  pages (navigations)           network-first; on a slow (>3.5 s) or absent
+ *  pages (navigations)           network-first; on a slow (>3 s) or absent
  *                                network the last good copy, else /offline
+ *                                (which lists the pages saved on this device)
  *  /api/files (PDFs, covers)     network-first, kept for offline reading
  *  auth, uploads, server actions never touched
  *
  * Private pages are stored only on this device and are wiped on sign-out
  * (the app posts {type:"clear"}).
  */
-const VERSION = "v9-files";
+const VERSION = "v11-offline";
 const STATIC = `nn-static-${VERSION}`;
 const PAGES = `nn-pages-${VERSION}`;
 const IMAGES = `nn-img-${VERSION}`;
 const FILES = `nn-files-${VERSION}`;
 const KEEP = [STATIC, PAGES, IMAGES, FILES];
 const OFFLINE_URL = "/offline";
+// The offline mode keeps up to ~200 pages; pages opened by hand come on top.
+const MAX_PAGES = 350;
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/nodinest-icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -45,18 +48,57 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "clear")
     event.waitUntil(Promise.all([PAGES, FILES, IMAGES].map((k) => caches.delete(k))));
-  // The main pages are kept ready, so the app opens without a network.
-  if (event.data?.type === "warm")
-    event.waitUntil(
-      (async () => {
-        const cache = await caches.open(PAGES);
-        for (const url of event.data.urls ?? []) {
-          const res = await fetch(url, { credentials: "same-origin" }).catch(() => null);
-          if (good(res)) await cache.put(url, res);
-        }
-      })(),
-    );
+  // Pages kept ready, so the app opens without a network: the main ones on
+  // every visit, and everything the offline mode lists (lib/offline-sync.ts),
+  // two at a time, each reported back through the given port.
+  if (event.data?.type === "warm") event.waitUntil(warm(event.data.urls ?? [], event.ports[0]));
 });
+
+const ASSET_RE = /\/_next\/static\/[\w\-.~/]+?\.(?:js|css|woff2)/g;
+// Covers shown on the page (small copies), so a saved page is not blank.
+const COVER_RE = /\/api\/files\/[0-9a-f-]{36}\?w=\d+/g;
+async function keepAssets(html) {
+  const cache = await caches.open(STATIC);
+  for (const path of new Set(html.match(ASSET_RE) || [])) {
+    if (await cache.match(path)) continue;
+    const res = await fetch(path).catch(() => null);
+    if (good(res)) await cache.put(path, res);
+  }
+  const img = await caches.open(IMAGES);
+  for (const path of [...new Set(html.match(COVER_RE) || [])].slice(0, 40)) {
+    if (await img.match(path)) continue;
+    const res = await fetch(path, { credentials: "same-origin" }).catch(() => null);
+    if (good(res)) await img.put(path, res);
+  }
+}
+
+async function warm(urls, port) {
+  const cache = await caches.open(PAGES);
+  let done = 0;
+  let saved = 0;
+  const queue = urls.filter(
+    (u) => typeof u === "string" && u.startsWith("/") && !u.startsWith("//"),
+  );
+  const one = async () => {
+    for (let url = queue.shift(); url; url = queue.shift()) {
+      const res = await fetch(url, { credentials: "same-origin" }).catch(() => null);
+      if (good(res) && (res.headers.get("content-type") || "").includes("text/html")) {
+        const html = await res.clone().text();
+        await cache.delete(url); // a fresh copy goes to the end (newest)
+        await cache.put(url, res);
+        // The page's own code: a page saved but never opened has its scripts
+        // nowhere yet, and offline it would stop at the first missing chunk.
+        await keepAssets(html);
+        saved++;
+      }
+      port?.postMessage({ done: ++done });
+    }
+  };
+  await Promise.all([one(), one()]);
+  await trim(PAGES, MAX_PAGES);
+  await trim(IMAGES, 400);
+  port?.postMessage({ done, saved, end: true });
+}
 
 const good = (res) =>
   res && res.ok && !res.redirected && (res.type === "basic" || res.type === "cors");
@@ -102,12 +144,12 @@ async function page(event) {
     const res = (await event.preloadResponse) || (await fetch(req));
     if (good(res) && (res.headers.get("content-type") || "").includes("text/html")) {
       await cache.put(req, res.clone());
-      await trim(PAGES, 120);
+      await trim(PAGES, MAX_PAGES);
     }
     return res;
   })();
   event.waitUntil(network.catch(() => {}));
-  const slow = new Promise((resolve) => setTimeout(resolve, 3500));
+  const slow = new Promise((resolve) => setTimeout(resolve, 3000));
   try {
     const first = await Promise.race([network, slow.then(() => null)]);
     if (first) return first;

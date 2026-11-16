@@ -337,6 +337,10 @@ const uz: GuideSection[] = [
         title: "Rejalar botga keladi",
         text: "Sozlamalar → Bildirişnomalar’da botni ulang. Ertalab kunning rejalari röyxati, vaqti bor rejalar öz vaqtida, keçqurun esa nima qolgani botga keladi. Ertalabki va keçki xabar vaqtini şu yerda özgartirasiz yoki öçirasiz.",
       },
+      {
+        title: "Internetsiz işlaş",
+        text: "Sozlamalar → Ilova → «Internetsiz işlaş»ni yoqing (Mac va Windows ilovasida öz-özidan yoqilgan). Bölimlar, oxirgi manbalar, qaydlar, töplamlar va öqiyotgan kitoblaringiz matni qurilmada saqlanadi: internet yöq paytda ham oçiladi. Reja belgilari, kun sahifasi va qaysi betda qolganingiz internet qaytganda öz-özidan yuboriladi.",
+      },
     ],
   },
   {
@@ -697,6 +701,10 @@ const en: GuideSection[] = [
       {
         title: "Plans come to the bot",
         text: "Link the bot in Settings → Notifications. In the morning the day’s plan list arrives, timed plans at their time, and in the evening what is left. Change or turn off the morning and evening times there.",
+      },
+      {
+        title: "Work offline",
+        text: "Turn on Settings → App → “Work offline” (on by itself in the Mac and Windows app). Sections, recent items, notes, collections and the text of the books you are reading are kept on the device and open without the internet. Plan ticks, the day page and the page you stopped at are sent by themselves when the internet is back.",
       },
     ],
   },

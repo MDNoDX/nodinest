@@ -44,6 +44,7 @@ import {
 import { docToPlain, sanitizeDoc, type WriteupDoc } from "@/lib/writeup-doc";
 import { createOwnBook } from "./own-books";
 import { hitRateLimit } from "./rate-limit";
+import { remindPlansChanged } from "./remind-schedule";
 import { esc, tgTo } from "./monitor/telegram";
 
 const dayStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -254,7 +255,7 @@ export async function saveRoutine(ctx: AppContext, raw: unknown, id?: string) {
   };
   if (v.repeat === "weekly" && !v.weekdays.length) throw new AppError("VALIDATION", "weekdays");
   if (v.repeat === "once" && !v.onDay) throw new AppError("VALIDATION", "onDay");
-  return withUser(db, ctx, async (tx) => {
+  const saved = await withUser(db, ctx, async (tx) => {
     if (v.parentId) {
       const [p] = await tx
         .select({ id: routines.id, parent: routines.parentId })
@@ -281,6 +282,8 @@ export async function saveRoutine(ctx: AppContext, raw: unknown, id?: string) {
       .returning({ id: routines.id });
     return row.id;
   });
+  if (v.time && v.alarm) remindPlansChanged();
+  return saved;
 }
 
 /** Taken off the day, or brought back with its amount and time intact. */
@@ -304,6 +307,7 @@ export async function setArchived(ctx: AppContext, ids: string[], archived: bool
           ),
         );
   });
+  if (!archived) remindPlansChanged();
 }
 
 /**

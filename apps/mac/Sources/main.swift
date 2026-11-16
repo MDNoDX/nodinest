@@ -6,13 +6,18 @@
 //   /api/app/handoff (see src/server/app-handoff.ts).
 // • Downloads (PDF / Word exports) go to ~/Downloads; file pickers work.
 // • Links to other sites open in the default browser.
-// • Remembers the last page and window size; offline screen with retry.
+// • Remembers the last page and window size.
+// • Works without the internet: the site's service worker keeps the pages and
+//   books (Settings → App → "Work offline", on by itself here). Only a page
+//   never saved shows the app's own offline screen, which reloads by itself
+//   when the network is back (NWPathMonitor).
 // • Media shortcuts: when nothing plays inside Roznoma, the page asks this app
 //   (window.webkit.messageHandlers.nodinest) to press the system Play/Pause key,
 //   so the same shortcut controls YouTube in a browser, Spotify, Music, …
 //   macOS asks once for Accessibility permission (needed to send that key).
 import AppKit
 import AuthenticationServices
+import Network
 import WebKit
 
 let defaults = UserDefaults.standard
@@ -37,13 +42,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   var web: WKWebView!
   var authSession: ASWebAuthenticationSession?
   var downloads: [ObjectIdentifier: URL] = [:]
+  /// The page to open again when the network is back (the offline screen is showing).
+  var waitingFor: URL?
+  var showingOffline = false
+  let path = NWPathMonitor()
 
   // MARK: launch
   func applicationDidFinishLaunching(_ note: Notification) {
     buildMenu()
     let cfg = WKWebViewConfiguration()
     cfg.websiteDataStore = .default()  // persistent: stay signed in
-    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/1.0"
+    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/1.1"
     cfg.preferences.javaScriptCanOpenWindowsAutomatically = true
     cfg.preferences.isElementFullscreenEnabled = true
     cfg.mediaTypesRequiringUserActionForPlayback = []
@@ -68,6 +77,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     if !window.setFrameUsingName("NodiNestMain") { window.center() }
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+
+    path.pathUpdateHandler = { [weak self] p in
+      guard p.status == .satisfied else { return }
+      DispatchQueue.main.async {
+        guard let self, let u = self.waitingFor else { return }
+        self.waitingFor = nil
+        self.web.load(URLRequest(url: u))
+      }
+    }
+    path.start(queue: DispatchQueue(label: "net"))
 
     var start = BASE
     if let last = defaults.string(forKey: "lastURL"), let u = URL(string: last), isOurs(u) { start = u }
@@ -165,7 +184,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   }
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    if showingOffline { showingOffline = false } else { waitingFor = nil }
     if ProcessInfo.processInfo.environment["NODINEST_DEBUG"] != nil {
+      webView.evaluateJavaScript(
+        "navigator.serviceWorker ? (navigator.serviceWorker.controller ? 'controlled' : 'no-controller') : 'no-sw-api'"
+      ) { r, _ in dbg("service worker: \(r ?? "?") on \(webView.url?.path ?? "")") }
       webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cs in
         let line = "[cookies] \(webView.url?.path ?? "") \(cs.map { "\($0.name) session=\($0.isSessionOnly) exp=\(String(describing: $0.expiresDate))" })\n"
         FileHandle.standardError.write(line.data(using: .utf8)!)
@@ -184,6 +207,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   }
 
   func showOffline(retry: URL) {
+    waitingFor = retry
+    showingOffline = true
     let html = """
       <!doctype html><meta charset="utf-8"><meta name="color-scheme" content="light dark">
       <style>body{font:15px -apple-system,system-ui;display:grid;place-items:center;height:100vh;margin:0;
@@ -191,7 +216,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       p{opacity:.7;line-height:1.5}a{display:inline-block;margin-top:14px;padding:9px 18px;border-radius:10px;
       background:#2459e0;color:#fff;text-decoration:none;font-weight:600}</style>
       <div class="b"><div style="font-size:40px">☁︎</div><h1>Internet yoʻq</h1>
-      <p>Roznoma serverga ulana olmadi. Internet qaytganda qayta urinib koʻring.</p>
+      <p>Bu sahifa hali shu kompyuterda saqlanmagan. Internet qaytsa, oʻzi ochiladi.</p>
+      <p style="font-size:13px">Internetsiz ishlash uchun bir marta internet bilan oching:
+      Sozlamalar → Ilova → «Internetsiz ishlash».</p>
       <a href="\(retry.absoluteString)">Qayta urinish</a></div>
       """
     web.loadHTMLString(html, baseURL: BASE)
@@ -333,7 +360,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
   @objc func goHome() { web.load(URLRequest(url: BASE)) }
   @objc func goPath(_ sender: NSMenuItem) {
-    if let p = sender.representedObject as? String { web.load(URLRequest(url: BASE.appendingPathComponent(p))) }
+    if let p = sender.representedObject as? String, let u = URL(string: "/" + p, relativeTo: BASE) {
+      web.load(URLRequest(url: u.absoluteURL))
+    }
   }
   @objc func reload() { web.reload() }
   @objc func back() { web.goBack() }
@@ -397,6 +426,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       go("Qaydlar va taqrizlar", "notes", "3"),
       go("To‘plamlar", "collections", "4"),
       go("AI yordamchi", "assistant", "5"),
+      go("Internetsiz ishlash", "settings?tab=app", ""),
       go("Manba qo‘shish", "library/new", "n"),
     ])
     sub("Oyna", [

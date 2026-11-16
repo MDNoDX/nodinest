@@ -1594,7 +1594,25 @@
     "title": "Internet yöq",
     "body": "Bu sahifa hali şu qurilmada oçilmagan. Avval oçilgan sahifalar, muqovalar va taqrizlaringiz oflayn ham işlaydi.",
     "retry": "Qayta uriniş",
-    "banner": "Oflayn rejim — saqlangan sahifalar körsatilmoqda"
+    "banner": "Oflayn rejim — saqlangan sahifalar körsatilmoqda",
+    "modeTitle": "Internetsiz işlaş",
+    "modeHint": "Bölimlar, oxirgi manba va qaydlaringiz, öqiyotgan kitoblaringiz matni şu qurilmada saqlanadi — internet bölmasa ham oçiladi. Mac va Windows ilovasida öz-özidan yoqilgan.",
+    "status": "{pages} sahifa va {books} kitob saqlangan · {when}",
+    "never": "Hali saqlanmagan",
+    "syncing": "Saqlanmoqda… {done} / {total}",
+    "syncNow": "Hozir yangilaş",
+    "failed": "Saqlab bölmadi. Internet qaytganda yana urinib köring.",
+    "unsupported": "Bu brauzerda internetsiz rejim yöq.",
+    "limits": "Internetsiz: sahifalarni köriş, kitob öqiş, reja belgilaş va kun sahifasi. AI, çatlar va yangi fayllar uçun internet kerak. Internetsiz qilganlaringiz internet qaytganda öz-özidan yuboriladi.",
+    "savedTitle": "Şu qurilmada saqlangan sahifalar",
+    "groups": {
+      "section": "Bölimlar",
+      "read": "Kitob öqiş",
+      "item": "Darsxona",
+      "taqriz": "Taqrizlar",
+      "collection": "Töplamlar",
+      "note": "Qaydlar"
+    }
   },
   "export": {
     "download": "Yuklab oliş",

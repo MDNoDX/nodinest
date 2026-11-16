@@ -1594,7 +1594,25 @@
     "title": "No internet",
     "body": "This page hasn’t been opened on this device yet. Pages, covers and write-ups you have opened before work offline.",
     "retry": "Try again",
-    "banner": "Offline — showing saved pages"
+    "banner": "Offline — showing saved pages",
+    "modeTitle": "Work offline",
+    "modeHint": "Sections, your recent items and notes, and the text of the books you are reading are kept on this device and open without the internet. On by itself in the Mac and Windows app.",
+    "status": "{pages} pages and {books} books saved · {when}",
+    "never": "Nothing saved yet",
+    "syncing": "Saving… {done} / {total}",
+    "syncNow": "Update now",
+    "failed": "Could not save. Try again when the internet is back.",
+    "unsupported": "This browser has no offline mode.",
+    "limits": "Offline: viewing pages, reading books, ticking plans and the day page. AI, chats and new files need the internet. What you do offline is sent by itself when the internet is back.",
+    "savedTitle": "Pages saved on this device",
+    "groups": {
+      "section": "Sections",
+      "read": "Reading",
+      "item": "Library",
+      "taqriz": "Write-ups",
+      "collection": "Collections",
+      "note": "Notes"
+    }
   },
   "export": {
     "download": "Download",
