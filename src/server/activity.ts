@@ -94,7 +94,10 @@ export async function likers(
       not ${canSee} as locked
     from ${table} l
     join nodinest."user" u on u.id = l.user_id and u.status = 'active' and u.username is not null
-    order by l.created_at desc
+    -- People I follow first (like Instagram), then the newest likes.
+    order by exists(select 1 from nodinest.follows f
+        where f.follower_id = ${ctx.userId} and f.followee_id = u.id) desc,
+      l.created_at desc
     limit 1000`);
   return rows.map((r) => ({
     ...r,

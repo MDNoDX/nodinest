@@ -1546,7 +1546,7 @@
     "installed": "Ilova örnatilgan — siz uni ilova oynasida işlatyapsiz.",
     "mac": "Mac",
     "macChrome": "Chrome yoki Edge: manzil satridagi «Örnatiş» belgisini bosing (yoki ⋮ menyu → «Röznomani örnatiş»). Ilova Launchpad va Dock’da paydo böladi.",
-    "macSafari": "Safari: «Fayl» → «Dock’ga qöşiş» (Add to Dock). Ilova Dock va Launchpad’da paydo böladi.",
+    "macSafari": "Yoki yengil web ilova: Safari → «Fayl» → «Dock’ga qöşiş».",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): «Ulaşiş» tugmasi → «Boş ekranga qöşiş» (Add to Home Screen).",
     "android": "Android (Chrome): ⋮ menyu → «Ilovani örnatiş» yoki pastdagi taklifni tasdiqlang.",
@@ -1572,12 +1572,12 @@
     "android1": "Yuqori öngdagi ⋮ menyuni oçing.",
     "android2": "«Ilovani örnatiş» ni bosing va tasdiqlang. Röznoma ilovalar röyxatida paydo böladi.",
     "androidNote": "Agar «Ilovani örnatiş» körinmasa, sahifani Chrome’da oçing va bir oz kuting — Chrome taklifni özi beradi.",
-    "macTitle": "Mac uçun ilova",
+    "macTitle": "Mac uçun dastur",
     "macSize": ".dmg · 0,4 MB",
     "macDownload": "Mac uçun yuklab oliş",
     "macStep1": "Yuklangan Roznoma .dmg faylini oçing va Röznoma belgisini «Applications» papkasiga suring.",
     "macStep2": "Birinçi oçişda Mac «tekşirib bölmadi» desa: Tizim sozlamalari → Maxfiylik va xavfsizlik → pastda «Baribir oçiş» ni bosing.",
-    "macStep3": "Keyin Röznoma Launchpad va Dock’da oddiy ilova kabi oçiladi, yangilanişlar özi keladi.",
+    "macStep3": "Keyin Röznoma Launchpad va Dock’da oddiy dastur kabi oçiladi. Yangi versiya çiqsa, dasturning özi aytadi.",
     "windowsTitle": "Windows uçun ilova",
     "windowsSize": ".exe · 97 MB",
     "windowsDownload": "Windows uçun yuklab oliş",
@@ -1589,7 +1589,12 @@
     "androidDownload": "Android uçun yuklab oliş",
     "androidApk1": "Yuklangan «Roznoma-1.0.apk» faylini oçing.",
     "androidApk2": "Telefon «noma’lum manbalar» haqida sörasa: Sozlamalar → şu brauzerga «Ruxsat beriş» ni yoqing.",
-    "androidApk3": "«Örnatiş» ni bosing — Röznoma ilovalar röyxatida paydo böladi va brauzersiz oçiladi."
+    "androidApk3": "«Örnatiş» ni bosing — Röznoma ilovalar röyxatida paydo böladi va brauzersiz oçiladi.",
+    "webAppNote": "Siz hozir brauzer orqali örnatilgan web ilovadasiz. Haqiqiy dastur uçun pastdan yuklab oling: u Mac’ning öz oynasida işlaydi, internetsiz oçiladi va rejalar eslatmasini dastur yopiq bölsa ham beradi.",
+    "webAppInstead": "Yoki brauzer orqali yengil web ilova sifatida örnatiş",
+    "macInstalled": "Mac dasturi örnatilgan · {version} versiya",
+    "macUpdate": "Yangi versiya çiqdi: {version}. Yuklab oling va eski dasturning ustiga «Applications»ga suring.",
+    "macLatest": "Sizda eng yangi versiya."
   },
   "offline": {
     "title": "Internet yöq",
@@ -2842,7 +2847,9 @@
     "likesCount": "{count} ta zör",
     "reply": "Javob beriş",
     "ownerLiked": "Muallif yoqtirdi",
-    "likeComment": "Zör"
+    "likeComment": "Zör",
+    "likedBy": "<b>{name}</b> {others, plural, =0 {zör dedi} other {va yana # kişi zör dedi}}",
+    "likedByYou": "Siz zör dedingiz"
   },
   "sectionHint": {
     "close": "Yopiş",

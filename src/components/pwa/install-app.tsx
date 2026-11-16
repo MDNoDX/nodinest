@@ -12,10 +12,11 @@ import {
   Zap,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { LogoSymbol } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { isStandalone, runInstall, useInstallPrompt } from "@/lib/install-prompt";
+import { macAppVersion, newerVersion } from "@/lib/app-versions";
 
 const noop = () => () => {};
 type Platform = "ios" | "ios-other" | "mac-safari" | "android" | "desktop" | "server";
@@ -50,7 +51,17 @@ export function InstallApp() {
     () => false,
   );
 
-  if (standalone || installed)
+  const native = useSyncExternalStore(
+    noop,
+    () => macAppVersion(navigator.userAgent),
+    () => null,
+  );
+  // Computers get the real programs (a Mac .dmg, a Windows installer) first:
+  // the browser's own "install" only makes a web-app window.
+  const desktop = p === "desktop" || p === "mac-safari" || p === "server";
+
+  if (native) return <MacAppInstalled version={native} />;
+  if ((standalone || installed) && !desktop)
     return (
       <p className="text-success flex items-center gap-2 text-sm font-medium">
         <CheckCircle2 className="size-4" /> {t("installed")}
@@ -80,9 +91,12 @@ export function InstallApp() {
         ))}
       </ul>
 
-      {prompt ? (
-        // Android / Chrome: the browser installs it as an app (on Android a real
-        // app in the app list, not a bookmark).
+      {desktop && (standalone || installed) && (
+        <p className="bg-warning/10 text-foreground rounded-xl p-3 text-sm">{t("webAppNote")}</p>
+      )}
+      {prompt && !desktop ? (
+        // Android: the browser installs it as an app (a real app in the app list,
+        // not a bookmark).
         <Button
           size="lg"
           className="w-full sm:w-auto sm:self-start"
@@ -170,10 +184,22 @@ export function InstallApp() {
           ))}
         </div>
       )}
-      {(p === "desktop" || p === "mac-safari") && (
-        <p className="text-muted text-[13px] leading-relaxed">
-          {p === "mac-safari" ? t("macSafari") : t("macChrome")}
-        </p>
+      {desktop && prompt && !(standalone || installed) && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await runInstall(prompt);
+            setBusy(false);
+          }}
+          className="text-muted hover:text-foreground self-start text-[13px] underline underline-offset-2"
+        >
+          {t("webAppInstead")}
+        </button>
+      )}
+      {p === "mac-safari" && !(standalone || installed) && (
+        <p className="text-muted text-[13px] leading-relaxed">{t("macSafari")}</p>
       )}
       <p className="text-muted text-xs">{t("offlineNote")}</p>
     </div>
@@ -207,6 +233,41 @@ function Steps({
         ))}
       </ol>
       {note && <p className="text-muted mt-3 text-xs leading-relaxed">{note}</p>}
+    </div>
+  );
+}
+
+/** Inside the Mac program: its version, and a newer one to download when there is. */
+function MacAppInstalled({ version }: { version: string }) {
+  const t = useTranslations("install");
+  const [latest, setLatest] = useState<string | null>(null);
+  useEffect(() => {
+    void fetch("/api/app/version")
+      .then((r) => (r.ok ? (r.json() as Promise<{ mac?: { version: string } }>) : null))
+      .then((d) => setLatest(d?.mac?.version ?? null))
+      .catch(() => {});
+  }, []);
+  const update = latest && newerVersion(latest, version);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-success flex items-center gap-2 text-sm font-medium">
+        <CheckCircle2 className="size-4" /> {t("macInstalled", { version })}
+      </p>
+      {update ? (
+        <div className="border-border flex flex-wrap items-center gap-3 rounded-2xl border p-4">
+          <span className="min-w-0 flex-1 text-sm">{t("macUpdate", { version: latest })}</span>
+          {/* A file (the app saves it with a Save sheet), not a page. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/download/mac"
+            className="bg-primary text-primary-foreground inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold"
+          >
+            <Download className="size-4" /> {t("macDownload")}
+          </a>
+        </div>
+      ) : (
+        latest && <p className="text-muted text-sm">{t("macLatest")}</p>
+      )}
     </div>
   );
 }

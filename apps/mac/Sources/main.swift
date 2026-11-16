@@ -11,6 +11,11 @@
 //   books (Settings → App → "Work offline", on by itself here). Only a page
 //   never saved shows the app's own offline screen, which reloads by itself
 //   when the network is back (NWPathMonitor).
+// • A real Mac program, not a browser window: the title bar takes the page's
+//   own colour, the web menu items (Reload, Open in new window, Inspect) are
+//   gone, the Dock icon shows unread chats + notifications, plan alarms come as
+//   macOS notifications even while the app is closed, and a newer version is
+//   offered by the app itself (/api/app/version).
 // • Media shortcuts: when nothing plays inside Roznoma, the page asks this app
 //   (window.webkit.messageHandlers.nodinest) to press the system Play/Pause key,
 //   so the same shortcut controls YouTube in a browser, Spotify, Music, …
@@ -18,6 +23,7 @@
 import AppKit
 import AuthenticationServices
 import Network
+import UserNotifications
 import WebKit
 
 let defaults = UserDefaults.standard
@@ -28,6 +34,54 @@ func dbg(_ s: String) {
 }
 let BASE = URL(string: defaults.string(forKey: "NodiNestBaseURL") ?? "https://nodinest.vercel.app")!
 
+/// "1.10" is newer than "1.9".
+func newer(_ a: String, than b: String) -> Bool {
+  let x = a.split(separator: ".").compactMap { Int($0) }
+  let y = b.split(separator: ".").compactMap { Int($0) }
+  for i in 0..<max(x.count, y.count) {
+    let d = (i < x.count ? x[i] : 0) - (i < y.count ? y[i] : 0)
+    if d != 0 { return d > 0 }
+  }
+  return false
+}
+
+let APP_VERSION = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+
+/// A web view without the browser's own menu items: a program, not a page.
+final class AppWebView: WKWebView {
+  override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+    let drop = ["Reload", "OpenLinkInNewWindow", "OpenFrameInNewWindow", "OpenImageInNewWindow",
+      "OpenMediaInNewWindow", "DownloadLinkedFile", "DownloadImage", "DownloadMedia", "InspectElement",
+      "Back", "Forward", "Stop"]
+    for item in menu.items {
+      let id = item.identifier?.rawValue ?? ""
+      if drop.contains(where: { id.contains($0) }) { menu.removeItem(item) }
+    }
+    while let last = menu.items.last, last.isSeparatorItem { menu.removeItem(last) }
+    super.willOpenMenu(menu, with: event)
+  }
+}
+
+/// Runs in every page of ours: tells the app the page's background colour
+/// (the title bar wears it) now and whenever the theme changes.
+let PAGE_SCRIPT = """
+(() => {
+  document.documentElement.dataset.native = "mac";
+  let last = "";
+  const tell = () => {
+    const see = (el) => el && getComputedStyle(el).backgroundColor;
+    const clear = (c) => !c || c === "transparent" || /rgba\\(.*,\\s*0(\\.\\d+)?\\)$/.test(c);
+    let c = see(document.body);
+    if (clear(c)) c = see(document.documentElement);
+    if (clear(c)) return;
+    if (c && c !== last) { last = c; window.webkit?.messageHandlers?.nodinest?.postMessage({ type: "bg", color: c }); }
+  };
+  tell();
+  new MutationObserver(tell).observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style", "data-theme"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", tell);
+})();
+"""
+
 func isOurs(_ url: URL?) -> Bool {
   guard let u = url else { return false }
   if u.scheme == "about" || u.scheme == "blob" || u.scheme == "data" { return true }
@@ -36,7 +90,7 @@ func isOurs(_ url: URL?) -> Bool {
 
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate,
   WKDownloadDelegate, ASWebAuthenticationPresentationContextProviding, NSWindowDelegate,
-  WKScriptMessageHandler
+  WKScriptMessageHandler, UNUserNotificationCenterDelegate
 {
   var window: NSWindow!
   var web: WKWebView!
@@ -46,19 +100,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   var waitingFor: URL?
   var showingOffline = false
   let path = NWPathMonitor()
+  var timers: [Timer] = []
+  var lastUnread = 0
 
   // MARK: launch
   func applicationDidFinishLaunching(_ note: Notification) {
     buildMenu()
     let cfg = WKWebViewConfiguration()
     cfg.websiteDataStore = .default()  // persistent: stay signed in
-    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/1.2"
+    cfg.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15 NodiNestMac/\(APP_VERSION)"
     cfg.preferences.javaScriptCanOpenWindowsAutomatically = true
     cfg.preferences.isElementFullscreenEnabled = true
     cfg.mediaTypesRequiringUserActionForPlayback = []
     cfg.userContentController.add(self, name: "nodinest")
+    cfg.userContentController.addUserScript(
+      WKUserScript(source: PAGE_SCRIPT, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
-    web = WKWebView(frame: .zero, configuration: cfg)
+    web = AppWebView(frame: .zero, configuration: cfg)
     web.navigationDelegate = self
     web.uiDelegate = self
     web.allowsBackForwardNavigationGestures = true
@@ -69,7 +127,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       contentRect: NSRect(x: 0, y: 0, width: 1320, height: 860),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered, defer: false)
-    window.title = "Roznoma"
+    window.title = "Röznoma"
+    // A program's window: the title bar has no title and wears the page's colour
+    // (sent by PAGE_SCRIPT); until the page tells, the system's own dark / light.
+    window.titlebarAppearsTransparent = true
+    window.titleVisibility = .hidden
+    window.backgroundColor = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+      ? NSColor(red: 0.07, green: 0.07, blue: 0.09, alpha: 1) : NSColor(white: 0.98, alpha: 1)
+    window.tabbingMode = .disallowed
     window.minSize = NSSize(width: 820, height: 560)
     window.contentView = web
     window.delegate = self
@@ -87,6 +152,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       }
     }
     path.start(queue: DispatchQueue(label: "net"))
+
+    // Plan alarms as macOS notifications; tapping one opens the plans.
+    UNUserNotificationCenter.current().delegate = self
+    // Dock badge and alarms now and then; a newer version once a day.
+    timers.append(Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.refreshBadge() })
+    timers.append(Timer.scheduledTimer(withTimeInterval: 30 * 60, repeats: true) { [weak self] _ in self?.scheduleAlarms() })
+    DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+      self?.checkForUpdate(quiet: true)
+      self?.scheduleAlarms()
+    }
 
     var start = BASE
     if let last = defaults.string(forKey: "lastURL"), let u = URL(string: last), isOurs(u) { start = u }
@@ -197,7 +272,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     if let u = webView.url, isOurs(u), !u.path.hasPrefix("/api/"), u.path != "/app-login" {
       defaults.set(u.absoluteString, forKey: "lastURL")
     }
-    window.title = webView.title?.isEmpty == false ? webView.title! : "Roznoma"
+    window.title = webView.title?.isEmpty == false ? webView.title! : "Röznoma"
+    refreshBadge()
   }
 
   func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -330,14 +406,140 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
     // Only our own site's top frame may ask (never an embedded YouTube frame).
     guard message.frameInfo.isMainFrame, isOurs(message.frameInfo.request.url),
-      let body = message.body as? [String: Any], body["type"] as? String == "media"
+      let body = message.body as? [String: Any]
     else { return }
+    if body["type"] as? String == "bg", let c = body["color"] as? String, let color = cssColor(c) {
+      window.backgroundColor = color
+      dbg("title bar colour \(c)")
+      return
+    }
+    guard body["type"] as? String == "media" else { return }
     switch body["action"] as? String {
     case "playpause": pressMediaKey(16)  // NX_KEYTYPE_PLAY
     case "next": pressMediaKey(17)  // NX_KEYTYPE_NEXT
     case "previous": pressMediaKey(18)  // NX_KEYTYPE_PREVIOUS
     default: return
     }
+  }
+
+  /// "rgb(15, 17, 23)" / "rgba(…)" → a colour for the title bar.
+  func cssColor(_ s: String) -> NSColor? {
+    let n = s.components(separatedBy: CharacterSet(charactersIn: "0123456789.").inverted)
+      .filter { !$0.isEmpty }.compactMap(Double.init)
+    guard n.count >= 3 else { return nil }
+    if n.count >= 4, n[3] < 0.5 { return nil }  // transparent: keep the current one
+    return NSColor(srgbRed: n[0] / 255, green: n[1] / 255, blue: n[2] / 255, alpha: 1)
+  }
+
+  /// Runs a fetch inside the page (its cookies = the signed-in person) and returns the JSON.
+  func pageJSON(_ path: String, _ done: @escaping ([String: Any]?) -> Void) {
+    guard isOurs(web.url), !showingOffline else { return done(nil) }
+    web.callAsyncJavaScript(
+      "const r = await fetch(p, { cache: 'no-store' }); return r.ok ? await r.text() : null;",
+      arguments: ["p": path], in: nil, in: .page
+    ) { result in
+      guard case .success(let v) = result, let text = v as? String, let data = text.data(using: .utf8),
+        let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      else { return done(nil) }
+      done(obj)
+    }
+  }
+
+  /// The Dock icon shows unread chats + notifications; a new one bounces it once.
+  func refreshBadge() {
+    pageJSON("/api/dm/threads?count") { [weak self] d in
+      guard let self, let d else { return }
+      let n = ((d["unread"] as? Int) ?? 0) + ((d["bell"] as? Int) ?? 0)
+      NSApp.dockTile.badgeLabel = n > 0 ? (n > 99 ? "99+" : String(n)) : nil
+      dbg("dock badge \(n)")
+      if n > self.lastUnread, !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) }
+      self.lastUnread = n
+    }
+  }
+
+  /// The week's timed plans with their alarm on become macOS notifications, so
+  /// they ring even while Röznoma is closed (re-made every 30 minutes).
+  func scheduleAlarms() {
+    pageJSON("/api/roznoma/upcoming") { d in
+      guard let list = d?["alarms"] as? [[String: Any]] else { return }
+      let center = UNUserNotificationCenter.current()
+      center.requestAuthorization(options: [.alert, .sound, .badge]) { ok, _ in
+        guard ok else { return }
+        center.getPendingNotificationRequests { pending in
+          center.removePendingNotificationRequests(
+            withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix("plan:") })
+          let f = DateFormatter()
+          f.locale = Locale(identifier: "en_US_POSIX")
+          f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+          var added = 0
+          for a in list where added < 60 {
+            guard let id = a["id"] as? String, let at = a["at"] as? String, let date = f.date(from: at),
+              date > Date()
+            else { continue }
+            let c = UNMutableNotificationContent()
+            c.title = (a["title"] as? String) ?? "Röznoma"
+            let body = (a["body"] as? String) ?? ""
+            c.body = body.isEmpty ? "Reja vaqti keldi" : body
+            c.sound = .default
+            c.userInfo = ["path": "/plans"]
+            let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            center.add(UNNotificationRequest(
+              identifier: "plan:\(id):\(at)", content: c,
+              trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)))
+            added += 1
+          }
+        }
+      }
+    }
+  }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+    withCompletionHandler done: @escaping (UNNotificationPresentationOptions) -> Void
+  ) { done([.banner, .sound]) }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+    withCompletionHandler done: @escaping () -> Void
+  ) {
+    let path = response.notification.request.content.userInfo["path"] as? String ?? "/plans"
+    DispatchQueue.main.async {
+      if let u = URL(string: path, relativeTo: BASE)?.absoluteURL { self.web.load(URLRequest(url: u)) }
+      self.window.makeKeyAndOrderFront(nil)
+      NSApp.activate(ignoringOtherApps: true)
+    }
+    done()
+  }
+
+  /// A newer version on the site: offered once a day (or when asked from the menu).
+  func checkForUpdate(quiet: Bool) {
+    let day = String(Int(Date().timeIntervalSince1970 / 86_400))
+    if quiet, defaults.string(forKey: "updateAsked") == day { return }
+    URLSession.shared.dataTask(with: BASE.appendingPathComponent("api/app/version")) { data, _, _ in
+      let latest = (try? JSONSerialization.jsonObject(with: data ?? Data()) as? [String: Any])
+        .flatMap { $0["mac"] as? [String: Any] }?["version"] as? String
+      DispatchQueue.main.async {
+        guard let latest, newer(latest, than: APP_VERSION) else {
+          if !quiet { self.alert("Sizda eng yangi versiya", "Röznoma \(APP_VERSION)") }
+          return
+        }
+        defaults.set(day, forKey: "updateAsked")
+        let a = NSAlert()
+        a.messageText = "Röznoma’ning yangi versiyasi chiqdi: \(latest)"
+        a.informativeText = "Yuklab oling, keyin Röznoma’ni «Applications» papkasiga eskisining ustiga suring. Kirgan hisobingiz va saqlangan narsalar joyida qoladi."
+        a.addButton(withTitle: "Yuklab olish")
+        a.addButton(withTitle: "Keyinroq")
+        a.beginSheetModal(for: self.window) { r in
+          if r == .alertFirstButtonReturn {
+            self.web.load(URLRequest(url: BASE.appendingPathComponent("api/download/mac")))
+          }
+        }
+      }
+    }.resume()
+  }
+  @objc func checkForUpdateFromMenu() { checkForUpdate(quiet: false) }
+  @objc func openSettings() {
+    if let u = URL(string: "/settings", relativeTo: BASE) { web.load(URLRequest(url: u.absoluteURL)) }
   }
 
   /// Posts a hardware media key so macOS routes it to the app that is playing.
@@ -392,7 +594,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       return i
     }
     sub("Roznoma", [
-      item("Roznoma haqida", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+      item("Röznoma haqida", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+      item("Yangilanishni tekshirish…", #selector(checkForUpdateFromMenu)),
+      .separator(),
+      item("Sozlamalar…", #selector(openSettings), ","),
       .separator(),
       item("Roznoma’ni yashirish", #selector(NSApplication.hide(_:)), "h"),
       item("Boshqalarni yashirish", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),

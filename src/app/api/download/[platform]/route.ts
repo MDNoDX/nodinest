@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/db";
 import { hitRateLimit } from "@/server/rate-limit";
+import { APPS } from "@/lib/app-versions";
 
 /**
  * The installed apps, kept in the (private) file store under downloads/:
@@ -11,18 +12,13 @@ import { hitRateLimit } from "@/server/rate-limit";
  * answer is a link signed for ten minutes, so the file comes straight from
  * the store (big files never pass through a function).
  */
-const DOWNLOADS = {
-  mac: "downloads/Roznoma-1.2.dmg",
-  windows: "downloads/Roznoma-Setup-1.0.0.exe",
-  android: "downloads/Roznoma-1.0.apk",
-} as const;
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ platform: string }> },
 ) {
   const { platform } = await params;
-  const pathname = DOWNLOADS[platform as keyof typeof DOWNLOADS];
+  const pathname = APPS[platform as keyof typeof APPS]?.file;
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!pathname || !token) return new NextResponse(null, { status: 404 });
   // A few downloads an hour per address: the files are big and the transfer is paid.

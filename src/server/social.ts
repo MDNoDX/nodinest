@@ -49,6 +49,25 @@ export type PublicItem = {
   updatedAt: Date;
 };
 
+/** A liker shown on a post ("Liked by …"): people I follow first. */
+export type LikedBy = { name: string; username: string; image: string | null };
+
+/**
+ * Up to three people who liked post `lr` besides me, those I follow first
+ * (Instagram's "Liked by … and others"), as a JSON array.
+ */
+const likedBy = (ctx: AppContext) => sql`coalesce((
+    select json_agg(json_build_object('name', x.name, 'username', x.username, 'image', x.image))
+    from (
+      select lu.name, lu.username, lu.image
+      from nodinest.post_likes pl
+      join nodinest."user" lu on lu.id = pl.user_id and lu.status = 'active' and lu.username is not null
+      where pl.record_id = lr.id and pl.user_id <> ${ctx.userId}
+      order by exists(select 1 from nodinest.follows ff
+          where ff.follower_id = ${ctx.userId} and ff.followee_id = pl.user_id) desc,
+        pl.created_at desc
+      limit 3) x), '[]'::json) as "likedBy"`;
+
 export async function profileByUsername(ctx: AppContext, username: string) {
   const name = normalizeUsername(username);
   const [u] = await db
@@ -162,6 +181,7 @@ export async function publicItem(ctx: AppContext, username: string, resourceId: 
       liked: boolean;
       comments: number;
       shares: number;
+      likedBy: LikedBy[];
     }
   >(sql`
     select lr.resource_id as "resourceId", r.title, r.type::text as type,
@@ -174,6 +194,7 @@ export async function publicItem(ctx: AppContext, username: string, resourceId: 
         where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
       (select count(*)::int from nodinest.post_comments c
         where c.record_id = lr.id and c.deleted_at is null) as comments,
+      ${likedBy(ctx)},
       (lr.text_public and exists(select 1 from nodinest.book_text_sources s
         where s.user_id = lr.user_id and s.resource_id = lr.resource_id
           and s.status = 'ready')) as "textPublic",
@@ -611,6 +632,7 @@ export type MediaItem = PublicItem & {
   description: string | null;
   mine: boolean;
   shares: number;
+  likedBy: LikedBy[];
 };
 
 /**
@@ -644,6 +666,7 @@ export async function mediaFeed(
         where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
       (select count(*)::int from nodinest.post_comments c
         where c.record_id = lr.id and c.deleted_at is null) as comments,
+      ${likedBy(ctx)},
       exists(select 1 from nodinest.learning_records m
         where m.user_id = ${ctx.userId} and m.resource_id = r.id) as mine
     from nodinest.learning_records lr
@@ -836,8 +859,9 @@ export async function myPostStats(ctx: AppContext, resourceId: string) {
     likes: number;
     liked: boolean;
     comments: number;
+    likedBy: LikedBy[];
   }>(sql`
-    select lr.id as "recordId", lr.shares,
+    select lr.id as "recordId", lr.shares, ${likedBy(ctx)},
       (select count(*)::int from nodinest.post_likes l where l.record_id = lr.id) as likes,
       exists(select 1 from nodinest.post_likes l where l.record_id = lr.id and l.user_id = ${ctx.userId}) as liked,
       (select count(*)::int from nodinest.post_comments c where c.record_id = lr.id and c.deleted_at is null) as comments

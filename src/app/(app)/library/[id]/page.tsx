@@ -370,6 +370,7 @@ export default async function ResourcePage({
                   liked={post.liked}
                   comments={post.comments}
                   shares={post.shares}
+                  likedBy={post.likedBy}
                   openComments={post.comments > 0}
                   share={{
                     resourceId: r.id,

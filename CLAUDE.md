@@ -448,6 +448,14 @@ served via `/api/files/[id]`. PDF text: `unpdf` → `book_pages` (FTS) in `serve
 
 ## Mac app (`apps/mac/`)
 
+App versions people download live in `src/lib/app-versions.ts` (`APPS`: version + Blob file); the
+Mac app reads `/api/app/version` and offers a newer DMG itself (daily, or "Check for updates"). Since
+1.3 it is a program, not a browser window: transparent title bar in the page's colour (PAGE_SCRIPT
+posts `bg`), no Reload / Inspect in the context menu (`AppWebView`), a Dock badge (unread chats +
+bell from `/api/dm/threads?count`), plan alarms as macOS notifications from `/api/roznoma/upcoming`
+(UNUserNotificationCenter, ring while closed), Cmd+, = Settings. Settings → App shows the real
+programs first on computers; the browser's web-app install is only a small link.
+
 Native AppKit + WKWebView wrapper around the production site (`./apps/mac/build.sh` → universal
 `dist/NodiNest.app` + `dist/NodiNest-<ver>.dmg`, ad-hoc signed). Google blocks sign-in inside web
 views, so Google navigations open `ASWebAuthenticationSession` on `/app-login`, which returns

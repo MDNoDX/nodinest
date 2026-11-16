@@ -16,7 +16,7 @@ rm -rf "$APP" && mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 for arch in arm64 x86_64; do
   swiftc -O -swift-version 5 -target "$arch-apple-macos13.0" \
-    -framework AppKit -framework WebKit -framework AuthenticationServices -framework Network \
+    -framework AppKit -framework WebKit -framework AuthenticationServices -framework Network -framework UserNotifications \
     apps/mac/Sources/main.swift -o "$TMP/Roznoma-$arch"
 done
 lipo -create "$TMP/Roznoma-arm64" "$TMP/Roznoma-x86_64" -output "$APP/Contents/MacOS/Roznoma"

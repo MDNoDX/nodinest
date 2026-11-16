@@ -6,6 +6,8 @@ import { setLikeAction } from "@/app/actions/social";
 import { SendTo } from "@/components/chat/send-to";
 import { cn } from "@/lib/cn";
 import { errorToast } from "@/lib/error-toast";
+import { Avatar } from "@/components/ui/avatar";
+import type { LikedBy } from "@/server/social";
 import { Comments } from "./comments";
 import { LikersDialog } from "./likers-dialog";
 
@@ -19,6 +21,7 @@ export function PostActions({
   liked,
   comments,
   shares = 0,
+  likedBy = [],
   share,
   openComments = false,
   children,
@@ -29,6 +32,8 @@ export function PostActions({
   comments: number;
   /** How many times others sent it on. */
   shares?: number;
+  /** Up to three likers besides me, the people I follow first ("Liked by … and others"). */
+  likedBy?: LikedBy[];
   share: { resourceId: string; path: string; title: string };
   /** The post page shows them at once. */
   openComments?: boolean;
@@ -124,6 +129,9 @@ export function PostActions({
         </span>
         <span className="ml-auto flex items-center gap-1">{children}</span>
       </div>
+      {n > 0 && (likedBy.length > 0 || on) && (
+        <LikedLine people={likedBy} total={n} onOpen={() => setShowLikers(true)} />
+      )}
       {open && <Comments recordId={recordId} onCount={setCount} />}
       {showLikers && (
         <LikersDialog
@@ -134,5 +142,53 @@ export function PostActions({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * "Liked by aziza_k and 12 others" with their small faces, the people I
+ * follow first; the whole line opens the full list.
+ */
+function LikedLine({
+  people,
+  total,
+  onOpen,
+}: {
+  people: LikedBy[];
+  total: number;
+  onOpen: () => void;
+}) {
+  const t = useTranslations("media");
+  const first = people[0];
+  // Everyone else, me included when I liked it.
+  const others = Math.max(0, total - (first ? 1 : 0));
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="text-muted hover:text-foreground flex min-w-0 items-center gap-2 self-start px-1 text-left text-[13px]"
+    >
+      {people.length > 0 && (
+        <span className="flex shrink-0 -space-x-1.5">
+          {people.map((p) => (
+            <Avatar
+              key={p.username}
+              name={p.name}
+              image={p.image}
+              className="ring-surface size-5 text-[9px] ring-2"
+            />
+          ))}
+        </span>
+      )}
+      <span className="min-w-0 truncate">
+        {first
+          ? t.rich("likedBy", {
+              name: first.username,
+              others,
+              b: (c) => <b className="text-foreground font-semibold">{c}</b>,
+            })
+          : t("likedByYou")}
+      </span>
+    </button>
   );
 }

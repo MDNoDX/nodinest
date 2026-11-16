@@ -1546,7 +1546,7 @@
     "installed": "Installed — you are using the app window.",
     "mac": "Mac",
     "macChrome": "Chrome or Edge: click the Install icon in the address bar (or ⋮ menu → “Install Röznoma”). It appears in Launchpad and the Dock.",
-    "macSafari": "Safari: File → Add to Dock. It appears in the Dock and Launchpad.",
+    "macSafari": "Or a light web app: Safari → File → Add to Dock.",
     "phone": "iPhone / Android",
     "ios": "iPhone/iPad (Safari): Share → Add to Home Screen.",
     "android": "Android (Chrome): ⋮ menu → Install app, or accept the prompt.",
@@ -1577,7 +1577,7 @@
     "macDownload": "Download for Mac",
     "macStep1": "Open the downloaded .dmg and drag Röznoma into Applications.",
     "macStep2": "If the Mac says it cannot check the app on first launch: System Settings → Privacy & Security → “Open Anyway” at the bottom.",
-    "macStep3": "After that Röznoma opens from Launchpad and the Dock like any app; updates come by themselves.",
+    "macStep3": "Then Röznoma opens from Launchpad and the Dock like any program. When a new version is out, the app tells you itself.",
     "windowsTitle": "Windows app",
     "windowsSize": ".exe · 97 MB",
     "windowsDownload": "Download for Windows",
@@ -1589,7 +1589,12 @@
     "androidDownload": "Download for Android",
     "androidApk1": "Open the downloaded “Roznoma-1.0.apk” file.",
     "androidApk2": "If the phone asks about “unknown sources”: Settings → allow installs from this browser.",
-    "androidApk3": "Tap “Install” — Röznoma appears among your apps and opens without the browser."
+    "androidApk3": "Tap “Install” — Röznoma appears among your apps and opens without the browser.",
+    "webAppNote": "You are in the web app installed through the browser. For the real program, download it below: it runs in its own Mac window, opens without the internet and reminds you of plans even when closed.",
+    "webAppInstead": "Or install a light web app through the browser",
+    "macInstalled": "Mac app installed · version {version}",
+    "macUpdate": "A new version is out: {version}. Download it and drag it into Applications over the old one.",
+    "macLatest": "You have the newest version."
   },
   "offline": {
     "title": "No internet",
@@ -2842,7 +2847,9 @@
     "likesCount": "{count, plural, one {# like} other {# likes}}",
     "reply": "Reply",
     "ownerLiked": "Liked by author",
-    "likeComment": "Like"
+    "likeComment": "Like",
+    "likedBy": "Liked by <b>{name}</b>{others, plural, =0 {} one { and # other} other { and # others}}",
+    "likedByYou": "Liked by you"
   },
   "sectionHint": {
     "close": "Close",

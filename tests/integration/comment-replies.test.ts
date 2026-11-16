@@ -57,6 +57,28 @@ describe("comments like Instagram: likes, who liked, replies", () => {
     expect((await act.likers(a, "post", rec)).map((p) => p.username)).toEqual([b.username]);
   });
 
+  it("people I follow come first among likers and in 'Liked by …'", async () => {
+    const social = await import("@/server/social");
+    const act = await import("@/server/activity");
+    const owner = await person();
+    const me = await person();
+    const friend = await person();
+    const stranger = await person();
+    const rec = await publicPost(owner);
+    await social.setLike(friend, rec, true);
+    await social.setLike(stranger, rec, true); // newer, but not followed
+    await social.setLike(me, rec, true);
+    await social.follow(me, friend.userId, true);
+    const list = await act.likers(me, "post", rec);
+    expect(list[0].username).toBe(friend.username);
+    expect(list[0].isFollowing).toBe(true);
+    const feed = await social.mediaFeed(me);
+    const post = feed.find((i) => i.recordId === rec)!;
+    // Me left out; my friend first.
+    expect(post.likedBy.map((p) => p.username)).toEqual([friend.username, stranger.username]);
+    expect(post.likes).toBe(3);
+  });
+
   it("replies stay one level deep, name whom they answer, and go with their comment", async () => {
     const social = await import("@/server/social");
     const owner = await person();
