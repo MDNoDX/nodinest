@@ -7,6 +7,9 @@ import {
   Flag,
   LineChart,
   Megaphone,
+  MessageCircle,
+  Reply,
+  ThumbsUp,
   Trash2,
   UserCheck,
   UserPlus,
@@ -53,6 +56,10 @@ const ICON: Record<string, typeof UserPlus> = {
   goal_due: Flag,
   weekly: LineChart,
   news: Megaphone,
+  like: ThumbsUp,
+  comment: MessageCircle,
+  reply: Reply,
+  comment_like: ThumbsUp,
 };
 
 /** Requests to answer, then everything else, newest first. */

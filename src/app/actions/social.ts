@@ -1,4 +1,12 @@
 "use server";
+import {
+  likers,
+  myActivity,
+  removeActivity,
+  setCommentLike,
+  type ActivityKind,
+  type ActivityQuery,
+} from "@/server/activity";
 import { revalidatePath } from "next/cache";
 import {
   answerFollowRequest,
@@ -100,11 +108,29 @@ export async function postCommentsAction(recordId: string) {
 export async function addCommentAction(
   recordId: string,
   input: { body?: string; gif?: { id: string; url: string; w: number; h: number } },
+  replyTo?: string | null,
 ) {
   return run(async ({ ctx }) => {
-    await addComment(ctx, recordId, input);
-    return listPostComments(ctx, recordId);
+    const id = await addComment(ctx, recordId, input, replyTo ?? null);
+    return { id, list: await listPostComments(ctx, recordId) };
   });
+}
+
+export async function setCommentLikeAction(commentId: string, on: boolean) {
+  return run(async ({ ctx }) => setCommentLike(ctx, commentId, on === true));
+}
+
+/** Who liked a post or a comment (guests may look at public posts too). */
+export async function likersAction(kind: "post" | "comment", id: string) {
+  return runOpen(async ({ ctx }) => likers(ctx, kind === "comment" ? "comment" : "post", id));
+}
+
+export async function myActivityAction(q: ActivityQuery) {
+  return run(async ({ ctx }) => myActivity(ctx, q));
+}
+
+export async function removeActivityAction(kind: ActivityKind, ids: string[]) {
+  return run(async ({ ctx }) => removeActivity(ctx, kind, ids));
 }
 
 export async function deleteCommentAction(commentId: string) {

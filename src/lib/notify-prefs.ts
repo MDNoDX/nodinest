@@ -44,6 +44,8 @@ export const PREF_OF: Record<string, NotifyKey> = {
   like: "people",
   post: "people",
   comment: "people",
+  reply: "people",
+  comment_like: "people",
   goal_soon: "goals",
   goal_due: "goals",
   weekly: "plans",

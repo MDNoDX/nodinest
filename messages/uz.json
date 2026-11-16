@@ -1129,7 +1129,8 @@
       "privacy": "Maxfiylik va hisob",
       "help": "Qöllanma",
       "security": "Xavfsizlik",
-      "notifications": "Bildirişnomalar"
+      "notifications": "Bildirişnomalar",
+      "activity": "Faolligim"
     },
     "security": {
       "password": "Parol",
@@ -2759,7 +2760,9 @@
       "message": "{name} sizga yozdi",
       "like": "{name} postingizni zör dedi",
       "comment": "{name} postingizga izoh yozdi",
-      "post": "{name} yangi post qöydi"
+      "post": "{name} yangi post qöydi",
+      "reply": "{name} izohingizga javob yozdi",
+      "comment_like": "{name} izohingizni zör dedi"
     },
     "pref": {
       "people": "Odamlar",
@@ -2823,7 +2826,23 @@
     "yourPost": "Postingiz",
     "shares": "Ulaşilgan",
     "takeTitle": "Darsxonangizga olasizmi?",
-    "takeBody": "Faqat kartasi (nomi, muqovasi, mualliflari) sizning Darsxonangizga qöşiladi — uning qaydlari, fayllari va matni emas."
+    "takeBody": "Faqat kartasi (nomi, muqovasi, mualliflari) sizning Darsxonangizga qöşiladi — uning qaydlari, fayllari va matni emas.",
+    "likers": "Zör deganlar",
+    "commentLikers": "Izohni yoqtirganlar",
+    "searchLikers": "Qidiriş",
+    "noMatch": "Heç kim topilmadi",
+    "nobodyLiked": "Hali heç kim yöq",
+    "you": "Siz",
+    "deleteCommentAsk": "Izoh öçirilsinmi?",
+    "deleteThreadAsk": "Izoh öçirilsinmi? Unga yozilgan javoblar ham öçadi.",
+    "viewReplies": "{count} ta javobni köriş",
+    "hideReplies": "Javoblarni yaşiriş",
+    "replyingTo": "@{name} ga javob",
+    "writeReply": "Javob yozing…",
+    "likesCount": "{count} ta zör",
+    "reply": "Javob beriş",
+    "ownerLiked": "Muallif yoqtirdi",
+    "likeComment": "Zör"
   },
   "sectionHint": {
     "close": "Yopiş",
@@ -3091,6 +3110,52 @@
       "month6": "6 oy",
       "yearEnd": "Yil oxiri",
       "year": "1 yil"
+    }
+  },
+  "activity": {
+    "title": "Faolligim",
+    "intro": "Postlarga bosgan «zör»laringiz, izohlaringiz va yoqtirgan izohlaringiz. Birini yoki bir neçtasini belgilab olib taşlaşingiz mumkin.",
+    "tabs": {
+      "likes": "Zör deganlarim",
+      "comments": "Izohlarim",
+      "commentLikes": "Yoqtirgan izohlarim"
+    },
+    "sort": "Tartib",
+    "newest": "Avval yangilari",
+    "oldest": "Avval eskilari",
+    "range": "Sana",
+    "all": "Hamma vaqt",
+    "days": "Oxirgi {count} kun",
+    "custom": "Oraliqni tanlaş",
+    "from": "Qaçondan",
+    "to": "Qaçongaça",
+    "select": "Tanlaş",
+    "cancel": "Bekor qiliş",
+    "selectAll": "Hammasini tanlaş",
+    "selectOne": "Tanlaş",
+    "picked": "{count} ta tanlandi",
+    "more": "Yana körsatiş",
+    "hidden": "post endi yopiq",
+    "replyMark": "javob ·",
+    "do": {
+      "likes": "Zörni qaytariş",
+      "comments": "Öçiriş",
+      "commentLikes": "Zörni qaytariş"
+    },
+    "ask": {
+      "likes": "{count} ta postdan «zör» olib taşlansinmi?",
+      "comments": "{count} ta izoh öçirilsinmi? Ularga yozilgan javoblar ham öçadi.",
+      "commentLikes": "{count} ta izohdan «zör» olib taşlansinmi?"
+    },
+    "done": {
+      "likes": "{count} ta «zör» olib taşlandi",
+      "comments": "{count} ta izoh öçirildi",
+      "commentLikes": "{count} ta «zör» olib taşlandi"
+    },
+    "empty": {
+      "likes": "Siz hali heç bir postga «zör» demagansiz.",
+      "comments": "Siz hali izoh yozmagansiz.",
+      "commentLikes": "Siz hali heç bir izohni yoqtirmagansiz."
     }
   }
 }

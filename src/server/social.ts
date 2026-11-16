@@ -650,7 +650,14 @@ export async function mediaFeed(
     join nodinest.resources r on r.id = lr.resource_id and r.deleted_at is null
     join nodinest."user" u on u.id = lr.user_id and u.status = 'active' and u.username is not null
     where lr.visibility = 'public' and ${canSee(ctx)}
-      ${types ? sql`and r.type::text in (${sql.join(types.map((x) => sql`${x}`), sql`, `)})` : sql``}
+      ${
+        types
+          ? sql`and r.type::text in (${sql.join(
+              types.map((x) => sql`${x}`),
+              sql`, `,
+            )})`
+          : sql``
+      }
       ${
         followed
           ? sql`and exists(select 1 from nodinest.follows f
@@ -768,7 +775,7 @@ export async function sharedTextOwner(ctx: AppContext, ownerId: string, resource
 // ─── Likes and comments on public posts ─────────────────────────────────────
 
 /** A public post I may see: its owner and title, or NOT_FOUND. */
-async function visiblePost(ctx: AppContext, recordId: string) {
+export async function visiblePost(ctx: AppContext, recordId: string) {
   const id = z.string().uuid().parse(recordId);
   const [p] = await db.execute<{
     ownerId: string;
@@ -848,6 +855,14 @@ export type PostComment = {
   /** I may remove it (mine, or on my post). */
   canDelete: boolean;
   author: { id: string; name: string; username: string; image: string | null };
+  /** A reply: the top comment of its thread. */
+  parentId: string | null;
+  /** Whom a reply answers ("@username"), when it is not the thread's own writer. */
+  replyTo: { id: string; name: string; username: string } | null;
+  likes: number;
+  liked: boolean;
+  /** The post's owner liked it (shown like Instagram's "liked by the author"). */
+  ownerLiked: boolean;
 };
 
 export async function postComments_(ctx: AppContext, recordId: string): Promise<PostComment[]> {
@@ -861,14 +876,29 @@ export async function postComments_(ctx: AppContext, recordId: string): Promise<
     name: string;
     username: string | null;
     image: string | null;
+    parentId: string | null;
+    replyUserId: string | null;
+    replyName: string | null;
+    replyUsername: string | null;
+    likes: number;
+    liked: boolean;
+    ownerLiked: boolean;
   }>(sql`
     select c.id, c.body, c.gif, c.created_at as "createdAt", c.user_id as "userId",
-      u.name, u.username, u.image
+      u.name, u.username, u.image, c.parent_id as "parentId",
+      ru.id as "replyUserId", ru.name as "replyName", ru.username as "replyUsername",
+      (select count(*)::int from nodinest.comment_likes l where l.comment_id = c.id) as likes,
+      exists(select 1 from nodinest.comment_likes l
+        where l.comment_id = c.id and l.user_id = ${ctx.userId}) as liked,
+      exists(select 1 from nodinest.comment_likes l
+        where l.comment_id = c.id and l.user_id = ${p.ownerId}) as "ownerLiked"
     from nodinest.post_comments c
     join nodinest."user" u on u.id = c.user_id and u.status = 'active'
+    left join nodinest.post_comments rc on rc.id = c.reply_to_id and rc.parent_id is not null
+    left join nodinest."user" ru on ru.id = rc.user_id
     where c.record_id = ${p.id} and c.deleted_at is null
     order by c.created_at
-    limit 300`);
+    limit 600`);
   return rows.map((r) => ({
     id: r.id,
     body: r.body,
@@ -877,6 +907,14 @@ export async function postComments_(ctx: AppContext, recordId: string): Promise<
     mine: r.userId === ctx.userId,
     canDelete: r.userId === ctx.userId || p.ownerId === ctx.userId,
     author: { id: r.userId, name: r.name, username: r.username ?? "", image: r.image },
+    parentId: r.parentId,
+    replyTo:
+      r.replyUserId && r.replyUserId !== r.userId
+        ? { id: r.replyUserId, name: r.replyName ?? "", username: r.replyUsername ?? "" }
+        : null,
+    likes: Number(r.likes),
+    liked: !!r.liked,
+    ownerLiked: !!r.ownerLiked,
   }));
 }
 export { postComments_ as listPostComments };
@@ -900,10 +938,34 @@ const commentInput = z
   })
   .refine((v) => !!(v.body || v.gif), { message: "empty" });
 
-export async function addComment(ctx: AppContext, recordId: string, raw: unknown) {
+/** A comment's place on its post (the comment list opens there). */
+export const commentHref = (p: { username: string; resourceId: string }, commentId: string) =>
+  `/u/${p.username}/item/${p.resourceId}?c=${commentId}`;
+
+export async function addComment(
+  ctx: AppContext,
+  recordId: string,
+  raw: unknown,
+  replyToId?: string | null,
+) {
   const v = commentInput.parse(raw);
   if (moderationIssue(v.body ?? null)) throw new AppError("INDECENT");
   const p = await visiblePost(ctx, recordId);
+  // A reply joins the thread of the comment it answers (one level, like Instagram).
+  let answered: { id: string; userId: string; parentId: string | null } | undefined;
+  if (replyToId) {
+    [answered] = await db
+      .select({ id: postComments.id, userId: postComments.userId, parentId: postComments.parentId })
+      .from(postComments)
+      .where(
+        and(
+          eq(postComments.id, z.string().uuid().parse(replyToId)),
+          eq(postComments.recordId, p.id),
+          isNull(postComments.deletedAt),
+        ),
+      );
+    if (!answered) throw new AppError("NOT_FOUND");
+  }
   await enforceRateLimit(db, `comment:${ctx.userId}`, 30, 600);
   const [row] = await withUser(db, ctx, (tx) =>
     tx
@@ -913,26 +975,36 @@ export async function addComment(ctx: AppContext, recordId: string, raw: unknown
         userId: ctx.userId,
         body: v.body || null,
         gif: v.gif ? { id: v.gif.id, url: v.gif.url, w: v.gif.w, h: v.gif.h } : null,
+        parentId: answered ? (answered.parentId ?? answered.id) : null,
+        replyToId: answered?.id ?? null,
       })
       .returning({ id: postComments.id }),
   );
-  if (p.ownerId !== ctx.userId)
-    await notify(p.ownerId, "comment", {
-      actorId: ctx.userId,
-      body: v.body ? v.body.slice(0, 120) : p.title,
-      href: `/u/${p.username}/item/${p.resourceId}`,
-    }).catch(() => null);
+  const href = commentHref(p, row.id);
+  const body = v.body ? v.body.slice(0, 120) : p.title;
+  if (answered && answered.userId !== ctx.userId)
+    await notify(answered.userId, "reply", { actorId: ctx.userId, body, href }).catch(() => null);
+  if (p.ownerId !== ctx.userId && p.ownerId !== answered?.userId)
+    await notify(p.ownerId, "comment", { actorId: ctx.userId, body, href }).catch(() => null);
   return row.id;
 }
 
+/** Removes a comment (its writer or the post's owner); a top comment takes its replies along. */
 export async function deleteComment(ctx: AppContext, commentId: string) {
   const id = z.string().uuid().parse(commentId);
+  const now = new Date();
   const done = await withUser(db, ctx, (tx) =>
     tx
       .update(postComments)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: now })
       .where(and(eq(postComments.id, id), isNull(postComments.deletedAt)))
-      .returning({ id: postComments.id }),
+      .returning({ id: postComments.id, parentId: postComments.parentId }),
   );
   if (!done.length) throw new AppError("NOT_FOUND");
+  // Already authorised above (RLS let this person remove the top comment).
+  if (!done[0].parentId)
+    await db
+      .update(postComments)
+      .set({ deletedAt: now })
+      .where(and(eq(postComments.parentId, id), isNull(postComments.deletedAt)));
 }

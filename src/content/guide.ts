@@ -287,6 +287,10 @@ const uz: GuideSection[] = [
         text: "Media ikki qismdan iborat: «Umumiy» — hamma oçiq qilgan manbalar (qidirmasangiz ham çiqadi), «Kuzatayotganlarim» — faqat siz kuzatadigan odamlarniki. Yoqqan manbani özingizga olasiz yoki «Yuboriş» bilan birovga jönatasiz. Bildirişnomalar qöğiröqçada, turlarini va Telegram botni Sozlamalarda boşqarasiz.",
       },
       {
+        title: "Izohlar, javoblar va «Faolligim»",
+        text: "Postdagi har bir izohga 👍 bosasiz (ikki marta bossangiz ham böladi), sonini bossangiz kimlar bosgani çiqadi — u yerdan kuzatiş ham mumkin. «Javob beriş» izoh ostiga yoziladi, javoblar «… ta javobni köriş» ostida yiğiladi. Sozlamalar → Faolligim’da zör degan postlaringiz, izohlaringiz va yoqtirgan izohlaringiz turadi: tartib va sana bilan saralaysiz, bittasini yoki «Tanlaş» bilan bir nechtasini olib taşlaysiz.",
+      },
+      {
         title: "Darslikni oçiq qiliş",
         text: "Kitob sahifasida «Yopiq / Oçiq» tugmasi bor. Oçiq darslik profilingizda va Mediada nomi, holati va bahosi bilan körinadi. Oçayotganda taqrizingiz va tayyor audiokitob ham körinsinmi, deb söraydi: belgilamasangiz, ular yopiq qoladi. Qaydlar va fayllar hech qaçon körinmaydi.",
       },
@@ -650,6 +654,10 @@ const en: GuideSection[] = [
       {
         title: "Media and notifications",
         text: "Media has two parts: “Everyone” — what anyone makes public (it shows without searching) — and “Following” — only the people you follow. Take a source you like or “Send” it to someone. Notifications are under the bell; choose the kinds and link the Telegram bot in Settings.",
+      },
+      {
+        title: "Comments, replies and My activity",
+        text: "Like any comment on a post with 👍 (a double tap works too); tap the number to see who liked it and follow them from there. “Reply” writes under a comment, and replies gather under “View replies”. Settings → My activity holds the posts you liked, your comments and the comments you liked: sort them, pick dates, and remove one or several at once with “Select”.",
       },
       {
         title: "Making a lesson public",

@@ -19,22 +19,26 @@ export function Avatar({
   image?: string | null;
   className?: string;
 }) {
-  return image ? (
-    <img
-      src={image}
-      alt=""
-      referrerPolicy="no-referrer"
-      className={cn("size-8 shrink-0 rounded-full object-cover", className)}
-    />
-  ) : (
+  // The initials sit under the picture: a picture that fails to load (an old
+  // Google link, a removed file) leaves them showing instead of an empty hole.
+  return (
     <span
       aria-hidden
       className={cn(
-        "bg-primary-soft text-primary grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold",
+        "bg-primary-soft text-primary relative grid size-8 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold",
         className,
       )}
     >
       {initials(name) || "?"}
+      {image && (
+        <img
+          src={image}
+          alt=""
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          className="absolute inset-0 size-full rounded-full object-cover"
+        />
+      )}
     </span>
   );
 }

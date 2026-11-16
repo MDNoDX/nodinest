@@ -367,6 +367,13 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   barge-in in the live talk triggers on normal speech (`BARGE_LEVEL` 0.12).
 - Resource types people pick: five (`MAIN_TYPES`: book, course = "Darslik", article (files too, may
   carry a PDF), video, podcast). `file` / `other` stay for old rows; filters fold relatives together.
+- Comments like Instagram (0054): `post_comments.parent_id` (thread top, one level) + `reply_to_id`
+  (a reply to a reply shows "@writer"), `comment_likes` (👍, double tap; the owner's like shows),
+  `likers(kind, id)` → `media-feed/likers-dialog.tsx` (the post's like number opens it too). Removing
+  a top comment soft-deletes its replies. Links to a comment are `?c=<id>` (opens the thread, lights it).
+  Notifications `reply` / `comment_like`. Settings → "My activity" (`server/activity.ts`,
+  `settings/activity-panel.tsx`): liked posts, my comments, liked comments; sort, date range, select
+  mode and bulk removal of only my own rows.
 - Posts count sends (`learning_records.shares`, 0052, `countShare`, from SendTo); my own public item
   shows its 👍 / comments / shares in Darsxona (`myPostStats`).
 - Desktop apps: `/api/download/mac|windows` redirects to a 10-minute signed link in the private Blob

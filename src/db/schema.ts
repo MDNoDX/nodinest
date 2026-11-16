@@ -1640,6 +1640,7 @@ export const postLikes = nodinest.table(
   (t) => [
     primaryKey({ columns: [t.recordId, t.userId] }),
     index("post_likes_user_idx").on(t.userId),
+    index("post_likes_user_time_idx").on(t.userId, t.createdAt),
   ],
 );
 
@@ -1656,12 +1657,40 @@ export const postComments = nodinest.table(
       .references(() => user.id, { onDelete: "cascade" }),
     body: text("body"),
     gif: jsonb("gif"),
+    /** A reply: the top comment of its thread (replies are one level deep, like Instagram). */
+    parentId: uuid("parent_id").references((): AnyPgColumn => postComments.id, {
+      onDelete: "cascade",
+    }),
+    /** The comment answered (a reply to a reply names its writer). */
+    replyToId: uuid("reply_to_id").references((): AnyPgColumn => postComments.id, {
+      onDelete: "set null",
+    }),
     createdAt: createdAt(),
     deletedAt: ts("deleted_at"),
   },
   (t) => [
     index("post_comments_record_idx").on(t.recordId, t.createdAt),
+    index("post_comments_parent_idx").on(t.parentId),
+    index("post_comments_user_idx").on(t.userId, t.createdAt),
     check("post_comments_body_len", sql`char_length(${t.body}) <= 1000`),
+  ],
+);
+
+/** 👍 on a comment (or a reply): one per person. */
+export const commentLikes = nodinest.table(
+  "comment_likes",
+  {
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => postComments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.commentId, t.userId] }),
+    index("comment_likes_user_idx").on(t.userId, t.createdAt),
   ],
 );
 

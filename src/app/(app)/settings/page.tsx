@@ -1,4 +1,5 @@
 import {
+  Activity,
   AppWindow,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +20,9 @@ import {
 import { ShortcutsSettings } from "@/components/settings/shortcuts";
 import { InstallApp } from "@/components/pwa/install-app";
 import { OfflineSettings } from "@/components/settings/offline-settings";
+import { ActivityPanel } from "@/components/settings/activity-panel";
+import { myActivity } from "@/server/activity";
+import { dayKey } from "@/lib/dates";
 import { getTranslations } from "next-intl/server";
 import { EditProfile } from "@/components/profile/edit-profile";
 import { AppearanceForm } from "@/components/settings/settings-forms";
@@ -59,6 +63,7 @@ const TABS = [
   ["premium", null],
   ["security", ShieldCheck],
   ["notifications", Bell],
+  ["activity", Activity],
   ["look", Palette],
   ["menu", ListOrdered],
   ["keys", Keyboard],
@@ -147,6 +152,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: SP 
             </Card>
           )}
           {tab === "premium" && <PremiumPanel ctx={ctx} user={user} />}
+          {tab === "activity" && (
+            <Card id="activity">
+              <CardHeader title={t("activity.title")} icon={<Activity />} hue="rose" />
+              <div className="px-5 pb-5">
+                <ActivityPanel
+                  initial={await myActivity(ctx, { kind: "likes" })}
+                  today={dayKey(new Date(), tz)}
+                />
+              </div>
+            </Card>
+          )}
           {tab === "notifications" && (
             <section className="card p-5 sm:p-6">
               <NotificationSettings

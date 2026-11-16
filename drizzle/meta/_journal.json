@@ -379,6 +379,13 @@
       "when": 1794165417353,
       "tag": "0053_chat_pins",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794847129148,
+      "tag": "0054_comment_likes",
+      "breakpoints": true
     }
   ]
 }

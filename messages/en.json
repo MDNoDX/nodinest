@@ -1129,7 +1129,8 @@
       "privacy": "Privacy & account",
       "help": "Guide",
       "security": "Security",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "activity": "My activity"
     },
     "security": {
       "password": "Password",
@@ -2759,7 +2760,9 @@
       "message": "{name} wrote to you",
       "like": "{name} found your post great",
       "comment": "{name} commented on your post",
-      "post": "{name} posted something new"
+      "post": "{name} posted something new",
+      "reply": "{name} replied to your comment",
+      "comment_like": "{name} liked your comment"
     },
     "pref": {
       "people": "People",
@@ -2823,7 +2826,23 @@
     "yourPost": "Your post",
     "shares": "Shared",
     "takeTitle": "Add it to your Darsxona?",
-    "takeBody": "Only its card (title, cover, authors) is added to your Darsxona — not their notes, files or text."
+    "takeBody": "Only its card (title, cover, authors) is added to your Darsxona — not their notes, files or text.",
+    "likers": "Liked by",
+    "commentLikers": "Comment liked by",
+    "searchLikers": "Search",
+    "noMatch": "No one found",
+    "nobodyLiked": "No one yet",
+    "you": "You",
+    "deleteCommentAsk": "Delete this comment?",
+    "deleteThreadAsk": "Delete this comment? Its replies will be deleted too.",
+    "viewReplies": "{count, plural, one {View # reply} other {View # replies}}",
+    "hideReplies": "Hide replies",
+    "replyingTo": "Replying to @{name}",
+    "writeReply": "Write a reply…",
+    "likesCount": "{count, plural, one {# like} other {# likes}}",
+    "reply": "Reply",
+    "ownerLiked": "Liked by author",
+    "likeComment": "Like"
   },
   "sectionHint": {
     "close": "Close",
@@ -3091,6 +3110,52 @@
       "month6": "6 months",
       "yearEnd": "Year end",
       "year": "1 year"
+    }
+  },
+  "activity": {
+    "title": "My activity",
+    "intro": "The posts you liked, your comments and the comments you liked. Remove one, or select several at once.",
+    "tabs": {
+      "likes": "Likes",
+      "comments": "Comments",
+      "commentLikes": "Liked comments"
+    },
+    "sort": "Order",
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "range": "Date",
+    "all": "All time",
+    "days": "Last {count} days",
+    "custom": "Pick a range",
+    "from": "From",
+    "to": "To",
+    "select": "Select",
+    "cancel": "Cancel",
+    "selectAll": "Select all",
+    "selectOne": "Select",
+    "picked": "{count} selected",
+    "more": "Show more",
+    "hidden": "post is no longer public",
+    "replyMark": "reply ·",
+    "do": {
+      "likes": "Unlike",
+      "comments": "Delete",
+      "commentLikes": "Unlike"
+    },
+    "ask": {
+      "likes": "Remove your like from {count, plural, one {# post} other {# posts}}?",
+      "comments": "Delete {count, plural, one {# comment} other {# comments}}? Their replies will be deleted too.",
+      "commentLikes": "Remove your like from {count, plural, one {# comment} other {# comments}}?"
+    },
+    "done": {
+      "likes": "{count, plural, one {# like removed} other {# likes removed}}",
+      "comments": "{count, plural, one {# comment deleted} other {# comments deleted}}",
+      "commentLikes": "{count, plural, one {# like removed} other {# likes removed}}"
+    },
+    "empty": {
+      "likes": "You haven’t liked any post yet.",
+      "comments": "You haven’t written any comment yet.",
+      "commentLikes": "You haven’t liked any comment yet."
     }
   }
 }
