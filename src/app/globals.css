@@ -679,14 +679,31 @@ select:not([multiple])::-ms-expand {
 .cover-book {
   container-type: inline-size;
 }
+/* The shadow the book casts on the shelf, softest at its far end. */
+.cover-book::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 6%;
+  right: -10%;
+  bottom: -5%;
+  height: 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0.12) 60%, transparent);
+  filter: blur(5px);
+  pointer-events: none;
+}
 .cover-3d {
   --depth: clamp(16px, 20cqw, 54px);
   transform-style: preserve-3d; /* a filter here would flatten the book */
   transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
   /* Always a little turned: the page block is seen before and during hover. */
-  transform: perspective(1400px) rotateY(-22deg) translateX(calc(var(--depth) * -0.4));
+  transform: perspective(1400px) rotateY(-26deg) translateX(calc(var(--depth) * -0.4));
 }
 .cover-3d .cover-face {
+  /* Always in front of everything else of the book, the whole cover turns as one. */
+  transform: translateZ(0.5px);
+  backface-visibility: hidden;
   box-shadow:
     inset 4px 0 6px -3px rgb(255 255 255 / 0.25),
     inset 10px 0 12px -8px rgb(0 0 0 / 0.35),
@@ -704,12 +721,16 @@ select:not([multiple])::-ms-expand {
 }
 .cover-3d .cover-pages {
   position: absolute;
-  top: 1.1%;
-  bottom: 1.1%;
-  right: 1px;
+  /* The boards stand a little beyond the pages (a hardcover's "squares"). */
+  top: 1.6%;
+  bottom: 1.6%;
+  right: 2%;
   width: var(--depth);
   transform-origin: right center;
-  transform: rotateY(90deg);
+  /* Folded back from the cover's right edge (rotateY(+90deg) would fold it
+     forward, over the cover, and hide its right side as the book turns), and
+     half a pixel behind so the browser never draws it over the cover. */
+  transform: translateZ(-0.5px) rotateY(-90deg);
   border-radius: 0 2px 2px 0;
   background:
     linear-gradient(
@@ -731,13 +752,22 @@ select:not([multiple])::-ms-expand {
 }
 .cover-3d .cover-back {
   position: absolute;
+  /* A hardcover's boards stand a little beyond the pages. */
   inset: 0;
+  overflow: hidden;
   border-radius: 2px 4px 4px 2px;
-  background: color-mix(in oklab, var(--hue, #333) 35%, #15141a);
-  transform: translateZ(calc(var(--depth) * -1));
+  background: var(--color-surface-2, #222);
+  /* A pixel past the pages' far edge: touching, the browser may draw the
+     back board over the pages. */
+  transform: translateZ(calc(var(--depth) * -1 - 1px));
   box-shadow:
     calc(var(--depth) * 0.9) 18px 30px -8px rgb(0 0 0 / 0.55),
     2px 4px 8px rgb(0 0 0 / 0.25);
+}
+.cover-3d .cover-back-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.32));
 }
 .cover-3d .cover-glare {
   position: absolute;
@@ -756,7 +786,7 @@ select:not([multiple])::-ms-expand {
 .group:hover .cover-3d,
 .cover-3d:hover,
 a:focus-visible .cover-3d {
-  transform: perspective(1400px) rotateY(-32deg) translateX(calc(var(--depth) * -0.55))
+  transform: perspective(1400px) rotateY(-36deg) translateX(calc(var(--depth) * -0.55))
     translateY(-4px);
 }
 .group:hover .cover-3d .cover-glare,
@@ -912,7 +942,7 @@ a:focus-visible .cover-3d {
   }
   .group:hover .cover-3d,
   .cover-3d:hover {
-    transform: perspective(1400px) rotateY(-22deg) translateX(calc(var(--depth) * -0.4));
+    transform: perspective(1400px) rotateY(-26deg) translateX(calc(var(--depth) * -0.4));
   }
 }
 

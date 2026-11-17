@@ -84,7 +84,11 @@ export function Cover({
             <span aria-hidden className="cover-glare" />
           </div>
           <span aria-hidden className="cover-pages" />
-          <span aria-hidden className="cover-back" />
+          {/* The back board is the same cover (a hardcover's boards match), in shade. */}
+          <span aria-hidden className="cover-back">
+            {face}
+            <span className="cover-back-shade" />
+          </span>
         </div>
       </div>
     );
