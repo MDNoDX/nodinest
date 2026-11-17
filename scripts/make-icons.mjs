@@ -9,10 +9,10 @@ const inner = svg
   .replace(/^<svg[^>]*>/, "")
   .replace("</svg>", "")
   .replace(/<title>.*?<\/title>/, "")
-  .replace('<rect width="48" height="48" rx="11" fill="url(#g)"/>', "");
+  .replace('<rect width="48" height="48" rx="11" fill="url(#rz-bg)"/>', "");
 const defs = inner.match(/<defs>.*?<\/defs>/)[0];
 const marks = inner.replace(defs, "");
-const fullBleed = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${defs}<rect width="48" height="48" fill="url(#g)"/><g transform="translate(24 24) scale(0.78) translate(-24 -24)">${marks}</g></svg>`;
+const fullBleed = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${defs}<rect width="48" height="48" fill="url(#rz-bg)"/><g transform="translate(24 24) scale(0.78) translate(-24 -24)">${marks}</g></svg>`;
 
 /** macOS icon grid: the rounded square sits inside 824/1024 with a soft shadow. */
 function macIcon() {
@@ -29,7 +29,7 @@ const out = [
   ["public/icons/maskable-512.png", fullBleed, 512],
   ["public/icons/apple-touch-icon.png", fullBleed, 180],
   // macOS app icon source (mac/build.sh turns it into AppIcon.icns).
-  ["mac/icon-1024.png", macIcon(), 1024],
+  ["apps/mac/icon-1024.png", macIcon(), 1024],
 ];
 for (const [file, src, size] of out) {
   await sharp(Buffer.from(src), { density: 512 }).resize(size, size).png().toFile(file);

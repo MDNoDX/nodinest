@@ -66,17 +66,26 @@ export function Cover({
           : "w-full aspect-video";
   const typo = <TypoCover type={type} title={title} author={author} size={size} Icon={Icon} />;
   // A picture that cannot be loaded turns into the title cover (never a broken image).
-  const face = src ? <CoverPicture src={src} fallback={typo} /> : typo;
+  const face = src ? (
+    <CoverPicture src={src} fallback={typo} sizes={size === "lg" ? "320px" : undefined} />
+  ) : (
+    typo
+  );
   // Books and courses: a little 3D book (it turns on hover and shows its pages).
+  // The outer box measures the book (its page block is as thick as a real
+  // bestseller: a share of the width); the inner one turns in 3D.
   if (portrait && size !== "sm")
     return (
-      <div className={cn("cover-3d relative shrink-0", dims, className)} style={typeHue(type)}>
-        <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[2px_3px_3px_2px]">
-          {face}
-          <span aria-hidden className="cover-glare" />
+      <div className={cn("cover-book relative shrink-0", dims, className)} style={typeHue(type)}>
+        <div className="cover-3d absolute inset-0">
+          <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[2px_4px_4px_2px]">
+            {face}
+            <span aria-hidden className="cover-hinge" />
+            <span aria-hidden className="cover-glare" />
+          </div>
+          <span aria-hidden className="cover-pages" />
+          <span aria-hidden className="cover-back" />
         </div>
-        <span aria-hidden className="cover-pages" />
-        <span aria-hidden className="cover-back" />
       </div>
     );
   // Audio: a vinyl record half out of its sleeve, in a 16:9 frame like videos,
@@ -146,13 +155,26 @@ export function Cover({
     >
       {face}
       {motion === "cover-video" && (
-        <span aria-hidden className="cover-play absolute inset-0 grid place-items-center">
-          <span className="grid size-12 place-items-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm">
-            <svg viewBox="0 0 24 24" className="ml-0.5 size-5 fill-current">
+        <>
+          {/* A screen: the picture dims a little, a play button with a pulse comes
+              forward and a progress line runs along the bottom, as if it played. */}
+          <span aria-hidden className="cover-shade absolute inset-0" />
+          <span aria-hidden className="cover-mark absolute bottom-2 left-2">
+            <svg viewBox="0 0 24 24" className="ml-px size-3 fill-current">
               <path d="M8 5.5v13l10.5-6.5z" />
             </svg>
           </span>
-        </span>
+          <span aria-hidden className="cover-play absolute inset-0 grid place-items-center">
+            <span className="cover-play-btn grid size-12 place-items-center rounded-full text-white">
+              <svg viewBox="0 0 24 24" className="ml-0.5 size-5 fill-current">
+                <path d="M8 5.5v13l10.5-6.5z" />
+              </svg>
+            </span>
+          </span>
+          <span aria-hidden className="cover-progress absolute inset-x-0 bottom-0 h-[3px]">
+            <span className="block h-full" />
+          </span>
+        </>
       )}
       {motion === "cover-audio" && (
         <span

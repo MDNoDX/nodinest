@@ -1,9 +1,10 @@
 import { cn } from "@/lib/cn";
 
 /**
- * Röznoma symbol: a spiral notebook (cover, rings, ruled lines) with a gold
- * bookmark ribbon and a pencil — "write anything down". Inline SVG, themed
- * through CSS variables so it works in light and dark mode.
+ * Röznoma symbol: a golden sun rising behind an open book — "röz" (the day)
+ * and "noma" (the book): something learned and written every day. The same
+ * drawing as the app icon (public/nodinest-icon.svg, src/app/icon.svg; PNGs by
+ * scripts/make-icons.mjs), on its own indigo tile so it reads in both themes.
  */
 export function LogoSymbol({
   className,
@@ -14,23 +15,50 @@ export function LogoSymbol({
 }) {
   return (
     <svg viewBox="0 0 48 48" role="img" aria-label={title} className={cn("shrink-0", className)}>
-      <rect x="12.5" y="9" width="20.5" height="30" rx="3.2" fill="var(--primary)" />
-      <path d="M27.2 9V17.2L29.2 15.6L31.2 17.2V9Z" fill="#E2A93B" />
-      <g fill="var(--foreground)">
-        <rect x="10.4" y="13.6" width="5" height="2.4" rx="1.2" />
-        <rect x="10.4" y="20.6" width="5" height="2.4" rx="1.2" />
-        <rect x="10.4" y="27.6" width="5" height="2.4" rx="1.2" />
+      <defs>
+        <linearGradient id="rz-bg" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="#5B4BF5" />
+          <stop offset="0.55" stopColor="#3B2FC4" />
+          <stop offset="1" stopColor="#1E1A5E" />
+        </linearGradient>
+        <radialGradient id="rz-sun" cx="0.5" cy="0.35" r="0.75">
+          <stop offset="0" stopColor="#FFE9A3" />
+          <stop offset="0.55" stopColor="#FBBF24" />
+          <stop offset="1" stopColor="#F08A0B" />
+        </radialGradient>
+        <linearGradient id="rz-page" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#E9E6FF" />
+        </linearGradient>
+        <radialGradient id="rz-glow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#FBBF24" stopOpacity="0.45" />
+          <stop offset="1" stopColor="#FBBF24" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="48" height="48" rx="11" fill="url(#rz-bg)" />
+      <circle cx="24" cy="24.5" r="15" fill="url(#rz-glow)" />
+      <g stroke="#FCD34D" strokeWidth="2" strokeLinecap="round">
+        <path d="M24 9.6V12.4" />
+        <path d="M14.2 13.7L16.1 15.6" />
+        <path d="M33.8 13.7L31.9 15.6" />
+        <path d="M10.3 22.4H13" />
+        <path d="M37.7 22.4H35" />
       </g>
-      <g stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="1.7" strokeLinecap="round">
-        <path d="M18 21.8H28.6" />
-        <path d="M18 26.4H28.6" />
-        <path d="M18 31H24.4" />
-      </g>
-      <g transform="rotate(45 34 31)">
-        <rect x="31.6" y="20.6" width="4.8" height="15" rx="1.2" fill="#E2A93B" />
-        <path d="M31.6 35.6H36.4L34 40.2Z" fill="#F3DDAA" />
-        <path d="M33.3 38.8H34.7L34 40.2Z" fill="var(--foreground)" />
-        <rect x="31.6" y="20.6" width="4.8" height="2.6" rx="1.2" fill="#EF8FA6" />
+      <circle cx="24" cy="24.5" r="7.6" fill="url(#rz-sun)" />
+      <path
+        d="M24 37.6C20.1 34.6 14.9 33.9 9.6 35.2V26.6C14.9 25.3 20.1 26 24 29Z"
+        fill="url(#rz-page)"
+      />
+      <path
+        d="M24 37.6C27.9 34.6 33.1 33.9 38.4 35.2V26.6C33.1 25.3 27.9 26 24 29Z"
+        fill="url(#rz-page)"
+      />
+      <path d="M24 29V37.6" stroke="#B9B3F0" strokeWidth="0.9" />
+      <g stroke="#8F86E6" strokeOpacity="0.55" strokeWidth="0.9" strokeLinecap="round" fill="none">
+        <path d="M12.4 29.4C15.6 28.8 18.6 29.1 21.2 30.3" />
+        <path d="M12.4 32.4C15.6 31.8 18.6 32.1 21.2 33.3" />
+        <path d="M35.6 29.4C32.4 28.8 29.4 29.1 26.8 30.3" />
+        <path d="M35.6 32.4C32.4 31.8 29.4 32.1 26.8 33.3" />
       </g>
     </svg>
   );

@@ -5,7 +5,7 @@
  * and offers the update itself.
  */
 export const APPS = {
-  mac: { version: "1.3", file: "downloads/Roznoma-1.3.dmg" },
+  mac: { version: "1.4", file: "downloads/Roznoma-1.4.dmg" },
   windows: { version: "1.0.0", file: "downloads/Roznoma-Setup-1.0.0.exe" },
   android: { version: "1.0", file: "downloads/Roznoma-1.0.apk" },
 } as const;

@@ -674,38 +674,70 @@ select:not([multiple])::-ms-expand {
 }
 /* ── Covers that come alive on hover (lib: components/library/cover.tsx) ── */
 /* Books: the cover turns a little and its page edges show, like a real book. */
+/* Books & courses: a hardcover seen a little from the side. The page block
+   is a share of the width (a thick bestseller, not a pamphlet). */
+.cover-book {
+  container-type: inline-size;
+}
 .cover-3d {
-  --depth: 16px;
+  --depth: clamp(16px, 20cqw, 54px);
   transform-style: preserve-3d; /* a filter here would flatten the book */
-  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
-  will-change: transform;
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
   /* Always a little turned: the page block is seen before and during hover. */
-  transform: perspective(1500px) rotateY(-15deg) scale(0.96);
+  transform: perspective(1400px) rotateY(-22deg) translateX(calc(var(--depth) * -0.4));
 }
 .cover-3d .cover-face {
   box-shadow:
-    inset 5px 0 7px -3px rgb(255 255 255 / 0.22),
-    inset 12px 0 10px -8px rgb(0 0 0 / 0.35);
+    inset 4px 0 6px -3px rgb(255 255 255 / 0.25),
+    inset 10px 0 12px -8px rgb(0 0 0 / 0.35),
+    inset -1px 0 0 rgb(0 0 0 / 0.25);
+}
+/* The groove where a hardcover bends. */
+.cover-3d .cover-hinge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4.5%;
+  width: 3px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.22), rgb(255 255 255 / 0.2), transparent);
 }
 .cover-3d .cover-pages {
   position: absolute;
-  top: 0.6%;
-  bottom: 0.6%;
-  right: 0;
+  top: 1.1%;
+  bottom: 1.1%;
+  right: 1px;
   width: var(--depth);
   transform-origin: right center;
   transform: rotateY(90deg);
+  border-radius: 0 2px 2px 0;
   background:
-    linear-gradient(90deg, rgb(0 0 0 / 0.22), transparent 30%, rgb(0 0 0 / 0.08)),
-    repeating-linear-gradient(90deg, #fbf8f0 0 1.5px, #d9d0bc 1.5px 3px);
+    linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.3),
+      rgb(0 0 0 / 0.06) 14%,
+      transparent 45%,
+      rgb(0 0 0 / 0.05) 85%,
+      rgb(0 0 0 / 0.2)
+    ),
+    linear-gradient(180deg, rgb(0 0 0 / 0.12), transparent 6%, transparent 94%, rgb(0 0 0 / 0.14)),
+    repeating-linear-gradient(
+      90deg,
+      #fdfaf3 0 0.8px,
+      #ebe2cf 0.8px 1.4px,
+      #faf6ec 1.4px 2.2px,
+      #d8ccb4 2.2px 2.6px
+    );
 }
 .cover-3d .cover-back {
   position: absolute;
   inset: 0;
-  border-radius: 2px;
-  background: #1c1b20;
+  border-radius: 2px 4px 4px 2px;
+  background: color-mix(in oklab, var(--hue, #333) 35%, #15141a);
   transform: translateZ(calc(var(--depth) * -1));
-  box-shadow: 18px 16px 26px -6px rgb(0 0 0 / 0.5);
+  box-shadow:
+    calc(var(--depth) * 0.9) 18px 30px -8px rgb(0 0 0 / 0.55),
+    2px 4px 8px rgb(0 0 0 / 0.25);
 }
 .cover-3d .cover-glare {
   position: absolute;
@@ -724,31 +756,119 @@ select:not([multiple])::-ms-expand {
 .group:hover .cover-3d,
 .cover-3d:hover,
 a:focus-visible .cover-3d {
-  transform: perspective(1500px) rotateY(-24deg) translateX(-2px) scale(0.97);
+  transform: perspective(1400px) rotateY(-32deg) translateX(calc(var(--depth) * -0.55))
+    translateY(-4px);
 }
 .group:hover .cover-3d .cover-glare,
 .cover-3d:hover .cover-glare {
   transform: translateX(120%);
 }
-/* Video & lectures: the picture comes closer and a play button appears. */
+/* Video & lectures: a screen. On hover the tile lifts, the picture comes
+   closer and dims, a play button with a pulse comes forward and a red line
+   runs along the bottom as if the video started. A small play mark shows the
+   kind even without hover (phones). */
+.cover-video {
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.45s;
+}
 .cover-video img {
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.5s;
+}
+.cover-video .cover-shade {
+  background: linear-gradient(180deg, transparent 45%, rgb(0 0 0 / 0.55));
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.cover-video .cover-mark {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s;
 }
 .cover-video .cover-play {
   opacity: 0;
-  transform: scale(0.7);
+  transform: scale(0.6);
   transition:
     opacity 0.3s,
-    transform 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+    transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.cover-video .cover-play-btn {
+  position: relative;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+}
+.cover-video .cover-play-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgb(255 255 255 / 0.7);
+  animation: play-ring 1.6s ease-out infinite;
+  animation-play-state: paused;
+}
+.cover-video .cover-progress {
+  background: rgb(255 255 255 / 0.25);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.cover-video .cover-progress > span {
+  width: 0;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgb(239 68 68 / 0.8);
+  transition: width 0.3s;
+}
+.group:hover .cover-video,
+.cover-video:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -12px rgb(0 0 0 / 0.6);
 }
 .group:hover .cover-video img,
 .cover-video:hover img {
   transform: scale(1.07);
+  filter: brightness(0.88) saturate(1.1);
+}
+.group:hover .cover-video .cover-shade,
+.cover-video:hover .cover-shade,
+.group:hover .cover-video .cover-progress,
+.cover-video:hover .cover-progress {
+  opacity: 1;
+}
+.group:hover .cover-video .cover-mark,
+.cover-video:hover .cover-mark {
+  opacity: 0;
 }
 .group:hover .cover-video .cover-play,
 .cover-video:hover .cover-play {
   opacity: 1;
   transform: scale(1);
+}
+.group:hover .cover-video .cover-play-btn::after,
+.cover-video:hover .cover-play-btn::after {
+  animation-play-state: running;
+}
+.group:hover .cover-video .cover-progress > span,
+.cover-video:hover .cover-progress > span {
+  width: 100%;
+  transition: width 8s linear;
+}
+@keyframes play-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.7);
+    opacity: 0;
+  }
 }
 /* Podcasts & interviews: a live equaliser rises from the bottom. */
 .cover-audio .cover-eq {
@@ -782,14 +902,17 @@ a:focus-visible .cover-3d {
 @media (prefers-reduced-motion: reduce) {
   .cover-3d,
   .cover-3d .cover-glare,
+  .cover-video,
   .cover-video img,
+  .cover-video .cover-play-btn::after,
+  .cover-video .cover-progress > span,
   .cover-audio .cover-eq span {
     transition: none;
     animation: none;
   }
   .group:hover .cover-3d,
   .cover-3d:hover {
-    transform: perspective(1500px) rotateY(-15deg) scale(0.96);
+    transform: perspective(1400px) rotateY(-22deg) translateX(calc(var(--depth) * -0.4));
   }
 }
 

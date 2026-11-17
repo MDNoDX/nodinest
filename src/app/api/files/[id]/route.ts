@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const out = await sharp(bytes, { failOn: "none", limitInputPixels: 40_000_000 })
           .rotate()
           .resize({ width: w, height: w * 2, fit: "inside", withoutEnlargement: true })
-          .webp({ quality: 78 })
+          .webp({ quality: 86, smartSubsample: true })
           .toBuffer();
         return new NextResponse(new Uint8Array(out), {
           headers: {

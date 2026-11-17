@@ -410,7 +410,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     else { return }
     if body["type"] as? String == "bg", let c = body["color"] as? String, let color = cssColor(c) {
       window.backgroundColor = color
-      dbg("title bar colour \(c)")
       return
     }
     guard body["type"] as? String == "media" else { return }
@@ -451,7 +450,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
       guard let self, let d else { return }
       let n = ((d["unread"] as? Int) ?? 0) + ((d["bell"] as? Int) ?? 0)
       NSApp.dockTile.badgeLabel = n > 0 ? (n > 99 ? "99+" : String(n)) : nil
-      dbg("dock badge \(n)")
       if n > self.lastUnread, !NSApp.isActive { NSApp.requestUserAttention(.informationalRequest) }
       self.lastUnread = n
     }
