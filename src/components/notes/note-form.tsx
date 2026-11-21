@@ -12,6 +12,8 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import type { FieldErrors } from "@/lib/errors";
 import { useAction } from "@/lib/use-action";
+import { isOffline, queueNote } from "@/lib/outbox";
+import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { hueStyle } from "@/lib/hues";
 
@@ -72,29 +74,44 @@ export function NoteForm({ initial, noteId }: { initial: NoteFormValue; noteId?:
       onSubmit={(e) => {
         e.preventDefault();
         setErrors({});
+        const input = {
+          kind: v.kind,
+          title: v.title,
+          body: v.body,
+          quoteText: v.quoteText,
+          resourceId: v.resource?.id ?? null,
+          personId: v.person?.id ?? null,
+          pageFrom: v.pageFrom,
+          pageTo: v.pageTo,
+          location: v.location,
+          timestampSeconds: v.timestampSeconds,
+          visibility: v.visibility,
+          verification: v.verification,
+          tags: v.tags,
+        };
+        // No network: the note waits on this device and goes out when it is back.
+        const later = () => {
+          queueNote(input, noteId);
+          toast.success(t("offline.queued"));
+          router.push(noteId ? `/notes/${noteId}` : "/notes");
+        };
+        if (isOffline()) return later();
         exec(
-          () =>
-            saveNoteAction(
-              {
-                kind: v.kind,
-                title: v.title,
-                body: v.body,
-                quoteText: v.quoteText,
-                resourceId: v.resource?.id ?? null,
-                personId: v.person?.id ?? null,
-                pageFrom: v.pageFrom,
-                pageTo: v.pageTo,
-                location: v.location,
-                timestampSeconds: v.timestampSeconds,
-                visibility: v.visibility,
-                verification: v.verification,
-                tags: v.tags,
-              },
-              noteId,
-            ),
+          async () => {
+            try {
+              return await saveNoteAction(input, noteId);
+            } catch {
+              // The request never reached the server (a dead connection).
+              return { ok: true as const, data: "" };
+            }
+          },
           {
-            success: t("common.saved"),
-            onSuccess: (id) => router.push(`/notes/${id}`),
+            refresh: false,
+            onSuccess: (id) => {
+              if (!id) return later();
+              toast.success(t("common.saved"));
+              router.push(`/notes/${id}`);
+            },
             onError: (r) => {
               if (r.fieldErrors) setErrors(r.fieldErrors);
             },

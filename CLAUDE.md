@@ -107,8 +107,12 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
   parallel on the recording; ElevenLabs speaks sentence by sentence, Gemini streams PCM once per turn
   (few daily requests). Speaking over the answer stops it (`watchBarge`).
-- Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks and the
-  day page queue in `lib/outbox.ts` and go out on reconnect (`layout/outbox-sync.tsx`); the book editor
+- Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks, the
+  day page, reading progress and new / changed notes and quotes (note form, reader selection: a `tmp-`
+  mark until sent) queue in `lib/outbox.ts` (`queueNote`, `isOffline`) and go out on reconnect, on
+  return to the front and every 30 s (`layout/outbox-sync.tsx`, one flush at a time; a job the server
+  refuses for good — `permanent()` — is dropped, not retried forever). The offline strip shows how many
+  wait. Offline mode is on by itself in the Mac, Windows and phone (Capacitor) apps. The book editor
   has its own drafts. AI needs the network. The Mac app's WKWebView has service workers too.
 - Reader (`components/reader/reader-app.tsx`): one page at a time, never two; it fills the width up
   to the side panel, the text is the same size on every page (`prefs.size` × zoom), a long page scrolls;

@@ -1602,7 +1602,7 @@
     "retry": "Try again",
     "banner": "Offline — showing saved pages",
     "modeTitle": "Work offline",
-    "modeHint": "Sections, your recent items and notes, and the text of the books you are reading are kept on this device and open without the internet. On by itself in the Mac and Windows app.",
+    "modeHint": "Sections, your recent items and notes, and the text of the books you are reading are kept on this device and open without the internet. On by itself in the Mac, Windows and phone apps.",
     "status": "{pages} pages and {books} books saved · {when}",
     "never": "Nothing saved yet",
     "syncing": "Saving… {done} / {total}",
@@ -1618,7 +1618,9 @@
       "taqriz": "Write-ups",
       "collection": "Collections",
       "note": "Notes"
-    }
+    },
+    "queued": "Saved on this device — it will be sent when you are back online.",
+    "waiting": "{count, plural, one {# change waits} other {# changes wait}} to be sent"
   },
   "export": {
     "download": "Download",

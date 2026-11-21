@@ -32,7 +32,7 @@ import { PdfPage } from "./pdf-page";
 import { ReaderAi, type ReaderAsk } from "./reader-ai";
 import { PAPER, paperVars, useReaderPrefs } from "./reader-prefs";
 import { MarkMenu, NoteDialog, SelectionMenu, type Sel } from "./reader-selection";
-import { enqueue } from "@/lib/outbox";
+import { enqueue, isOffline, queueNote } from "@/lib/outbox";
 import { ReaderSettings } from "./reader-settings";
 import { ReaderSide, type SideTab } from "./reader-side";
 
@@ -78,6 +78,7 @@ export function ReaderApp({
 }) {
   const ownerQ = viewer ? `&owner=${viewer.ownerId}` : "";
   const t = useTranslations("reader");
+  const tOff = useTranslations("offline");
   const router = useRouter();
   const prefs = useReaderPrefs();
   const total = Math.max(data.totalPages, data.pages.at(-1) ?? 1, 1);
@@ -317,7 +318,7 @@ export function ReaderApp({
   }, [left]);
 
   const save = async (kind: "quote" | "note", s: Sel, thought = "") => {
-    const r = await saveNoteAction({
+    const input = {
       kind,
       quoteText: s.text.slice(0, 10_000),
       ...(kind === "note"
@@ -327,7 +328,20 @@ export function ReaderApp({
           : {}),
       resourceId: resource.id,
       pageFrom: s.page,
-    });
+    };
+    // Reading offline: the quote / note waits on this device (and is marked
+    // in the text at once); it goes to the server when the network is back.
+    const later = () => {
+      const id = queueNote(input);
+      setMarks((m) => [...m, { id, kind, text: s.text, page: s.page }]);
+      window.getSelection()?.removeAllRanges();
+      setSel(null);
+      setNoteFor(null);
+      toast.success(tOff("queued"));
+    };
+    if (isOffline()) return later();
+    const r = await saveNoteAction(input).catch(() => null);
+    if (!r) return later();
     if (!r.ok) return void toast.error(kind === "quote" ? t("quoteFailed") : t("noteFailed"));
     setMarks((m) => [...m, { id: r.data, kind, text: s.text, page: s.page }]);
     window.getSelection()?.removeAllRanges();

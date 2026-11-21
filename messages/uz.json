@@ -1602,7 +1602,7 @@
     "retry": "Qayta uriniş",
     "banner": "Oflayn rejim — saqlangan sahifalar körsatilmoqda",
     "modeTitle": "Internetsiz işlaş",
-    "modeHint": "Bölimlar, oxirgi manba va qaydlaringiz, öqiyotgan kitoblaringiz matni şu qurilmada saqlanadi — internet bölmasa ham oçiladi. Mac va Windows ilovasida öz-özidan yoqilgan.",
+    "modeHint": "Bölimlar, oxirgi manba va qaydlaringiz, öqiyotgan kitoblaringiz matni şu qurilmada saqlanadi — internet bölmasa ham oçiladi. Mac, Windows va telefon ilovalarida öz-özidan yoqilgan.",
     "status": "{pages} sahifa va {books} kitob saqlangan · {when}",
     "never": "Hali saqlanmagan",
     "syncing": "Saqlanmoqda… {done} / {total}",
@@ -1618,7 +1618,9 @@
       "taqriz": "Taqrizlar",
       "collection": "Töplamlar",
       "note": "Qaydlar"
-    }
+    },
+    "queued": "Şu qurilmada saqlandi — internet qaytgaç yuboriladi.",
+    "waiting": "{count} ta özgariş yuborilişini kutmoqda"
   },
   "export": {
     "download": "Yuklab oliş",

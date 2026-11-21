@@ -2,6 +2,7 @@
 import { CloudOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useSyncExternalStore } from "react";
+import { onWaiting, waiting } from "@/lib/outbox";
 
 /** Wipes this device's offline copies (called on sign-out). */
 export async function clearOfflineData() {
@@ -35,6 +36,8 @@ export function Pwa() {
     () => navigator.onLine,
     () => true,
   );
+  // Notes, ticks and reading made offline that wait to be sent.
+  const queued = useSyncExternalStore(onWaiting, waiting, () => 0);
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
     const register = () => {
@@ -56,6 +59,7 @@ export function Pwa() {
       className="bg-warning fixed inset-x-0 bottom-[var(--bottom-nav,0px)] z-50 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-[calc(var(--bottom-nav,0px)+1rem)] sm:rounded-full"
     >
       <CloudOff className="size-4" /> {t("banner")}
+      {queued > 0 && <span className="opacity-90">· {t("waiting", { count: queued })}</span>}
     </div>
   );
 }

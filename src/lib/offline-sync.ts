@@ -41,8 +41,11 @@ const put = (k: string, v: string) => {
   }
 };
 
+/** One of our installed apps: Mac / Windows (user agent) or the phone app (Capacitor). */
 export const isDesktopApp = () =>
-  typeof navigator !== "undefined" && /NodiNestMac\/|Electron\//.test(navigator.userAgent);
+  typeof navigator !== "undefined" &&
+  (/NodiNestMac\/|Electron\//.test(navigator.userAgent) ||
+    !!(window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
 export const canWorkOffline = () =>
   typeof navigator !== "undefined" && "serviceWorker" in navigator && "caches" in window;
 

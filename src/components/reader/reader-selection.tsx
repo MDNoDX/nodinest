@@ -145,14 +145,17 @@ export function MarkMenu({
           )}
           {m.kind === "quote" ? t("inQuotes") : t("inNotes")}
         </span>
-        <a
-          href={`/notes/${m.id}`}
-          target="_blank"
-          rel="noopener"
-          className="text-primary hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 font-medium"
-        >
-          <ExternalLink className="size-4" /> {t("open")}
-        </a>
+        {/* A mark made offline has no page of its own until it is sent. */}
+        {!m.id.startsWith("tmp-") && (
+          <a
+            href={`/notes/${m.id}`}
+            target="_blank"
+            rel="noopener"
+            className="text-primary hover:bg-surface-2 flex h-8 items-center gap-1.5 rounded-lg px-2 font-medium"
+          >
+            <ExternalLink className="size-4" /> {t("open")}
+          </a>
+        )}
       </div>
     </div>
   );
