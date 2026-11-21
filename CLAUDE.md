@@ -246,8 +246,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   20cqw thick (`--depth`), folded BACK from the cover's right edge (`rotateY(-90deg)`; +90 folds it over
   the cover and hides its right side), inset 2 % so the boards stand out; its far end's border is the back
   board's edge. Only TWO 3D planes (face + pages): a separate back-board plane made the browser re-sort
-  them while scrolling (flicker). Turned -26° always, never animated; hover = `.group:hover .cover-book`
-  translateY(-6px) only (no glow, no re-turn); `.cover-3d` has `pointer-events: none` so a turned book
+  them while scrolling (flicker). Turned -24° at rest; hover (`.cover-book:hover`, `a.group:hover .cover-book` —
+  never a wider `.group`) lifts 8 px, turns to -36° and sweeps a light over the cover once (`.cover-glare`
+  keyframes) with a soft `.cover-sheen`; `.cover-3d` has `pointer-events: none` so a turned book
   reaching past its box never hovers its neighbour. `CoverPicture` stays invisible until it decided
   fill vs whole (ref + onLoad), then fades in once — no jump after load. It fills the frame when the
   picture's shape is
@@ -460,6 +461,9 @@ nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: che
 response, functions in us-east-2 (Free cannot pick a region) while the DB is Neon EU
 `nodinest-db-eu` (env `EU_DATABASE_URL[_UNPOOLED]`; `src/db/index.ts` and the scripts prefer it).
 The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28.
+Daily backups (docs/BACKUP.md): private repo MDNoDX/nodinest-backups (Actions) keeps 30 encrypted pg_dumps
+as releases and mirrors every file, encrypted, from `/api/backup/*` (`server/backup.ts`, CRON_SECRET).
+The production env master copy is `.env.netlify` (gitignored, includes BACKUP_PASSPHRASE).
 Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin` (pg_dump 18) for dumps.
 
 Env: `netlify env:list` / `netlify env:set` (never print values). Vercel's "sensitive" values could not

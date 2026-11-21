@@ -678,9 +678,10 @@ select:not([multiple])::-ms-expand {
    is a share of the width (a thick bestseller, not a pamphlet). */
 .cover-book {
   container-type: inline-size;
-  /* Only this one book lifts on hover (a 2D move of the whole book; the 3D
-     turn never changes, so the cover and its page edges never re-shape). */
-  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Hover (only the book under the pointer, see below): the whole book lifts
+     a little (2D, here), turns further to show more pages and a light sweeps
+     over the cover (3D, in .cover-3d / .cover-glare). */
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 /* The shadow the book casts on the shelf, softest at its far end. */
 .cover-book::before {
@@ -695,16 +696,19 @@ select:not([multiple])::-ms-expand {
   background: radial-gradient(closest-side, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0.12) 60%, transparent);
   filter: blur(5px);
   pointer-events: none;
-  transition: opacity 0.35s;
+  transition:
+    opacity 0.45s,
+    transform 0.45s;
 }
 .cover-3d {
   --depth: clamp(16px, 20cqw, 54px);
   transform-style: preserve-3d; /* a filter here would flatten the book */
-  /* Always a little turned: the page block is seen at once. The turn is fixed
-     (no transition), so nothing moves when the picture arrives. The turned
-     book reaches outside its box: it never catches the pointer itself, the
-     link around it does, so a neighbour never reacts to this book's hover. */
-  transform: perspective(1400px) rotateY(-26deg) translateX(calc(var(--depth) * -0.4));
+  /* Always a little turned: the page block is seen at once. Only a hover
+     changes the turn; the picture arriving never does (it fades in). The
+     turned book reaches outside its box: it never catches the pointer itself,
+     its own box does, so a neighbour never reacts to this book's hover. */
+  transform: perspective(1400px) rotateY(-24deg) translateX(calc(var(--depth) * -0.4));
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
   pointer-events: none;
 }
 .cover-3d .cover-face {
@@ -763,14 +767,77 @@ select:not([multiple])::-ms-expand {
       #d8ccb4 2.2px 2.6px
     );
 }
-/* Hover: the book under the pointer (its own link, the nearest .group) lifts
-   a little. No glow. */
-.group:hover .cover-book,
-a.group:focus-visible .cover-book {
-  transform: translateY(-6px);
+/* The light that sweeps over the cover on hover, then a soft sheen stays. */
+.cover-3d .cover-glare {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      105deg,
+      transparent 28%,
+      rgb(255 255 255 / 0.12) 40%,
+      rgb(255 255 255 / 0.55) 50%,
+      rgb(255 255 255 / 0.12) 60%,
+      transparent 72%
+    )
+    no-repeat;
+  background-size: 250% 100%;
+  background-position: 130% 0;
+  opacity: 0;
 }
-.group:hover .cover-book::before {
-  opacity: 0.6;
+.cover-3d .cover-sheen {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgb(255 255 255 / 0.16), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+/* Hover: ONLY the book under the pointer (its own box, or the link that holds
+   it). It lifts, turns to show more of its pages, the light sweeps once. */
+.cover-book:hover,
+a.group:hover .cover-book,
+a:focus-visible .cover-book {
+  transform: translateY(-8px);
+}
+.cover-book:hover .cover-3d,
+a.group:hover .cover-book .cover-3d,
+a:focus-visible .cover-book .cover-3d {
+  transform: perspective(1400px) rotateY(-36deg) translateX(calc(var(--depth) * -0.55));
+}
+.cover-book:hover .cover-glare,
+a.group:hover .cover-book .cover-glare,
+a:focus-visible .cover-book .cover-glare {
+  animation: cover-glare 1.1s cubic-bezier(0.25, 0.7, 0.3, 1) 0.05s both;
+}
+.cover-book:hover .cover-sheen,
+a.group:hover .cover-book .cover-sheen,
+a:focus-visible .cover-book .cover-sheen {
+  opacity: 1;
+}
+.cover-book:hover::before,
+a.group:hover .cover-book::before {
+  opacity: 0.55;
+  transform: scaleX(1.08);
+}
+@keyframes cover-glare {
+  0% {
+    opacity: 0;
+    background-position: 130% 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -30% 0;
+  }
 }
 /* Video & lectures: a screen. On hover the tile lifts, the picture comes
    closer and dims, a play button with a pulse comes forward and a red line
@@ -910,6 +977,8 @@ a.group:focus-visible .cover-book {
 }
 @media (prefers-reduced-motion: reduce) {
   .cover-book,
+  .cover-3d,
+  .cover-3d .cover-glare,
   .cover-video,
   .cover-video img,
   .cover-video .cover-play-btn::after,

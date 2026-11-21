@@ -71,7 +71,8 @@ export function Cover({
   ) : (
     typo
   );
-  // Books and courses: a little 3D book, turned so its pages show (it lifts on hover).
+  // Books and courses: a little 3D book, turned so its pages show; on hover it
+  // lifts, turns further and a light sweeps over the cover.
   // The outer box measures the book (its page block is as thick as a real
   // bestseller: a share of the width); the inner one turns in 3D.
   if (portrait && size !== "sm")
@@ -81,6 +82,8 @@ export function Cover({
           <div className="cover-face bg-surface-2 absolute inset-0 overflow-hidden rounded-[2px_4px_4px_2px]">
             {face}
             <span aria-hidden className="cover-hinge" />
+            <span aria-hidden className="cover-sheen" />
+            <span aria-hidden className="cover-glare" />
           </div>
           <span aria-hidden className="cover-pages" />
         </div>
