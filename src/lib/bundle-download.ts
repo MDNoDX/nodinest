@@ -1,4 +1,5 @@
 "use client";
+import { fetchInPieces } from "./fetch-pieces";
 import { strToU8, zipSync, type Zippable } from "fflate";
 
 type Manifest = {
@@ -30,8 +31,8 @@ export async function downloadBundle(
   const total = Math.max(1, m.totalBytes);
   let done = 0;
   for (const x of m.media) {
-    const r = await fetch(`/api/files/${x.fileId}`);
-    if (!r.ok || !r.body) continue;
+    const r = await fetchInPieces(`/api/files/${x.fileId}`).catch(() => null);
+    if (!r || !r.ok || !r.body) continue;
     const reader = r.body.getReader();
     const chunks: Uint8Array[] = [];
     for (;;) {

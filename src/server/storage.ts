@@ -306,12 +306,12 @@ export async function openFile(ctx: AppContext, fileId: string, range?: [number,
     }
     return { ...base, size, stream: streamParts(parts) };
   }
-  // Audio and video are read in byte ranges (Safari plays nothing without them,
-  // and seeking needs them everywhere).
-  const media = /^(audio|video)\//.test(f.mimeType);
+  // Every file can be read in byte ranges: Safari plays no audio / video
+  // without them, seeking needs them, and pdf.js switches a big PDF to ranges
+  // when it sees "accept-ranges" — so no answer runs long on a slow connection
+  // (a function stops after 60 s, however slowly the reader takes the bytes).
   const m = await headFile(f.path);
   if (!m) return null;
-  if (!media) return { ...base, size: m.size, stream: streamFile(f.path, m) };
   if (range) {
     const start = Math.min(range[0], m.size - 1);
     const end = Math.min(range[1] ?? m.size - 1, m.size - 1);

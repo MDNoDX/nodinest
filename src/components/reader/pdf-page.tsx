@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { fetchInPieces } from "@/lib/fetch-pieces";
 
 // One open document per file for the whole visit (pages are drawn from it).
 const docs = new Map<string, Promise<PDFDocumentProxy>>();
@@ -13,8 +14,8 @@ async function pdfBytes(fileId: string) {
   const cache = await caches.open("nn-books").catch(() => null);
   const hit = await cache?.match(url);
   if (hit) return hit.arrayBuffer();
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(String(r.status));
+  // In pieces: one long answer could be cut on a slow connection.
+  const r = await fetchInPieces(url);
   await cache?.put(url, r.clone()).catch(() => {});
   return r.arrayBuffer();
 }
@@ -24,7 +25,7 @@ function openPdf(fileId: string) {
   if (!p) {
     p = Promise.all([
       import("pdfjs-dist"),
-      // The file is fetched whole (our file route streams it; no range requests).
+      // The file is fetched whole, in 2 MB pieces, then kept for offline reading.
       pdfBytes(fileId),
     ]).then(([pdfjs, data]) => {
       pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
