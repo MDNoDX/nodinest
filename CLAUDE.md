@@ -461,8 +461,9 @@ nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: che
 response, functions in us-east-2 (Free cannot pick a region) while the DB is Neon EU
 `nodinest-db-eu` (env `EU_DATABASE_URL[_UNPOOLED]`; `src/db/index.ts` and the scripts prefer it).
 The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28.
-Daily backups (docs/BACKUP.md): private repo MDNoDX/nodinest-backups (Actions) keeps 30 encrypted pg_dumps
-as releases and mirrors every file, encrypted, from `/api/backup/*` (`server/backup.ts`, CRON_SECRET).
+Daily backups (docs/backup-restore.md): `.github/workflows/db-backup.yml` keeps 30 days of encrypted
+pg_dumps as artifacts; the private repo MDNoDX/nodinest-backups mirrors every file, encrypted, from
+`/api/backup/*` (`server/backup.ts`, CRON_SECRET).
 The production env master copy is `.env.netlify` (gitignored, includes BACKUP_PASSPHRASE).
 Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin` (pg_dump 18) for dumps.
 
