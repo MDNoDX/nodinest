@@ -14,9 +14,12 @@ const RESEND_S = 60;
 export function ForgotPassword({
   login: known = "",
   signup = false,
+  fromLink,
   onDone,
   onBack,
 }: {
+  /** Opened from the e-mail's button: who and the code are filled in and checked at once. */
+  fromLink?: { who: string; code: string };
   /** Someone new: a code goes to their e-mail and the password opens an account. */
   signup?: boolean;
   /** Signed in: who we are is known, so the first step is one button. */
@@ -27,11 +30,18 @@ export function ForgotPassword({
 }) {
   const t = useTranslations("auth");
   const [pending, start] = useTransition();
-  const [step, setStep] = useState<"who" | "code" | "password">("who");
+  const [step, setStep] = useState<"who" | "code" | "password">(() =>
+    fromLink && /^\d{6}$/.test(fromLink.code) ? "code" : "who",
+  );
   const [sentTo, setSentTo] = useState("");
   const [wait, setWait] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [v, setV] = useState({ login: known, code: "", next: "", again: "" });
+  const [v, setV] = useState({
+    login: fromLink?.who ?? known,
+    code: fromLink?.code ?? "",
+    next: "",
+    again: "",
+  });
   const ok = passwordOk(v.next) && v.next === v.again;
 
   useEffect(() => {
@@ -58,6 +68,14 @@ export function ForgotPassword({
       if (r.ok) setStep("password");
       else setError(t(r.code === "RATE_LIMITED" ? "tooMany" : "badCode"));
     });
+  // From the letter's button: straight to the code check (a wrong / old code
+  // leaves the code step open, where a new one can be asked for).
+  const [linked] = useState(() => !!fromLink && /^\d{6}$/.test(fromLink.code));
+  useEffect(() => {
+    if (!linked) return;
+    check();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linked]);
   const save = () =>
     start(async () => {
       setError(null);

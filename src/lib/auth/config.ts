@@ -48,6 +48,15 @@ export const auth = betterAuth({
     // Short, so a device removed in Settings is out within a minute.
     cookieCache: { enabled: true, maxAge: 60 },
   },
+  // One person, one account: Google with an address that already has an
+  // account (made with an e-mail code + password) signs into that account and
+  // links Google to it, never a second account. Google verifies its addresses;
+  // ours are verified by the e-mailed code. The other way round, "sign up with
+  // e-mail" on an address that has an account becomes a password reset that
+  // adds a password to it (server/password-reset).
+  account: {
+    accountLinking: { enabled: true, trustedProviders: ["google"] },
+  },
   user: {
     additionalFields: {
       role: { type: "string", required: false, defaultValue: "user", input: false },

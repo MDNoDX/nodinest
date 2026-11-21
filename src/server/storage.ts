@@ -294,6 +294,8 @@ export async function openFile(ctx: AppContext, fileId: string, range?: [number,
     purpose: f.purpose,
   };
   if (f.bucket === "telegram" && Array.isArray(f.tgParts)) {
+    // Without the bot token / key the Telegram store cannot be read: "not found", not a crash.
+    if (!tgStorageReady()) return null;
     const parts = f.tgParts as TgPart[];
     const size = partsSize(parts);
     if (range) {
@@ -329,8 +331,10 @@ export async function readFileBytes(
 ): Promise<{ bytes: Uint8Array; mime: string } | null> {
   const f = await readableFile(ctx, fileId);
   if (!f) return null;
-  if (f.bucket === "telegram" && Array.isArray(f.tgParts))
+  if (f.bucket === "telegram" && Array.isArray(f.tgParts)) {
+    if (!tgStorageReady()) return null;
     return { bytes: await readParts(f.tgParts as TgPart[]), mime: f.mimeType };
+  }
   const bytes = await readWhole(f.path);
   return bytes ? { bytes, mime: f.mimeType } : null;
 }
@@ -344,7 +348,8 @@ export async function deleteFile(ctx: AppContext, fileId: string) {
       .returning(),
   );
   if (!f) throw new AppError("NOT_FOUND");
-  if (f.bucket === "telegram" && Array.isArray(f.tgParts)) await deleteParts(f.tgParts as TgPart[]);
+  if (f.bucket === "telegram" && Array.isArray(f.tgParts))
+    await deleteParts(f.tgParts as TgPart[]).catch(() => {});
   else
     await deleteBlob(f.path).catch(() => {
       /* metadata already marked deleted */

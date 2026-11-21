@@ -43,7 +43,10 @@ export function LoginPanel({
   googleFailed = false,
   devEnabled,
   next = "/",
+  fromLink,
 }: {
+  /** The e-mail's button: `?who=…&code=…[&signup=1]` opens the code form filled in. */
+  fromLink?: { who: string; code: string; signup: boolean };
   googleEnabled: boolean;
   /** Back from Google without success. */
   googleFailed?: boolean;
@@ -59,8 +62,8 @@ export function LoginPanel({
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [login, setLogin] = useState({ name: "", password: "" });
-  const [forgot, setForgot] = useState(false);
-  const [signup, setSignup] = useState(false);
+  const [forgot, setForgot] = useState(!!fromLink && !fromLink.signup);
+  const [signup, setSignup] = useState(!!fromLink?.signup);
   const [copied, setCopied] = useState(false);
   const inApp = useSyncExternalStore(
     () => () => {},
@@ -117,6 +120,7 @@ export function LoginPanel({
         {forgot || signup ? (
           <ForgotPassword
             signup={signup}
+            fromLink={fromLink}
             onBack={() => {
               setForgot(false);
               setSignup(false);

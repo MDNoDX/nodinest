@@ -1,4 +1,5 @@
 "use server";
+import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { toActionError, type ActionResult } from "@/lib/errors";
@@ -32,6 +33,8 @@ export async function requestResetAction(
       ok: true,
       data: await requestReset(z.string().trim().min(1).max(120).parse(login), {
         signup: signup === true,
+        // A new person's letter comes in the language of the page they used.
+        locale: await getLocale(),
       }),
     };
   } catch (err) {

@@ -73,6 +73,15 @@ export default async function LoginPage({
             googleFailed={sp.google === "failed"}
             devEnabled={authProviders.devLogin}
             next={next}
+            fromLink={
+              typeof sp.who === "string" && typeof sp.code === "string"
+                ? {
+                    who: sp.who.slice(0, 120),
+                    code: sp.code.slice(0, 6),
+                    signup: sp.signup === "1",
+                  }
+                : undefined
+            }
           />
           <p className="text-muted mt-6 text-center text-xs">{t("auth.privacyNote")}</p>
           <p className="text-muted mt-2 text-center text-xs">

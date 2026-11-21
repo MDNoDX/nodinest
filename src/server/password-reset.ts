@@ -26,6 +26,10 @@ import { tgTo } from "./monitor/telegram";
 import { hitRateLimit } from "./rate-limit";
 
 const TTL = 10 * 60_000;
+const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.netlify.app";
+/** The letter's button: the login form opens on the right step with the code filled in. */
+const formLink = (who: string, code: string, signup = false) =>
+  `${site()}/login?${new URLSearchParams({ who, code, ...(signup ? { signup: "1" } : {}) })}`;
 const MAX_TRIES = 5;
 const keyOf = (userId: string) => `pw-reset:${userId}`;
 /** A new account has no id yet: its code is kept under the e-mail. */
@@ -65,7 +69,7 @@ export type ResetAnswer = { to: string | null; bot: boolean };
 
 export async function requestReset(
   login: string,
-  opts: { signup?: boolean } = {},
+  opts: { signup?: boolean; locale?: string } = {},
 ): Promise<ResetAnswer> {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   const name = normalizeUsername(login).slice(0, 120);
@@ -75,7 +79,8 @@ export async function requestReset(
   const u = await find(login);
   if (!u) {
     const email = login.trim().toLowerCase();
-    if (opts.signup && isEmail(email) && !(await taken(email))) await sendNewCode(email);
+    if (opts.signup && isEmail(email) && !(await taken(email)))
+      await sendNewCode(email, opts.locale ?? "uz");
     return { to: login.includes("@") ? maskEmail(login.trim()) : null, bot: false };
   }
   // A username and an e-mail name the same person.
@@ -92,7 +97,10 @@ export async function requestReset(
   // After the answer: its speed must not tell whether the account exists.
   later(async () => {
     if (mailConfigured() && hasMail)
-      await sendMail({ to: u.email, ...codeMail(code, u.locale, "reset") }).catch((e) =>
+      await sendMail({
+        to: u.email,
+        ...codeMail(code, u.locale, "reset", formLink(u.email, code)),
+      }).catch((e) =>
         console.error("[nodinest] reset mail failed:", e instanceof Error ? e.message : e),
       );
     const [bot] = await db
@@ -117,7 +125,7 @@ async function taken(email: string) {
   return !!u;
 }
 
-async function sendNewCode(email: string) {
+async function sendNewCode(email: string, locale: string) {
   const code = String(randomInt(100_000, 1_000_000));
   const id = newKey(email);
   await db.delete(verification).where(eq(verification.identifier, id));
@@ -128,7 +136,7 @@ async function sendNewCode(email: string) {
   });
   later(async () => {
     if (mailConfigured())
-      await sendMail({ to: email, ...codeMail(code, "uz") }).catch((e) =>
+      await sendMail({ to: email, ...codeMail(code, locale, "sign-in", formLink(email, code, true)) }).catch((e) =>
         console.error("[nodinest] sign-up mail failed:", e instanceof Error ? e.message : e),
       );
   });

@@ -105,7 +105,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
   The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
 - Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
-  parallel on the recording; ElevenLabs speaks sentence by sentence, Gemini streams PCM once per turn
+  parallel on the recording; Gemini streams PCM once per turn (ElevenLabs removed 2026-11-21)
   (few daily requests). Speaking over the answer stops it (`watchBarge`).
 - Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks, the
   day page, reading progress and new / changed notes and quotes (note form, reader selection: a `tmp-`
