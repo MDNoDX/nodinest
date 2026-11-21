@@ -678,6 +678,9 @@ select:not([multiple])::-ms-expand {
    is a share of the width (a thick bestseller, not a pamphlet). */
 .cover-book {
   container-type: inline-size;
+  /* Only this one book lifts on hover (a 2D move of the whole book; the 3D
+     turn never changes, so the cover and its page edges never re-shape). */
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 /* The shadow the book casts on the shelf, softest at its far end. */
 .cover-book::before {
@@ -692,13 +695,17 @@ select:not([multiple])::-ms-expand {
   background: radial-gradient(closest-side, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0.12) 60%, transparent);
   filter: blur(5px);
   pointer-events: none;
+  transition: opacity 0.35s;
 }
 .cover-3d {
   --depth: clamp(16px, 20cqw, 54px);
   transform-style: preserve-3d; /* a filter here would flatten the book */
-  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
-  /* Always a little turned: the page block is seen before and during hover. */
+  /* Always a little turned: the page block is seen at once. The turn is fixed
+     (no transition), so nothing moves when the picture arrives. The turned
+     book reaches outside its box: it never catches the pointer itself, the
+     link around it does, so a neighbour never reacts to this book's hover. */
   transform: perspective(1400px) rotateY(-26deg) translateX(calc(var(--depth) * -0.4));
+  pointer-events: none;
 }
 .cover-3d .cover-face {
   /* Always in front of everything else of the book, the whole cover turns as one. */
@@ -712,6 +719,7 @@ select:not([multiple])::-ms-expand {
 /* The groove where a hardcover bends. */
 .cover-3d .cover-hinge {
   position: absolute;
+  z-index: 1;
   top: 0;
   bottom: 0;
   left: 4.5%;
@@ -731,7 +739,12 @@ select:not([multiple])::-ms-expand {
      forward, over the cover, and hide its right side as the book turns), and
      half a pixel behind so the browser never draws it over the cover. */
   transform: translateZ(-0.5px) rotateY(-90deg);
+  backface-visibility: visible;
   border-radius: 0 2px 2px 0;
+  /* Its far end is the back board's edge, drawn on the block itself: a third
+     3D plane behind the pages made the browser re-sort them while scrolling,
+     and the back board flickered over the page edges. */
+  border-left: 2px solid color-mix(in oklab, var(--hue, #334) 55%, black);
   background:
     linear-gradient(
       90deg,
@@ -750,48 +763,14 @@ select:not([multiple])::-ms-expand {
       #d8ccb4 2.2px 2.6px
     );
 }
-.cover-3d .cover-back {
-  position: absolute;
-  /* A hardcover's boards stand a little beyond the pages. */
-  inset: 0;
-  overflow: hidden;
-  border-radius: 2px 4px 4px 2px;
-  background: var(--color-surface-2, #222);
-  /* A pixel past the pages' far edge: touching, the browser may draw the
-     back board over the pages. */
-  transform: translateZ(calc(var(--depth) * -1 - 1px));
-  box-shadow:
-    calc(var(--depth) * 0.9) 18px 30px -8px rgb(0 0 0 / 0.55),
-    2px 4px 8px rgb(0 0 0 / 0.25);
+/* Hover: the book under the pointer (its own link, the nearest .group) lifts
+   a little. No glow. */
+.group:hover .cover-book,
+a.group:focus-visible .cover-book {
+  transform: translateY(-6px);
 }
-.cover-3d .cover-back-shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.32));
-}
-.cover-3d .cover-glare {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    115deg,
-    transparent 35%,
-    rgb(255 255 255 / 0.22) 48%,
-    transparent 60%
-  );
-  transform: translateX(-120%);
-  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-.group:hover .cover-3d,
-.cover-3d:hover,
-a:focus-visible .cover-3d {
-  transform: perspective(1400px) rotateY(-36deg) translateX(calc(var(--depth) * -0.55))
-    translateY(-4px);
-}
-.group:hover .cover-3d .cover-glare,
-.cover-3d:hover .cover-glare {
-  transform: translateX(120%);
+.group:hover .cover-book::before {
+  opacity: 0.6;
 }
 /* Video & lectures: a screen. On hover the tile lifts, the picture comes
    closer and dims, a play button with a pulse comes forward and a red line
@@ -930,8 +909,7 @@ a:focus-visible .cover-3d {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cover-3d,
-  .cover-3d .cover-glare,
+  .cover-book,
   .cover-video,
   .cover-video img,
   .cover-video .cover-play-btn::after,
@@ -939,10 +917,6 @@ a:focus-visible .cover-3d {
   .cover-audio .cover-eq span {
     transition: none;
     animation: none;
-  }
-  .group:hover .cover-3d,
-  .cover-3d:hover {
-    transform: perspective(1400px) rotateY(-26deg) translateX(calc(var(--depth) * -0.4));
   }
 }
 

@@ -319,8 +319,11 @@ export default async function DashboardPage() {
                   </Link>
                 }
               />
-              {/* One row that scrolls sideways: the cover, the title and how far. */}
-              <ul className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-5 pb-5">
+              {/* One row that scrolls sideways: the cover, the title and how far.
+                  A scroller clips on every side, so it leaves room inside for the
+                  turned book, its shadow and the hover lift (pt / px / pb), and
+                  snapping stops at that inner edge (scroll-px); the ends fade instead of cutting a book. */}
+              <ul className="no-scrollbar flex snap-x scroll-px-5 gap-5 overflow-x-auto overscroll-x-contain px-5 pt-3 pb-6 [mask-image:linear-gradient(90deg,transparent,#000_14px,#000_calc(100%-14px),transparent)]">
                 {reading.map((r) => {
                   const pct =
                     r.progressTotal && r.progressCurrent != null
