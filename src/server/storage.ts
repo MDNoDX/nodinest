@@ -31,6 +31,7 @@ import {
   partsSize,
   readParts,
   streamParts,
+  tgMoveOn,
   tgStorageReady,
   type TgPart,
 } from "./tg-storage";
@@ -67,7 +68,7 @@ export const MEDIA_MAX_BYTES = 30 * 1024 * 1024;
 export const VIDEO_MAX_BYTES = 150 * 1024 * 1024;
 const BLOB_QUOTA_BYTES = 900 * 1024 * 1024;
 /** Per-user space: much more once big files live in Telegram. */
-export const userQuotaBytes = () => (tgStorageReady() ? 5 * 1024 * 1024 * 1024 : BLOB_QUOTA_BYTES);
+export const userQuotaBytes = () => (tgMoveOn() ? 5 * 1024 * 1024 * 1024 : BLOB_QUOTA_BYTES);
 
 export function attachmentMaxBytes() {
   const mb = Number(process.env.UPLOAD_MAX_MB ?? 50);
@@ -223,7 +224,7 @@ export async function registerUpload(
   );
   if (!row) throw new AppError("CONFLICT");
   // Big files go on to the Telegram store (Blob stays small and free).
-  if (meta.size > MOVE_FROM_BYTES && tgStorageReady()) later(() => moveToTelegram(row.id));
+  if (meta.size > MOVE_FROM_BYTES && tgMoveOn()) later(() => moveToTelegram(row.id));
   return { fileId: row.id, url: `/api/files/${row.id}` };
 }
 

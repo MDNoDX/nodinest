@@ -201,7 +201,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   Takliflar), new users, every server error with stack (instrumentation.ts → report.ts, deduped),
   AI-paused notices, Premium payments (✅/❌ buttons, channel admins only) and the daily summary
   (Netlify scheduled function `netlify/functions/cron-daily.mts` → `/api/cron/daily`, CRON_SECRET). Commands in the channel: /stat /hammaga /arxiv /test.
-- Big files (> 2 MB) move from the blob store to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
+- Telegram file store is READ-ONLY by default since the Netlify move (functions in us-east-2 read a part
+  from Telegram in > 60 s); the 14 old files were copied back to Blobs (rows bucket "blob", tg_parts kept as
+  an extra copy). `TG_MOVE_BIG_FILES=1` turns moving on again. Originally: big files (> 2 MB) move from the blob store to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
   ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
 - People: no separate community page — "Profil" (/profile → /u/<me>); people are found from the

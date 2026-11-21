@@ -66,6 +66,13 @@ const key = () => {
 };
 
 export const tgStorageReady = () => !!process.env.TELEGRAM_BOT_TOKEN && !!chat() && !!key();
+/**
+ * Moving big files INTO Telegram: off unless TG_MOVE_BIG_FILES=1. On Netlify
+ * (functions in us-east-2) reading a part back from Telegram takes over a
+ * minute, past the 60 s limit, so files stay in Netlify Blobs; files already
+ * in Telegram can still be read.
+ */
+export const tgMoveOn = () => tgStorageReady() && process.env.TG_MOVE_BIG_FILES === "1";
 
 function seal(plain: Uint8Array) {
   const iv = randomBytes(12);
@@ -179,7 +186,7 @@ async function download(p: TgPart): Promise<Buffer> {
 
 /** Moves one file from the blob store to Telegram and deletes the store copy. */
 export async function moveToTelegram(fileId: string) {
-  if (!tgStorageReady()) return false;
+  if (!tgMoveOn()) return false;
   const [f] = await db.select().from(files).where(eq(files.id, fileId));
   if (!f || f.deletedAt || f.bucket !== BLOB_BUCKET || !f.uploadedAt) return false;
   const m = await headFile(f.path);
@@ -231,7 +238,7 @@ export async function putBytes(id: string, bytes: Uint8Array): Promise<TgPart[]>
 
 /** Moves waiting big files (oldest first) within a time budget; returns how many. */
 export async function moveWaiting(budgetMs = 200_000, limit = 20) {
-  if (!tgStorageReady()) return 0;
+  if (!tgMoveOn()) return 0;
   const until = Date.now() + budgetMs;
   const rows = await db
     .select({ id: files.id })
