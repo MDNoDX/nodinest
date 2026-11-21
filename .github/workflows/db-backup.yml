@@ -26,6 +26,15 @@ jobs:
         run: |
           gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" --symmetric --cipher-algo AES256 -o "nodinest-$(date -u +%F).dump.gpg" db.dump
           rm db.dump
+      - name: Verify (decrypt + read archive)
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --quiet --pinentry-mode loopback --passphrase "$PASS" -d nodinest-*.dump.gpg > check.dump
+          n=$(docker run --rm -v "$PWD:/w" postgres:18 pg_restore --list /w/check.dump | grep -c "TABLE DATA")
+          echo "tables with data: $n"
+          rm check.dump
+          test "$n" -gt 5
       - uses: actions/upload-artifact@v4
         with:
           name: nodinest-db-${{ github.run_id }}
