@@ -10,8 +10,9 @@ import { coverSrcSet, sharperCover } from "@/lib/cover-url";
  * another shape is shown whole on a blurred copy of itself. Our own files come
  * in the width the screen needs (sharp on Retina). If it cannot be loaded the
  * `fallback` (the title cover) takes its place instead of a broken image.
- * The picture stays invisible until its fit is known and then fades in once,
- * so a cover never switches between "whole" and "filled" in front of you.
+ * The picture stays invisible until its fit is known and then fades in once
+ * over the title cover, so a cover never switches between "whole" and
+ * "filled" in front of you and is never an empty box while it loads.
  */
 export function CoverPicture({
   src,
@@ -46,6 +47,8 @@ export function CoverPicture({
   const srcSet = coverSrcSet(src);
   return (
     <>
+      {/* Until the picture is here (a slow connection), the title cover stands in. */}
+      {fill === null && fallback}
       {fill === false && (
         <img
           src={url}
