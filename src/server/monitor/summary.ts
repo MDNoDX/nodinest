@@ -36,7 +36,7 @@ export async function dailySummary() {
 
   const mb = (b: unknown) => `${(Number(b) / 1024 / 1024).toFixed(1)} MB`;
   const rls = (process.env.DB_RLS_ROLE ?? "nodinest_app") !== "";
-  const eu = !!process.env.EU_DATABASE_URL;
+  const eu = !process.env.DATABASE_URL && !!process.env.EU_DATABASE_URL;
   const errs = [...errorCounts.values()].sort((a, b) => b.n - a.n).slice(0, 5);
   const lines = [
     `📊 <b>Kunlik hisobot</b>`,

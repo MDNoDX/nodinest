@@ -26,9 +26,9 @@ const CATEGORIES: [slug: string, uz: string, en: string][] = [
 
 async function main() {
   const sql = postgres(
-    process.env.EU_DATABASE_URL_UNPOOLED ||
-      process.env.DATABASE_URL_UNPOOLED ||
-      process.env.DATABASE_URL!,
+    process.env.DATABASE_URL_UNPOOLED ||
+      process.env.DATABASE_URL ||
+      process.env.EU_DATABASE_URL_UNPOOLED!,
     {
       max: 1,
       onnotice: () => {},

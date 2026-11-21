@@ -9,7 +9,7 @@ export default defineConfig({
   dialect: "postgresql",
   schemaFilter: ["nodinest"],
   dbCredentials: {
-    url: process.env.EU_DATABASE_URL_UNPOOLED || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || process.env.EU_DATABASE_URL_UNPOOLED!,
   },
   strict: true,
   verbose: false,
