@@ -1,5 +1,5 @@
 "use client";
-import { upload } from "@vercel/blob/client";
+import { uploadToStore } from "@/lib/blob-upload";
 import { FileUp, ImagePlus, Upload, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -103,14 +103,11 @@ export function FileUpload({
           .normalize("NFKD")
           .replace(/[^\w.\-]+/g, "_")
           .slice(-80) || "file";
-      const blob = await upload(`u/${userId}/${purpose}/${safeName}`, file, {
-        access: "private",
-        handleUploadUrl: "/api/blob/upload",
-        clientPayload: JSON.stringify({ purpose, size: file.size, mime: file.type }),
-        contentType: file.type,
-        multipart: file.size > 20 * 1024 * 1024,
-        onUploadProgress: (e) => setProgress(Math.round(e.percentage)),
-        abortSignal: ctl.signal,
+      const blob = await uploadToStore(`u/${userId}/${purpose}/${safeName}`, file, {
+        purpose,
+        mime: file.type,
+        onProgress: setProgress,
+        signal: ctl.signal,
       });
       if (ctl.signal.aborted) return;
       const r = await registerUploadAction({
@@ -129,9 +126,9 @@ export function FileUpload({
       if (ctl.signal.aborted) return;
       const msg = err instanceof Error ? err.message : "";
       toast.error(
-        /too large|maximum/i.test(msg)
+        /too.large|maximum/i.test(msg)
           ? t("upload.tooLarge", { max: purpose === "attachment" ? 50 : 8 })
-          : /content type/i.test(msg)
+          : /content type|unsupported_file_type/i.test(msg)
             ? t("upload.badType")
             : t("errors.STORAGE_UNAVAILABLE"),
       );

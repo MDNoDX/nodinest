@@ -1,6 +1,6 @@
 /**
  * Telegram as the file store (free, no size cap): big uploads (book PDFs,
- * audio, video) are moved from Vercel Blob to a private Telegram channel and
+ * audio, video) are moved from the blob store to a private Telegram channel and
  * the Blob copy is deleted, so the 1 GB free Blob store never fills up.
  *
  *  • Files are split into ≤ 19 MB parts (a bot may download at most 20 MB per
@@ -14,7 +14,7 @@
  */
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { get } from "@vercel/blob";
+import { BLOB_BUCKET, deleteBlob, headFile, streamFile } from "./blob-store";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { appSettings, files } from "@/db/schema";
@@ -177,14 +177,14 @@ async function download(p: TgPart): Promise<Buffer> {
   return buf;
 }
 
-/** Moves one Blob file to Telegram and deletes the Blob copy. */
+/** Moves one file from the blob store to Telegram and deletes the store copy. */
 export async function moveToTelegram(fileId: string) {
   if (!tgStorageReady()) return false;
   const [f] = await db.select().from(files).where(eq(files.id, fileId));
-  if (!f || f.deletedAt || f.bucket !== "vercel-blob" || !f.uploadedAt) return false;
-  const res = await get(f.path, { access: "private" });
-  if (!res?.stream) return false;
-  const reader = res.stream.getReader();
+  if (!f || f.deletedAt || f.bucket !== BLOB_BUCKET || !f.uploadedAt) return false;
+  const m = await headFile(f.path);
+  if (!m) return false;
+  const reader = streamFile(f.path, m).getReader();
   const total = Math.max(1, Math.ceil(f.sizeBytes / PART));
   const parts: TgPart[] = [];
   // Chunks are collected and joined once per part (no quadratic copying).
@@ -210,14 +210,13 @@ export async function moveToTelegram(fileId: string) {
   const moved = await db
     .update(files)
     .set({ bucket: "telegram", tgParts: parts })
-    .where(and(eq(files.id, f.id), eq(files.bucket, "vercel-blob"), isNull(files.deletedAt)))
+    .where(and(eq(files.id, f.id), eq(files.bucket, BLOB_BUCKET), isNull(files.deletedAt)))
     .returning({ id: files.id });
   if (!moved.length) {
     await deleteParts(parts);
     return false;
   }
-  const { del } = await import("@vercel/blob");
-  await del(f.path).catch(() => {});
+  await deleteBlob(f.path).catch(() => {});
   return true;
 }
 
@@ -239,7 +238,7 @@ export async function moveWaiting(budgetMs = 200_000, limit = 20) {
     .from(files)
     .where(
       and(
-        eq(files.bucket, "vercel-blob"),
+        eq(files.bucket, BLOB_BUCKET),
         isNull(files.deletedAt),
         gt(files.sizeBytes, MOVE_FROM_BYTES),
         sql`${files.uploadedAt} is not null`,

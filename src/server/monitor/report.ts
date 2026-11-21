@@ -25,7 +25,7 @@ export const errorCounts = new Map<string, { n: number; title: string }>();
 
 const enabled = () =>
   tgConfigured() &&
-  (process.env.VERCEL_ENV === "production" || process.env.NN_REPORT_ERRORS === "1");
+  (process.env.NN_REPORT_ERRORS === "1" || process.env.VERCEL_ENV === "production");
 
 function describe(err: unknown) {
   if (err instanceof Error) {

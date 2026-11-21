@@ -51,7 +51,7 @@ Yig'ilgan fayllar `dist/` ichiga tushadi.
 Bu ishlarni faqat akkaunt egasi bajara oladi.
 
 1. Domen oling va `capacitor.config.ts`, `apps/windows/main.js`, `offline.html` ichidagi
-   `nodinest.vercel.app` manzilini almashtiring. Google Console'ga yangi domenni qo'shing.
+   `nodinest.netlify.app` manzilini almashtiring. Google Console'ga yangi domenni qo'shing.
 2. **Apple Developer** (yiliga 99 $): imzolash, Push Notifications imkoniyati, App Store Connect.
 3. **Google Play Console** (bir martalik 25 $): imzo kaliti, ma'lumotlar xavfsizligi anketasi.
 4. **Firebase** loyihasi (bepul): masofaviy push uchun. `google-services.json` va APNs kaliti

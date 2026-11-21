@@ -3,7 +3,7 @@
 const { app, BrowserWindow, shell, session } = require("electron");
 const path = require("node:path");
 
-const BASE = process.env.ROZNOMA_URL || "https://nodinest.vercel.app";
+const BASE = process.env.ROZNOMA_URL || "https://nodinest.netlify.app";
 let win = null;
 
 const isOurs = (url) => {

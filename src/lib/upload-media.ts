@@ -1,5 +1,5 @@
 "use client";
-import { upload } from "@vercel/blob/client";
+import { uploadToStore } from "@/lib/blob-upload";
 import { registerUploadAction } from "@/app/actions/files";
 
 export type UploadedMedia = { fileId: string; name: string; mime: string; size: number };
@@ -32,7 +32,7 @@ export function baseMime(type: string, name = ""): string {
   return EXT_MIME[name.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
 }
 
-/** Uploads an image / PDF / audio / video (purpose "media") straight to Blob and registers it. */
+/** Uploads an image / PDF / audio / video (purpose "media") to our store and registers it. */
 export async function uploadMedia(
   input: File | Blob,
   opts: {
@@ -52,16 +52,13 @@ export async function uploadMedia(
       .normalize("NFKD")
       .replace(/[^\w.\-]+/g, "_")
       .slice(-80) || "file";
-  const blob = await upload(`u/${opts.userId}/media/${Date.now()}-${safe}`, file, {
-    access: "private",
-    handleUploadUrl: "/api/blob/upload",
-    clientPayload: JSON.stringify({ purpose: "media", size: file.size, mime }),
-    contentType: mime,
-    // Big files go up in parts: a part that fails on a weak network is sent again,
-    // not the whole video.
-    multipart: file.size > 8 * 1024 * 1024,
-    onUploadProgress: (e) => opts.onProgress?.(Math.round(e.percentage)),
-    abortSignal: opts.signal,
+  // Files go up in parts: a part that fails on a weak network is sent again,
+  // not the whole video.
+  const blob = await uploadToStore(`u/${opts.userId}/media/${Date.now()}-${safe}`, file, {
+    purpose: "media",
+    mime,
+    onProgress: opts.onProgress,
+    signal: opts.signal,
   });
   if (opts.signal?.aborted) throw new DOMException("cancelled", "AbortError");
   const r = await registerUploadAction({

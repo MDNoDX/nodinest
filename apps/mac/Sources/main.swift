@@ -1,4 +1,4 @@
-// Roznoma for macOS — a native window around https://nodinest.vercel.app.
+// Roznoma for macOS — a native window around https://nodinest.netlify.app.
 //
 // • Sign-in: Google blocks sign-in inside embedded web views, so Google
 //   requests open Apple's secure sign-in sheet (ASWebAuthenticationSession) on
@@ -32,7 +32,7 @@ func dbg(_ s: String) {
     FileHandle.standardError.write("[dbg] \(s)\n".data(using: .utf8)!)
   }
 }
-let BASE = URL(string: defaults.string(forKey: "NodiNestBaseURL") ?? "https://nodinest.vercel.app")!
+let BASE = URL(string: defaults.string(forKey: "NodiNestBaseURL") ?? "https://nodinest.netlify.app")!
 
 /// "1.10" is newer than "1.9".
 func newer(_ a: String, than b: String) -> Bool {

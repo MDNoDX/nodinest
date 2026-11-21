@@ -14,8 +14,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  // Covers / PDFs are uploaded straight from the browser to Vercel Blob.
-  "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com",
+  // Uploads go to our own /api/blob/upload (Netlify Blobs behind it).
+  "connect-src 'self'",
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-src https://www.youtube-nocookie.com",

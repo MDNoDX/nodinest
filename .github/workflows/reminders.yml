@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - run: curl -sS -m 100 https://nodinest.vercel.app/api/cron/reminders || true
+      - run: curl -sS -m 100 https://nodinest.netlify.app/api/cron/reminders || true

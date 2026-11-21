@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 
 const token = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const chat = process.env.TELEGRAM_ADMIN_CHAT_ID ?? "";
-const site = (process.env.SITE_URL ?? "https://nodinest.vercel.app").replace(/\/$/, "");
+const site = (process.env.SITE_URL ?? "https://nodinest.netlify.app").replace(/\/$/, "");
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
 const api = (m: string) => `https://api.telegram.org/bot${token}/${m}`;
 

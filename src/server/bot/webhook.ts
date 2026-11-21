@@ -45,7 +45,7 @@ type Update = {
   };
 };
 
-const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app";
+const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.netlify.app";
 
 async function seen(u: TgUser) {
   await db

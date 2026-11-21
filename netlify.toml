@@ -1,0 +1,21 @@
+# Röznoma on Netlify (moved from Vercel on 2026-11-21). The Next.js runtime is
+# detected by itself (@netlify/plugin-nextjs / OpenNext). Functions run in
+# Frankfurt (set in the site's settings) next to the Neon EU database.
+[build]
+  # Production builds apply the SQL migrations first: if one fails the deploy
+  # stops and the old version stays, so code never gets ahead of the database.
+  command = "if [ \"$CONTEXT\" = \"production\" ]; then npm run db:migrate || exit 1; fi; npm run build"
+  publish = ".next"
+  # Free plan credits: a deploy costs 15. Skip a build when nothing the site
+  # uses changed (apps/, docs, marketing, notes).
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- src public drizzle scripts netlify netlify.toml package.json package-lock.json next.config.ts tsconfig.json messages instrumentation.ts"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

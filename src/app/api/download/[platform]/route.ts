@@ -1,42 +1,20 @@
-import { issueSignedToken, presignUrl } from "@vercel/blob";
-import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { db } from "@/db";
-import { hitRateLimit } from "@/server/rate-limit";
-import { APPS } from "@/lib/app-versions";
+import { APPS, RELEASE_BASE } from "@/lib/app-versions";
 
 /**
- * The installed apps, kept in the (private) file store under downloads/:
- * /api/download/mac → the DMG, /api/download/windows → the installer,
- * /api/download/android → the signed APK. Each
- * answer is a link signed for ten minutes, so the file comes straight from
- * the store (big files never pass through a function).
+ * The installed apps: /api/download/mac → the DMG, /api/download/windows → the
+ * installer, /api/download/android → the signed APK. Each answer redirects to
+ * the file in our public GitHub release, so big files never pass through a
+ * function and the transfer costs nothing.
  */
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ platform: string }> },
 ) {
   const { platform } = await params;
-  const pathname = APPS[platform as keyof typeof APPS]?.file;
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!pathname || !token) return new NextResponse(null, { status: 404 });
-  // A few downloads an hour per address: the files are big and the transfer is paid.
-  const ip = ((await headers()).get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
-  if (!(await hitRateLimit(db, `download:${ip}`, 12, 3600)).allowed)
-    return new NextResponse("Too many downloads, try again in an hour.", { status: 429 });
-  const signed = await issueSignedToken({
-    token,
-    pathname,
-    operations: ["get"],
-    validUntil: Date.now() + 10 * 60_000,
-  });
-  const { presignedUrl } = await presignUrl(signed, {
-    operation: "get",
-    pathname,
-    access: "private",
-  });
-  return NextResponse.redirect(presignedUrl, {
+  const file = APPS[platform as keyof typeof APPS]?.file;
+  if (!file) return new NextResponse(null, { status: 404 });
+  return NextResponse.redirect(`${RELEASE_BASE}/${file}`, {
     status: 302,
     headers: { "cache-control": "no-store" },
   });

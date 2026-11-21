@@ -1,15 +1,24 @@
 /**
- * File storage on Vercel Blob (PRIVATE store). Flow:
- *  1. Browser asks /api/blob/upload for a client token (auth + type/size/path
- *     checks happen in `authorizeUpload`), then uploads directly to Blob.
+ * File storage in our blob store (`blob-store.ts`: Netlify Blobs, a folder on
+ * disk outside Netlify). Flow:
+ *  1. Browser asks /api/blob/upload for a ticket (auth + type/size/path checks
+ *     happen in `authorizeUpload`), then sends the file there in parts.
  *  2. Browser calls `registerUpload`; the server verifies the stored object
- *     (`head`) and records it in `files`.
- *  3. Reads go through /api/files/[id] (access check + streamed `get`).
- * Without BLOB_READ_WRITE_TOKEN uploads are disabled; URL fields still work.
+ *     (its manifest) and records it in `files` (bucket "blob").
+ *  3. Reads go through /api/files/[id] (access check + streamed parts).
+ * BLOBS_DISABLED=1 turns uploads off; URL fields still work.
  */
 import "server-only";
 import { later } from "./later";
-import { del, get, head, list } from "@vercel/blob";
+import {
+  BLOB_BUCKET,
+  blobStoreReady,
+  deleteBlob,
+  headFile,
+  listBlobs,
+  readWhole,
+  streamFile,
+} from "./blob-store";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { files } from "@/db/schema";
@@ -66,7 +75,7 @@ export function attachmentMaxBytes() {
 }
 
 export function isStorageConfigured() {
-  return !!process.env.BLOB_READ_WRITE_TOKEN;
+  return blobStoreReady();
 }
 
 export function allowedTypes(purpose: UploadPurpose) {
@@ -102,27 +111,32 @@ export function sanitizeFilename(name: string): string {
 export async function sweepOrphanBlobs() {
   if (!isStorageConfigured()) return 0;
   const before = Date.now() - 24 * 3600_000;
-  let cursor: string | undefined;
+  const { files: done, unfinished } = await listBlobs("u/");
   let gone = 0;
-  do {
-    const page = await list({ prefix: "u/", limit: 1000, cursor });
-    cursor = page.cursor;
-    const old = page.blobs.filter((b) => b.uploadedAt.getTime() < before);
-    if (!old.length) continue;
+  // Uploads never finished: their parts go once the ticket (1 h) is long gone.
+  // Every upload path carries its start time (`-t<base36 ms>-<random>`).
+  for (const p of unfinished) {
+    const t = /-t([0-9a-z]+)-[0-9a-f]+(\.[^/]*)?$/.exec(p);
+    const at = t ? parseInt(t[1], 36) : NaN;
+    if (!Number.isFinite(at) || at > before) continue;
+    await deleteBlob(p).catch(() => {});
+    gone++;
+  }
+  for (let i = 0; i < done.length; i += 500) {
+    const page = done.slice(i, i + 500);
     const known = await db
       .select({ path: files.path })
       .from(files)
-      .where(
-        inArray(
-          files.path,
-          old.map((b) => b.pathname),
-        ),
-      );
+      .where(inArray(files.path, page));
     const have = new Set(known.map((k) => k.path));
-    const orphans = old.filter((b) => !have.has(b.pathname)).map((b) => b.url);
-    if (orphans.length) await del(orphans);
-    gone += orphans.length;
-  } while (cursor);
+    for (const p of page) {
+      if (have.has(p)) continue;
+      const m = await headFile(p);
+      if (!m || new Date(m.uploadedAt).getTime() >= before) continue;
+      await deleteBlob(p).catch(() => {});
+      gone++;
+    }
+  }
   return gone;
 }
 
@@ -177,17 +191,13 @@ export async function registerUpload(
   if (!isStorageConfigured()) throw new AppError("STORAGE_UNAVAILABLE");
   if (!input.pathname.startsWith(userPrefix(ctx.userId, input.purpose)))
     throw new AppError("FORBIDDEN");
-  let meta;
-  try {
-    meta = await head(input.pathname);
-  } catch {
-    throw new AppError("VALIDATION", "upload_missing");
-  }
+  const meta = await headFile(input.pathname).catch(() => null);
+  if (!meta) throw new AppError("VALIDATION", "upload_missing");
   if (
     !allowedTypes(input.purpose).includes(meta.contentType) ||
     meta.size > maxBytes(input.purpose, meta.contentType)
   ) {
-    await del(input.pathname).catch(() => {});
+    await deleteBlob(input.pathname).catch(() => {});
     throw new AppError("VALIDATION", "upload_mismatch");
   }
   const [row] = await withUser(db, ctx, (tx) =>
@@ -195,7 +205,7 @@ export async function registerUpload(
       .insert(files)
       .values({
         ownerId: ctx.userId,
-        bucket: "vercel-blob",
+        bucket: BLOB_BUCKET,
         path: input.pathname,
         originalName: sanitizeFilename(input.originalName),
         mimeType: meta.contentType,
@@ -296,21 +306,20 @@ export async function openFile(ctx: AppContext, fileId: string, range?: [number,
   // Audio and video are read in byte ranges (Safari plays nothing without them,
   // and seeking needs them everywhere).
   const media = /^(audio|video)\//.test(f.mimeType);
-  const res = await get(f.path, {
-    access: "private",
-    ...(media && range ? { headers: { range: `bytes=${range[0]}-${range[1] ?? ""}` } } : {}),
-  });
-  if (!res || !res.stream) return null;
-  if (!media) return { ...base, stream: res.stream };
-  const m = /bytes (\d+)-(\d+)\/(\d+)/.exec(res.headers.get("content-range") ?? "");
-  if (range && m)
+  const m = await headFile(f.path);
+  if (!m) return null;
+  if (!media) return { ...base, size: m.size, stream: streamFile(f.path, m) };
+  if (range) {
+    const start = Math.min(range[0], m.size - 1);
+    const end = Math.min(range[1] ?? m.size - 1, m.size - 1);
     return {
       ...base,
-      size: Number(m[3]),
-      stream: res.stream,
-      range: { start: Number(m[1]), end: Number(m[2]), size: Number(m[3]) },
+      size: m.size,
+      stream: streamFile(f.path, m, start, end),
+      range: { start, end, size: m.size },
     };
-  return { ...base, stream: res.stream, range: null };
+  }
+  return { ...base, size: m.size, stream: streamFile(f.path, m), range: null };
 }
 
 /** Full bytes of the actor's own file (used for PDF text extraction). */
@@ -322,10 +331,8 @@ export async function readFileBytes(
   if (!f) return null;
   if (f.bucket === "telegram" && Array.isArray(f.tgParts))
     return { bytes: await readParts(f.tgParts as TgPart[]), mime: f.mimeType };
-  const res = await get(f.path, { access: "private" });
-  if (!res?.stream) return null;
-  const buf = await new Response(res.stream).arrayBuffer();
-  return { bytes: new Uint8Array(buf), mime: f.mimeType };
+  const bytes = await readWhole(f.path);
+  return bytes ? { bytes, mime: f.mimeType } : null;
 }
 
 export async function deleteFile(ctx: AppContext, fileId: string) {
@@ -339,7 +346,7 @@ export async function deleteFile(ctx: AppContext, fileId: string) {
   if (!f) throw new AppError("NOT_FOUND");
   if (f.bucket === "telegram" && Array.isArray(f.tgParts)) await deleteParts(f.tgParts as TgPart[]);
   else
-    await del(f.path).catch(() => {
+    await deleteBlob(f.path).catch(() => {
       /* metadata already marked deleted */
     });
 }

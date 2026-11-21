@@ -52,3 +52,7 @@ next-env.d.ts
 
 # Copied from pdfjs-dist by scripts/copy-pdfjs.mjs (postinstall)
 /public/pdfjs/
+
+# Netlify
+.netlify/
+.blobs/

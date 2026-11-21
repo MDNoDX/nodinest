@@ -19,7 +19,7 @@ changes you confirm.
 | Files   | Supabase Storage (private bucket, signed URLs), optional                               |
 | Hosting | Vercel (Hobby)                                                                         |
 
-**Production:** https://nodinest.vercel.app · repo: https://github.com/MDNoDX/nodinest
+**Production:** https://nodinest.netlify.app · repo: https://github.com/MDNoDX/nodinest
 
 ## Quick start (local)
 

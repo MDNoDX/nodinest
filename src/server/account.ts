@@ -1,10 +1,10 @@
 /**
  * Deleting one's own account: every row of the user goes (foreign keys cascade;
  * shared catalog entries they created stay, without the author), and so do
- * their files in Blob storage. The superadmin account cannot delete itself.
+ * their files in the blob store. The superadmin account cannot delete itself.
  */
 import "server-only";
-import { del } from "@vercel/blob";
+import { deleteBlob } from "./blob-store";
 import { eq } from "drizzle-orm";
 import { db, type AppContext } from "@/db";
 import { files, user } from "@/db/schema";
@@ -23,9 +23,8 @@ export async function deleteAccount(ctx: AppContext) {
   for (const f of owned)
     if (f.bucket === "telegram" && Array.isArray(f.tgParts))
       await deleteParts(f.tgParts as TgPart[]);
-  for (let i = 0; i < paths.length; i += 100) {
-    await del(paths.slice(i, i + 100)).catch(() => {
+  for (const p of paths)
+    await deleteBlob(p).catch(() => {
       /* the rows are gone; an orphan blob is unreachable */
     });
-  }
 }

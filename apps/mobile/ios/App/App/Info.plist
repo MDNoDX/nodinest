@@ -89,7 +89,7 @@
 	<true/>
 	<key>WKAppBoundDomains</key>
 	<array>
-		<string>nodinest.vercel.app</string>
+		<string>nodinest.netlify.app</string>
 	</array>
 </dict>
 </plist>

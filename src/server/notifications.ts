@@ -28,7 +28,7 @@ import { hitRateLimit } from "./rate-limit";
 
 export type Kind = keyof typeof PREF_OF;
 const KEEP_DAYS = 60;
-const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app";
+const site = () => process.env.BETTER_AUTH_URL ?? "https://nodinest.netlify.app";
 
 /** Tells a person something: the bell, and Telegram when it is linked and on. */
 export async function notify(

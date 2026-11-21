@@ -1,8 +1,13 @@
+> **2026-11-21: production moved to Netlify Free** (https://nodinest.netlify.app). The Vercel steps
+> below are history. Now: `netlify.toml` (build + migrations, `ignore` to save credits), files in
+> Netlify Blobs (`src/server/blob-store.ts`), the daily job in `netlify/functions/cron-daily.mts`,
+> env with `netlify env:list|set`, app downloads from the GitHub release `apps`. See CLAUDE.md.
+
 # Deployment guide ($0)
 
 ## Current production (2026-10-12)
 
-- URL: **https://nodinest.vercel.app** — Vercel project `nodinest` (team `mdnodx`), connected to
+- URL: **https://nodinest.netlify.app** — Vercel project `nodinest` (team `mdnodx`), connected to
   GitHub `MDNoDX/nodinest` (every push to `main` deploys).
 - Database: **Neon** resource `nodinest-db` (Vercel Marketplace, free) — `DATABASE_URL`
   (pooled) and `DATABASE_URL_UNPOOLED` are injected by the integration. Migrations applied;
@@ -11,7 +16,7 @@
   `GOOGLE_CLIENT_ID/SECRET`, `SUPERADMIN_EMAILS`, `GEMINI_*`, `AI_DAILY_LIMIT_PER_USER`, `UPLOAD_MAX_MB`.
 - Not configured: file storage (no `SUPABASE_*`) → uploads disabled, URL fields work.
 - Google console must list the redirect URI
-  `https://nodinest.vercel.app/api/auth/callback/google`.
+  `https://nodinest.netlify.app/api/auth/callback/google`.
 - Migrations against production: `vercel env pull /tmp/.env.prod --environment=production`
   then `DOTENV_PATH=/tmp/.env.prod npm run db:migrate` (delete the file afterwards).
 

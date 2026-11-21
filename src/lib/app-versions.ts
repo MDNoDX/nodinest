@@ -1,13 +1,16 @@
 /**
- * The installed apps people download (kept in the private file store under
- * downloads/, see /api/download/[platform]). Bump the version and the file
- * together after uploading a new build; the Mac app asks /api/app/version
- * and offers the update itself.
+ * The installed apps people download: assets of the GitHub release
+ * `RELEASE_TAG` of the public repo (free, any size; /api/download/[platform]
+ * redirects there). Upload a new build with
+ *   gh release upload apps <file> --repo MDNoDX/nodinest --clobber
+ * then bump the version and the file together; the Mac app asks
+ * /api/app/version and offers the update itself.
  */
+export const RELEASE_BASE = "https://github.com/MDNoDX/nodinest/releases/download/apps";
 export const APPS = {
-  mac: { version: "1.5", file: "downloads/Roznoma-1.5.dmg" },
-  windows: { version: "1.0.0", file: "downloads/Roznoma-Setup-1.0.0.exe" },
-  android: { version: "1.0", file: "downloads/Roznoma-1.0.apk" },
+  mac: { version: "1.5", file: "Roznoma-1.5.dmg" },
+  windows: { version: "1.0.0", file: "Roznoma-Setup-1.0.0.exe" },
+  android: { version: "1.0", file: "Roznoma-1.0.apk" },
 } as const;
 export type AppPlatform = keyof typeof APPS;
 

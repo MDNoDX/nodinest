@@ -11,9 +11,9 @@ const config: CapacitorConfig = {
   appName: "Röznoma",
   webDir: "www",
   server: {
-    url: process.env.ROZNOMA_URL ?? "https://nodinest.vercel.app",
+    url: process.env.ROZNOMA_URL ?? "https://nodinest.netlify.app",
     errorPath: "offline.html",
-    allowNavigation: ["nodinest.vercel.app"],
+    allowNavigation: ["nodinest.netlify.app"],
   },
   ios: { contentInset: "automatic", limitsNavigationsToAppBoundDomains: true, scheme: "Roznoma" },
   android: { allowMixedContent: false },

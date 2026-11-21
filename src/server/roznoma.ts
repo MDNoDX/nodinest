@@ -1295,7 +1295,7 @@ export async function sendReminders(now = new Date()) {
     .from(botUsers)
     .innerJoin(user, eq(user.id, botUsers.userId))
     .where(and(eq(botUsers.blocked, false), eq(user.status, "active")));
-  const site = process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app";
+  const site = process.env.BETTER_AUTH_URL ?? "https://nodinest.netlify.app";
   const mins = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
   let sent = 0;
   for (const p of people) {

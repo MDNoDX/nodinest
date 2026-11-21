@@ -116,8 +116,12 @@ export async function tgDocument(name: string, content: string, caption: string)
 
 /** Where this server runs (shown under every report). */
 export function envLine() {
-  const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
-  return [process.env.VERCEL_ENV ?? "local", process.env.VERCEL_REGION, sha]
+  const sha = (process.env.COMMIT_REF ?? process.env.VERCEL_GIT_COMMIT_SHA)?.slice(0, 7);
+  return [
+    process.env.NETLIFY ? "netlify" : (process.env.VERCEL_ENV ?? "local"),
+    process.env.VERCEL_REGION,
+    sha,
+  ]
     .filter(Boolean)
     .join(" · ");
 }

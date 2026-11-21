@@ -190,15 +190,14 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   Raw Better Auth endpoints for these are off in production (`disabledPaths`).
 - Public legal pages /privacy and /terms (`src/content/legal.ts`, uz + en): keep them true when
   adding services, cookies or data. Settings → delete account (`server/account.ts`: DB cascade +
-  Blob files; never the superadmin). Vercel Web Analytics (`components/pwa/analytics.tsx`, ids
-  stripped from URLs) — enable it in the Vercel dashboard.
+  Blob files; never the superadmin). No page analytics since the move to Netlify (`components/pwa/analytics.tsx` is a no-op).
 - Telegram (`server/monitor/*`, `server/bot/*`, bot @nodinest_bot, env TELEGRAM_BOT_TOKEN +
   TELEGRAM_ADMIN_CHAT_ID): webhook `/api/telegram/webhook` (secret header derived from the token);
   setup with `scripts/telegram-setup.ts`. The admin channel gets suggestions (reply to answer → bot +
   Takliflar), new users, every server error with stack (instrumentation.ts → report.ts, deduped),
   AI-paused notices, Premium payments (✅/❌ buttons, channel admins only) and the daily summary
-  (Vercel cron `/api/cron/daily`, CRON_SECRET). Commands in the channel: /stat /hammaga /arxiv /test.
-- Big files (> 2 MB) move from Vercel Blob to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
+  (Netlify scheduled function `netlify/functions/cron-daily.mts` → `/api/cron/daily`, CRON_SECRET). Commands in the channel: /stat /hammaga /arxiv /test.
+- Big files (> 2 MB) move from the blob store to Telegram (`server/tg-storage.ts`): AES-256-GCM parts
   ≤ 19 MB in the storage channel (TG_FILES_KEY — losing it loses the files), Range reads, deleted
   with the file. `/arxiv` or the daily cron moves the rest. Quota per user: 5 GB when ready.
 - People: no separate community page — "Profil" (/profile → /u/<me>); people are found from the
@@ -289,7 +288,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   its followers; a kind with no words lists its newest). Media has no search box of its own.
 - Web Push (`server/push.ts`, table `push_subscriptions`, 0050, sw.js "push"): every `notify()` also goes
   to the browsers the person allowed (Settings → Notifications). Needs VAPID_PUBLIC_KEY and
-  VAPID_PRIVATE_KEY in Vercel (VAPID_SUBJECT optional); the page asks GET /api/push for the key.
+  VAPID_PRIVATE_KEY in Netlify (VAPID_SUBJECT optional); the page asks GET /api/push for the key.
 - Audiobook parts report real progress (`job_progress`, `segmentProgress`, GET
   `/api/audiobook/[id]/progress?idx=`); the ring uses it, the time estimate only fills between steps.
 - `rebuildYearBook()` (day page → "Kitobni yangilash") writes every day of the year again in the
@@ -298,7 +297,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   in the morning (`user.notify.morningAt`, 07:00), each timed plan with its alarm on at its time (15 min
   window), what is left in the evening (`eveningAt`, 21:30; "off" stops one; Settings → Notifications,
   `lib/notify-prefs.ts` `readPlanTimes`). Each once a day (rate_limits keys). Triggered every minute by
-  cron-job.org (GitHub's schedule runs only every few hours) and once by the daily Vercel cron.
+  cron-job.org (GitHub's schedule runs only every few hours) and once by the daily cron.
 - The minute cron must not wake Neon (free compute is 100 CU-hours a month): `/api/cron/reminders`
   reads the cached moments (`server/remind-schedule.ts`, `unstable_cache`, 6 h, tag `remind-plans`,
   `remindPlansChanged()` after plan / time / bot / timezone changes) and `dueNow` (lib/remind-due.ts);
@@ -352,7 +351,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   quick row is the person's own (`lib/quick-reactions.ts`, "nn:quick-reactions", per device): the
   arrow opens every emoji, "Change" picks a place and the next emoji goes there. Stickers
   (`gif.sticker`) have no bubble.
-- Never use the browser's `confirm()` / `alert()` ("…vercel.app says"): call `ask({ message, remove })`
+- Never use the browser's `confirm()` / `alert()` ("…netlify.app says"): call `ask({ message, remove })`
   / `tell(message)` from `components/ui/ask.tsx` (one centred window, `AskHost` in the root layout),
   or `ConfirmButton` for a button. Radix menus / popovers animate with `data-[state=open]:animate-*`
   only: a plain `animate-scale-in` keeps a closed one on screen.
@@ -363,7 +362,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
 - Android app (`apps/mobile/android`): release builds are signed with the key in
   `~/Library/Application Support/Roznoma/android/` (keystore.properties; back it up — updates need the
   same key). Build: JAVA_HOME=openjdk@21, ANDROID_HOME=/opt/homebrew/share/android-commandlinetools,
-  `./gradlew assembleRelease`, upload to Blob `downloads/Roznoma-<v>.apk`, `/api/download/android`.
+  `./gradlew assembleRelease`, `gh release upload apps Roznoma-<v>.apk --repo MDNoDX/nodinest`, `/api/download/android`.
   Android's back button closes an open window, then goes back, then minimizes (`listenForBack`).
 - Home on phones: the day's plan first, one sideways row of "reading", small counters, no finished
   wall / latest notes there (on a computer the latest notes sit in the side column); an odd counter gets a
@@ -393,9 +392,9 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   mode and bulk removal of only my own rows.
 - Posts count sends (`learning_records.shares`, 0052, `countShare`, from SendTo); my own public item
   shows its 👍 / comments / shares in Darsxona (`myPostStats`).
-- Desktop apps: `/api/download/mac|windows` redirects to a 10-minute signed link in the private Blob
-  store (`downloads/…`, uploaded by hand from dist/); rebuild with `apps/mac/build.sh` /
-  `apps/windows npm run build`, upload, then bump the paths in the route.
+- Desktop apps: `/api/download/mac|windows|android` redirects to the asset in the public GitHub release
+  `apps` of MDNoDX/nodinest (`RELEASE_BASE` in lib/app-versions.ts); rebuild with `apps/mac/build.sh` /
+  `apps/windows npm run build`, `gh release upload apps <file> --repo MDNoDX/nodinest`, then bump `APPS`.
 - Books have their own details (publisher entity, pages, original + edition date). Every other
   type shares one set in `media_details` (release date, duration, "where", language, link;
   courses + lesson count). `BOOK_LIKE` / `MEDIA_LIKE` in validation.ts decide which.
@@ -446,26 +445,32 @@ Postgres.app at 127.0.0.1:5432 (user `mdnodx`): DBs `nodinest`, `nodinest_test`,
 `GEMINI_API_KEY` from `~/Library/Application Support/Nodogram/gemini.key` without writing it
 to the repo. Gemini free quotas are per model: `GEMINI_FALLBACK_MODELS` lists free fallbacks.
 
-Production runs in Frankfurt: `vercel.json` regions `fra1` + Neon EU project `nodinest-db-eu`
-(env `EU_DATABASE_URL[_UNPOOLED]`, production only; `src/db/index.ts` and the scripts prefer it).
-The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28; prod migrations run in the Vercel build (`buildCommand` in vercel.json): if one fails, the deploy
-stops and the old version stays, so code never gets ahead of the database. Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin`
-(pg_dump 18) for dumps.
+Production runs on **Netlify Free** (site `nodinest`, https://nodinest.netlify.app, team mdnodx; moved
+from Vercel on 2026-11-21 when the Hobby account was paused for CPU). `netlify.toml`: the production
+build runs `npm run db:migrate` first (a failed migration stops the deploy), `ignore` skips builds when
+nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: build and check locally
+first, `netlify build --context production` with .env.local moved aside). Limits: 60 s per function
+(maxDuration above 60 does nothing), ≤ 6 MB per request (uploads go in 3 MB parts), ≤ 20 MB streamed
+response, functions in us-east-2 (Free cannot pick a region) while the DB is Neon EU
+`nodinest-db-eu` (env `EU_DATABASE_URL[_UNPOOLED]`; `src/db/index.ts` and the scripts prefer it).
+The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28.
+Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin` (pg_dump 18) for dumps.
 
-**Warning:** `vercel link`, `vercel env pull` and `vercel blob create-store` overwrite
-`.env.local` with production values. Pull into a scratch file instead
-(`vercel env pull /tmp/x.env --environment=production`) and restore `.env.local` if touched.
+Env: `netlify env:list` / `netlify env:set` (never print values). Vercel's "sensitive" values could not
+be read back, so BETTER_AUTH_SECRET, CRON_SECRET and the VAPID pair were made new on the move.
 Offline/PWA: `public/sw.js` (registered in production only by `components/pwa/pwa.tsx`):
 cache-first static, SWR images, network-first pages with cached fallback + `/offline`; caches and
 `nn:*` localStorage are wiped on sign-out. Bump `VERSION` in sw.js when its rules change.
 Icons: `node scripts/make-icons.mjs`. To test the SW locally use the `nodinest-prod` launch config
 (after `next build`) — it only runs public pages, since prod cookies need HTTPS.
-Files: Vercel Blob (private store `nodinest-files`), client upload via `/api/blob/upload`,
-served via `/api/files/[id]`. PDF text: `unpdf` → `book_pages` (FTS) in `server/booktext.ts`.
+Files: Netlify Blobs store `files` (`server/blob-store.ts`: a manifest + 3 MB parts per file, range
+reads from the parts; outside Netlify a `.blobs/` folder), uploads in parts via `/api/blob/upload`
+(signed ticket), served via `/api/files/[id]`. `files.bucket` = "blob" | "telegram" (0055).
+PDF text: `unpdf` → `book_pages` (FTS) in `server/booktext.ts`.
 
 ## Mac app (`apps/mac/`)
 
-App versions people download live in `src/lib/app-versions.ts` (`APPS`: version + Blob file); the
+App versions people download live in `src/lib/app-versions.ts` (`APPS`: version + release file); the
 Mac app reads `/api/app/version` and offers a newer DMG itself (daily, or "Check for updates"). Since
 1.3 it is a program, not a browser window: transparent title bar in the page's colour (PAGE_SCRIPT
 posts `bg`), no Reload / Inspect in the context menu (`AppWebView`), a Dock badge (unread chats +

@@ -42,7 +42,7 @@ export async function openRouterGenerate(
         headers: {
           authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "content-type": "application/json",
-          "http-referer": process.env.BETTER_AUTH_URL ?? "https://nodinest.vercel.app",
+          "http-referer": process.env.BETTER_AUTH_URL ?? "https://nodinest.netlify.app",
           "x-title": "Röznoma",
         },
         body: JSON.stringify({ model, messages, temperature: config.temperature ?? 0.5 }),
