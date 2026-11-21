@@ -452,8 +452,10 @@ to the repo. Gemini free quotas are per model: `GEMINI_FALLBACK_MODELS` lists fr
 Production runs on **Netlify Free** (site `nodinest`, https://nodinest.netlify.app, team mdnodx; moved
 from Vercel on 2026-11-21 when the Hobby account was paused for CPU). `netlify.toml`: the production
 build runs `npm run db:migrate` first (a failed migration stops the deploy), `ignore` skips builds when
-nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: build and check locally
-first, `netlify build --context production` with .env.local moved aside). Limits: 60 s per function
+nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: check locally with
+`npm run build` first). Deploy ONLY through Netlify's own git build (push to main, or
+`netlify api createSiteBuild`): a `netlify deploy` of a build made on this Mac ships macOS `sharp`
+(every page 500s on Linux) and, with publish = .next, would expose .next files. Limits: 60 s per function
 (maxDuration above 60 does nothing), ≤ 6 MB per request (uploads go in 3 MB parts), ≤ 20 MB streamed
 response, functions in us-east-2 (Free cannot pick a region) while the DB is Neon EU
 `nodinest-db-eu` (env `EU_DATABASE_URL[_UNPOOLED]`; `src/db/index.ts` and the scripts prefer it).
