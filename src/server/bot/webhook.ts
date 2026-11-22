@@ -20,6 +20,7 @@ import { esc, tgRaw, tgSend, tgTo } from "@/server/monitor/telegram";
 import { forgetStorageChat, moveWaiting } from "@/server/tg-storage";
 import { notifyEveryone, redeemBotLink } from "@/server/notifications";
 import { decidePayment } from "@/server/premium";
+import { onPreCheckout, onStarsPaid, planButtons, sendStarsInvoice } from "@/server/stars";
 import { botText, langOf, type BotLang } from "./texts";
 
 type Msg = {
@@ -28,8 +29,21 @@ type Msg = {
   chat: { id: number; type: string };
   text?: string;
   reply_to_message?: { message_id: number };
+  successful_payment?: {
+    currency: string;
+    total_amount: number;
+    invoice_payload: string;
+    telegram_payment_charge_id: string;
+  };
 };
 type Update = {
+  pre_checkout_query?: {
+    id: string;
+    from: TgUser;
+    currency: string;
+    total_amount: number;
+    invoice_payload: string;
+  };
   message?: Msg;
   channel_post?: Msg;
   callback_query?: {
@@ -114,6 +128,30 @@ async function onPrivate(m: Msg) {
     await tgTo(m.chat.id, name ? T.linkOk(esc(name)) : T.linkGone, { reply_markup: menu(L) });
     return;
   }
+  // Premium for Stars (the link in ads: t.me/nodinest_bot?start=premium).
+  if (/^\/(start\s+premium|premium)\b/.test(text)) {
+    const [me] = await db
+      .select({ userId: botUsers.userId })
+      .from(botUsers)
+      .where(eq(botUsers.tgId, from.id));
+    if (me?.userId)
+      await tgTo(
+        m.chat.id,
+        "⭐ <b>Röznoma Premium</b>\nKöproq AI javoblari, audiokitoblar, savol kartalari, reklamasiz. Muddatni tanlang — tölovdan keyin saytda darhol yoqiladi.",
+        { reply_markup: await planButtons("PS:") },
+      );
+    else
+      await tgTo(
+        m.chat.id,
+        "⭐ <b>Röznoma Premium</b>\nTelegram yulduzçalari bilan tölanadi va saytda o‘zi yoqiladi.\n\n1. Röznoma'ga kiring (Google yoki email bilan).\n2. <b>Premium</b> sahifasida «Telegram Stars bilan tölaş»ni bosing — tölov şu yerda oçiladi.",
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Premium sahifasini oçish", url: `${site()}/premium` }]],
+          },
+        },
+      );
+    return;
+  }
   if (/^\/start\b/.test(text)) {
     await tgTo(m.chat.id, T.welcome(esc(from.first_name ?? from.username ?? "")), {
       reply_markup: menu(L),
@@ -179,6 +217,16 @@ async function onCallback(q: NonNullable<Update["callback_query"]>) {
           reply_markup: markup,
         })
       : null;
+  // A Stars plan picked in the bot: the invoice for the linked account.
+  if (/^PS:\d+$/.test(data)) {
+    const [me] = await db
+      .select({ userId: botUsers.userId })
+      .from(botUsers)
+      .where(eq(botUsers.tgId, q.from.id));
+    await tgRaw("answerCallbackQuery", { callback_query_id: q.id });
+    if (me?.userId && chat) await sendStarsInvoice(chat, me.userId, Number(data.slice(3)), L);
+    return;
+  }
   // Premium payments: only an admin of the admin channel may decide.
   if (/^P[AR]:/.test(data) && String(chat) === process.env.TELEGRAM_ADMIN_CHAT_ID) {
     const m = await tgRaw<{ status: string }>("getChatMember", {
@@ -320,7 +368,10 @@ async function onChannel(m: Msg) {
 }
 
 export async function handleUpdate(u: Update) {
-  if (u.message && u.message.chat.type === "private") await onPrivate(u.message);
+  if (u.pre_checkout_query) await onPreCheckout(u.pre_checkout_query);
+  else if (u.message?.successful_payment)
+    await onStarsPaid(u.message.chat, u.message.from, u.message.successful_payment);
+  else if (u.message && u.message.chat.type === "private") await onPrivate(u.message);
   else if (u.callback_query) await onCallback(u.callback_query);
   else if (u.channel_post) await onChannel(u.channel_post);
   else if (

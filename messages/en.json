@@ -2403,7 +2403,12 @@
     },
     "settingsTitle": "Premium",
     "settingsBody": "More AI, audiobooks and no ads.",
-    "open": "Details"
+    "open": "Details",
+    "starsTitle": "Pay with Telegram Stars",
+    "starsHint": "The quickest way: pay in Telegram with Stars and Premium turns on here by itself, no waiting.",
+    "starsPay": "Pay in Telegram",
+    "starsOpening": "Opening Telegram…",
+    "starsAuto": "Payment opens in @nodinest_bot. Premium starts the moment it is paid; you will get a message in the bot."
   },
   "premiumAdmin": {
     "requests": "Payment requests",

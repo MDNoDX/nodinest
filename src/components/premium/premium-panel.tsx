@@ -2,6 +2,8 @@ import { Check, Minus } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PaymentForm } from "@/components/premium/payment-form";
 import { PremiumBadge } from "@/components/premium/premium-badge";
+import { StarsPay } from "@/components/premium/stars-pay";
+import { starPlans } from "@/server/stars";
 import { Badge } from "@/components/ui/misc";
 import type { AppContext } from "@/db";
 import { asLocale, intlTag } from "@/i18n/config";
@@ -12,7 +14,7 @@ import { getPremiumSettings, myPayments, type PlanLimits } from "@/server/premiu
 export async function PremiumPanel({ ctx, user }: { ctx: AppContext; user: CurrentUser }) {
   const t = await getTranslations("premium");
   const locale = asLocale(await getLocale());
-  const [s, mine] = await Promise.all([getPremiumSettings(), myPayments(ctx)]);
+  const [s, mine, plans] = await Promise.all([getPremiumSettings(), myPayments(ctx), starPlans()]);
   const date = (d: Date) => d.toLocaleDateString(intlTag(locale), { dateStyle: "long" });
   const nf = new Intl.NumberFormat(intlTag(locale));
   const hours = (m: number) =>
@@ -63,6 +65,7 @@ export async function PremiumPanel({ ctx, user }: { ctx: AppContext; user: Curre
           <span className="text-lg font-bold">{nf.format(s.priceMonth)}</span> {t("perMonth")}
         </p>
       </section>
+      {process.env.TELEGRAM_BOT_TOKEN && <StarsPay plans={plans} />}
       <PaymentForm
         price={s.priceMonth}
         card={s.card}
@@ -79,7 +82,9 @@ export async function PremiumPanel({ ctx, user }: { ctx: AppContext; user: Curre
           <ul className="flex flex-col gap-2 text-sm">
             {mine.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-2">
-                <span className="tabular-nums">{nf.format(p.amount)} söm</span>
+                <span className="tabular-nums">
+                  {p.method === "stars" ? `⭐ ${p.amount}` : `${nf.format(p.amount)} söm`}
+                </span>
                 <span className="text-muted">
                   · {t("monthsN", { n: p.months })} · {date(p.createdAt)}
                 </span>

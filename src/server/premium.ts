@@ -36,6 +36,8 @@ export const premiumSettingsSchema = z.object({
   enabled: z.boolean().default(true),
   /** Price of one month in so‘m. */
   priceMonth: z.coerce.number().int().min(0).max(100_000_000).default(25_000),
+  /** Price of one month in Telegram Stars (paid in @nodinest_bot, Premium turns on by itself). */
+  starsMonth: z.coerce.number().int().min(1).max(100_000).default(100),
   card: z.string().trim().max(40).default(""),
   cardHolder: z.string().trim().max(80).default(""),
   /** A Visa / Mastercard number (for payments from abroad). */

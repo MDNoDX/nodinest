@@ -332,6 +332,12 @@ offline says "no internet" (`errors.OFFLINE` in use-action). The book editor
   `notifications`, kept 60 days, page `/notifications`). Switches `user.notify` (`lib/notify-prefs.ts`,
   Settings → Notifications). The bot is linked with `/start link_<code>` (signed, 15 min, one use).
   New kinds need `PREF_OF` and `notifications.kind.*` in all locales. Daily cron: `dailyNudges`.
+- Premium for **Telegram Stars** (`server/stars.ts`, ON since 2026-11-22, `starsMonth` 100 ⭐; 3 months −10 %,
+  a year −20 %): /premium → `starsLinkAction` → a signed `createInvoiceLink` (payload `pr.<user>.<months>.
+  <stars>.<exp>.<mac>`), the bot checks it on `pre_checkout_query` and on `successful_payment` writes one
+  `payments` row per Telegram charge id (method "stars") and moves premium_until; "/start premium" in
+  @nodinest_bot offers the plans to a linked account, else sends them to /premium. allowed_updates must
+  include pre_checkout_query (scripts/telegram-setup.ts).
 - Premium (`server/premium.ts`, `/premium`, Admin → Premium): manual payments (card / Payme /
   Click) confirmed by the admin; plan limits (aiDaily, audiobook, studyCards, listenMinutes, ads)
   are admin settings; `gate()` in ai/study.ts and `limitsFor()` enforce them (PREMIUM_REQUIRED).

@@ -2403,7 +2403,12 @@
     },
     "settingsTitle": "Premium",
     "settingsBody": "Кўпроқ AI, аудиокитоб ва рекламасиз иш.",
-    "open": "Батафсил"
+    "open": "Батафсил",
+    "starsTitle": "Telegram Старс билан тўлаш",
+    "starsHint": "Энг тез йўл: Telegram'да юлдузчалар билан тўланг — Premium бу ерда ўз-ўзидан ёқилади, кутиш йўқ.",
+    "starsPay": "Telegram'да тўлаш",
+    "starsOpening": "Telegram очилмоқда…",
+    "starsAuto": "Тўлов @nodinest_bot'да очилади. Premium тўланган заҳоти ёқилади, ботга хабар келади."
   },
   "premiumAdmin": {
     "requests": "Тўлов сўровлари",

@@ -2403,7 +2403,12 @@
     },
     "settingsTitle": "Premium",
     "settingsBody": "Köproq AI, audiokitob va reklamasiz iş.",
-    "open": "Batafsil"
+    "open": "Batafsil",
+    "starsTitle": "Telegram Stars bilan tölaş",
+    "starsHint": "Eng tez yöl: Telegram'da yulduzçalar bilan tölang — Premium bu yerda öz-özidan yoqiladi, kutiş yöq.",
+    "starsPay": "Telegram'da tölaş",
+    "starsOpening": "Telegram oçilmoqda…",
+    "starsAuto": "Tölov @nodinest_bot'da oçiladi. Premium tölangan zahoti yoqiladi, botga xabar keladi."
   },
   "premiumAdmin": {
     "requests": "Tölov sörovlari",

@@ -2403,7 +2403,12 @@
     },
     "settingsTitle": "Premium",
     "settingsBody": "Больше ИИ, аудиокниги и без рекламы.",
-    "open": "Подробнее"
+    "open": "Подробнее",
+    "starsTitle": "Оплата Telegram Stars",
+    "starsHint": "Самый быстрый способ: оплатите звёздами в Telegram, и Premium включится здесь сам, без ожидания.",
+    "starsPay": "Оплатить в Telegram",
+    "starsOpening": "Открываю Telegram…",
+    "starsAuto": "Оплата откроется в @nodinest_bot. Premium включится сразу после оплаты, в боте придёт сообщение."
   },
   "premiumAdmin": {
     "requests": "Заявки на оплату",

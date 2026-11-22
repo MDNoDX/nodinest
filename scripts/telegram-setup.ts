@@ -82,7 +82,13 @@ async function main() {
   await call("setWebhook", {
     url: `${site}/api/telegram/webhook`,
     secret_token: secret,
-    allowed_updates: ["message", "callback_query", "channel_post", "my_chat_member"],
+    allowed_updates: [
+      "message",
+      "callback_query",
+      "channel_post",
+      "my_chat_member",
+      "pre_checkout_query",
+    ],
     drop_pending_updates: true,
   });
 
