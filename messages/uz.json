@@ -1342,7 +1342,8 @@
     "dm_closed": "Bu odamga hozirça yozib bölmaydi: u faqat tanişlaridan xabar qabul qiladi.",
     "dm_blocked": "Bu suhbatga yozib bölmaydi (bloklangan).",
     "needProfile": "Buning uçun profil oçing — bir daqiqa, bepul.",
-    "openProfile": "Profil oçiş"
+    "openProfile": "Profil oçiş",
+    "OFFLINE": "Internet yöq — bu amal uçun internet kerak. Aloqa qaytgaç qayta urinib köring."
   },
   "validation": {
     "required": "Bu maydon majburiy.",
@@ -1602,7 +1603,7 @@
     "retry": "Qayta uriniş",
     "banner": "Oflayn rejim — saqlangan sahifalar körsatilmoqda",
     "modeTitle": "Internetsiz işlaş",
-    "modeHint": "Bölimlar, oxirgi manba va qaydlaringiz, öqiyotgan kitoblaringiz matni şu qurilmada saqlanadi — internet bölmasa ham oçiladi. Mac, Windows va telefon ilovalarida öz-özidan yoqilgan.",
+    "modeHint": "Bölimlar, oxirgi manba va qaydlaringiz, öqiyotgan kitoblaringiz matni şu qurilmada saqlanadi — internet bölmasa ham oçiladi. Öz-özidan yoqilgan; joy tejaş uçun öçirib qöyiş mumkin.",
     "status": "{pages} sahifa va {books} kitob saqlangan · {when}",
     "never": "Hali saqlanmagan",
     "syncing": "Saqlanmoqda… {done} / {total}",

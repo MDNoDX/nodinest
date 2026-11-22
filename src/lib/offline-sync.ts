@@ -4,10 +4,13 @@
  * person uses (sections, recent items with their reading and taqriz pages,
  * collections, notes) are fetched into the service worker's page cache, and
  * the whole text of the books in progress into the reader's own cache. On by
- * itself in the Mac / Windows app; a choice everywhere else (it downloads a few
- * megabytes). Refreshed every 12 hours while the app is open and online.
+ * itself everywhere (a browser that asks to save data waits for the switch);
+ * off only when the person turns it off. Refreshed every 12 hours while the
+ * app is open and online, and right after a sign-in.
  */
+import { dueCardsAction } from "@/app/actions/cards";
 import { isSavedOffline, saveOffline } from "@/components/reader/offline";
+import { keepDueCards } from "@/lib/outbox";
 import type { OfflineManifest, OfflinePageRef } from "@/server/offline";
 
 const MODE = "nn:offline-mode";
@@ -45,13 +48,24 @@ const put = (k: string, v: string) => {
 export const isDesktopApp = () =>
   typeof navigator !== "undefined" &&
   (/NodiNestMac\/|Electron\//.test(navigator.userAgent) ||
-    !!(window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+    !!(
+      window as { Capacitor?: { isNativePlatform?: () => boolean } }
+    ).Capacitor?.isNativePlatform?.());
 export const canWorkOffline = () =>
   typeof navigator !== "undefined" && "serviceWorker" in navigator && "caches" in window;
 
+/** The person asked the browser to save data (or the link is 2G): no big downloads by default. */
+const savingData = () => {
+  const c = (navigator as { connection?: { saveData?: boolean; effectiveType?: string } })
+    .connection;
+  return !!c?.saveData || /(^|-)2g$/.test(c?.effectiveType ?? "");
+};
+
+/** On by itself for everyone (the apps always; a browser unless it saves data); off only by choice. */
 export function offlineOn(): boolean {
   const v = get(MODE);
-  return v ? v === "on" : isDesktopApp();
+  if (v) return v === "on";
+  return isDesktopApp() || !savingData();
 }
 
 /** The saved pages with their titles (the /offline page lists them). */
@@ -156,6 +170,9 @@ export async function syncOffline(force = false) {
       }
       set({ done: current().done + 1 });
     }
+    // The cards due for review, so /review works without the internet too.
+    const due = await dueCardsAction(null).catch(() => null);
+    if (due?.ok) keepDueCards(due.data);
     const counts = { at: Date.now(), pages: Math.max(0, saved), books };
     put(AT, JSON.stringify(counts));
     set({ ...counts, running: false });

@@ -1,4 +1,5 @@
 "use client";
+import { enqueue, isOffline, keepDueCards, keptDueCards } from "@/lib/outbox";
 import {
   Brain,
   Check,
@@ -93,8 +94,17 @@ export function ReviewApp({
   const labelOf = (k: string) => (k === "mixed" ? t("mixed") : tt(`plural.${k}` as "plural.book"));
 
   const start = async (deck: string | null, practice = false) => {
-    const r = practice ? await listCardsAction(deck!) : await dueCardsAction(deck);
+    // Offline: the cards kept on this device (due ones; practice uses them too).
+    const fromDevice = () => {
+      const kept = keptDueCards<Session["cards"][number]>(deck);
+      if (!kept.length) return void errorToast(te, "OFFLINE");
+      setSession({ label: deck ?? t("allDecks"), cards: kept, i: 0, practice, done: 0 });
+    };
+    if (isOffline()) return fromDevice();
+    const r = await (practice ? listCardsAction(deck!) : dueCardsAction(deck)).catch(() => null);
+    if (!r) return fromDevice();
     if (!r.ok) return errorToast(te, r);
+    if (!practice && !deck) keepDueCards(r.data);
     if (!r.data.length) return toast(t("nothingDue"));
     const cards = practice ? [...r.data].sort(() => Math.random() - 0.5) : r.data;
     setSession({ label: deck ?? t("allDecks"), cards, i: 0, practice, done: 0 });
@@ -645,10 +655,12 @@ function SessionView({ s, setS }: { s: Session; setS: (s: Session | null) => voi
       if (!c || live.current.busy) return;
       setBusy(true);
       if (!s.practice) {
-        const r = await reviewCardAction(c.id, g).catch(() => null);
-        if (!r || !r.ok) {
+        // No network: the grade waits on this device and goes out when it is back.
+        const r = isOffline() ? null : await reviewCardAction(c.id, g).catch(() => null);
+        if (!r) enqueue({ kind: "review", id: c.id, day: "", grade: g });
+        else if (!r.ok) {
           setBusy(false);
-          return errorToast(te, r && !r.ok ? r : "INTERNAL");
+          return errorToast(te, r);
         }
       }
       // "Again" comes back at the end of this session.

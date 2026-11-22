@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { reviewCardAction } from "@/app/actions/cards";
 import { saveNoteAction } from "@/app/actions/personal";
 import { checkRoutineAction, saveDayLogAction } from "@/app/actions/roznoma";
 import { flush, permanent, waiting, type Job, type Sent } from "@/lib/outbox";
@@ -21,7 +22,9 @@ const send = async (job: Job): Promise<Sent> => {
       ? await checkRoutineAction(job.id, job.day, job.state as never)
       : job.kind === "day"
         ? await saveDayLogAction(job.day, job.log)
-        : await saveNoteAction(job.input, job.noteId ?? null);
+        : job.kind === "review"
+          ? await reviewCardAction(job.id, job.grade)
+          : await saveNoteAction(job.input, job.noteId ?? null);
   if (r.ok) return true;
   return permanent(r.code) ? "drop" : false;
 };

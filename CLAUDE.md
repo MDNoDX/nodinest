@@ -112,7 +112,11 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   mark until sent) queue in `lib/outbox.ts` (`queueNote`, `isOffline`) and go out on reconnect, on
   return to the front and every 30 s (`layout/outbox-sync.tsx`, one flush at a time; a job the server
   refuses for good — `permanent()` — is dropped, not retried forever). The offline strip shows how many
-  wait. Offline mode is on by itself in the Mac, Windows and phone (Capacitor) apps. The book editor
+  wait. Offline mode is ON BY ITSELF for everyone (`offlineOn()`: apps always, browsers unless they ask to
+save data; off only by the person's choice). /review works offline from cards kept on the device
+(`keepDueCards`, refreshed by each offline sync) and grades wait as `review` jobs. Chat text / GIF messages
+wait in `nn:chat-outbox` (a reload keeps them) and go again on reconnect. A server action that fails
+offline says "no internet" (`errors.OFFLINE` in use-action). The book editor
   has its own drafts. AI needs the network. The Mac app's WKWebView has service workers too.
 - Reader (`components/reader/reader-app.tsx`): one page at a time, never two; it fills the width up
   to the side panel, the text is the same size on every page (`prefs.size` × zoom), a long page scrolls;
@@ -311,7 +315,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   `remindPlansChanged()` after plan / time / bot / timezone changes) and `dueNow` (lib/remind-due.ts);
   only a due moment touches the database ("idle" otherwise). Book formatting runs only then + daily.
 - Offline mode (Settings → App, `lib/offline-sync.ts`, `/api/offline` = `server/offline.ts` manifest):
-  on by itself in the Mac / Windows app (UA), a switch elsewhere; every 12 h the worker warms the pages
+  on by itself everywhere (a switch turns it off); every 12 h the worker warms the pages
   (`warm` in sw.js, 2 at a time, progress over a MessagePort) with their `_next/static` chunks and
   covers, and the reader's `nn-books` keeps the text of books in progress. `/offline` lists saved pages.
   Reading progress made offline waits in the outbox (`progress` job). The Mac app reloads by itself

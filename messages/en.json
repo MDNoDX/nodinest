@@ -1342,7 +1342,8 @@
     "dm_closed": "You cannot write to this person yet: they only take messages from people they know.",
     "dm_blocked": "You cannot write in this chat (blocked).",
     "needProfile": "Open a profile for this — a minute, and free.",
-    "openProfile": "Open a profile"
+    "openProfile": "Open a profile",
+    "OFFLINE": "You are offline — this needs the internet. Try again when it is back."
   },
   "validation": {
     "required": "This field is required.",
@@ -1602,7 +1603,7 @@
     "retry": "Try again",
     "banner": "Offline — showing saved pages",
     "modeTitle": "Work offline",
-    "modeHint": "Sections, your recent items and notes, and the text of the books you are reading are kept on this device and open without the internet. On by itself in the Mac, Windows and phone apps.",
+    "modeHint": "Sections, your recent items and notes, and the text of the books you are reading are kept on this device and open without the internet. On by itself; turn it off to save space.",
     "status": "{pages} pages and {books} books saved · {when}",
     "never": "Nothing saved yet",
     "syncing": "Saving… {done} / {total}",

@@ -17,6 +17,8 @@ export type Job =
   | { kind: "day"; day: string; log: unknown }
   | { kind: "progress"; id: string; day: string; page: number; total: number }
   /** A new note or quote (`id` is this device's own, the server makes the real one). */
+  /** A study card graded offline (SM-2 runs on the server when it arrives). */
+  | { kind: "review"; id: string; day: string; grade: 1 | 2 | 3 | 4 }
   | {
       kind: "note";
       id: string;
@@ -101,6 +103,26 @@ export function queueNote(input: Record<string, unknown>, noteId?: string | null
   const id = noteId ?? `tmp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   enqueue({ kind: "note", id, day: "", input, noteId: noteId ?? null });
   return id;
+}
+
+/** Cards due for review, kept on this device so /review works offline. */
+const DUE = "nn:review-due";
+export function keepDueCards(cards: unknown[]) {
+  try {
+    localStorage.setItem(DUE, JSON.stringify(cards));
+  } catch {
+    /* storage full */
+  }
+}
+export function keptDueCards<T extends { id: string; deck?: string | null }>(deck: string | null): T[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(DUE) ?? "[]") as T[];
+    // Cards already graded on this device (waiting in the outbox) are not due any more.
+    const graded = new Set(read().filter((j) => j.kind === "review").map((j) => j.id));
+    return all.filter((c) => !graded.has(c.id) && (!deck || c.deck === deck));
+  } catch {
+    return [];
+  }
 }
 
 /** A server-action result code that will never succeed when sent again. */

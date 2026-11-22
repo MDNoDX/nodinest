@@ -3,6 +3,9 @@
  * Messages on their way, kept outside the page: leaving a chat while a video
  * goes up does not lose it. Coming back shows it with its progress (and ✕);
  * the top bar's tray shows it from any page. Only a reload stops an upload.
+ * Without the internet a message waits: text, GIFs and stickers are kept on
+ * this device (a reload keeps them too) and every waiting message goes again
+ * by itself when the network is back.
  */
 import { useSyncExternalStore } from "react";
 import { sendMessageAction } from "@/app/actions/dm";
@@ -37,9 +40,31 @@ const sentListeners = new Set<(threadId: string, m: DmMessage) => void>();
 const stoppers = new Map<string, AbortController>();
 let me = "";
 
+const KEPT = "nn:chat-outbox";
+/** Text / GIF messages survive a reload (files cannot be kept in storage). */
+function persist() {
+  try {
+    const light = all
+      .filter((x) => !x.file)
+      .map(({ key, threadId, to, body, replyToId, gif }) => ({
+        key,
+        threadId,
+        to,
+        body,
+        replyToId,
+        gif,
+      }));
+    if (light.length) localStorage.setItem(KEPT, JSON.stringify(light));
+    else localStorage.removeItem(KEPT);
+  } catch {
+    /* storage full or blocked */
+  }
+}
+
 let version = 0;
 const emit = () => {
   version++;
+  persist();
   listeners.forEach((l) => l());
 };
 const patch = (key: string, p: Partial<Pending>) => {
@@ -146,8 +171,31 @@ export function cancel(key: string) {
   drop(key);
 }
 
-// A page closed while something is still going up: the browser asks first.
-if (typeof window !== "undefined")
+/** Every message that failed for want of a network (no reason from the server) goes again. */
+function again() {
+  if (!navigator.onLine) return;
+  for (const p of all) if (p.failed && !p.code) retry(p);
+}
+
+if (typeof window !== "undefined") {
+  // A page closed while a FILE is still going up: the browser asks first
+  // (text waits in storage and goes on the next visit).
   window.addEventListener("beforeunload", (e) => {
-    if (all.some((x) => !x.failed)) e.preventDefault();
+    if (all.some((x) => x.file && !x.failed)) e.preventDefault();
   });
+  window.addEventListener("online", again);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") again();
+  });
+  // Messages written before the last reload, still on their way.
+  try {
+    const kept = JSON.parse(localStorage.getItem(KEPT) ?? "[]") as Pending[];
+    if (kept.length) {
+      all = kept.map((k) => ({ ...k, failed: !navigator.onLine }));
+      emit();
+      for (const it of all) if (!it.failed) chain = chain.then(() => deliver(it));
+    }
+  } catch {
+    /* nothing kept */
+  }
+}

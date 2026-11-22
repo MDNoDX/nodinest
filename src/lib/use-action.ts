@@ -28,7 +28,11 @@ export function useAction() {
       try {
         r = await fn();
       } catch {
-        errorToast(te, "INTERNAL");
+        // The request never reached the server: no network says so plainly.
+        errorToast(
+          te,
+          typeof navigator !== "undefined" && !navigator.onLine ? "OFFLINE" : "INTERNAL",
+        );
         return;
       }
       if (r.ok) {
