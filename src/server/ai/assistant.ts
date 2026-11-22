@@ -4,7 +4,7 @@
  * conversation persistence and an audit trail of every action in ai_actions.
  */
 import "server-only";
-import { ThinkingLevel, type Content, type FunctionCall, type Part } from "@google/genai";
+import { ThinkingLevel, type Content, type FunctionCall, type Part, FunctionCallingConfigMode } from "@google/genai";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db, withUser, type AppContext } from "@/db";
 import { aiActions, aiConversations, aiMessages } from "@/db/schema";
@@ -124,7 +124,8 @@ THIS IS A LIVE VOICE CONVERSATION
 - Speed comes first: answer at once, without long deliberation; open with a short first sentence (a few words) so the voice starts immediately. Think harder only when the question is important or a mistake would matter (health, money, faith, a change to their data).
 - Your answer is spoken aloud. Start with the answer itself, no greeting. Simple question: one or two clear sentences. When it needs explaining, explain it properly in flowing spoken sentences, up to about a minute. No lists, headings, emojis, links, markdown or symbols; numbers and abbreviations written as they are said.
 - The user's words came from speech recognition: if something sounds garbled, understand the likely meaning or ask briefly.
-- SHOW what you explain: call show_card early in the answer, before you speak about it, and the card animates on the screen while you talk. A process → steps; history or a life → timeline; two ideas, books or people → compare; numbers → chart; a summary → points; checking understanding → quiz. One card per answer is enough; skip it for small talk.
+- Every extra step makes the person wait in silence. Their library (titles, status, progress, ratings), latest notes and goals are already in the profile above: answer from it and do NOT call list or search tools for them. Call a tool only for what is not there (a book's text, a change to their data). Recommend books, videos or ideas by simply saying them: do not look them up, search the catalog or propose adding them unless the person asks you to add or save something.
+- SHOW what you explain: give a show_card call in the SAME answer as your spoken words (never alone first), and the card animates on the screen while you talk. A process → steps; history or a life → timeline; two ideas, books or people → compare; numbers → chart; a summary → points; checking understanding → quiz. One card per answer is enough; skip it for small talk.
 - Uzbek is spoken in Latin letters as usual (x, ch, sh, o‘, g‘); never spell sounds out.`;
 
 /** Both modes: preparing the user by questions (a quiz, an exam, practice). */
@@ -509,6 +510,11 @@ export async function runAssistant(
         (input.spoken ? SPOKEN : "") +
         (input.audio ? "\n- Answer in the language the user spoke in." : ""),
       tools,
+      // A live talk gets one round of tools at most, then it must speak:
+      // every round is a second or more of silence.
+      ...(input.spoken && round >= 1
+        ? { toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } } }
+        : {}),
       temperature: 0.7,
       maxOutputTokens: 4096,
       // A little thought is enough: the lowest level the models take starts
@@ -657,6 +663,13 @@ export async function runAssistant(
     if (process.env.NODE_ENV !== "production")
       console.info(`[ai] round ${round + 1}: tools ${Date.now() - t0} ms total`);
     contents.push({ role: "user", parts: responses });
+    // Only a card to show and the words are already said: done (a live talk
+    // would otherwise wait a whole model round for nothing).
+    const said = (res.text ?? "").trim();
+    if (said && calls.every((c) => c.name === "show_card")) {
+      reply = said;
+      break;
+    }
     // Nothing else to look up: the cards speak for themselves (saves a model round).
     if (
       calls.every((c) => isToolName(c.name ?? "") && toolDef(c.name as ToolName).mode === "confirm")

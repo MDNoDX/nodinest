@@ -250,7 +250,8 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   board's edge. Only TWO 3D planes (face + pages): a separate back-board plane made the browser re-sort
   them while scrolling (flicker). Turned -24° at rest; hover (`.cover-book:hover`, `a.group:hover .cover-book` —
   never a wider `.group`) lifts 8 px, turns to -36° and sweeps a light over the cover once (`.cover-glare`
-  keyframes) with a soft `.cover-sheen`; `.cover-3d` has `pointer-events: none` so a turned book
+  keyframes) with a soft `.cover-sheen`; with a mouse the book also leans to the pointer and its light
+  follows it (`library/book-tilt.tsx`, one document listener → --rx/--ry/--gx/--gy on that book); `.cover-3d` has `pointer-events: none` so a turned book
   reaching past its box never hovers its neighbour. `CoverPicture` stays invisible until it decided
   fill vs whole (ref + onLoad), then fades in once — no jump after load. It fills the frame when the
   picture's shape is
@@ -386,7 +387,7 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   the phone bar on phones and the menu order on computers; shortcuts are hidden on phones. Taking
   someone's post / shared card asks first (`ui/ask-first.tsx`). The profile has no "what others
   see" card; /u/<me>/items lists every item with its switch (asks about write-up / audiobook /
-  text) and a link to the post. The assistant answers short by default with `thinkingLevel: LOW`;
+  text) and a link to the post. The assistant answers short by default with `thinkingLevel: LOW`; a live talk gets at most ONE tool round (then `functionCallingConfig: NONE`), answers from the profile (library, notes, goals) instead of list tools, and a round with only show_card + words ends the turn (first sound ≈ 2.5 s);
   barge-in in the live talk triggers on normal speech (`BARGE_LEVEL` 0.12).
 - Resource types people pick: five (`MAIN_TYPES`: book, course = "Darslik", article (files too, may
   carry a PDF), video, podcast). `file` / `other` stay for old rows; filters fold relatives together.

@@ -792,7 +792,16 @@ select:not([multiple])::-ms-expand {
   z-index: 2;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgb(255 255 255 / 0.16), transparent 45%);
+  /* A soft light where the pointer is (top left before it moves). */
+  background:
+    radial-gradient(
+      circle at var(--gx, 25%) var(--gy, 15%),
+      rgb(255 255 255 / 0.32),
+      rgb(255 255 255 / 0.08) 35%,
+      transparent 60%
+    ),
+    linear-gradient(120deg, rgb(255 255 255 / 0.1), transparent 45%);
+  mix-blend-mode: soft-light;
   opacity: 0;
   transition: opacity 0.5s;
 }
@@ -806,7 +815,12 @@ a:focus-visible .cover-book {
 .cover-book:hover .cover-3d,
 a.group:hover .cover-book .cover-3d,
 a:focus-visible .cover-book .cover-3d {
-  transform: perspective(1400px) rotateY(-36deg) translateX(calc(var(--depth) * -0.55));
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(calc(-34deg + var(--ry, 0deg)))
+    translateX(calc(var(--depth) * -0.55)) scale(1.03);
+}
+/* Following the mouse (book-tilt.tsx): quick, so the book answers the hand. */
+.cover-book[data-tilt] .cover-3d {
+  transition: transform 0.14s ease-out;
 }
 .cover-book:hover .cover-glare,
 a.group:hover .cover-book .cover-glare,

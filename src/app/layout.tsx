@@ -8,6 +8,7 @@ import { Pwa } from "@/components/pwa/pwa";
 import { INSTALL_SCRIPT } from "@/lib/install-script";
 import { SiteAnalytics } from "@/components/pwa/analytics";
 import { AskHost } from "@/components/ui/ask";
+import { BookTilt } from "@/components/library/book-tilt";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -74,6 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {children}
             <Toaster />
             <AskHost />
+            <BookTilt />
             <Pwa />
             <NativeBridge />
             <SiteAnalytics />

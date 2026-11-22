@@ -150,7 +150,7 @@ export async function generate(
         err instanceof ApiError &&
         (err.status === 400 || err.status === 401 || err.status === 403)
       ) {
-        console.error("[nodinest] gemini request rejected:", err.status);
+        console.error("[nodinest] gemini request rejected:", err.status, model, err.message.slice(0, 300));
         throw new AppError("AI_UNAVAILABLE", `status_${err.status}`);
       }
       if (err instanceof AppError) throw err;
