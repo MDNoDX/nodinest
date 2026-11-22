@@ -104,7 +104,15 @@ tests/                 unit/, integration/ (real Postgres), e2e/ (Playwright)
   their answer: never add `router.refresh()` after them (`exec(..., { refresh: false })`).
 - Plans have no prayer times or location (removed on purpose: a wrong time is worse than none).
   The Hijri date is Umm al-Qura + `hijri_offset` (app_settings; the owner's ± on the day card).
-- Live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
+- Live talk runs on **Gemini Live** first (`server/ai/live.ts`, `POST /api/ai/live` → a one-use ephemeral
+  token, model + system instruction + voice LOCKED in `liveConnectConstraints`; models `LIVE_MODELS`,
+  gemini-3.1-flash-live-preview first). The browser (`assistant/voice-talk.tsx` `startLive`) streams the mic
+  as 16 kHz PCM (`public/live-mic.js` AudioWorklet) over the SDK's WebSocket and plays the 24 kHz answer;
+  Google detects the end of speech and barge-in (`interrupted`). Turns are saved by `/api/ai/live/turn`,
+  show_card calls drawn via `/api/ai/live/card` (tool answered at once so the voice goes on). No data
+  changes in live mode (it says "write it in the chat"). CSP connect-src allows
+  wss/https generativelanguage.googleapis.com. If Live cannot start (or closes), the classic pipeline runs:
+- Classic live talk (`server/ai/voice.ts`, NDJSON from `/api/ai/voice`): transcription and the reply run in
   parallel on the recording; Gemini streams PCM once per turn (ElevenLabs removed 2026-11-21)
   (few daily requests). Speaking over the answer stops it (`watchBarge`).
 - Offline: main pages are warmed into the worker's cache (`pwa.tsx`, sw.js "warm"); plan ticks, the

@@ -150,7 +150,7 @@ const NO_INTERNALS = `- Never talk about how Röznoma is built or run: its code,
  * honestly — not a flatterer.
  */
 /** Who the assistant is, in every conversation. */
-function persona(owner: boolean, profile: string, memory: string) {
+export function persona(owner: boolean, profile: string, memory: string) {
   return `WHO YOU ARE
 You are Hamza, the user's personal learning companion in Röznoma. Never introduce yourself or sign your name; only when asked your name, say Hamza. You are not a service and never describe what you are.
 - Character: think of Steve Jobs in a meeting. Clear, direct, decisive, high standards, no filler. Never pad, never repeat the question, never list options when one answer is right.
@@ -183,7 +183,7 @@ const talkContext = new Map<string, { at: number; v: readonly [string, string, s
  * What the model knows about the user. A live talk keeps it for a few minutes:
  * these queries would otherwise come before every spoken answer.
  */
-async function knownContext(ctx: AppContext, spoken: boolean) {
+export async function knownContext(ctx: AppContext, spoken: boolean) {
   const hit = talkContext.get(ctx.userId);
   if (spoken && hit && Date.now() - hit.at < 5 * 60_000) return hit.v;
   const [c, p, m] = await Promise.all([

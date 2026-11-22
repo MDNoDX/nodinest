@@ -14,8 +14,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  // Uploads go to our own /api/blob/upload (Netlify Blobs behind it).
-  "connect-src 'self'",
+  // Uploads go to our own /api/blob/upload (Netlify Blobs behind it); the live
+  // talk speaks with Gemini Live directly (a one-use token from /api/ai/live).
+  "connect-src 'self' wss://generativelanguage.googleapis.com https://generativelanguage.googleapis.com",
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-src https://www.youtube-nocookie.com",

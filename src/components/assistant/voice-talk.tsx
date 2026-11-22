@@ -63,11 +63,45 @@ const BARGE_LEVEL = 0.12; // speaking over the answer stops it (normal speech, n
 const BARGE_MS = 300; // …after this long; clearly louder than the answer's own echo
 const BARGE_GRACE_MS = 600; // the speakers start: the mic hears them first
 
+/** The microphone at 16 kHz, 16-bit (what Gemini Live hears), as base64. */
+function toPcm16(chunks: Float32Array[], rate: number) {
+  const len = chunks.reduce((n, c) => n + c.length, 0);
+  const all = new Float32Array(len);
+  let o = 0;
+  for (const c of chunks) {
+    all.set(c, o);
+    o += c.length;
+  }
+  const ratio = rate / 16000;
+  const out = new Int16Array(Math.floor(len / ratio));
+  for (let i = 0; i < out.length; i++) {
+    const at = i * ratio;
+    const j = Math.floor(at);
+    const v = all[j] + ((all[j + 1] ?? all[j]) - all[j]) * (at - j);
+    out[i] = Math.max(-1, Math.min(1, v)) * 0x7fff;
+  }
+  let bin = "";
+  const bytes = new Uint8Array(out.buffer);
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+type LiveSession = {
+  sendRealtimeInput: (p: { audio: { data: string; mimeType: string } }) => void;
+  sendToolResponse: (p: {
+    functionResponses: { id?: string; name?: string; response: Record<string, unknown> }[];
+  }) => void;
+  close: () => void;
+};
+
 /**
- * Live voice talk (like a phone call): it listens, notices when you stop
- * speaking, says the answer sentence by sentence as it is written, then listens
- * again. Speak over it (or tap the sphere) and it stops to hear you; the mic
- * button pauses listening.
+ * Live voice talk (like a phone call). First choice: Gemini Live — the
+ * microphone streams to Google and the answer's voice streams back (first
+ * sound in about half a second; Google hears when you stop, and speaking over
+ * the answer stops it). If Live cannot start, the classic way: it listens,
+ * notices when you stop speaking, sends the recording, says the answer
+ * sentence by sentence, then listens again. The mic button pauses listening.
  */
 export function VoiceTalk({
   conversationId,
@@ -132,6 +166,13 @@ export function VoiceTalk({
     voice,
     /** The current `listen` (it restarts itself after each answer). */
     listen: null as null | (() => Promise<void>),
+    /** Gemini Live, when it is the engine (null = the classic way). */
+    live2: null as LiveSession | null,
+    tap: null as AudioWorkletNode | null,
+    heard: "",
+    reply: "",
+    /** A new voice: the live session is being replaced, not lost. */
+    switching: false,
   });
   useEffect(() => {
     r.current.state = state;
@@ -169,6 +210,7 @@ export function VoiceTalk({
     x.turn++;
     x.abort?.abort();
     stopAudio();
+    if (x.live2) return setState("listening");
     void x.listen?.();
   }, [stopAudio]);
 
@@ -176,6 +218,7 @@ export function VoiceTalk({
   const watchBarge = useCallback(() => {
     const x = r.current;
     window.clearInterval(x.barge);
+    if (x.live2) return; // Gemini Live hears a voice over the answer itself
     let since = 0;
     const began = performance.now();
     x.barge = window.setInterval(() => {
@@ -432,7 +475,173 @@ export function VoiceTalk({
     r.current.listen = listen;
   }, [listen]);
 
-  // Start: the microphone, then listen.
+  /** Starts Gemini Live; false when it cannot (then the classic way runs). */
+  const startLive = useCallback(async (): Promise<boolean> => {
+    const x = r.current;
+    if (!x.ctx || !x.stream || typeof AudioWorkletNode === "undefined") return false;
+    const res = await fetch("/api/ai/live", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ conversationId: x.conv, voice: x.voice }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      const code = ((await res?.json().catch(() => ({}))) as { error?: string })?.error;
+      // A plan limit is the same for both ways: say it instead of trying the other.
+      if (code === "PREMIUM_REQUIRED" || code === "RATE_LIMITED") {
+        setError(cb.current.te.has(code) ? cb.current.te(code) : cb.current.t("voiceFailed"));
+        setState("idle");
+        return true;
+      }
+      return false;
+    }
+    const { token, model } = (await res.json()) as { token: string; model: string };
+    if (x.closed) return true;
+    let opened = false;
+    try {
+      const { GoogleGenAI, Modality } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1alpha" } });
+      const saveTurn = () => {
+        const heard = x.heard.trim();
+        const reply = x.reply.trim();
+        x.heard = "";
+        x.reply = "";
+        if (!heard && !reply) return;
+        void fetch("/api/ai/live/turn", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ conversationId: x.conv, heard, reply }),
+        })
+          .then((rr) => (rr.ok ? rr.json() : null))
+          .then((d: { conversationId?: string } | null) => {
+            if (!d?.conversationId) return;
+            x.conv = d.conversationId;
+            cb.current.onTurn({ heard, reply, conversationId: d.conversationId, visuals: [], actions: [] });
+          })
+          .catch(() => {});
+      };
+      const session = (await ai.live.connect({
+        model,
+        config: { responseModalities: [Modality.AUDIO] },
+        callbacks: {
+          onopen: () => {
+            opened = true;
+          },
+          onmessage: (m: {
+            serverContent?: {
+              interrupted?: boolean;
+              turnComplete?: boolean;
+              modelTurn?: { parts?: { inlineData?: { data?: string; mimeType?: string } }[] };
+              inputTranscription?: { text?: string };
+              outputTranscription?: { text?: string };
+            };
+            toolCall?: { functionCalls?: { id?: string; name?: string; args?: unknown }[] };
+          }) => {
+            const sc = m.serverContent;
+            if (sc?.interrupted) {
+              // Spoken over: the rest of this answer is dropped at once.
+              x.turn++;
+              stopAudio();
+              setState("listening");
+            }
+            if (sc?.inputTranscription?.text) {
+              if (x.reply) saveTurn(); // a new question after an answer
+              x.heard += sc.inputTranscription.text;
+              setCaption({ heard: x.heard, reply: "" });
+              if (r.current.state !== "speaking") setState("listening");
+            }
+            for (const part of sc?.modelTurn?.parts ?? []) {
+              const d = part.inlineData;
+              if (!d?.data) continue;
+              const rate = Number(/rate=(\d+)/.exec(d.mimeType ?? "")?.[1] ?? 24000);
+              playPcm(d.data, rate, x.turn);
+            }
+            if (sc?.outputTranscription?.text) {
+              x.reply += sc.outputTranscription.text;
+              setCaption({ heard: x.heard, reply: x.reply });
+            }
+            if (sc?.turnComplete) {
+              saveTurn();
+              void x.decoding.then(() => {
+                const left = (x.nextAt - (x.ctx?.currentTime ?? 0)) * 1000;
+                window.setTimeout(() => {
+                  if (!x.closed && x.live2 && r.current.state === "speaking" && x.sources.size === 0)
+                    setState("listening");
+                }, Math.max(0, left) + 80);
+              });
+            }
+            for (const call of m.toolCall?.functionCalls ?? []) {
+              // Answered at once, so the voice goes on; the card is drawn when it comes.
+              x.live2?.sendToolResponse({
+                functionResponses: [{ id: call.id, name: call.name, response: { shown: true } }],
+              });
+              if (call.name === "show_card")
+                void fetch("/api/ai/live/card", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify(call.args ?? {}),
+                })
+                  .then((rr) => (rr.ok ? rr.json() : null))
+                  .then((d: { card?: Visual } | null) => {
+                    const card = d?.card;
+                    if (card)
+                      setCards((c) => (c.some((v) => v.title === card.title) ? c : [card, ...c]));
+                  })
+                  .catch(() => {});
+            }
+          },
+          onerror: () => {},
+          onclose: () => {
+            const was = x.live2;
+            x.live2 = null;
+            x.tap?.disconnect();
+            x.tap = null;
+            if (x.closed || !was) return;
+            saveTurn();
+            if (x.switching) return;
+            // Closed by Google (time limit, network): the classic way carries on.
+            stopAudio();
+            void x.listen?.();
+          },
+        },
+      })) as unknown as LiveSession;
+      if (x.closed) {
+        session.close();
+        return true;
+      }
+      x.live2 = session;
+      // The microphone, streamed in ~40 ms pieces.
+      await x.ctx.audioWorklet.addModule("/live-mic.js");
+      const tap = new AudioWorkletNode(x.ctx, "mic-tap");
+      x.tap = tap;
+      const src = x.ctx.createMediaStreamSource(x.stream);
+      src.connect(tap);
+      const rate = x.ctx.sampleRate;
+      let pending: Float32Array[] = [];
+      let have = 0;
+      tap.port.onmessage = (e: MessageEvent<Float32Array>) => {
+        if (!x.live2 || x.muted) return;
+        pending.push(e.data);
+        have += e.data.length;
+        if (have < rate * 0.04) return;
+        const data = toPcm16(pending, rate);
+        pending = [];
+        have = 0;
+        try {
+          x.live2.sendRealtimeInput({ audio: { data, mimeType: "audio/pcm;rate=16000" } });
+        } catch {
+          /* closing */
+        }
+      };
+      setError(null);
+      setState("listening");
+      return opened || !!x.live2;
+    } catch {
+      x.live2 = null;
+      return false;
+    }
+  }, [playPcm, stopAudio]);
+
+  // Start: the microphone, then Gemini Live (or the classic way).
   useEffect(() => {
     const x = r.current;
     x.closed = false;
@@ -454,7 +663,7 @@ export function VoiceTalk({
         out.fftSize = 1024;
         out.connect(ctx.destination);
         x.out = out;
-        void listen();
+        if (!(await startLive())) void listen();
       } catch {
         setError(cb.current.t("micDenied"));
       }
@@ -464,16 +673,47 @@ export function VoiceTalk({
     return () => {
       window.removeEventListener("keydown", onKey);
       x.closed = true;
+      try {
+        x.live2?.close();
+      } catch {
+        /* already closed */
+      }
+      x.live2 = null;
       if (x.rec?.state === "recording") x.rec.stop();
       x.abort?.abort();
       stopAudio();
       x.stream?.getTracks().forEach((tr) => tr.stop());
       void x.ctx?.close();
     };
-  }, [listen, stopAudio]);
+  }, [listen, startLive, stopAudio]);
+
+  // Another voice in a live talk: a new session with it (the voice is part of the token).
+  const firstVoice = useRef(voice);
+  useEffect(() => {
+    const x = r.current;
+    if (voice === firstVoice.current) return;
+    firstVoice.current = voice;
+    if (!x.live2) return;
+    x.switching = true;
+    try {
+      x.live2.close();
+    } catch {
+      /* already closed */
+    }
+    x.live2 = null;
+    stopAudio();
+    void startLive().then((ok) => {
+      x.switching = false;
+      if (!ok && !x.closed) void x.listen?.();
+    });
+  }, [voice, startLive, stopAudio]);
 
   const interrupt = () => {
     const x = r.current;
+    if (x.live2) {
+      if (x.state === "speaking") hush();
+      return;
+    }
     if (x.state === "speaking") hush();
     else if (x.state === "idle" && !x.muted) void listen();
   };
@@ -482,6 +722,7 @@ export function VoiceTalk({
     const m = !muted;
     setMuted(m);
     r.current.muted = m;
+    if (r.current.live2) return setState(m ? "idle" : "listening");
     if (m) {
       if (r.current.rec?.state === "recording") r.current.rec.stop();
     } else if (r.current.state === "idle") void listen();
