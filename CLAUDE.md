@@ -461,13 +461,10 @@ nothing the site uses changed (a deploy costs 15 of the 300 monthly credits: che
 `netlify api createSiteBuild`): a `netlify deploy` of a build made on this Mac ships macOS `sharp`
 (every page 500s on Linux) and, with publish = .next, would expose .next files. Limits: 60 s per function
 (maxDuration above 60 does nothing), ≤ 6 MB per request (uploads go in 3 MB parts), ≤ 20 MB streamed
-response, functions in us-east-2 (Free cannot pick a region) while the DB is Neon EU
-`nodinest-db-eu` (env `EU_DATABASE_URL[_UNPOOLED]`; `src/db/index.ts` and the scripts prefer it).
-The old us-east `nodinest-db` (`DATABASE_URL`) is kept as a frozen backup from 2026-10-28.
-Daily backups (docs/backup-restore.md): `.github/workflows/db-backup.yml` keeps 30 days of encrypted
-pg_dumps as artifacts; the private repo MDNoDX/nodinest-backups mirrors every file, encrypted, from
-`/api/backup/*` (`server/backup.ts`, CRON_SECRET).
-The production env master copy is `.env.netlify` (gitignored, includes BACKUP_PASSPHRASE).
+response, functions in us-east-2 (Free cannot pick a region). The database moved to sit next to them on
+2026-11-22: Neon us-east-1 project `nodinest-db` (`DATABASE_URL[_UNPOOLED]`, preferred by src/db/index.ts
+and the scripts); the Frankfurt `nodinest-db-eu` (`EU_DATABASE_URL`) is a cold copy of that moment, only a
+fallback. Dumps of both from the move: ~/Library/Application Support/Roznoma/db-dumps.
 Neon is on Postgres 18: use `/opt/homebrew/opt/libpq/bin` (pg_dump 18) for dumps.
 
 Env: `netlify env:list` / `netlify env:set` (never print values). Vercel's "sensitive" values could not
