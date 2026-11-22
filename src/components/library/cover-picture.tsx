@@ -5,9 +5,11 @@ import { cn } from "@/lib/cn";
 import { coverSrcSet, sharperCover } from "@/lib/cover-url";
 
 /**
- * A cover picture. When its shape is close to the frame's (a book cover on a
- * book) it fills the frame edge to edge like a printed cover; a picture of
- * another shape is shown whole on a blurred copy of itself. Our own files come
+ * A cover picture, never cut: the whole cover with its title always shows.
+ * When its shape is close to the frame's (a book cover on a book, ≤ 15 % off)
+ * it is fitted to the frame exactly, edge to edge, stretched by that little;
+ * a picture of another shape is shown whole on a blurred copy of itself.
+ * (YouTube thumbnails carry black bands around a 16:9 picture: those fill.) Our own files come
  * in the width the screen needs (sharp on Retina). If it cannot be loaded the
  * `fallback` (the title cover) takes its place instead of a broken image.
  * The picture stays invisible until its fit is known and then fades in once
@@ -27,19 +29,18 @@ export function CoverPicture({
   const [bad, setBad] = useState<string | null>(null);
   // The other site has no large size: back to the picture as it was given.
   const [plain, setPlain] = useState<string | null>(null);
-  const [fill, setFill] = useState<boolean | null>(null);
+  const [fit, setFit] = useState<"exact" | "whole" | "crop" | null>(null);
   const big = sharperCover(src);
   const url = plain === src ? src : big;
   const decide = useCallback(
     (img: HTMLImageElement | null) => {
       if (!img || !img.complete || !img.naturalWidth) return;
       const box = img.parentElement;
-      if (!box?.clientHeight) return setFill(true);
+      if (/i\.ytimg\.com\//.test(img.currentSrc || url)) return setFit("crop");
+      if (!box?.clientHeight) return setFit("exact");
       const r = img.naturalWidth / img.naturalHeight;
       const frame = box.clientWidth / box.clientHeight;
-      // Within ~20 % of the frame's shape: cropping a sliver beats blurred bands.
-      // YouTube's 4:3 thumbnails carry black bands around a 16:9 picture: always fill.
-      setFill(/i\.ytimg\.com\//.test(img.currentSrc || url) || Math.abs(r - frame) / frame < 0.2);
+      setFit(Math.abs(r - frame) / frame <= 0.15 ? "exact" : "whole");
     },
     [url],
   );
@@ -48,8 +49,8 @@ export function CoverPicture({
   return (
     <>
       {/* Until the picture is here (a slow connection), the title cover stands in. */}
-      {fill === null && fallback}
-      {fill === false && (
+      {fit === null && fallback}
+      {fit === "whole" && (
         <img
           src={url}
           alt=""
@@ -73,8 +74,8 @@ export function CoverPicture({
         onLoad={(e) => decide(e.currentTarget)}
         className={cn(
           "absolute inset-0 size-full transition-opacity duration-300",
-          fill === false ? "object-contain" : "object-cover",
-          fill === null && "opacity-0",
+          fit === "whole" ? "object-contain" : fit === "crop" ? "object-cover" : "object-fill",
+          fit === null && "opacity-0",
         )}
       />
     </>

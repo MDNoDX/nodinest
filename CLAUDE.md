@@ -257,9 +257,9 @@ offline says "no internet" (`errors.OFFLINE` in use-action). The book editor
   keyframes) with a soft `.cover-sheen`; with a mouse the book also leans to the pointer and its light
   follows it (`library/book-tilt.tsx`, one document listener → --rx/--ry/--gx/--gy on that book); `.cover-3d` has `pointer-events: none` so a turned book
   reaching past its box never hovers its neighbour. `CoverPicture` stays invisible until it decided
-  fill vs whole (ref + onLoad), then fades in once — no jump after load. It fills the frame when the
-  picture's shape is
-  within 20 % of it (YouTube thumbnails always), else shows it whole on a blurred copy; our files get a
+  its fit (ref + onLoad), then fades in once — no jump after load. A cover is NEVER cut (its title must
+  show): ≤ 15 % off the frame's shape → `object-fill` (fitted exactly, stretched that little), else whole on
+  a blurred copy; only YouTube thumbnails (black bands) use `object-cover`. Our files get a
   srcset (320/480/720, `lib/cover-url.ts`, `COVER_V`), other hosts their large size (`sharperCover`).
   Scrolling shelves (home "reading") leave room inside (pt / px / pb, `scroll-px`) and fade their ends.
   Videos: lift, dim, play button with a pulse ring, a red progress line; a small play mark when idle.
